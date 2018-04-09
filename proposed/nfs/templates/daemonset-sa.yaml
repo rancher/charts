@@ -1,0 +1,55 @@
+apiVersion: {{ template "nfs.apiversion" . }}
+kind: DaemonSet
+metadata:
+  name: {{ template "nfs.fullname" . }}
+  labels:
+    app: {{ template "nfs.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  template:
+    metadata:
+      labels:
+        app: {{ template "nfs.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      serviceAccount: {{ template "nfs.fullname" . }}
+      containers:
+        - name: nfs-provisioner
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: nfs
+              containerPort: 2049
+              hostPort: 2049
+            - name: mountd
+              containerPort: 20048
+            - name: rpcbind
+              containerPort: 111
+            - name: rpcbind-udp
+              containerPort: 111
+              protocol: UDP
+          securityContext:
+            capabilities:
+              add:
+                - DAC_READ_SEARCH
+                - SYS_RESOURCE
+          args:
+            - "-provisioner=rancher.io/nfs"
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: export-volume
+              mountPath: /export
+      volumes:
+        - name: export-volume
+          hostPath:
+            path: {{ .Values.persistence.hostPath }}
