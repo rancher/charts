@@ -1,0 +1,39 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ .Release.Namespace }}-ui
+  name: longhorn-ui
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Namespace }}-ui
+    spec:
+      containers:
+      - name: longhorn-ui
+        image: {{ .Values.image.longhorn.ui }}
+        ports:
+        - containerPort: 8000
+          name: longhorn-ui
+        env:
+          - name: LONGHORN_MANAGER_IP
+            value: "http://longhorn-backend:9500"
+---
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    app: {{ .Release.Namespace }}-ui
+  name: longhorn-frontend
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app: {{ .Release.Namespace }}-ui
+  ports:
+  - name: longhorn-ui
+    port: 80
+    targetPort: longhorn-ui
+  type: {{ .Values.service.ui.type }}
