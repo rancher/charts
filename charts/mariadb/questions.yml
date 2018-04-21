@@ -1,0 +1,96 @@
+categories:
+- Database
+- MySQL
+questions:
+- variable: defaultImage
+  default: "true"
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: enum
+  options:
+    - "true"
+    - "false"
+  show_subquestion_if: false
+  subquestions:
+  - variable: image.registry
+    default: "docker.io"
+    description: "Docker image registry	"
+    type: string
+    label: Docker Image Registry
+  - variable: image.repository
+    default: "bitnami/mariadb"
+    description: "Docker image name"
+    type: string
+    label: Docker Image Name
+  - variable: image.tag
+    default: "10.1.32"
+    description: "Docker image tag"
+    type: string
+    label: Image Tag
+- variable: usePassword
+  default: "true"
+  description: "Enable password authentication"
+  type: enum
+  options:
+    - "true"
+    - "false"
+  required: true
+  label: Enable Password Authentication
+  show_subquestion_if: true
+  subquestions:
+  - variable: mariadbUser
+    default: "admin"
+    description: "Username of new user to create."
+    type: string
+    label: MariaDB User
+    required: true
+  - variable: mariadbPassword
+    default: ""
+    description: "Password for mariadbUser, defaults to a random 10-character alphanumeric string if not set"
+    type: string
+    label: MariaDB Password
+- variable: mariadbDatabase
+  default: "mydb"
+  description: "Database name to create"
+  type: string
+  label: MariaDB Database
+  required: true
+- variable: service.type
+  default: "NodePort"
+  description: "MariaDB K8s Service type"
+  type: enum
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: MariaDB Service Type
+- variable: persistence.enabled
+  default: "false"
+  description: "Enable persistent volume for MariaDB"
+  type: enum
+  options:
+    - "true"
+    - "false"
+  required: true
+  label: MariaDB Persistent Volume Enabled
+  show_subquestion_if: true
+  subquestions:
+  - variable: persistence.size
+    default: "8Gi"
+    description: "MariaDB Persistent Volume Size"
+    type: string
+    label: MariaDB Volume Size
+  - variable: persistence.storageClass
+    default: ""
+    description: "If unndefined or set to null, using the default storageClass. default to null"
+    type: string
+    label: Storage Class
+- variable: metrics.enabled
+  default: "false"
+  description: "Start a side-car prometheus exporter"
+  type: enum
+  options:
+    - "true"
+    - "false"
+  required: true
+  label: Enable Metrics

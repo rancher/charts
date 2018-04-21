@@ -1,0 +1,55 @@
+categories:
+- KeyValue
+- Database
+questions:
+- variable: defaultImage
+  default: "true"
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: enum
+  options:
+    - "true"
+    - "false"
+  show_subquestion_if: false
+  subquestions:
+  - variable: image
+    default: "quay.io/smile/redis:4.0.8r0"
+    description: "Redis Docker image"
+    type: string
+    label: Redis Docker Image
+- variable: replicas.servers
+  default: "3"
+  description: "Number of redis master/slave pods"
+  type: string
+  label: Redis Replicas
+  required: true
+- variable: replicas.sentinels
+  default: "3"
+  description: "Number of sentinel pods"
+  type: string
+  label: Sentinel Replicas
+  required: true
+- variable: auth
+  default: "false"
+  description: "Configures redis with Auth"
+  type: enum
+  options:
+    - "true"
+    - "false"
+  required: true
+  label: Redis Auth Enabled
+  show_subquestion_if: true
+  subquestions:
+  - variable: redisPassword
+    default: ""
+    description: "Redis password, defaults to a random 10-character alphanumeric string if not set and auth is true"
+    type: password
+    label: Redis Password
+- variable: servers.serviceType
+  default: "ClusterIP"
+  description: "Service type for Redis servers"
+  type: enum
+  options:
+    - "ClusterIP"
+    - "LoadBalancer"
+  label: Service type for Redis servers

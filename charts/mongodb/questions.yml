@@ -1,0 +1,88 @@
+categories:
+- Database
+- NoSQL
+questions:
+- variable: defaultImage
+  default: "true"
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: enum
+  options:
+    - "true"
+    - "false"
+  show_subquestion_if: false
+  subquestions:
+  - variable: image.registry
+    default: "docker.io"
+    description: "MongoDB image registry	"
+    type: string
+    label: MongoDB Image Registry
+  - variable: image.repository
+    default: "bitnami/mongodb"
+    description: "MongoDB image name"
+    type: string
+    label: MongoDB Image Name
+  - variable: image.tag
+    default: "3.7.3"
+    description: "MongoDB image tag"
+    type: string
+    label: Image Tag
+- variable: mongodbRootPassword
+  default: ""
+  description: "Password for the root user, defaults to a random 10-character alphanumeric string if not set"
+  type: password
+  label: MongoDB Root Password
+- variable: mongodbUsername
+  default: ""
+  description: "Username of new user to create."
+  type: string
+  label: MongoDB User
+  required: true
+- variable: mongodbPassword
+  default: ""
+  description: "Password for mongodb user, defaults to a random 10-character alphanumeric string if not set"
+  type: password
+  label: MongoDB Password
+- variable: mongodbDatabase
+  default: ""
+  description: "Database name to create"
+  type: string
+  label: MongoDB Database
+  required: true
+- variable: service.type
+  default: "ClusterIP"
+  description: "MongoDB K8s Service type"
+  type: enum
+  options:
+    - "ClusterIP"
+    - "NodePort"
+    - "LoadBalancer"
+  required: true
+  label: MongoDB Service Type
+- variable: service.nodePort
+  default: "32100"
+  description: "NodePort port number(to set explicitly, choose port between 30000-32767)"
+  type: string
+  show_if: "service.type=NodePort"
+  label: Service NodePort number
+- variable: persistence.enabled
+  default: "false"
+  description: "Enable persistent volume for MongoDB"
+  type: enum
+  options:
+    - "true"
+    - "false"
+  required: true
+  label: MongoDB Persistent Volume Enabled
+  show_subquestion_if: true
+  subquestions:
+  - variable: persistence.size
+    default: "8Gi"
+    description: "MongoDB Persistent Volume Size"
+    type: string
+    label: MongoDB Volume Size
+  - variable: persistence.storageClass
+    default: ""
+    description: "If unndefined or set to null, using the default storageClass. default to null"
+    type: string
+    label: Default Storage Class for MongoDB

@@ -1,0 +1,175 @@
+categories:
+- E-commerce
+questions:
+- variable: defaultImage
+  default: "true"
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: enum
+  options:
+    - "true"
+    - "false"
+  show_subquestion_if: false
+  subquestions:
+  - variable: image.registry
+    default: "docker.io"
+    description: "Magento image registry	"
+    type: string
+    label: Magento Image Registry
+  - variable: image.repository
+    default: "bitnami/magento"
+    description: "Magento image name"
+    type: string
+    label: Magento Image Name
+  - variable: image.tag
+    default: "2.2.3"
+    description: "Magento image tag"
+    type: string
+    label: Image Tag
+- variable: magentoHost
+  default: ""
+  description: "Magento host to create application URLs"
+  type: string
+  label: Magento Host URL
+  required: true
+- variable: magentoUsername
+  default: "user"
+  description: "User of the application"
+  type: string
+  label: Magento Username
+  required: true
+- variable: magentoPassword
+  default: ""
+  description: "Application password(defualt random 10 character long alphanumeric string if not set)"
+  type: password
+  label: Magento Password
+- variable: magentoEmail
+  default: "user@example.com"
+  description: "Admin email"
+  label: Magento Email
+  type: string
+  required: true
+- variable: mariadb.enabled
+  default: "true"
+  description: "Whether to deploy a mariadb server to satisfy the applications database requirements. To use an external database set this to false and configure the externalDatabase parameters"
+  type: enum
+  options:
+    - "true"
+    - "false"
+  required: true
+  label: Install MariaDB
+  subquestions:
+  - variable: mariadb.mariadbDatabase
+    default: "magento"
+    description: "Database name to create"
+    type: string
+    label: MariaDB Database
+  - variable: mariadb.mariadbUser
+    default: "magento"
+    description: "Database user to create"
+    type: string
+    label: MariaDB User
+  - variable: mariadb.mariadbPassword
+    default: ""
+    description: "Password for the database(defualt random 10 character long alphanumeric string)"
+    label: MariaDB Password
+    type: string
+- variable: externalDatabase.host
+  default: ""
+  description: "Host of the external database"
+  type: string
+  label: External Database Host
+  show_if: "mariadb.enabled=false"
+- variable: externalDatabase.user
+  default: ""
+  description: "Existing username in the external DB"
+  type: string
+  label: External Database username
+  show_if: "mariadb.enabled=false"
+- variable: externalDatabase.password
+  default: ""
+  description: "external database password"
+  type: password
+  label: External Database password
+  show_if: "mariadb.enabled=false"
+- variable: externalDatabase.database
+  default: ""
+  description: "Name of the existing database"
+  type: string
+  label: External Database
+  show_if: "mariadb.enabled=false"
+- variable: externalDatabase.port
+  default: "3306"
+  description: "External database port number	"
+  type: string
+  label: External Database Port
+  show_if: "mariadb.enabled=false"
+- variable: mariadb.persistence.enabled
+  default: "false"
+  description: "Enable persistence using PVC of MariaDB"
+  type: enum
+  options:
+    - "true"
+    - "false"
+  required: true
+  label: MariaDB Persistent Volume Enabled
+  show_if: "mariadb.enabled=true"
+  show_subquestion_if: true
+  subquestions:
+  - variable: mariadb.persistence.size
+    default: "8Gi"
+    description: "MariaDB Persistent Volume Size"
+    type: string
+    label: MariaDB Volume Size
+  - variable: mariadb.persistence.storageClass
+    default: ""
+    description: "If unndefined or set to null, using the default storageClass. default to null"
+    type: string
+    label: Default Storage Class for MariaDB
+- variable: serviceType
+  default: "LoadBalancer"
+  description: "Magento Service type"
+  type: enum
+  options:
+    - "LoadBalancer"
+  required: true
+  label: Magento Service Type
+- variable: magentoMode
+  default: "default"
+  description: "Magento mode. Valid values: default, production, developer."
+  type: enum
+  options:
+    - "default"
+    - "production"
+    - "developer"
+  label: Magento Mode
+- variable: persistence.enabled
+  default: "false"
+  description: "Enable persistence using PVC of magento and apache"
+  type: enum
+  options:
+    - "true"
+    - "false"
+  required: true
+  label: Persistent Volume Enabled
+  subquestions:
+  - variable: persistence.magento.size
+    default: "8Gi"
+    description: "Persistent Volume Size"
+    type: string
+    label: Persistent Volume Size
+  - variable: persistence.magento.storageClass
+    default: ""
+    description: "If unndefined or set to null, using the default storageClass. default to null"
+    type: string
+    label: Default Storage Class for Magento
+  - variable: persistence.apache.size
+    default: "1Gi"
+    description: "Persistent Volume Size"
+    type: string
+    label: Persistent Volume Size
+  - variable: persistence.apache.storageClass
+    default: ""
+    description: "If unndefined or set to null, using the default storageClass. default to null"
+    type: string
+    label: Default Storage Class for Apache
