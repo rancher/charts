@@ -14,13 +14,3 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 {{- $name := default .Chart.Name .Values.nameOverride -}}
 {{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
-
-{{- define "nfs.apiversion" -}}
-{{- if .Capabilities.APIVersions.Has "apps/v1" -}}
-{{- "apps/v1" -}}
-{{- else if .Capabilities.APIVersions.Has "extensions/v1beta2" -}}
-{{- "extensions/v1beta2" -}}
-{{- else if .Capabilities.APIVersions.Has "extensions/v1beta1" -}}
-{{- "extensions/v1beta1" -}}
-{{- end -}}
-{{- end -}}
