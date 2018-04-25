@@ -5,10 +5,7 @@ questions:
   default: "true"
   description: "Use default Docker image"
   label: Use Default Image
-  type: enum
-  options:
-    - "true"
-    - "false"
+  type: boolean
   show_subquestion_if: false
   subquestions:
   - variable: image.registry
@@ -52,10 +49,7 @@ questions:
 - variable: mariadb.enabled
   default: "true"
   description: "Whether to deploy a mariadb server to satisfy the applications database requirements. To use an external database set this to false and configure the externalDatabase parameters"
-  type: enum
-  options:
-    - "true"
-    - "false"
+  type: boolean
   required: true
   label: Install MariaDB
   subquestions:
@@ -80,37 +74,39 @@ questions:
   type: string
   label: External Database Host
   show_if: "mariadb.enabled=false"
+  required: true
 - variable: externalDatabase.user
   default: ""
   description: "Existing username in the external DB"
   type: string
   label: External Database username
   show_if: "mariadb.enabled=false"
+  required: true
 - variable: externalDatabase.password
   default: ""
   description: "external database password"
   type: password
   label: External Database password
   show_if: "mariadb.enabled=false"
+  required: true
 - variable: externalDatabase.database
   default: ""
   description: "Name of the existing database"
   type: string
   label: External Database
   show_if: "mariadb.enabled=false"
+  required: true
 - variable: externalDatabase.port
   default: "3306"
   description: "External database port number	"
   type: string
   label: External Database Port
   show_if: "mariadb.enabled=false"
+  required: true
 - variable: mariadb.persistence.enabled
   default: "false"
   description: "Enable persistence using PVC of MariaDB"
-  type: enum
-  options:
-    - "true"
-    - "false"
+  type: boolean
   required: true
   label: MariaDB Persistent Volume Enabled
   show_if: "mariadb.enabled=true"
@@ -121,22 +117,32 @@ questions:
     description: "MariaDB Persistent Volume Size"
     type: string
     label: MariaDB Volume Size
+    required: true
   - variable: mariadb.persistence.storageClass
     default: ""
-    description: "If unndefined or set to null, using the default storageClass. default to null"
+    description: "If unndefined or set to null, using the default storage class."
     type: storageclass
-    label: Default Storage Class for MariaDB
+    label: Storage Class for MariaDB
 - variable: serviceType
-  default: "LoadBalancer"
+  default: "ClusterIP"
   description: "Magento Service type"
   type: enum
   options:
+    - "ClusterIP"
+    - "NodePort"
     - "LoadBalancer"
   required: true
   label: Magento Service Type
+- variable: magentoLoadBalancerIP
+  default: ""
+  description: "loadBalancerIP for the magento ServiceMagento Service type"
+  type: string
+  required: true
+  show_if: "serviceType=LoadBalancer"
+  label: Magento LoadBalancer IP
 - variable: magentoMode
   default: "default"
-  description: "Magento mode. Valid values: default, production, developer."
+  description: "Magento mode options: default, production, developer."
   type: enum
   options:
     - "default"
@@ -145,31 +151,31 @@ questions:
   label: Magento Mode
 - variable: persistence.enabled
   default: "false"
-  description: "Enable persistence using PVC of magento and apache"
-  type: enum
-  options:
-    - "true"
-    - "false"
+  description: "Enable persistent volume for magento and apache"
+  type: boolean
   required: true
-  label: Persistent Volume Enabled
+  label: Magento Persistent Volume Enabled
+  show_subquestion_if: true
   subquestions:
   - variable: persistence.magento.size
     default: "8Gi"
     description: "Persistent Volume Size"
     type: string
-    label: Persistent Volume Size
+    required: true
+    label: Magento Persistent Volume Size
   - variable: persistence.magento.storageClass
     default: ""
     description: "If unndefined or set to null, using the default storageClass. default to null"
     type: storageclass
-    label: Default Storage Class for Magento
+    label: Storage Class for Magento
   - variable: persistence.apache.size
     default: "1Gi"
     description: "Persistent Volume Size"
+    required: true
     type: string
-    label: Persistent Volume Size
+    label: Apache Persistent Volume Size
   - variable: persistence.apache.storageClass
     default: ""
     description: "If unndefined or set to null, using the default storageClass. default to null"
     type: storageclass
-    label: Default Storage Class for Apache
+    label: Storage Class for Apache

@@ -6,10 +6,7 @@ questions:
   default: "true"
   description: "Use default Docker image"
   label: Use Default Image
-  type: enum
-  options:
-    - "true"
-    - "false"
+  type: boolean
   show_subquestion_if: false
   subquestions:
   - variable: etcdCluster.image.repository
@@ -57,54 +54,26 @@ questions:
   description: "Deploy the etcd cluster operator"
   required: true
   label: Deploy the etcd Cluster Operator
-  type: enum
-  options:
-    - "true"
-    - "false"
+  type: boolean
   show_subquestion_if: true
   subquestions:
   - variable: etcdOperator.clusterwide.enabled
     default: false
     description: "Set etcd operator manage clusters in all namespaces (more details on https://github.com/coreos/etcd-operator/blob/master/doc/user/clusterwide.md)"
     label: Set EtcdOperator Clusterwide
-    type: enum
+    type: boolean
     required: true
-    options:
-      - true
-      - false
   - variable: etcdOperator.name
     default: "etcd-operator"
     description: "Etcd Operator name"
     required: true
     label: Etcd Operator name
     type: string
-  - variable: etcdOperator.replicaCount
-    default: "1"
-    description: "Number of operator replicas to create (only 1 is supported)"
-    required: true
-    label: Etcd Operator Replicas
-    type: enum
-    options:
-      - "1"
-  - variable: etcdOperator.nodeSelector
-    default: "{}"
-    description: "Node labels for etcd-operator pod assignment(ref: https://kubernetes.io/docs/user-guide/node-selection/)"
-    label: Etcd Operator Node Selector
-    type: string
-  - variable: etcdOperator.commandArgs
-    default: "{}"
-    description: "additional command arguments for etcd operator go here; will be translated to --key=value form e.g., analytics: true"
-    label: Additional Command Arguments	of Etcd Operator
-    type: string
 - variable: deployments.backupOperator
   default: "false"
   description: "Deploy the etcd backup operator, one time deployment, delete once completed"
-  required: true
   label: Deploy the etcd Backup Operator
-  type: enum
-  options:
-    - "true"
-    - "false"
+  type: boolean
   show_subquestion_if: true
   subquestions:
   - variable: backupOperator.name
@@ -113,14 +82,6 @@ questions:
     required: true
     label: Backup Operator name
     type: string
-  - variable: backupOperator.replicaCount
-    default: "1"
-    description: "Number of operator replicas to create (only 1 is supported)"
-    required: true
-    label: Backup Operator Replicas
-    type: enum
-    options:
-      - "1"
   - variable: backupOperator.spec.storageType
     default: "S3"
     description: "Storage to use for backup file, currently only S3 supported"
@@ -141,25 +102,11 @@ questions:
     label: Kubernetes secrete name of AWS Credentails
     type: string
     required: true
-  - variable: backupOperator.nodeSelector
-    default: "{}"
-    description: "Node labels for etcd backup operator pod assignment(ref: https://kubernetes.io/docs/user-guide/node-selection)"
-    label: Etcd Operator Node Selector
-    type: string
-  - variable: backupOperator.commandArgs
-    default: "{}"
-    description: "additional command arguments for etcd backup operator go here; will be translated to --key=value form e.g., analytics: true"
-    label: Additional command arguments	of Etcd Operator
-    type: string
 - variable: deployments.restoreOperator
   default: "false"
   description: "Deploy the etcd restore operator, one time deployment, delete once completed"
-  required: true
   label: Deploy the etcd Restore Operator
-  type: enum
-  options:
-    - "true"
-    - "false"
+  type: boolean
   show_subquestion_if: true
   subquestions:
   - variable: restoreOperator.name
@@ -168,14 +115,6 @@ questions:
     required: true
     label: Restore Operator name
     type: string
-  - variable: restoreOperator.replicaCount
-    default: "1"
-    description: "Number of operator replicas to create (only 1 is supported)"
-    required: true
-    label: Restore Operator Replicas
-    type: enum
-    options:
-      - "1"
   - variable: restoreOperator.spec.s3.path
     default: ""
     description: "Path in S3 bucket containing the backup file, The format of path must be: <s3-bucket-name>/<path-to-backup-file> # e.g: etcd-snapshot-bucket/v1/default/example-etcd-cluster/3.2.10_0000000000000001_etcd.backup"
@@ -188,53 +127,31 @@ questions:
     label: Kubernetes secrete name of AWS Credentails
     type: string
     required: true
-  - variable: restoreOperator.nodeSelector
-    default: "{}"
-    description: "Node labels for etcd backup operator pod assignment(ref: https://kubernetes.io/docs/user-guide/node-selection)"
-    label: Etcd Operator Node Selector
-    type: string
-  - variable: restoreOperator.commandArgs
-    default: "{}"
-    description: "additional command arguments for etcd backup operator go here; will be translated to --key=value form e.g., analytics: true"
-    label: Additional command arguments	of Etcd Operator
-    type: string
 - variable: createCustomResources
   default: "false"
   description: "creates Kubernetes custom resources definitions (options: EtcdCluster, EtcdBackup, EtcdRestore)"
   label: Create Kubernetes Custom Resources (EtcdCluster, EtcdBackup, EtcdRestore)
-  type: enum
-  options:
-    - "true"
-    - "false"
+  type: boolean
   show_subquestion_if: true
   subquestions:
   - variable: customResources.createEtcdClusterCRD
-    default: "false"
+    default: "true"
     description: "Create a custom resource: EtcdCluster"
     label: Create a ETCD Cluster
-    type: enum
+    type: boolean
     show_if: "deployments.etcdOperator=true"
-    options:
-      - "true"
-      - "false"
   - variable: customResources.createBackupCRD
     default: "false"
     description: "Create a custom resource: EtcdBackup"
     label: Create a ETCD Backup Cluster
-    type: enum
+    type: boolean
     show_if: "deployments.backupOperator=true"
-    options:
-      - "true"
-      - "false"
   - variable: customResources.createRestoreCRD
     default: "false"
     description: "Create a custom resource: EtcdRestore"
     label: Create a ETCD Restore Cluster
-    type: enum
+    type: boolean
     show_if: "deployments.restoreOperator=true"
-    options:
-    - "true"
-    - "false"
 - variable: etcdCluster.name
   default: "etcd-cluster"
   description: "etcd cluster name"
@@ -262,20 +179,11 @@ questions:
   type: string
   show_if: "createCustomResources=true"
   required: true
-- variable: etcdCluster.pod.nodeSelector
-  default: "{}"
-  description: "node labels for etcd cluster pod assignment, e.g, {disktype: ssd, type: worker}"
-  label: Node Labels for etcd Pod Assignment
-  type: string
-  show_if: "createCustomResources=true"
 - variable: etcdCluster.enableTLS
   default: "false"
   description: "Enable use of TLS"
   label: Enable use of TLS
-  type: enum
-  options:
-    - "true"
-    - "false"
+  type: boolean
   show_subquestion_if: true
   show_if: "createCustomResources=true"
   required: true

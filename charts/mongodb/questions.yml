@@ -6,10 +6,7 @@ questions:
   default: "true"
   description: "Use default Docker image"
   label: Use Default Image
-  type: enum
-  options:
-    - "true"
-    - "false"
+  type: boolean
   show_subquestion_if: false
   subquestions:
   - variable: image.registry
@@ -27,28 +24,31 @@ questions:
     description: "MongoDB image tag"
     type: string
     label: Image Tag
-- variable: mongodbRootPassword
-  default: ""
-  description: "Password for the root user, defaults to a random 10-character alphanumeric string if not set"
-  type: password
-  label: MongoDB Root Password
-- variable: mongodbUsername
-  default: ""
-  description: "Username of new user to create."
-  type: string
-  label: MongoDB User
+- variable: auth.enabled
+  default: "false"
+  description: "Enabling access control on a MongoDB deployment enforces authentication, requiring users to identify themselves"
+  type: boolean
+  label: Enable Auth 
   required: true
-- variable: mongodbPassword
-  default: ""
-  description: "Password for mongodb user, defaults to a random 10-character alphanumeric string if not set"
-  type: password
-  label: MongoDB Password
-- variable: mongodbDatabase
-  default: ""
-  description: "Database name to create"
-  type: string
-  label: MongoDB Database
-  required: true
+  show_subquestion_if: true
+  subquestions:
+  - variable: mongodbUsername
+    default: "admin"
+    description: "Username of new user to create."
+    type: string
+    label: MongoDB User
+    required: true
+  - variable: mongodbPassword
+    default: ""
+    description: "Password for mongodb user, defaults to a random 10-character alphanumeric string if not set"
+    type: password
+    label: MongoDB Password
+  - variable: mongodbDatabase
+    default: ""
+    description: "Database name to create"
+    type: string
+    label: MongoDB Database
+    required: true
 - variable: service.type
   default: "ClusterIP"
   description: "MongoDB K8s Service type"
@@ -68,10 +68,7 @@ questions:
 - variable: persistence.enabled
   default: "false"
   description: "Enable persistent volume for MongoDB"
-  type: enum
-  options:
-    - "true"
-    - "false"
+  type: boolean
   required: true
   label: MongoDB Persistent Volume Enabled
   show_subquestion_if: true
@@ -81,8 +78,9 @@ questions:
     description: "MongoDB Persistent Volume Size"
     type: string
     label: MongoDB Volume Size
+    required: true
   - variable: persistence.storageClass
     default: ""
     description: "If unndefined or set to null, using the default storageClass. default to null"
     type: storageclass
-    label: Default Storage Class for MongoDB
+    label: Storage Class for MongoDB
