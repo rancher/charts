@@ -30,10 +30,13 @@ metadata:
   name: longhorn-frontend
   namespace: {{ .Release.Namespace }}
 spec:
+  type: {{ .Values.service.ui.type }}
   selector:
     app: {{ .Release.Namespace }}-ui
   ports:
   - name: longhorn-ui
     port: 80
     targetPort: longhorn-ui
-  type: {{ .Values.service.ui.type }}
+    {{- if .Values.service.ui.nodePort }}
+    nodePort: {{ .Values.service.ui.nodePort }}
+    {{- end }}

@@ -9,7 +9,7 @@ metadata:
     heritage: "{{ .Release.Service }}"
 spec:
   type: {{ .Values.serviceType }}
-  {{- if ne .Values.serviceType "ClusterIP" }}
+  {{- if (or (eq .Values.serviceType "LoadBalancer") (eq .Values.serviceType "NodePort")) }}
   externalTrafficPolicy: {{ .Values.serviceExternalTrafficPolicy | quote }}
   {{- end }}
   ports:

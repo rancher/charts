@@ -8,6 +8,8 @@ metadata:
     release: "{{ .Release.Name }}"
     heritage: "{{ .Release.Service }}"
 spec:
+  updateStrategy:
+    type: RollingUpdate
   serviceName: {{ template "memcached.fullname" . }}
   replicas: {{ .Values.replicaCount }}
   template:
@@ -39,7 +41,7 @@ spec:
         {{- end }}
       containers:
       - name: {{ template "memcached.fullname" . }}
-        image: {{ .Values.image }}
+        image: "{{ .Values.image }}:{{ .Values.imageTag }}"
         imagePullPolicy: {{ default "" .Values.imagePullPolicy | quote }}
         command:
         - memcached

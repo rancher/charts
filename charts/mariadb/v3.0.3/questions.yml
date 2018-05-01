@@ -9,21 +9,28 @@ questions:
   type: boolean
   show_subquestion_if: false
   subquestions:
-  - variable: image.registry
-    default: "docker.io"
-    description: "Docker image registry	"
-    type: string
-    label: Docker Image Registry
   - variable: image.repository
     default: "bitnami/mariadb"
     description: "Docker image name"
     type: string
-    label: Docker Image Name
+    label: MariaDB Image Name
   - variable: image.tag
     default: "10.1.32"
     description: "Docker image tag"
     type: string
-    label: Image Tag
+    label: MariaDB Image Tag
+  - variable: metrics.image
+    default: "prom/mysqld-exporter"
+    description: "image name for metrics"
+    type: string
+    label: Metrics Image Name
+    show_if: "metrics.enabled=true"
+  - variable: metrics.imageTag
+    default: "v0.10.0"
+    description: "image tag for metrics"
+    type: string
+    label: Metrics Image Tag
+    show_if: "metrics.enabled=true"
 - variable: usePassword
   default: "true"
   description: "Enable password authentication"
@@ -58,6 +65,14 @@ questions:
     - "NodePort"
   required: true
   label: MariaDB Service Type
+- variable: service.nodePort
+  default: ""
+  description: "NodePort port number(to set explicitly, choose port between 30000-32767)"
+  type: int
+  min: 30000
+  max: 32767
+  show_if: "service.type=NodePort"
+  label: Service NodePort number
 - variable: persistence.enabled
   default: "false"
   description: "Enable persistent volume for MariaDB"
