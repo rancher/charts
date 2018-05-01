@@ -67,3 +67,54 @@ questions:
     description: "If undefined or null, uses the default StorageClass. Defaults to null."
     type: storageclass
     label: Default Storage Class
+- variable: ingress.enabled
+  default: "true"
+  description: "Expose app using Layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose app using Layer 7 Load Balancer
+  show_subquestion_if: true
+  subquestions:
+  - variable: ingress.host
+    default: ""
+    description: "layer 7 Load Balancer hostname"
+    type: hostname
+    required: true
+    label: Layer 7 Load Balancer Hostname
+- variable: slave.service.type
+  default: "ClusterIP"
+  description: "Redis slave service type"
+  type: enum
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: Redis Slave Service Type
+  show_if: "ingress.enabled=false"
+  show_subquestion_if: "NodePort"
+  subquestions:
+  - variable: slave.service.nodePort
+    default: ""
+    description: "NodePort port number(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    label: Redis Slave Service NodePort number
+- variable: master.service.type
+  default: "ClusterIP"
+  description: "Redis master service type"
+  type: enum
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: Redis Master Service Type
+  show_if: "ingress.enabled=false"
+  show_subquestion_if: "NodePort"
+  subquestions:
+  - variable: master.service.nodePort
+    default: ""
+    description: "NodePort port number(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    label: Redis Master Service NodePort number

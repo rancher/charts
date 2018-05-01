@@ -57,7 +57,7 @@ questions:
   label: MariaDB Database
   required: true
 - variable: service.type
-  default: "NodePort"
+  default: "ClusterIP"
   description: "MariaDB K8s Service type"
   type: enum
   options:
@@ -65,14 +65,16 @@ questions:
     - "NodePort"
   required: true
   label: MariaDB Service Type
-- variable: service.nodePort
-  default: ""
-  description: "NodePort port number(to set explicitly, choose port between 30000-32767)"
-  type: int
-  min: 30000
-  max: 32767
-  show_if: "service.type=NodePort"
-  label: Service NodePort number
+  show_if: "ingress.enabled=false"
+  show_subquestion_if: "NodePort"
+  subquestions:
+  - variable: service.nodePort
+    default: ""
+    description: "NodePort port number(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    label: Service NodePort number
 - variable: persistence.enabled
   default: "false"
   description: "Enable persistent volume for MariaDB"
@@ -98,3 +100,16 @@ questions:
   type: boolean
   required: true
   label: Enable Metrics
+- variable: ingress.enabled
+  default: "true"
+  description: "Expose app using Layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose app using Layer 7 Load Balancer
+  show_subquestion_if: true
+  subquestions:
+  - variable: ingress.host
+    default: ""
+    description: "layer 7 Load Balancer hostname"
+    type: hostname
+    required: true
+    label: Layer 7 Load Balancer Hostname

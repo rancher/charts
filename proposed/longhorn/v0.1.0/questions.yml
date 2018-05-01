@@ -2,7 +2,7 @@ categories:
 - storage
 questions:
 - variable: service.ui.type
-  default: "NodePort"
+  default: "ClusterIP"
   description: "Define Longhorn UI service type"
   type: enum
   options:
@@ -10,6 +10,7 @@ questions:
     - "NodePort"
     - "LoadBalancer"
   label: Longhorn UI Service
+  show_if: "ingress.enabled=false"
 - variable: service.ui.nodePort
   default: ""
   description: "NodePort port number(to set explicitly, choose port between 30000-32767)"
@@ -48,3 +49,16 @@ questions:
   description: "For GKE uses `/home/kubernetes/flexvolume/` instead, users can find the correct directory by running `ps aux|grep kubelet` on the host and check the --volume-plugin-dir parameter.  If there is none, the default `/usr/libexec/kubernetes/kubelet-plugins/volume/exec/` will be used."
   type: string
   label: Longhorn Flexvolume Path
+- variable: ingress.enabled
+  default: "true"
+  description: "Expose app using Layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose app using Layer 7 Load Balancer
+  show_subquestion_if: true
+  subquestions:
+  - variable: ingress.host
+    default: ""
+    description: "layer 7 Load Balancer hostname"
+    type: hostname
+    required: true
+    label: Layer 7 Load Balancer Hostname

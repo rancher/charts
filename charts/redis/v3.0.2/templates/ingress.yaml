@@ -1,0 +1,60 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}-master-ingress
+  labels:
+    app: {{ .Release.Name }}-master-ingress
+  annotations:
+    {{- if .Values.ingress.tls }}
+    ingress.kubernetes.io/secure-backends: "true"
+    {{- end }}
+    {{- range $key, $value := .Values.ingress.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+spec:
+  rules:
+  - host: {{ .Values.ingress.host }}
+    http:
+      paths:
+        - path: {{ default "/" .Values.ingress.path }}
+          backend:
+            serviceName: {{ template "redis.fullname" . }}-master
+            servicePort: 6379
+{{- if .Values.ingress.tls }}
+  tls:
+  - hosts:
+    - {{ .Values.ingress.host }}
+    secretName: {{ .Values.ingress.tlsSecret }}
+{{- end }}
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}-slave-ingress
+  labels:
+    app: {{ .Release.Name }}-slave-ingress
+  annotations:
+    {{- if .Values.ingress.tls }}
+    ingress.kubernetes.io/secure-backends: "true"
+    {{- end }}
+    {{- range $key, $value := .Values.ingress.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+spec:
+  rules:
+  - host: {{ .Values.ingress.host }}
+    http:
+      paths:
+        - path: {{ default "/" .Values.ingress.path }}
+          backend:
+            serviceName: {{ template "redis.fullname" . }}-slave
+            servicePort: 6379
+{{- if .Values.ingress.tls }}
+  tls:
+  - hosts:
+    - {{ .Values.ingress.host }}
+    secretName: {{ .Values.ingress.tlsSecret }}
+{{- end }}
+{{- end }}
