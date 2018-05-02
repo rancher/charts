@@ -13,14 +13,14 @@ spec:
     spec:
       initContainers:
       - name: init-container
-        image: {{ .Values.image.longhorn.engine }}
+        image: "{{ .Values.image.longhorn.engine }}:{{ .Values.image.longhorn.engineTag }}"
         command: ['sh', '-c', 'cp /usr/local/bin/* /data/']
         volumeMounts:
         - name: execbin
           mountPath: /data/
       containers:
       - name: longhorn-manager
-        image: {{ .Values.image.longhorn.manager }}
+        image: "{{ .Values.image.longhorn.manager }}:{{ .Values.image.longhorn.managerTag }}"
         imagePullPolicy: Always
         securityContext:
           privileged: true
@@ -29,9 +29,9 @@ spec:
         - -d
         - daemon
         - --engine-image
-        - {{ .Values.image.longhorn.engine }}
+        - "{{ .Values.image.longhorn.engine }}:{{ .Values.image.longhorn.engineTag }}"
         - --manager-image
-        - {{ .Values.image.longhorn.manager }}
+        - "{{ .Values.image.longhorn.manager }}:{{ .Values.image.longhorn.managerTag }}"
         - --service-account
         - longhorn-service-account
         ports:

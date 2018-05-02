@@ -8,23 +8,37 @@ questions:
   label: Use Default Images
   type: boolean
   show_subquestion_if: false
+  group: "Container Images"
   subquestions:
   - variable: image.repository
     default: "bitnami/redis"
-    description: "Docker image name"
+    description: "Redis image name"
     type: string
     label: Redis Image Name
   - variable: image.tag
     default: "4.0.9"
-    description: "Docker image tag"
+    description: "Redis image tag"
     type: string
     label: Redis Image Tag
+  - variable: metrics.repository
+    default: "oliver006/redis_exporter"
+    description: "Metrics image name"
+    type: string
+    label: Metrics Image Name
+    show_if: "metrics.enabled=true"
+  - variable: image.tag
+    default: "v0.11"
+    description: "Metrics image tag"
+    type: string
+    label: Metrics Image Tag
+    show_if: "metrics.enabled=true"
 - variable: cluster.enabled
   default: "true"
   description: "Use leader-follower topology"
   label: Clustered Topology
   type: boolean
   show_subquestion_if: true
+  group: "Redis Slave Settings"
   subquestions:
   - variable: cluster.slaveCount
     default: "3"
@@ -38,6 +52,7 @@ questions:
   required: true
   label: Enable Redis Password
   show_subquestion_if: true
+  group: "Redis Master Settings"
   subquestions:
   - variable: password
     default: ""
@@ -51,6 +66,7 @@ questions:
   required: true
   label: Persistent Volume Enabled
   show_subquestion_if: true
+  group: "Redis Master Settings"
   subquestions:
   - variable: master.persistence.size
     default: "8Gi"
@@ -67,29 +83,31 @@ questions:
     description: "If undefined or null, uses the default StorageClass. Defaults to null."
     type: storageclass
     label: Default Storage Class
-- variable: ingress.enabled
-  default: "true"
-  description: "Expose app using Layer 7 Load Balancer - ingress"
-  type: boolean
-  label: Expose app using Layer 7 Load Balancer
-  show_subquestion_if: true
-  subquestions:
-  - variable: ingress.host
-    default: "xip.io"
-    description: "layer 7 Load Balancer hostname"
-    type: hostname
-    required: true
-    label: Layer 7 Load Balancer Hostname
+# - variable: ingress.enabled
+#   default: "true"
+#   description: "Expose app using Layer 7 Load Balancer - ingress"
+#   type: boolean
+#   label: Expose app using Layer 7 Load Balancer
+#   show_subquestion_if: true
+#   group: "Layer 7 Load Balancer"
+#   subquestions:
+#   - variable: ingress.host
+#     default: "xip.io"
+#     description: "layer 7 Load Balancer hostname"
+#     type: hostname
+#     required: true
+#     label: Layer 7 Load Balancer Hostname
 - variable: slave.service.type
   default: "ClusterIP"
   description: "Redis slave service type"
   type: enum
+  group: "Redis Slave Settings"
   options:
     - "ClusterIP"
     - "NodePort"
   required: true
   label: Redis Slave Service Type
-  show_if: "ingress.enabled=false"
+  # show_if: "ingress.enabled=false"
   show_subquestion_if: "NodePort"
   subquestions:
   - variable: slave.service.nodePort
@@ -103,12 +121,13 @@ questions:
   default: "ClusterIP"
   description: "Redis master service type"
   type: enum
+  group: "Redis  Master Settings"
   options:
     - "ClusterIP"
     - "NodePort"
   required: true
   label: Redis Master Service Type
-  show_if: "ingress.enabled=false"
+  # show_if: "ingress.enabled=false"
   show_subquestion_if: "NodePort"
   subquestions:
   - variable: master.service.nodePort
