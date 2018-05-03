@@ -42,52 +42,11 @@ questions:
     description: "longhorn uiTag image tag"
     type: string
     label: Longhorn UI Image Tag
-- variable: service.ui.type
-  default: "ClusterIP"
-  description: "Define Longhorn UI service type"
-  type: enum
-  options:
-    - "ClusterIP"
-    - "NodePort"
-    - "LoadBalancer"
-  label: Longhorn UI Service
-  show_if: "ingress.enabled=false"
-  group: "Longhorn Settings"
-- variable: service.ui.nodePort
-  default: ""
-  description: "NodePort port number(to set explicitly, choose port between 30000-32767)"
-  type: int
-  min: 30000
-  max: 32767
-  show_if: "service.ui.type=NodePort"
-  label: UI Service NodePort number
-  group: "Longhorn Settings"
-- variable: service.manager.type
-  default: "ClusterIP"
-  description: "Define Longhorn manager service type"
-  type: enum
-  options:
-    - "ClusterIP"
-    - "NodePort"
-  label: Longhorn Manager Service
-  show_subquestion_if: "NodePort"
-  group: "Longhorn Settings"
-  subquestions:
-  - variable: service.manager.nodePort
-    default: ""
-    description: "NodePort port number(to set explicitly, choose port between 30000-32767)"
-    type: int
-    min: 30000
-    max: 32767
-    label: Manager Service NodePort number
 - variable: persistence.defaultClass
   default: "true"
   description: "Set as default StorageClass"
   group: "Longhorn Settings"
-  type: enum
-  options:
-    - "true"
-    - "false"
+  type: boolean
   required: true
   label: Default Storage Class
 - variable: persistence.flexvolumePath
@@ -100,7 +59,7 @@ questions:
   default: "true"
   description: "Expose app using Layer 7 Load Balancer - ingress"
   type: boolean
-  group: "Layer 7 Load Balancer"
+  group: "Services and Load Balancing"
   label: Expose app using Layer 7 Load Balancer
   show_subquestion_if: true
   subquestions:
@@ -110,3 +69,23 @@ questions:
     type: hostname
     required: true
     label: Layer 7 Load Balancer Hostname
+- variable: service.ui.type
+  default: "ClusterIP"
+  description: "Define Longhorn UI service type"
+  type: enum
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  label: Longhorn UI Service
+  show_if: "ingress.enabled=false"
+  group: "Services and Load Balancing"
+  show_subquestion_if: "NodePort"
+  subquestions: 
+  - variable: service.ui.nodePort
+    default: ""
+    description: "NodePort port number(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    show_if: "service.ui.type=NodePort"
+    label: UI Service NodePort number
