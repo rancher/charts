@@ -65,12 +65,6 @@ questions:
     label: Set EtcdOperator Clusterwide
     type: boolean
     required: true
-  - variable: etcdOperator.name
-    default: "etcd-operator"
-    description: "Etcd Operator name"
-    required: true
-    label: Etcd Operator name
-    type: string
 - variable: deployments.backupOperator
   default: "false"
   description: "Deploy the etcd backup operator, one time deployment, delete once completed"
@@ -79,12 +73,6 @@ questions:
   show_subquestion_if: true
   group: "Backup Operator"
   subquestions:
-  - variable: backupOperator.name
-    default: "etcd-backup-operator"
-    description: "Backup operator name"
-    required: true
-    label: Backup Operator name
-    type: string
   - variable: backupOperator.spec.storageType
     default: "S3"
     description: "Storage to use for backup file, currently only S3 supported"
@@ -113,12 +101,6 @@ questions:
   group: "Restore Operator"
   show_subquestion_if: true
   subquestions:
-  - variable: restoreOperator.name
-    default: "etcd-restore-operator"
-    description: "Restore operator name"
-    required: true
-    label: Restore Operator name
-    type: string
   - variable: restoreOperator.spec.s3.path
     default: ""
     description: "Path in S3 bucket containing the backup file, The format of path must be: <s3-bucket-name>/<path-to-backup-file> # e.g: etcd-snapshot-bucket/v1/default/example-etcd-cluster/3.2.10_0000000000000001_etcd.backup"
@@ -131,39 +113,26 @@ questions:
     label: Kubernetes secrete name of AWS Credentails
     type: string
     required: true
-- variable: createCustomResources
-  default: "false"
-  description: "creates Kubernetes custom resources definitions (options: EtcdCluster, EtcdBackup, EtcdRestore)"
-  label: Create Kubernetes Custom Resources (EtcdCluster, EtcdBackup, EtcdRestore)
+- variable: customResources.createEtcdClusterCRD
+  default: "true"
+  description: "Create a custom resource: EtcdCluster"
+  label: Create a ETCD Cluster
   type: boolean
-  show_subquestion_if: true
   group: "Etcd Cluster"
-  subquestions:
-  - variable: customResources.createEtcdClusterCRD
-    default: "true"
-    description: "Create a custom resource: EtcdCluster"
-    label: Create a ETCD Cluster
-    type: boolean
-    show_if: "deployments.etcdOperator=true"
-  - variable: customResources.createBackupCRD
-    default: "false"
-    description: "Create a custom resource: EtcdBackup"
-    label: Create a ETCD Backup Cluster
-    type: boolean
-    show_if: "deployments.backupOperator=true"
-  - variable: customResources.createRestoreCRD
-    default: "false"
-    description: "Create a custom resource: EtcdRestore"
-    label: Create a ETCD Restore Cluster
-    type: boolean
-    show_if: "deployments.restoreOperator=true"
-- variable: etcdCluster.name
-  default: "etcd-cluster"
-  description: "etcd cluster name"
-  label: Etcd Cluster Name
-  type: string
-  required: true
-  show_if: "createCustomResources=true"
+  show_if: "deployments.etcdOperator=true"
+- variable: customResources.createBackupCRD
+  default: "false"
+  description: "Create a custom resource: EtcdBackup"
+  label: Create a ETCD Backup Cluster
+  type: boolean
+  show_if: "deployments.backupOperator=true"
+  group: "Etcd Cluster"
+- variable: customResources.createRestoreCRD
+  default: "false"
+  description: "Create a custom resource: EtcdRestore"
+  label: Create a ETCD Restore Cluster
+  type: boolean
+  show_if: "deployments.restoreOperator=true"
   group: "Etcd Cluster"
 - variable: etcdCluster.size
   default: "3"
@@ -177,14 +146,12 @@ questions:
     - "7"
     - "9"
     - "11"
-  show_if: "createCustomResources=true"
   required: true
 - variable: etcdCluster.version
   default: "3.2.10"
   description: "etcd cluster version"
   label: Etcd Cluster Version
   type: string
-  show_if: "createCustomResources=true"
   required: true
   group: "Etcd Cluster"
 - variable: etcdCluster.enableTLS
@@ -193,7 +160,6 @@ questions:
   label: Enable use of TLS
   type: boolean
   show_subquestion_if: true
-  show_if: "createCustomResources=true"
   required: true
   group: "Etcd Cluster"
   subquestions:

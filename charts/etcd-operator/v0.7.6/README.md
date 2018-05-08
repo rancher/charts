@@ -7,27 +7,6 @@ Official project documentation found [here](https://github.com/coreos/etcd-opera
 - Kubernetes 1.4+ with Beta APIs enabled
 - __Suggested:__ PV provisioner support in the underlying infrastructure to support backups
 
-## Installing the Chart
-
-To install the chart with the release name `my-release`:
-
-```bash
-$ helm install stable/etcd-operator --name my-release
-```
-
-__Note__: If you set `cluster.enabled` on install, it will have no effect.
-Before you create an etcd cluster, the TPR must be installed by the operator, so this option is ignored during helm installs, but can be used in upgrades.
-
-## Uninstalling the Chart
-
-To uninstall/delete the `my-release` deployment:
-
-```bash
-$ helm delete my-release
-```
-
-The command removes all the Kubernetes components EXCEPT the persistent volume.
-
 ## Updating
 Updating the TPR resource will not result in the cluster being update until `kubectl apply` for
 TPRs is fixed see [kubernetes/issues/29542](https://github.com/kubernetes/kubernetes/issues/29542)
