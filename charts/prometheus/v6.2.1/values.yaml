@@ -252,8 +252,8 @@ kubeStateMetrics:
   ## kube-state-metrics container image
   ##
   image:
-    repository: k8s.gcr.io/kube-state-metrics
-    tag: v1.2.0
+    repository: quay.io/coreos/kube-state-metrics
+    tag: v1.3.1
     pullPolicy: IfNotPresent
 
   ## kube-state-metrics container arguments
@@ -423,6 +423,10 @@ server:
   ## Maybe same with Ingress host name
   baseURL: ""
 
+  ## This flag controls access to the administrative HTTP API which includes functionality such as deleting time
+  ## series. This is disabled by default.
+  enableAdminApi: false
+
   ## Additional Prometheus server container arguments
   ##
   extraArgs: {}
@@ -587,7 +591,7 @@ server:
 pushgateway:
   ## If false, pushgateway will not be installed
   ##
-  enabled: true
+  enabled: false
 
   ## pushgateway container name
   ##
@@ -963,3 +967,109 @@ networkPolicy:
   ## Enable creation of NetworkPolicy resources.
   ##
   enabled: false
+
+
+
+## Define Grafana Configurations
+##
+grafana:
+  enabled: true
+
+  replicas: 1
+
+  adminUser: "admin"
+  adminPassword: "admin"
+
+  image:
+    repository: grafana/grafana
+    tag: 5.0.0
+
+  grafanaWatcher:
+    repository: quay.io/coreos/grafana-watcher
+    tag: v0.0.8
+
+  auth:
+    anonymous:
+      enabled: "true"
+
+  prometheusPort: 80
+
+  persistence:
+    enabled: false
+    ## data Persistent Volume Storage Class
+    ## If defined, storageClassName: <storageClass>
+    ## If set to "-", storageClassName: "", which disables dynamic provisioning
+    ## If undefined (the default) or set to null, no storageClassName spec is
+    ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+    ##   GKE, AWS & OpenStack)
+    ##
+    # storageClass: "-"
+    ##
+    ## If you want to reuse an existing claim, you can pass the name of the PVC using
+    ## the existingClaim variable
+    # existingClaim: your-claim
+    accessMode: ReadWriteOnce
+    size: 10Gi
+
+  ingress:
+    ## If true, Grafana Ingress will be created
+    ##
+    enabled: false
+
+    ## Annotations for Alertmanager Ingress
+    ##
+    annotations: {}
+      # kubernetes.io/ingress.class: nginx
+      # kubernetes.io/tls-acme: "true"
+
+    ## Labels to be added to the Ingress
+    ##
+    labels: {}
+    
+    ## Hostnames.
+    ## Must be provided if Ingress is enabled.
+    ##
+    # hosts:
+    #   - grafana.domain.com
+    hosts: []
+
+    ## TLS configuration for Alertmanager Ingress
+    ## Secret must be manually created in the namespace
+    ##
+    tls: []
+      # - secretName: alertmanager-general-tls
+      #   hosts:
+      #     - alertmanager.example.com
+      #
+  service:
+
+    ## Annotations to be added to the Service
+    ##
+    annotations: {}
+
+    ## Cluster-internal IP address for Alertmanager Service
+    ##
+    clusterIP: ""
+
+    ## List of external IP addresses at which the Alertmanager Service will be available
+    ##
+    externalIPs: []
+
+    ## External IP address to assign to Alertmanager Service
+    ## Only used if service.type is 'LoadBalancer' and supported by cloud provider
+    ##
+    loadBalancerIP: ""
+
+    ## List of client IPs allowed to access Alertmanager Service
+    ## Only used if service.type is 'LoadBalancer' and supported by cloud provider
+    ##
+    loadBalancerSourceRanges: []
+
+    ## Port to expose on each node
+    ## Only used if service.type is 'NodePort'
+    ##
+    # nodePort: 30902
+
+    ## Service type
+    ##
+    type: ClusterIP

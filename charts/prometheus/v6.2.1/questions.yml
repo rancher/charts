@@ -15,228 +15,117 @@ questions:
     description: "Prometheus image name"
     type: string
     label: Prometheus Image Name
-  - variable: alertmanager.image.tag
+  - variable: server.image.tag
     default: "v2.2.1"
     description: "Prometheus image tag"
     type: string
     label: Prometheus Image Tag
-    show_if: "alertmanager.enabled=true"
   - variable: alertmanager.image.repository
     default: "prom/alertmanager"
-    description: "alertmanager image name"
+    description: "Alertmanager image name"
     type: string
     label: Alertmanager Image Name
     show_if: "alertmanager.enabled=true"
   - variable: alertmanager.image.tag
     default: "v0.14.0"
-    description: "alertmanager image tag"
+    description: "Alertmanager image tag"
     type: string
     label: Alertmanager Image Tag
     show_if: "alertmanager.enabled=true"
   - variable: nodeExporter.image.repository
     default: "prom/node-exporter"
-    description: "nodeExporter image name"
+    description: "Node exporter image name"
     type: string
     label: NodeExporter Image Name
     show_if: "nodeExporter.enabled=true"
   - variable: nodeExporter.image.tag
     default: "v0.15.2"
-    description: "nodeExporter image tag"
+    description: "Node exporter image tag"
     type: string
     label: NodeExporter Image Tag
     show_if: "nodeExporter.enabled=true"
   - variable: pushgateway.image.repository
     default: "prom/pushgateway"
-    description: "pushgateway image name"
+    description: "Pushgateway image name"
     type: string
     label: Pushgateway Image Name
     show_if: "pushgateway.enabled=true"
   - variable: pushgateway.image.tag
     default: "v0.4.0"
-    description: "pushgateway image tag"
+    description: "Pushgateway image tag"
     type: string
     label: Pushgateway Image Tag
     show_if: "pushgateway.enabled=true"
   - variable: kubeStateMetrics.image.repository
-    default: "k8s.gcr.io/kube-state-metrics"
-    description: "kube-state-metrics image name"
+    default: "quay.io/coreos/kube-state-metrics"
+    description: "Kube-state-metrics image name"
     type: string
     label: KubeStateMetrics Image Name
     show_if: "kubeStateMetrics.enabled=true"
   - variable: kubeStateMetrics.image.tag
-    default: "v1.2.0"
-    description: "kube-state-metrics image tag"
+    default: "v1.3.1"
+    description: "Kube-state-metrics image tag"
     type: string
     label: KubeStateMetrics Image Tag
     show_if: "kubeStateMetrics.enabled=true"
-# alertmanager configurations
-- variable: alertmanager.enabled
-  default: "true"
-  description: "If true, create alertmanager"
-  type: enum
-  group: "Alertmanager"
-  options:
-    - "true"
-    - "false"
-  label: Enable Alertmanager
-  show_subquestion_if: true
-  subquestions:
-  - variable: alertmanager.name
-    default: "alertmanager"
-    description: "alertmanager container name"
+  - variable: grafana.image.repository
+    default: "grafana/grafana"
+    description: "Grafana image name"
     type: string
-    label: Alertmanager Container Name
-    required: true
-  - variable: alertmanager.replicaCount
-    default: "1"
-    description: "desired number of alertmanager pods"
+    label: Grafana Image Name
+  - variable: grafana.image.tag
+    default: "5.0.0"
+    description: "Grafana image tag"
     type: string
-    required: true
-    label: Alertmanager Replicas
-- variable: alertmanager.ingress.enabled
-  default: "true"
-  description: "Expose alertmanager using Layer 7 Load Balancer - ingress"
-  type: enum
-  group: "Alertmanager"
-  options:
-    - "true"
-    - "false"
-  label: Expose Alertmanager using Layer 7 Load Balancer
-  show_if: "alertmanager.enabled=true"
-  show_subquestion_if: true
-  required: true
-  subquestions:
-  - variable: alertmanager.ingress.hosts[0]
-    default: "xip.io"
-    description: "Hostname to your alertmanager installation"
-    type: hostname
-    required: true
-    label: Hostname
-- variable: alertmanager.persistentVolume.enabled
-  default: "false"
-  description: "If true, alertmanager will create a persistent volume claim"
-  type: enum
-  required: true
-  group: "Alertmanager"
-  options:
-    - "true"
-    - "false"
-  label: Create Persistent Volume for Alertmanager
-  show_if: "alertmanager.enabled=true"
-  show_subquestion_if: true
-  subquestions:
-  - variable: alertmanager.persistentVolume.size
-    default: "2Gi"
-    description: "alertmanager data persistent volume size"
+    label: Grafana Image Tag
+  - variable: grafana.grafanaWatcher.image.repository
+    default: "quay.io/coreos/grafana-watcher"
+    description: "Grafana Watcher image name"
     type: string
-    label: Alertmanager Persistent Volume Size
-  - variable: alertmanager.persistentVolume.storageClass
-    default: ""
-    description: "alertmanager data persistent volume storageClass, if not set use default StorageClass"
-    type: storageclass
-    label: Alertmanager Persistent Volume StorageClass
-- variable: alertmanager.server.type
-  default: "ClusterIP"
-  description: "alertmanager service type"
-  type: enum
-  show_if: "alertmanager.ingress.enabled=false"
-  group: "Alertmanager"
-  options:
-    - "ClusterIP"
-    - "NodePort"
-  required: true
-  label: Alertmanager Service Type
-  show_subquestion_if: "NodePort"
-  subquestions:
-  - variable: alertmanager.service.nodePort
-    default: ""
-    description: "NodePort http port(to set explicitly, choose port between 30000-32767)"
-    type: int
-    min: 30000
-    max: 32767
-    label: Alertmanager NodePort Http Port
-# nodeExporter configurations
-- variable: nodeExporter.enabled
-  default: "true"
-  description: "If true, create nodeExporter"
-  type: enum
-  group: "NodeExporter"
-  options:
-    - "true"
-    - "false"
-  label: Enable NodeExporter
-  show_subquestion_if: true
-  subquestions:
-  - variable: nodeExporter.name
-    default: "node-exporter"
-    description: "alertmanager container name"
+    label: Grafana Watcher Image Name
+  - variable: grafana.grafanaWatcher.image.tag
+    default: "v0.0.8"
+    description: "Grafana Watcher image tag"
     type: string
-    label: Alertmanager Container Name
-    required: true
-  - variable: nodeExporter.hostPort
-    default: "9100"
-    description: "nodeExporter host port"
-    type: string
-    label: NodeExporter Host Port
-    required: true
+    label: Grafana Watcher Image Tag
 # server configurations
-- variable: server.name
-  default: "server"
-  description: "Prometheus server container name"
-  type: string
-  group: "Prometheus Server"
-  label: Prometheus Server Container Name
-  required: true
-- variable: server.replicaCount
-  default: "1"
-  description: "desired number of prometheus pods"
-  type: int
-  required: true
-  label: Prometheus Replicas
-  group: "Prometheus Server"
 - variable: server.ingress.enabled
-  default: "true"
+  default: true
   description: "Expose prometheus using Layer 7 Load Balancer - ingress"
-  type: enum
+  type: boolean
   group: "Prometheus Server"
-  options:
-    - "true"
-    - "false"
   label: Expose Prometheus using Layer 7 Load Balancer
   show_subquestion_if: true
   required: true
   subquestions:
   - variable: server.ingress.hosts[0]
     default: "xip.io"
-    description: "prometheus server ingress hostname"
+    description: "Prometheus server ingress hostname"
     type: hostname
     required: true
     label: Hostname
 - variable: server.persistentVolume.enabled
   default: "false"
   description: "If true, prometheus will create a persistent volume claim"
-  type: enum
+  type: boolean
   group: "Prometheus Server"
   required: true
-  options:
-    - "true"
-    - "false"
   label: Create Persistent Volume for Prometheus
   show_subquestion_if: true
   subquestions:
   - variable: server.persistentVolume.size
     default: "8Gi"
-    description: "prometheus data persistent volume size"
+    description: "Prometheus data persistent volume size"
     type: string
     label: Prometheus Persistent Volume Size
   - variable: server.persistentVolume.storageClass
     default: ""
-    description: "prometheus data persistent volume storageClass, if not set use default StorageClass"
+    description: "Prometheus data persistent volume storageClass, if not set use default StorageClass"
     type: storageclass
     label: Prometheus Persistent Volume StorageClass
 - variable: server.service.type
   default: "ClusterIP"
-  description: "server service type"
+  description: "Server service type"
   group: "Prometheus Server"
   type: enum
   show_if: "server.ingress.enabled=false"
@@ -254,107 +143,155 @@ questions:
     min: 30000
     max: 32767
     label: Prometheus NodePort Http Port
-# pushgateway configurations
-- variable: pushgateway.enabled
-  default: "true"
-  description: "If true, create pushgateway"
-  type: enum
-  group: "Pushgateway"
-  options:
-    - "true"
-    - "false"
-  label: Enable Pushgateway
-  show_subquestion_if: true
+# grafana configurations
+- variable: grafana.enabled
+  default: true
+  description: "Create Grafana Dashboard"
+  type: boolean
+  group: "Grafana Settings"
+  label: Enable Grafana Dashboard
+  show_subquestion_if: "true"
   subquestions:
-  - variable: pushgateway.name
-    default: "pushgateway"
-    description: "pushgateway container name"
+  - variable: grafana.adminUser
+    default: "admin"
+    description: "Grafana admin username"
     type: string
-    label: Pushgateway Container Name
+    group: "Grafana Settings"
+    label: Grafana Admin Username
     required: true
-  - variable: pushgateway.replicaCount
-    default: "1"
-    description: "desired number of pushgateway pods"
-    type: string
-    required: true
-    label: Pushgateway Replicas
-- variable: pushgateway.ingress.enabled
+  - variable: grafana.adminPassword
+    default: ""
+    description: "Grafana admin password"
+    type: password
+    group: "Grafana Settings"
+    label: Grafana Admin Password
+- variable: grafana.ingress.enabled
   default: "true"
-  description: "Expose pushgateway using Layer 7 Load Balancer - ingress"
-  type: enum
-  group: "Pushgateway"
-  options:
-    - "true"
-    - "false"
-  label: Expose Pushgateway using Layer 7 Load Balancer
-  show_if: "pushgateway.enabled=true"
-  show_subquestion_if: true
+  description: "Expose grafana using Layer 7 Load Balancer - ingress"
+  type: boolean
+  group: "Grafana Settings"
+  label: Expose Grafana using Layer 7 Load Balancer
+  show_if: "grafana.enabled=true"
   required: true
+  show_subquestion_if: true
   subquestions:
-  - variable: pushgateway.ingress.hosts[0]
+  - variable: grafana.ingress.hosts[0]
     default: "xip.io"
-    description: "pushgateway server ingress hostname"
+    description: "Hostname to your grafana installation"
     type: hostname
     required: true
     label: Hostname
-- variable: pushgateway.persistentVolume.enabled
-  default: "false"
-  description: "If true, pushgateway will create a persistent volume claim"
+- variable: grafana.server.type
+  default: "NodePort"
+  description: "Grafana service type"
   type: enum
-  required: true
-  group: "Pushgateway"
-  options:
-    - "true"
-    - "false"
-  label: Create Persistent Volume for Pushgateway
-  show_subquestion_if: true
-  subquestions:
-  - variable: pushgateway.persistentVolume.size
-    default: "8Gi"
-    description: "pushgateway data persistent volume size"
-    type: string
-    label: Pushgateway Persistent Volume Size
-  - variable: pushgateway.persistentVolume.storageClass
-    default: ""
-    description: "pushgateway data persistent volume storageClass, if not set use default StorageClass"
-    type: storageclass
-    label: Pushgateway Persistent Volume StorageClass
-- variable: pushgateway.service.type
-  default: "ClusterIP"
-  description: "server service type"
-  type: enum
-  show_if: "pushgateway.ingress.enabled=false"
-  group: "Pushgateway"
+  group: "Grafana Settings"
+  show_if: "grafana.enabled=true"
   options:
     - "ClusterIP"
     - "NodePort"
   required: true
-  label: Pushgateway Service Type
-  show_if: "pushgateway.enabled=true"
+  label: Grafana Service Type
+  show_if: "grafana.enabled=true&&grafana.ingress.enabled=false"
   show_subquestion_if: "NodePort"
   subquestions:
-  - variable: pushgateway.service.nodePort
+  - variable: grafana.service.nodePort
     default: ""
     description: "NodePort http port(to set explicitly, choose port between 30000-32767)"
     type: int
     min: 30000
     max: 32767
-    label: Pushgateway NodePort Http Port
-# kube-state-metrics configurations
-- variable: kubeStateMetrics.enabled
+    label: Grafana NodePort Number
+- variable: grafana.persistence.enabled
+  default: "false"
+  description: "Enable persistent volume for Grafana"
+  type: boolean
+  required: true
+  label: Grafana Persistent Volume Enabled
+  show_if: "grafana.enabled=true"
+  show_subquestion_if: true
+  group: "Grafana Settings"
+  subquestions:
+  - variable: grafana.persistence.size
+    default: "8Gi"
+    description: "Grafana Persistent Volume Size"
+    type: string
+    label: Grafana Volume Size
+    required: true
+  - variable: grafana.persistence.storageClass
+    default: ""
+    description: "If undefined or set to null, using the default storageClass. Defaults to null."
+    type: storageclass
+    label: Storage Class for Grafana
+# nodeExporter configurations
+- variable: nodeExporter.hostPort
+  default: "9100"
+  description: "Node exporter host port"
+  type: string
+  label: NodeExporter Host Port
+  required: true
+# alertmanager configurations
+- variable: alertmanager.enabled
   default: "true"
-  description: "If true, kube-state-metrics will be installed"
+  description: "If true, create alertmanager"
+  type: boolean
+  group: "Alertmanager"
+  label: Enable Alertmanager
+  show_subquestion_if: true
+- variable: alertmanager.ingress.enabled
+  default: "false"
+  description: "Expose alertmanager using Layer 7 Load Balancer - ingress"
+  type: boolean
+  group: "Alertmanager"
+  label: Expose Alertmanager using Layer 7 Load Balancer
+  show_if: "alertmanager.enabled=true"
+  show_subquestion_if: true
+  required: true
+  subquestions:
+  - variable: alertmanager.ingress.hosts[0]
+    default: "xip.io"
+    description: "Hostname to your alertmanager installation"
+    type: hostname
+    required: true
+    label: Hostname
+    show_if: "alertmanager.enabled=true"
+- variable: alertmanager.server.type
+  default: "ClusterIP"
+  description: "Alertmanager service type"
   type: enum
-  group: "KubeStateMetrics"
+  show_if: "alertmanager.ingress.enabled=false&&alertmanager.enabled=true"
+  group: "Alertmanager"
   options:
-    - "true"
-    - "false"
-  label: Enable KubeStateMetrics
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: Alertmanager Service Type
+  show_subquestion_if: "NodePort"
+  subquestions:
+  - variable: alertmanager.service.nodePort
+    default: ""
+    description: "NodePort http port(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    label: Alertmanager NodePort Http Port
+- variable: alertmanager.persistentVolume.enabled
+  default: "false"
+  description: "If true, alertmanager will create a persistent volume claim"
+  type: boolean
+  required: true
+  group: "Alertmanager"
+  label: Create Persistent Volume for Alertmanager
+  show_if: "alertmanager.enabled=true"
   show_subquestion_if: true
   subquestions:
-  - variable: kubeStateMetrics.name
-    default: "kube-state-metrics"
-    description: "kube-state-metrics container name"
+  - variable: alertmanager.persistentVolume.size
+    default: "2Gi"
+    description: "Alertmanager data persistent volume size"
     type: string
-    label: KubeStateMetrics Container Name
-    required: true
+    label: Alertmanager Persistent Volume Size
+  - variable: alertmanager.persistentVolume.storageClass
+    default: ""
+    description: "Alertmanager data persistent volume storageClass, if not set use default StorageClass"
+    type: storageclass
+    label: Alertmanager Persistent Volume StorageClass

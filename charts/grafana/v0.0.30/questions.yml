@@ -1,0 +1,107 @@
+categories:
+- dashboard
+questions:
+- variable: defaultImage
+  default: "true"
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: image.repository
+    default: "grafana/grafana"
+    description: "Grafana image name"
+    type: string
+    label: Grafana Image Name
+  - variable: image.tag
+    default: "5.0.0"
+    description: "Grafana image tag"
+    type: string
+    label: Grafana Image Tag
+  - variable: grafanaWatcher.image.repository
+    default: "appropriate/curl"
+    description: "Grafana Watcher image name"
+    type: string
+    label: Grafana Watcher Image Name
+  - variable: grafanaWatcher.image.tag
+    default: "latest"
+    description: "Grafana Watcher image tag"
+    type: string
+    label: Grafana Watcher Image Tag
+# grafana configurations
+- variable: adminUser
+  default: "admin"
+  description: "Grafana admin username"
+  type: string
+  group: "Grafana Settings"
+  label: Grafana Admin Username
+  required: true
+- variable: adminPassword
+  default: ""
+  description: "Grafana admin password"
+  type: password
+  group: "Grafana Settings"
+  label: Grafana Admin Password
+- variable: auth.anonymous.enabled
+  default: true
+  description: "Allow anonymous user to view the dashboard"
+  type: boolean
+  group: "Grafana Settings"
+  label: Anonymous Access
+- variable: persistence.enabled
+  default: "false"
+  description: "Enable persistent volume for Grafana"
+  type: boolean
+  required: true
+  label: Grafana Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "Grafana Settings"
+  subquestions:
+  - variable: persistence.size
+    default: "8Gi"
+    description: "Grafana Persistent Volume Size"
+    type: string
+    label: Grafana Volume Size
+    required: true
+  - variable: persistence.storageClass
+    default: ""
+    description: "If undefined or set to null, using the default storageClass. Defaults to null."
+    type: storageclass
+    label: Storage Class for Grafana
+- variable: ingress.enabled
+  default: "true"
+  description: "Expose grafana using Layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose Grafana using Layer 7 Load Balancer
+  show_subquestion_if: true
+  group: "Service and Load Balancing"
+  required: true
+  subquestions:
+  - variable: ingress.hosts[0]
+    default: "xip.io"
+    description: "Hostname to your grafana installation"
+    type: hostname
+    required: true
+    label: Hostname
+- variable: server.type
+  default: "NodePort"
+  description: "Grafana service type"
+  type: enum
+  group: "Service and Load Balancing"
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: Grafana Service Type
+  show_subquestion_if: "NodePort"
+  show_if: "ingress.enabled=false"
+  subquestions:
+  - variable: service.nodePort
+    default: ""
+    description: "NodePort http port(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    show_if: "ingress.enabled=false"
+    label: Grafana NodePort Number

@@ -1,50 +1,6 @@
-## Prometheus 2.x
+## Introduction
 
-Prometheus version 2.x has made changes to alertmanager, storage and recording rules. Check out the migration guide [here](https://prometheus.io/docs/prometheus/2.0/migration/)
-
-Users of this chart will need to update their alerting rules to the new format before they can upgrade.
-
-## Upgrading from previous chart versions.
-
-As of version 5.0, this chart uses Prometheus 2.1. This version of prometheus introduces a new data format and is not compatible with prometheus 1.x. It is recommended to install this as a new release, as updating existing releases will not work. See the [prometheus docs](https://prometheus.io/docs/prometheus/latest/migration/#storage) for instructions on retaining your old data.
-
-### Example migration
-
-Assuming you have an existing release of the prometheus chart, named `prometheus-old`. In order to update to prometheus 2.1 while keeping your old data do the following:
-
-1. Update the `prometheus-old` release. Disable scraping on every component besides the prometheus server, similar to the configuration below:
-
-	```
-	alertmanager:
-	  enabled: false
-	alertmanagerFiles:
-	  alertmanager.yml: ""
-	kubeStateMetrics:
-	  enabled: false
-	nodeExporter:
-	  enabled: false
-	pushgateway:
-	  enabled: false
-	server:
-	  extraArgs:
-	    storage.local.retention: 720h
-	serverFiles:
-	  alerts: ""
-	  prometheus.yml: ""
-	  rules: ""
-	```
-
-1. Deploy a new release of the chart with version 5.0+ using prometheus 2.x. In the values.yaml set the scrape config as usual, and also add the `prometheus-old` instance as a remote-read target.
-
-   ```
-	  prometheus.yml:
-	    ...
-	    remote_read:
-	    - url: http://prometheus-old/api/v1/read
-	    ...
-   ```
-
-   Old data will be available when you query the new prometheus instance.
+This chart bootstraps a [Prometheus](https://prometheus.io/) deployment on a [Kubernetes](http://kubernetes.io) cluster using the [Helm](https://helm.sh) package manager.
 
 ## Configuration
 
@@ -212,21 +168,6 @@ Parameter | Description | Default
 `serverFiles.rules` | Prometheus server rules configuration | `{}`
 `serverFiles.prometheus.yml` | Prometheus server scrape configuration | example configuration
 `networkPolicy.enabled` | Enable NetworkPolicy | `false` |
-
-Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`. For example,
-
-```console
-$ helm install stable/prometheus --name my-release \
-    --set server.terminationGracePeriodSeconds=360
-```
-
-Alternatively, a YAML file that specifies the values for the above parameters can be provided while installing the chart. For example,
-
-```console
-$ helm install stable/prometheus --name my-release -f values.yaml
-```
-
-> **Tip**: You can use the default [values.yaml](values.yaml)
 
 ### RBAC Configuration
 Roles and RoleBindings resources will be created automatically for `server` and `kubeStateMetrics` services.
