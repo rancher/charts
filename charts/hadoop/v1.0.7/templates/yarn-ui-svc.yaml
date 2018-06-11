@@ -1,0 +1,24 @@
+# Service to access the yarn web ui
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "hadoop.fullname" . }}-yarn-ui
+  labels:
+    app: {{ template "hadoop.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    component: yarn-ui
+spec:
+  type: {{ .Values.yarn.service.type }}
+  ports:
+  - name: web
+    port: 8088
+    targetPort: web
+    {{- if (and (eq .Values.yarn.service.type "NodePort") (not (empty .Values.yarn.service.nodePort)))}}
+    nodePort: {{ .Values.yarn.service.nodePort }}
+    {{- end }}
+  selector:
+    app: {{ template "hadoop.name" . }}
+    release: {{ .Release.Name }}
+    component: yarn-rm

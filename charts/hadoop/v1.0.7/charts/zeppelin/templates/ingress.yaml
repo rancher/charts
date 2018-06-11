@@ -1,0 +1,36 @@
+{{- if .Values.ingress.enabled -}}
+{{- $serviceName := include "zeppelin.fullname" . }}
+{{- $routePrefix := .Values.routePrefix }}
+{{- $releaseName := .Release.Name }}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ template "zeppelin.fullname" . }}
+  labels:
+    app: {{ template "zeppelin.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+{{- if .Values.ingress.labels }}
+{{ toYaml .Values.ingress.labels | indent 4 }}
+{{- end }}
+{{- if .Values.ingress.annotations }}
+  annotations:
+{{ toYaml .Values.ingress.annotations | indent 4 }}
+{{- end }}
+spec:
+  rules:
+    {{- range $host := .Values.ingress.hosts }}
+    - host: {{ $host }}
+      http:
+        paths:
+          - path: "{{ $routePrefix }}"
+            backend:
+              serviceName: {{ $serviceName }}
+              servicePort: 8080
+    {{- end -}}              
+{{- if .Values.ingress.tls }}
+  tls:
+{{ toYaml .Values.ingress.tls | indent 4 }}
+{{- end }}
+{{- end }}

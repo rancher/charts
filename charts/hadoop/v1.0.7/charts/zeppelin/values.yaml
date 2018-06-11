@@ -1,0 +1,87 @@
+zeppelin:
+  zeppelin:
+    replicas: 1
+    image: 
+      repository: dylanmei/zeppelin
+      tag: 0.7.2
+    resources:
+      limits:
+        memory: "4096Mi"
+        cpu: "2000m"
+      requests:
+        memory: "512Mi"
+        cpu: "200m"
+
+  hadoop:
+    useConfigMap: true
+    # configMapName: hadoop-hadoop
+    configPath: /usr/hadoop-2.7.3/etc/hadoop
+
+  spark:
+    driverMemory: 1g
+    executorMemory: 1g
+    numExecutors: 2
+
+
+  ingress:
+    ## If true, Grafana Ingress will be created
+    ##
+    enabled: false
+
+    ## Annotations for Alertmanager Ingress
+    ##
+    annotations: {}
+      # kubernetes.io/ingress.class: nginx
+      # kubernetes.io/tls-acme: "true"
+
+    ## Labels to be added to the Ingress
+    ##
+    labels: {}
+    
+    ## Hostnames.
+    ## Must be provided if Ingress is enabled.
+    ##
+    # hosts:
+    #   - grafana.domain.com
+    hosts: []
+
+    ## TLS configuration for Alertmanager Ingress
+    ## Secret must be manually created in the namespace
+    ##
+    tls: []
+      # - secretName: alertmanager-general-tls
+      #   hosts:
+      #     - alertmanager.example.com
+
+  service:
+
+    ## Annotations to be added to the Service
+    ##
+    annotations: {}
+
+    ## Cluster-internal IP address for Alertmanager Service
+    ##
+    clusterIP: ""
+
+    ## List of external IP addresses at which the Alertmanager Service will be available
+    ##
+    externalIPs: []
+
+    ## External IP address to assign to Alertmanager Service
+    ## Only used if service.type is 'LoadBalancer' and supported by cloud provider
+    ##
+    loadBalancerIP: ""
+
+    ## List of client IPs allowed to access Alertmanager Service
+    ## Only used if service.type is 'LoadBalancer' and supported by cloud provider
+    ##
+    loadBalancerSourceRanges: []
+
+    ## Port to expose on each node
+    ## Only used if service.type is 'NodePort'
+    ##
+    # nodePort: 30902
+
+    ## Service type
+    ##
+    type: ClusterIP

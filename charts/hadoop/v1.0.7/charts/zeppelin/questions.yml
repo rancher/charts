@@ -1,0 +1,63 @@
+questions:
+- variable: defaultImage
+  default: "true"
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: zeppelin.image.repository
+    default: "dylanmei/zeppelin"
+    description: "Zeppelin image name"
+    type: string
+    label: Zeppelin Image Name
+  - variable: zeppelin.image.tag
+    default: "0.7.2"
+    description: "Zeppelin image tag"
+    type: string
+    label: Zeppelin Image Tag
+- variable: hadoop.useConfigMap
+  default: true
+  description: "Expose Zeppelin using Layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose Zeppelin using Layer 7 Load Balancer
+  show_subquestion_if: true
+  group: "Hadoop Configuration"
+  required: true
+- variable: ingress.enabled
+  default: "true"
+  description: "Expose Zeppelin using Layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose Zeppelin using Layer 7 Load Balancer
+  show_subquestion_if: true
+  group: "Zeppelin"
+  required: true
+  subquestions:
+  - variable: ingress.hosts[0]
+    default: "xip.io"
+    description: "Hostname to your Zeppelin installation"
+    type: hostname
+    required: true
+    label: Hostname
+- variable: server.type
+  default: "ClusterIP"
+  description: "yarn ui service type"
+  type: enum
+  group: "Zeppelin"
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: Zeppelin Service Type
+  show_subquestion_if: "NodePort"
+  show_if: "ingress.enabled=false"
+  subquestions:
+  - variable: service.nodePort
+    default: ""
+    description: "NodePort http port(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    show_if: "ingress.enabled=false"
+    label: Zeppelin NodePort Number

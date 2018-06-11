@@ -1,0 +1,36 @@
+{{- if .Values.yarn.ingress.enabled -}}
+{{- $serviceName := include "hadoop.fullname" . }}
+{{- $routePrefix := .Values.yarn.routePrefix }}
+{{- $releaseName := .Release.Name }}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+{{- if .Values.yarn.ingress.annotations }}
+  annotations:
+{{ toYaml .Values.yarn.ingress.annotations | indent 4 }}
+{{- end }}
+  labels:
+    app: {{ template "hadoop.fullname" . }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    heritage: "{{ .Release.Service }}"
+    release: "{{ .Release.Name }}"
+{{- if .Values.yarn.ingress.labels }}
+{{ toYaml .Values.yarn.ingress.labels | indent 4 }}
+{{- end }}
+  name: {{ template "hadoop.fullname" . }}
+spec:
+  rules:
+    {{- range $host := .Values.yarn.ingress.hosts }}
+    - host: {{ $host }}
+      http:
+        paths:
+          - path: "{{ $routePrefix }}"
+            backend:
+              serviceName: {{ printf "%s-%s" $serviceName "yarn-ui" }}
+              servicePort: 8088
+    {{- end -}}              
+{{- if .Values.yarn.ingress.tls }}
+  tls:
+{{ toYaml .Values.yarn.ingress.tls | indent 4 }}
+{{- end }}
+{{- end }}

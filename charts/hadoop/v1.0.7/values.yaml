@@ -1,0 +1,205 @@
+# The base hadoop image to use for all components.
+# See this repo for image build details: https://github.com/Comcast/kube-yarn/tree/master/image
+image:
+  repository: danisla/hadoop
+  tag: 2.7.3
+  pullPolicy: IfNotPresent
+
+# Select antiAffinity as either hard or soft, default is hard
+antiAffinity: "soft"
+
+terminationGracePeriodSeconds: 30  # Duration in seconds a pod needs to terminate gracefully.
+
+hdfs:
+  nameNode:
+    pdbMinAvailable: 1
+
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "10m"
+      limits:
+        memory: "2048Mi"
+        cpu: "1000m"
+
+  dataNode:
+    replicas: 1
+
+    pdbMinAvailable: 1
+
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "10m"
+      limits:
+        memory: "2048Mi"
+        cpu: "1000m"
+
+yarn:
+  resourceManager:
+    pdbMinAvailable: 1
+
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "10m"
+      limits:
+        memory: "2048Mi"
+        cpu: "2000m"
+
+  nodeManager:
+    pdbMinAvailable: 1
+
+    # The number of YARN NodeManager instances.
+    replicas: 2
+
+    # Create statefulsets in parallel (K8S 1.7+)
+    parallelCreate: false
+
+    # CPU and memory resources allocated to each node manager pod.
+    # This should be tuned to fit your workload.
+    resources:
+      requests:
+        memory: "2048Mi"
+        cpu: "1000m"
+      limits:
+        memory: "2048Mi"
+        cpu: "1000m"
+
+  service:
+    type: ClusterIP
+    # nodePort: 32000 #range form 32000-32767
+
+  ingress:
+    ## If true, Grafana Ingress will be created
+    ##
+    enabled: false
+
+    ## Annotations for Alertmanager Ingress
+    ##
+    annotations: {}
+      # kubernetes.io/ingress.class: nginx
+      # kubernetes.io/tls-acme: "true"
+
+    ## Labels to be added to the Ingress
+    ##
+    labels: {}
+    
+    ## Hostnames.
+    ## Must be provided if Ingress is enabled.
+    ##
+    # hosts:
+    #   - grafana.domain.com
+    hosts: []
+
+    ## TLS configuration for Alertmanager Ingress
+    ## Secret must be manually created in the namespace
+    ##
+    tls: []
+      # - secretName: alertmanager-general-tls
+      #   hosts:
+      #     - alertmanager.example.com
+
+persistence:
+  nameNode:
+    enabled: false
+    storageClass: "-"
+    accessMode: ReadWriteOnce
+    size: 50Gi
+
+  dataNode:
+    enabled: false
+    storageClass: "-"
+    accessMode: ReadWriteOnce
+    size: 200Gi
+
+zeppelin:
+  enabled: true
+
+  #zeppelin configurations
+  zeppelin:
+    replicas: 1
+    image: 
+      repository: dylanmei/zeppelin
+      tag: 0.7.2
+    resources:
+      limits:
+        memory: "4096Mi"
+        cpu: "2000m"
+      requests:
+        memory: "512Mi"
+        cpu: "200m"
+
+  hadoop:
+    useConfigMap: true
+    # configMapName: hadoop-hadoop
+    configPath: /usr/hadoop-2.7.3/etc/hadoop
+
+  spark:
+    driverMemory: 1g
+    executorMemory: 1g
+    numExecutors: 2
+
+
+  ingress:
+    ## If true, Grafana Ingress will be created
+    ##
+    enabled: false
+
+    ## Annotations for Alertmanager Ingress
+    ##
+    annotations: {}
+      # kubernetes.io/ingress.class: nginx
+      # kubernetes.io/tls-acme: "true"
+
+    ## Labels to be added to the Ingress
+    ##
+    labels: {}
+    
+    ## Hostnames.
+    ## Must be provided if Ingress is enabled.
+    ##
+    # hosts:
+    #   - grafana.domain.com
+    hosts: []
+
+    ## TLS configuration for Alertmanager Ingress
+    ## Secret must be manually created in the namespace
+    ##
+    tls: []
+      # - secretName: alertmanager-general-tls
+      #   hosts:
+      #     - alertmanager.example.com
+
+  service:
+
+    ## Annotations to be added to the Service
+    ##
+    annotations: {}
+
+    ## Cluster-internal IP address for Alertmanager Service
+    ##
+    clusterIP: ""
+
+    ## List of external IP addresses at which the Alertmanager Service will be available
+    ##
+    externalIPs: []
+
+    ## External IP address to assign to Alertmanager Service
+    ## Only used if service.type is 'LoadBalancer' and supported by cloud provider
+    ##
+    loadBalancerIP: ""
+
+    ## List of client IPs allowed to access Alertmanager Service
+    ## Only used if service.type is 'LoadBalancer' and supported by cloud provider
+    ##
+    loadBalancerSourceRanges: []
+
+    ## Port to expose on each node
+    ## Only used if service.type is 'NodePort'
+    ##
+    # nodePort: 30902
+
+    ## Service type
+    ##
+    type: ClusterIP
