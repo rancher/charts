@@ -1,0 +1,98 @@
+categories:
+- elasticsearch
+- logging
+questions:
+- variable: defaultImage
+  default: "true"
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  group: "Container Images"
+  show_subquestion_if: false
+  subquestions:
+  - variable: elasticsearch.image.repository
+    default: "docker.elastic.co/elasticsearch/elasticsearch-oss"
+    description: "Elasticsearch image name"
+    type: string
+    label: ElasticSearch Image Name
+  - variable: elasticsearch.image.tag
+    default: "6.2.4"
+    description: "Elasticsearch image tag"
+    type: string
+    label: Elasticsearch Image Tag
+  - variable: kibana.image.repository
+    default: "docker.elastic.co/kibana/kibana-oss"
+    description: "Kibana image name"
+    type: string
+    label: Kibana Image Name
+  - variable: kibana.image.tag
+    default: "6.2.4"
+    description: "Kibana image tag"
+    type: string
+    label: Kibana Image Tag
+  - variable: fluent-bit.image.fluent_bit.repository
+    default: "fluent/fluent-bit"
+    description: "Fluent-Bit image name"
+    type: string
+    label: Fluent-Bit Image Name
+  - variable: fluent-bit.image.fluent_bit.tag
+    default: "0.13.0"
+    description: "Fluent-Bit image tag"
+    type: string
+    label: Fluent-Bit Image Tag
+# elasticsearch settings
+- variable: elasticsearch.master.heapSize
+  default: "512m"
+  description: "The value depends on the amount of RAM available on your server"
+  type: enum
+  label: Elasticsearch JVM Heap Size
+  required: true
+  group: "elasticsearch"
+  options:
+  - "512m" 
+  - "1g" 
+  - "2g"
+- variable: elasticsearch.master.persistence.enabled
+  default: "false"
+  description: "Enable persistent volume for elasticsearch"
+  type: boolean
+  required: true
+  label: Elasticsearch Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "elasticsearch"
+  subquestions:
+  - variable: elasticsearch.master.persistence.storageClass
+    default: ""
+    description: "If undefined or set to null, using the default StorageClass. Defaults to null."
+    type: storageclass
+    label: Storage Class for Elasticsearch
+  - variable: elasticsearch.master.persistence.size
+    default: "10Gi"
+    description: "Elasticsearch persistent volume size"
+    required: true
+    type: string
+    label: Elasticsearch Persistent Volume Size
+# kibana settings
+- variable: kibana.ingress.enabled
+  default: true
+  description: "Expose kibana using Layer 7 Load Balancer - ingress"
+  type: boolean
+  group: "Kibana"
+  label: Expose Kibana using Layer 7 Load Balancer
+  show_subquestion_if: true
+  required: true
+  subquestions:
+  - variable: kibana.ingress.hosts[0]
+    default: "xip.io"
+    description: "Kibana server ingress hostname"
+    type: hostname
+    required: true
+    label: Hostname
+# fluent-bit settings:
+- variable: fluent-bit.enabled
+  default: true
+  group: "Fluent-Bit"
+  description: "Enable fluent-bit, the Kubernetes log forwarder"
+  type: boolean
+  label: Enable Fluent-Bit
+  required: true
