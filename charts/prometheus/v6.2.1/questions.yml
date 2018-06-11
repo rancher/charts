@@ -37,37 +37,31 @@ questions:
     description: "Node exporter image name"
     type: string
     label: NodeExporter Image Name
-    show_if: "nodeExporter.enabled=true"
   - variable: nodeExporter.image.tag
     default: "v0.15.2"
     description: "Node exporter image tag"
     type: string
     label: NodeExporter Image Tag
-    show_if: "nodeExporter.enabled=true"
   - variable: pushgateway.image.repository
     default: "prom/pushgateway"
     description: "Pushgateway image name"
     type: string
     label: Pushgateway Image Name
-    show_if: "pushgateway.enabled=true"
   - variable: pushgateway.image.tag
     default: "v0.4.0"
     description: "Pushgateway image tag"
     type: string
     label: Pushgateway Image Tag
-    show_if: "pushgateway.enabled=true"
   - variable: kubeStateMetrics.image.repository
     default: "quay.io/coreos/kube-state-metrics"
     description: "Kube-state-metrics image name"
     type: string
     label: KubeStateMetrics Image Name
-    show_if: "kubeStateMetrics.enabled=true"
   - variable: kubeStateMetrics.image.tag
     default: "v1.3.1"
     description: "Kube-state-metrics image tag"
     type: string
     label: KubeStateMetrics Image Tag
-    show_if: "kubeStateMetrics.enabled=true"
   - variable: grafana.image.repository
     default: "grafana/grafana"
     description: "Grafana image name"
@@ -104,25 +98,6 @@ questions:
     type: hostname
     required: true
     label: Hostname
-- variable: server.persistentVolume.enabled
-  default: "false"
-  description: "If true, prometheus will create a persistent volume claim"
-  type: boolean
-  group: "Prometheus Server"
-  required: true
-  label: Create Persistent Volume for Prometheus
-  show_subquestion_if: true
-  subquestions:
-  - variable: server.persistentVolume.size
-    default: "8Gi"
-    description: "Prometheus data persistent volume size"
-    type: string
-    label: Prometheus Persistent Volume Size
-  - variable: server.persistentVolume.storageClass
-    default: ""
-    description: "Prometheus data persistent volume storageClass, if not set use default StorageClass"
-    type: storageclass
-    label: Prometheus Persistent Volume StorageClass
 - variable: server.service.type
   default: "ClusterIP"
   description: "Server service type"
@@ -143,6 +118,26 @@ questions:
     min: 30000
     max: 32767
     label: Prometheus NodePort Http Port
+    show_if: "server.ingress.enabled=false&&server.service.type=NodePort"
+- variable: server.persistentVolume.enabled
+  default: "false"
+  description: "If true, prometheus will create a persistent volume claim"
+  type: boolean
+  group: "Prometheus Server"
+  required: true
+  label: Create Persistent Volume for Prometheus
+  show_subquestion_if: true
+  subquestions:
+  - variable: server.persistentVolume.size
+    default: "8Gi"
+    description: "Prometheus data persistent volume size"
+    type: string
+    label: Prometheus Persistent Volume Size
+  - variable: server.persistentVolume.storageClass
+    default: ""
+    description: "Prometheus data persistent volume storageClass, if not set use default StorageClass"
+    type: storageclass
+    label: Prometheus Persistent Volume StorageClass
 # grafana configurations
 - variable: grafana.enabled
   default: true
@@ -181,6 +176,7 @@ questions:
     type: hostname
     required: true
     label: Hostname
+    show_if: "grafana.enabled=true"
 - variable: grafana.service.type
   default: "NodePort"
   description: "Grafana service type"
@@ -202,6 +198,7 @@ questions:
     min: 30000
     max: 32767
     label: Grafana NodePort Number
+    show_if: "grafana.enabled=true&&grafana.ingress.enabled=false"
 - variable: grafana.persistence.enabled
   default: "false"
   description: "Enable persistent volume for Grafana"
@@ -223,13 +220,6 @@ questions:
     description: "If undefined or set to null, using the default storageClass. Defaults to null."
     type: storageclass
     label: Storage Class for Grafana
-# nodeExporter configurations
-- variable: nodeExporter.hostPort
-  default: "9100"
-  description: "Node exporter host port"
-  type: string
-  label: NodeExporter Host Port
-  required: true
 # alertmanager configurations
 - variable: alertmanager.enabled
   default: "true"
@@ -275,6 +265,7 @@ questions:
     min: 30000
     max: 32767
     label: Alertmanager NodePort Http Port
+    show_if: "alertmanager.enabled=true&&alertmanager.ingress.enabled=false"
 - variable: alertmanager.persistentVolume.enabled
   default: "false"
   description: "If true, alertmanager will create a persistent volume claim"
@@ -290,8 +281,10 @@ questions:
     description: "Alertmanager data persistent volume size"
     type: string
     label: Alertmanager Persistent Volume Size
+    show_if: "alertmanager.enabled=true"
   - variable: alertmanager.persistentVolume.storageClass
     default: ""
     description: "Alertmanager data persistent volume storageClass, if not set use default StorageClass"
     type: storageclass
     label: Alertmanager Persistent Volume StorageClass
+    show_if: "alertmanager.enabled=true"
