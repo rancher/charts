@@ -7,6 +7,15 @@ podDisruptionBudget: {}
   # maxUnavailable: 1
   # minAvailable: 2
 
+## The StatefulSet Update Strategy which Kafka will use when changes are applied.
+## ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#update-strategies
+updateStrategy:
+  type: "OnDelete"
+
+## Start and stop pods in Parallel or OrderedReady (one-by-one.)  Note - Can not change after first release.
+## ref: https://kubernetes.io/docs/tutorials/stateful-application/basic-stateful-set/#pod-management-policy
+podManagementPolicy: OrderedReady
+
 auth:
   enabled: false
   # adminUser: username
@@ -87,6 +96,11 @@ tls:
 
 # Entries for the MongoDB config file
 configmap:
+
+## Period to wait for broker graceful shutdown (sigterm) before pod is killed (sigkill)
+## ref: https://kubernetes-v1-4.github.io/docs/user-guide/production-pods/#lifecycle-hooks-and-termination-notice
+## ref: https://kafka.apache.org/10/documentation.html#brokerconfigs controlled.shutdown.*
+terminationGracePeriodSeconds: 30
 
 # Readiness probe
 readinessProbe:

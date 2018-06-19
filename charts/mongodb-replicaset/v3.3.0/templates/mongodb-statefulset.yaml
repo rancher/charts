@@ -8,6 +8,9 @@ metadata:
     release: {{ .Release.Name }}
   name: {{ template "mongodb-replicaset.fullname" . }}
 spec:
+  podManagementPolicy: {{ .Values.podManagementPolicy }}
+  updateStrategy:
+{{ toYaml .Values.updateStrategy | indent 4 }}
   selector:
     matchLabels:
       app: {{ template "mongodb-replicaset.name" . }}
@@ -215,6 +218,7 @@ spec:
           emptyDir: {}
         - name: configdir
           emptyDir: {}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
 {{- if .Values.persistentVolume.enabled }}
   volumeClaimTemplates:
     - metadata:
