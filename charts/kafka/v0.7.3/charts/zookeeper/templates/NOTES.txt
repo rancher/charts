@@ -1,0 +1,22 @@
+{{- $root := . -}}
+********************************************************************************
+********************************************************************************
+
+Your ZooKeeper v{{ .Chart.Version }} release is named '{{ .Release.Name }}'.
+
+To wait for the ZooKeeper ensemble to become ready, run the following:
+
+$ kubectl -n {{ .Release.Namespace }} get po -l release={{ .Release.Name }} -w
+
+Once ready, to get a ZooKeeper shell on any pod, run the following:
+
+{{- range $i, $e := until (.Values.replicaCount| int) }}
+$ kubectl -n {{ $root.Release.Namespace }} exec -it {{ $root.Release.Namespace }}-{{ $root.Chart.Name }}-{{ $i }} zkCli.sh
+{{- end }}
+
+To get the config, run the following:
+
+$ kubectl -n {{ .Release.Namespace }} get cm {{ .Release.Name }} -o yaml
+
+********************************************************************************
+********************************************************************************

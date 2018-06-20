@@ -1,0 +1,125 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: {{ template "zookeeper.fullname" . }}
+  labels:
+    app: {{ template "zookeeper.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  podManagementPolicy: Parallel
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ template "zookeeper.name" . }}
+      release: {{ .Release.Name }}
+  serviceName: {{ template "zookeeper.fullname" . }}-headless
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: {{ template "zookeeper.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      securityContext:
+{{ toYaml .Values.securityContext | indent 8 }}
+      containers:
+      - name: {{ template "zookeeper.name" . }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command:
+        - bash
+        - -c
+        - ZOOKEEPER_SERVER_ID=$((${HOSTNAME##*-}+1)) && /etc/confluent/docker/run
+        env:
+        - name: ZOOKEEPER_TICK_TIME
+          valueFrom:
+            configMapKeyRef:
+              key: tick
+              name: {{ template "zookeeper.fullname" . }}
+        - name: ZOOKEEPER_SYNC_LIMIT
+          valueFrom:
+            configMapKeyRef:
+              key: tick
+              name: {{ template "zookeeper.fullname" . }}
+        - name: ZOOKEEPER_SERVERS
+          valueFrom:
+            configMapKeyRef:
+              key: servers
+              name: {{ template "zookeeper.fullname" . }}
+        - name: ZOOKEEPER_CLIENT_PORT
+          valueFrom:
+            configMapKeyRef:
+              key: client_port
+              name: {{ template "zookeeper.fullname" . }}
+        - name: ZOOKEEPER_AUTOPURGE_PURGE_INTERVAL
+          valueFrom:
+            configMapKeyRef:
+              key: purge_interval
+              name: {{ template "zookeeper.fullname" . }}
+        - name: ZOOKEEPER_SERVER_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        ports:
+        - containerPort: 2181
+          name: client
+          protocol: TCP
+        - containerPort: 2888
+          name: server
+          protocol: TCP
+        - containerPort: 3888
+          name: leader-election
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /var/lib/zookeeper
+          name: data
+        resources:
+{{ toYaml .Values.resources | indent 10 }}
+    {{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+    {{- end }}
+{{- if .Values.affinityEnabled }}
+      affinity:
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+           - weight: 50
+             podAffinityTerm:
+               labelSelector:
+                 matchExpressions:
+                 - key: app
+                   operator: In
+                   values:
+                     - {{ template "zookeeper.name" . }}
+                 - key: release
+                   operator: In
+                   values:
+                     - {{ .Release.Name }}
+               topologyKey: "kubernetes.io/hostname"
+{{- end }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+  {{- if not .Values.persistence.enabled }}
+      volumes:
+      - name: data
+        emptyDir: {}
+  {{- else }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - {{ .Values.persistence.accessMode | quote }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size | quote }}
+      {{- if .Values.persistence.storageClass }}
+        {{- if (eq "-" .Values.persistence.storageClass) }}
+        storageClassName: ""
+        {{- else }}
+        storageClassName: "{{ .Values.persistence.storageClass }}"
+        {{- end }}
+      {{- end }}
+  {{- end }}

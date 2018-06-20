@@ -1,0 +1,16 @@
+{{- $root := . -}}
+{{- $ns := .Release.Namespace -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "zookeeper.fullname" . }}
+  labels:
+    app: {{ template "zookeeper.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  tick: "{{ .Values.env.ZK_TICK_TIME }}"
+  client_port: "{{ .Values.env.ZK_CLIENT_PORT }}"
+  purge_interval:  "{{ .Values.env.PURGE_INTERVAL }}"
+  servers: "{{ range $i, $e := until (.Values.replicaCount | int) }}{{ if ne $i 0 }};{{ end }}{{ template "zookeeper.fullname" $ }}-{{ $i }}.{{ template "zookeeper.fullname" $ }}-headless.{{ $ns }}.svc.cluster.local:2888:3888{{ end }}"

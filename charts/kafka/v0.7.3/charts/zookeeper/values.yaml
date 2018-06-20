@@ -1,0 +1,58 @@
+# Default values for zookeeper.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+replicaCount: 3
+
+terminationGracePeriodSeconds: 120  # Duration in seconds a Zokeeper pod needs to terminate gracefully.
+
+securityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+
+image:
+  repository: confluentinc/cp-zookeeper
+  tag: 4.1.1
+  pullPolicy: IfNotPresent
+
+service:
+  name: client
+  type: ClusterIP
+  externalPort: 2181
+  internalPort: 2181
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #  cpu: 100m
+  #  memory: 128Mi
+  # requests:
+  #  cpu: 100m
+  #  memory: 128Mi
+
+persistence:
+  enabled: true
+  ## zookeeper data Persistent Volume Storage Class
+  ## If defined, storageClassName: <storageClass>
+  ## If set to "-", storageClassName: "", which disables dynamic provisioning
+  ## If undefined (the default) or set to null, no storageClassName spec is
+  ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+  ##   GKE, AWS & OpenStack)
+  ##
+  # storageClass: "-"
+  accessMode: ReadWriteOnce
+  size: 5Gi
+
+env:
+  ## The port on which the server will accept client requests.
+  ZK_CLIENT_PORT: 2181
+
+  ## The number of wall clock ms that corresponds to a Tick for the ensembles
+  ## internal time.
+  ZK_TICK_TIME: 2000
+
+  PURGE_INTERVAL: 24
+
+affinityEnabled: true

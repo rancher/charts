@@ -1,0 +1,150 @@
+questions:
+- variable: defaultImage
+  default: "true"
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: image
+    default: "confluentinc/cp-kafka"
+    description: "Kafka image name"
+    type: string
+    label: Kafka Image Name
+  - variable: imageTag
+    default: "4.0.1-1"
+    description: "Kafka image tag"
+    type: string
+    label: Kafka Image Tag
+  - variable: zookeeper.image.repository
+    default: "confluentinc/cp-zookeeper"
+    description: "Zookeeper image name"
+    type: string
+    label: Zookeeper Image Name
+  - variable: zookeeper.image.tag
+    default: "4.1.1"
+    description: "Zookeeper image tag"
+    type: string
+    label: Zookeeper Image Tag
+  - variable: schema-registry.image
+    default: "confluentinc/cp-schema-registry"
+    description: "Kafka schema registry image name"
+    type: string
+    label: Kafka Schema-Registry Image Name
+  - variable: schema-registry.imageTag
+    default: "4.0.1"
+    description: "Kafka schema registry image tag"
+    type: string
+    label: Kafka Schema-Registry Image Tag
+  - variable: kafka-rest.image.repository
+    default: "confluentinc/cp-kafka-rest"
+    description: "Kafka-REST image name"
+    type: string
+    label: Kafka-REST Image Name
+  - variable: kafka-rest.image.tag
+    default: "4.0.0"
+    description: "Kafka rest image tag"
+    type: string
+    label: Kafka-REST Image Tag
+  - variable: kafka-topics-ui.image.repository
+    default: "landoop/kafka-topics-ui"
+    description: "kafka-topics-ui image name"
+    type: string
+    label: Kafka-Topics-UI Image Name
+  - variable: kafka-topics-ui.image.tag
+    default: "latest"
+    description: "kafka-topics-ui image tag"
+    type: string
+    label: Kafka-Topics-UI Image Tag
+# Kafka Configurations
+- variable: replicas
+  default: 3
+  description: "Replicas of Kafka Brokers"
+  type: int
+  min: 3
+  max: 30
+  required: true
+  label: Kafka Brokers
+  group: "Kafka Settings"
+- variable: persistence.enabled
+  default: false
+  description: "Enable persistent volume for Kafka"
+  type: boolean
+  required: true
+  label: Kafka Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "Kafka Settings"
+  subquestions:
+  - variable: persistence.size
+    default: "20Gi"
+    description: "Kafka Persistent Volume Size"
+    type: string
+    label: Kafka Volume Size
+  - variable: persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for Kafka
+# Zookeeper Configurations
+- variable: zookeeper.persistence.enabled
+  default: false
+  description: "Enable persistent volume for Zookeeper"
+  type: boolean
+  required: true
+  label: Zookeeper Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "Zookeeper Settings"
+  subquestions:
+  - variable: zookeeper.persistence.size
+    default: "20Gi"
+    description: "Zookeeper Persistent Volume Size"
+    type: string
+    label: Zookeeper Volume Size
+  - variable: zookeeper.persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for Zookeeper
+# kafka-Topics-UI Configurations
+- variable: kafka-topics-ui.enabled
+  default: true
+  description: "Enable kafka topics ui dashboard"
+  type: boolean
+  label: Enable Kafka Topics UI Dashboard
+  group: "Kafka Topics UI"
+- variable: kafka-topics-ui.ingress.enabled
+  default: true
+  description: "Expose kafka topics UI using Layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose Kafka Topics UI using Layer 7 Load Balancer
+  show_if: "kafka-topics-ui.enabled=true"
+  show_subquestion_if: true
+  group: "Kafka Topics UI"
+  subquestions:
+  - variable: kafka-topics-ui.ingress.host
+    default: "xip.io"
+    description: "layer 7 Load Balancer hostname"
+    type: hostname
+    show_if: "kafka-topics-ui.enabled=true&&kafka-topics-ui.ingress.enabled=true"
+    required: true
+    label: Layer 7 Load Balancer Hostname
+- variable: kafka-topics-ui.service.type
+  default: "NodePort"
+  description: "Kafka topics ui Service type"
+  type: enum
+  group: "Kafka Topics UI"
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: Service Type of Kafka Topics UI 
+  show_subquestion_if: "NodePort"
+  subquestions:
+  - variable: kafka-topics-ui.service.nodePort
+    default: ""
+    description: "NodePort port number(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    label: Service NodePort number

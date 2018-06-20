@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "kafka-topics-ui.fullname" . }}
+  labels:
+    app: {{ template "kafka-topics-ui.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.externalPort }}
+      targetPort: {{ .Values.service.internalPort }}
+      protocol: TCP
+      name: {{ .Values.service.name }}
+  {{- if .Values.service.nodePort }}
+      nodePort: {{ .Values.service.nodePort }}
+  {{- end }}
+  selector:
+    app: {{ template "kafka-topics-ui.name" . }}
+    release: {{ .Release.Name }}
