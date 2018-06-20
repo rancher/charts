@@ -28,22 +28,18 @@ spec:
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
         env:
-        - name: MONGODB_ROOT_PASSWORD
+        {{ if and .Values.auth.enabled .Values.auth.rootPassword }}
+        - name: MONGO_INITDB_ROOT_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ template "mongodb.fullname" . }}
+              key: mongodb-root-username
+        - name: MONGO_INITDB_ROOT_PASSWORD
           valueFrom:
             secretKeyRef:
               name: {{ template "mongodb.fullname" . }}
               key: mongodb-root-password
-        - name: MONGODB_USERNAME
-          value: {{ default "" .Values.mongodbUsername | quote }}
-        {{ if and .Values.mongodbUsername .Values.mongodbDatabase }}
-        - name: MONGODB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: {{ template "mongodb.fullname" . }}
-              key: mongodb-password
         {{ end }}
-        - name: MONGODB_DATABASE
-          value: {{ default "" .Values.mongodbDatabase | quote }}
         - name: MONGODB_EXTRA_FLAGS
           value: {{ default "" .Values.mongodbExtraFlags | join " " }}
         ports:
@@ -65,10 +61,15 @@ spec:
 {{ toYaml .Values.readinessProbe | indent 10 }}
         volumeMounts:
         - name: data
-          mountPath: /bitnami/mongodb
+          mountPath: {{ .Values.persistence.mountPath }}
+        - name: config
+          mountPath: /etc/mongo/mongod.conf
         resources:
 {{ toYaml .Values.resources | indent 10 }}
       volumes:
+      - name: config
+        configMap:
+          name: {{ template "mongodb.fullname" . }}
       - name: data
       {{- if .Values.persistence.enabled }}
         persistentVolumeClaim:

@@ -11,17 +11,17 @@ questions:
   group: "Container Images"
   subquestions:
   - variable: image.repository
-    default: "bitnami/mongodb"
+    default: "mongo"
     description: "MongoDB image name"
     type: string
     label: MongoDB Image Name
   - variable: image.tag
-    default: "3.7.3"
+    default: "3.6.5"
     description: "MongoDB image tag"
     type: string
     label: Image Tag
 - variable: auth.enabled
-  default: "false"
+  default: false
   description: "Enabling access control on a MongoDB deployment enforces authentication, requiring users to identify themselves"
   type: boolean
   label: Enable Auth
@@ -29,34 +29,27 @@ questions:
   show_subquestion_if: true
   group: "MongoDB Settings"
   subquestions:
-  - variable: mongodbUsername
-    default: "admin"
-    description: "Username of new user"
+  - variable: auth.rootUsername
+    default: "root"
+    description: "MongoDB root username"
     type: string
     label: MongoDB Username
     required: true
-  - variable: mongodbPassword
+  - variable: auth.rootPassword
     default: ""
-    description: "Password for MongoDB user, defaults to a random 10-character alphanumeric string if not set"
+    description: "MongoDB root password, defaults to a random 10-character alphanumeric string if not set"
     type: password
     label: MongoDB Password
-  - variable: mongodbDatabase
-    default: ""
-    description: "Database name to create"
-    type: string
-    label: MongoDB Database
-    required: true
 - variable: service.type
-  default: "ClusterIP"
+  default: "NodePort"
   description: "MongoDB K8s Service type"
   type: enum
-  group: "Services and Load Balancing"
+  group: "MongoDB Settings"
   options:
     - "ClusterIP"
     - "NodePort"
   required: true
   label: MongoDB Service Type
-  # show_if: "ingress.enabled=false"
   show_subquestion_if: "NodePort"
   subquestions:
   - variable: service.nodePort
@@ -86,17 +79,3 @@ questions:
     description: "If undefined or set to null, using the default storageClass. Defaults to null."
     type: storageclass
     label: Storage Class for MongoDB
-# - variable: ingress.enabled
-#   default: "true"
-#   description: "Expose app using Layer 7 Load Balancer - ingress"
-#   type: boolean
-#   label: Expose app using Layer 7 Load Balancer
-#   show_subquestion_if: true
-#   group: "Services and Load Balancing"
-#   subquestions:
-#   - variable: ingress.host
-#     default: "xip.io"
-#     description: "layer 7 Load Balancer hostname"
-#     type: hostname
-#     required: true
-#     label: Layer 7 Load Balancer Hostname

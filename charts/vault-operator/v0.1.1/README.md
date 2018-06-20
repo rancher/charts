@@ -40,13 +40,13 @@ Parameter | Description | Default
 
 ## Using the Vault cluster
 
-See the [Vault usage guide](./doc/user/vault.md) on how to initialize, unseal, and use the deployed Vault cluster.
+See the [Vault usage guide](https://github.com/coreos/vault-operator/blob/master/doc/user/vault.md) on how to initialize, unseal, and use the deployed Vault cluster.
 
-Consult the [monitoring guide](./doc/user/monitoring.md) on how to monitor and alert on a Vault cluster with Prometheus.
+Consult the [monitoring guide](https://github.com/coreos/vault-operator/blob/master/doc/user/monitoring.md) on how to monitor and alert on a Vault cluster with Prometheus.
 
-See the [recovery guide](./doc/user/recovery.md) on how to backup and restore Vault cluster data using the etcd opeartor
+See the [recovery guide](https://github.com/coreos/vault-operator/blob/master/doc/user/recovery.md) on how to backup and restore Vault cluster data using the etcd opeartor
 
-For an overview of the default TLS configuration or how to specify custom TLS assets for a Vault cluster see the [TLS setup guide](doc/user/tls_setup.md).
+For an overview of the default TLS configuration or how to specify custom TLS assets for a Vault cluster see the [TLS setup guide](https://github.com/coreos/vault-operator/blob/master/doc/user/tls_setup.md).
 
 [vault]: https://www.vaultproject.io/
 [etcd-operator]: https://github.com/coreos/etcd-operator/
