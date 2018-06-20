@@ -1,0 +1,245 @@
+categories:
+- Microservice 
+- Service mesh 
+namespace: istio-system
+questions:
+- variable: defaultImage
+  default: "true"
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: security.image.repository 
+    default: "istio/istio-ca"
+    description: "The security image repository"
+    type: string 
+    label: Security Image Repository 
+  - variable: security.image.tag
+    default: "0.7.1"
+    description: "The security image tag"
+    type: string 
+    label: Security Image Tag 
+  - variable: global.proxy.image 
+    default: "istio/proxy"
+    description: "The image of istio proxy"
+    type: string 
+    required: true
+    label: Image Repository of Istio Proxy 
+  - variable: global.proxy.initImage 
+    default: "istio/proxy_init"
+    description: "The initial image of istio proxy"
+    type: string 
+    required: true
+    label: Initial Image Repository of Istio Proxy 
+  - variable: global.tag
+    default: "0.7.1"
+    description: "The image tag of istio proxy"
+    type: string 
+    required: true
+    label: Image tag of Istio Proxy 
+  - variable: mixer.image.repository 
+    default: "istio/mixer"
+    description: "The mixer component image repository"
+    type: string 
+    label: Mixer Image Repository 
+  - variable: mixer.image.tag
+    default: "0.7.1"
+    description: "The mixer image tag"
+    type: string 
+    label: Mixer Image Tag 
+  - variable: mixer.prometheusStatsdExporter.repository 
+    default: "prom/statsd-exporter"
+    description: "The prometheus stas exporter image repository"
+    type: string 
+    label: Prometheus Exporter Image Repository 
+  - variable: mixer.prometheusStatsdExporter.tag
+    default: "latest"
+    description: "The prometheus stas exporter image tag"
+    type: string 
+    label: Prometheus Exporter Image Tag 
+  - variable: pilot.image.repository 
+    default: "istio/pilot"
+    description: "The pilot component image repository"
+    type: string 
+    label: Pilot Image Repository 
+  - variable: pilot.image.tag
+    default: "0.7.1"
+    description: "The pilot image tag"
+    type: string 
+    label: Pilot Image Tag 
+  - variable: servicegraph.image.repository 
+    default: "istio/servicegraph"
+    description: "The servicegraph component image repository"
+    type: string 
+    label: Servicegraph Image Repository 
+  - variable: servicegraph.image.tag
+    default: "0.7.1"
+    description: "The servicegraph image tag"
+    type: string 
+    label: Servicegraph Image Tag 
+  - variable: zipkin.image.repository 
+    default: "openzipkin/zipkin"
+    description: "The zipkin component image repository"
+    type: string 
+    label: Zipkin Image Repository 
+  - variable: zipkin.image.tag
+    default: "latest"
+    description: "The zipkin image tag"
+    type: string 
+    label: Zipkin Image Tag 
+  - variable: grafana.image.repository 
+    default: "istio/grafana"
+    description: "The grafana component image repository"
+    type: string 
+    label: Grafana Image Repository 
+  - variable: grafana.image.tag
+    default: "0.7.1"
+    description: "The grafana image tag"
+    type: string 
+    label: Grafana Image Tag 
+  - variable: prometheus.image.repository 
+    default: "prom/prometheus"
+    description: "The prometheuscomponent image repository"
+    type: string 
+    label: Prometheus Image Repository 
+  - variable: prometheus.image.tag
+    default: "latest"
+    description: "The prometheus image tag"
+    type: string 
+    label: Prometheus Image Tag 
+- variable: servicegraph.enabled
+  default: "true"
+  description: "Enabled the servicegraph component of istio"
+  type: boolean 
+  required: true
+  label: Enabled the Servicegraph Component 
+  show_subquestion_if: true
+  group: "Servicegraph Component Settings"
+  subquestions:
+- variable: servicegraph.ingress.enabled
+  default: "true"
+  description: "Expose servicegraph using layer 7 Load Balancer - ingress"
+  type: boolean 
+  label: Expose servicegraph using Layer 7 Load Balancer 
+  show_if: "servicegraph.enabled=true"
+  group: "Servicegraph Component Settings"
+  show_subquestion_if: "true"
+  subquestions:
+  - variable: servicegraph.ingress.hosts[0]
+    default: "xip.io"
+    description: "The hostname to access servicegraph, it is a json array"
+    type: hostname 
+    label: Hostname to Access Servicegraph 
+- variable: servicegraph.service.type
+  default: "NodePort"
+  description: "Servicegraph service type"
+  type: enum 
+  label: Servicegraph Service Type 
+  show_if: "servicegraph.ingress.enabled=false"
+  options:
+      - "ClusterIP"
+      - "NodePort"
+- variable: zipkin.enabled 
+  default: "true"
+  description: "Enabled the zipkin component of istio"
+  type: boolean 
+  required: true
+  label: Enabled the zipkin Component 
+  group: "Zipkin Component Settings"
+- variable: zipkin.ingress.enabled
+  default: "true"
+  description: "Expose zipkin using Layer 7 Load Balancer - ingress"
+  type: boolean 
+  label: Expose zipkin using Layer 7 Load Balancer 
+  group: "Zipkin Component Settings"
+  show_if: "zipkin.enabled=true"
+  show_subquestion_if: "true"
+  subquestions:
+  - variable: zipkin.ingress.hosts[0]
+    default: "xip.io"
+    description: "The hostname to access zipkin, it is a json array type"
+    type: hostname 
+    label: Hostname to Access Zipkin 
+- variable: zipkin.service.type
+  default: "NodePort"
+  description: "Zipkin service type"
+  type: enum 
+  label: Zipkin Service Type 
+  show_if: "zipkin.ingress.enabled=false"
+  options:
+      - "ClusterIP"
+      - "NodePort"
+- variable: ingress.service.nodePort.enabled
+  default: "true"
+  description: "Enabled nodePort service type"
+  group: "Istio Ingress Settings"
+  type: boolean
+  label: Enabled NodePort Service Type 
+  show_subquestion_if: "true"
+  subquestions:
+  - variable: ingress.service.nodePort.port
+    default: ""
+    description: "NodePort http(to set explicitly, choose port between 30000-32767)"
+    type: int 
+    min: 32000
+    max: 32767
+    label: Ingress Envoy NodePort Http Port 
+- variable: grafana.enabled 
+  default: false
+  description: "Enabled the grafana component of istio"
+  type: boolean 
+  required: true
+  label: Enabled the Grafana Component 
+  show_subquestion_if: true
+  group: "Grafana Component Settings"
+  subquestions:
+- variable: grafana.ingress.enabled
+  default: true
+  description: "Expose grafana using Layer 7 Load Balancer - ingress"
+  type: boolean 
+  show_if: "grafana.enabled=true"
+  label: Expose grafana using Layer 7 Load Balancer 
+  show_subquestion_if: "true"
+  group: "Grafana Component Settings"
+  subquestions:
+  - variable: grafana.ingress.hosts[0]
+    default: "xip.io"
+    description: "The hostname to access the grafana, it is a json array type"
+    type: hostname
+    label: Hostname to Access Grafana 
+    show_if: "grafana.enabled=true&&grafana.ingress.enabled=true"
+- variable: grafana.service.type
+  default: "NodePort"
+  description: "Grafana service type"
+  show_if: "grafana.ingress.enabled=false"
+  type: enum 
+  label: Grafana Service Type 
+  group: "Grafana Component Settings"
+  options:
+      - "ClusterIP"
+      - "NodePort"
+- variable: prometheus.enabled 
+  default: true
+  description: "Enabled the prometheus component of istio"
+  type: boolean 
+  required: true
+  label: Enabled the prometheus Component 
+  show_subquestion_if: true
+  group: "Prometheus Component Settings"
+- variable: prometheus.ingress.enabled
+  default: true
+  description: "Expose prometheus using Layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose prometheus using Layer 7 Load Balancer
+  show_if: "prometheus.enabled=true"
+  show_subquestion_if: true
+  group: "Prometheus Component Settings"
+  subquestions:
+  - variable: prometheus.ingress.hosts[0]
+    default: "xip.io"
+    description: "The hostname to access prometheus server"
+    type: hostname 
+    label: Hostname to Access Prometheus Server 
+    show_if: "prometheus.enabled=true"
