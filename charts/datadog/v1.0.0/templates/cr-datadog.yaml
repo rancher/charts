@@ -1,0 +1,57 @@
+{{- if .Values.rbac.create -}}
+apiVersion: {{ template "rbac.apiVersion" . }}
+kind: ClusterRole
+metadata:
+  labels:
+    app: {{ template "datadog.name" . }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+  name: {{ template "datadog.fullname" . }}
+rules:
+- nonResourceURLs:
+  - "/version"  # Used to get apiserver version metadata
+  - "/healthz"  # Healthcheck
+  verbs: ["get"]
+- apiGroups:
+  - ""
+  - apps
+  - batch
+  - extensions
+  resources:
+    - componentstatuses
+    - endpoints
+    - jobs
+    - pods
+    - replicasets
+    - replicationcontrollers
+    - daemonsets
+    - deployments
+    - statefulsets
+    - nodes
+    - namespaces
+    - events    # Cluster events + kube_service cache invalidation
+    - services  # kube_service tag
+  verbs: ["get", "list", "watch"]
+{{- if .Values.datadog.collectEvents }}
+- apiGroups: [""]
+  resources:
+    - configmaps
+  resourceNames:
+  - datadogtoken            # Kubernetes event collection state
+  - datadog-leader-election # Leader election token
+  verbs: ["get", "delete", "update"]
+- apiGroups: [""] # Create the datadog-leader-election config-map
+  resources:
+    - "configmaps"
+  verbs: ["create"]
+{{- end }}
+- apiGroups:  # Acces to kubelet API resources
+  - ""
+  resources:
+  - nodes/metrics
+  - nodes/spec
+  - nodes/proxy # Is this even needed? nodes/pods ?
+  verbs:
+  - get
+{{- end -}}
