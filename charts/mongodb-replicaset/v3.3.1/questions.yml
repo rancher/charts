@@ -1,0 +1,101 @@
+categories:
+- Database
+- NoSQL
+questions:
+- variable: defaultImage
+  default: true
+  description: "Use default Docker images"
+  label: Use Default Images
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: installImage.repository
+    default: "k8s.gcr.io/mongodb-install"
+    description: "Image name for the install container"
+    type: string
+    label: Init-Container Image Name
+  - variable: installImage.tag
+    default: "0.6"
+    description: "Image tag for the install container"
+    type: string
+    label: Init-Container Image Tag
+  - variable: image.repository
+    default: "mongo"
+    description: "MongoDB image name"
+    type: string
+    label: MongoDB Image Name
+  - variable: image.tag
+    default: "3.6"
+    description: "MongoDB image tag"
+    type: string
+    label: Image Tag
+- variable: replicas
+  default: 3
+  description: "Number of replicas in the replica set"
+  type: int
+  min: 3
+  max: 12
+  label: Number of Replicas
+  required: true
+  group: "MongoDB Settings"
+- variable: port
+  default: "27017"
+  description: "MongoDB port"
+  type: string
+  label: MongoDB port
+  required: true
+  group: "MongoDB Settings"
+- variable: replicaSetName
+  default: "rs0"
+  description: "The name of the replica set"
+  type: string
+  label: ReplicaSet Name
+  required: true
+  group: "MongoDB Settings"
+- variable: auth.enabled
+  default: true
+  description: "If true, keyfile access control is enabled"
+  type: boolean
+  label: Enable Auth 
+  required: true
+  show_subquestion_if: true
+  group: "MongoDB Settings"
+  subquestions:
+  - variable: auth.key
+    default: "myauthkey"
+    description: "Key for internal authentication, https://docs.mongodb.com/v3.0/tutorial/enable-internal-authentication/"
+    type: string
+    label: Auth Key
+    required: true
+  - variable: auth.adminUser
+    default: "admin"
+    description: "MongoDB admin user"
+    type: string
+    label: MongoDB Admin User
+    required: true
+  - variable: auth.adminPassword
+    default: ""
+    description: "MongoDB admin password"
+    type: password
+    label: MongoDB Admin Password
+    required: true
+- variable: persistentVolume.enabled
+  default: false
+  description: "Enable persistent volume for MongoDB"
+  type: boolean
+  required: true
+  label: MongoDB Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "Persistent Volume"
+  subquestions:
+  - variable: persistentVolume.size
+    default: "10Gi"
+    description: "MongoDB Persistent Volume Size"
+    type: string
+    label: MongoDB Volume Size
+  - variable: persistentVolume.storageClass
+    default: ""
+    description: "If unndefined or null, uses the default StorageClass. Defaults to null."
+    type: storageclass
+    label: Storage Class for MongoDB
