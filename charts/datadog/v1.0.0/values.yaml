@@ -1,0 +1,133 @@
+image:
+  repository: datadog/agent
+  tag: 6.3.1
+  pullPolicy: IfNotPresent
+
+datadog:
+  ## You'll need to set this to your Datadog API key.
+  ## ref: https://app.datadoghq.com/account/settings#agent/kubernetes
+  ##
+  apiKey:
+
+  ## Use an existing secret that contains the API key instead of creating a new one.
+  apiKeyExistingSecret:
+
+  ## Set Agent logging verbosity. Valid values are one of:
+  ## trace, debug, info, warn, error, critical, and off
+  ##
+  logLevel: warn
+
+  ## Whether DogStatsD should listen to non local UDP traffic.
+  ## This is required to send StatsD metrics from other pods or from outside the cluster.
+  ## Ref: https://github.com/DataDog/datadog-agent/blob/master/Dockerfiles/agent/README.md
+  nonLocalTraffic: false
+
+  ## Tag all nodes with these static tags.
+  ## This must be a single string value with tags separated by spaces.
+  ## For example: "simple-tag kube-cluster-name:my-cluster"
+  ## ref: https://github.com/DataDog/datadog-agent/tree/master/Dockerfiles/agent#global-options
+  ##
+  hostTags:
+
+  ## Extract pod labels, pod annotations or node labels to add additional tags to metrics and nodes.
+  ## Each value must be a JSON map, where the map key is the source label name and the map
+  ## value the datadog tag name.
+  ## For example: '{"app":"kube_app","release":"helm_release"}'
+  ## ref: https://github.com/DataDog/datadog-agent/tree/master/Dockerfiles/agent#tagging
+  ##
+  labelsAsTags:
+  annotationsAsTags:
+  nodeLabelsAsTags:
+
+  ## Enable event collection from the kubernetes API
+  ## ref: https://github.com/DataDog/datadog-agent/blob/master/Dockerfiles/agent/README.md
+  ##
+  collectEvents: true
+
+  ## Enables Datadog log collection
+  ## ref: https://github.com/DataDog/datadog-agent/tree/master/Dockerfiles/agent#log-collection
+  ##
+  collectLogs: false
+
+  ## Run the trace-agent along with the infrastructure agent, allowing the container to accept traces on 8126/tcp.
+  ## ref: https://github.com/DataDog/datadog-agent/blob/master/Dockerfiles/agent/README.md#optional-collection-agents
+  apmEnabled: false
+
+pods:
+  ## Bind the DogstatsD (8125/UDP) and Trace (8126/UDP) ports to hostPorts of the same value.
+  ## The ports will need to be available on all nodes.
+  ## This allows pods to emit StatsD metrics locally and correlate pod metrics with the nodes
+  ## they are running on.
+  ## You can pass the local host IP to any pod as an environment variable in the PodSpec using
+  ## the `status.hostIP` downward API reference:
+  ## Example:
+  ##
+  ##   env:
+  ##    - name: DOGSTATSD_HOST_IP
+  ##     valueFrom:
+  ##        fieldRef:
+  ##          fieldPath: status.hostIP
+  ##
+  ## WARNING: Make sure that hosts using this are properly firewalled. Otherwise metrics and
+  ## traces will be accepted from any host able to connect to this host.
+  ## Refs: https://docs.datadoghq.com/developers/dogstatsd/
+  useHostPort: false
+
+  ## Binds the DogstatsD (8125/UDP) and Trace (8126/UDP) ports on the hostNetwork.
+  ## Use this if your CNI network plugin does not support hostPort.
+  useHostNetwork: false
+
+  ## Configure pods with the required tolerations to run agents
+  ## on RKE data and control plane nodes.
+  rkeDataControlPlane: true
+
+  ## Configure additional tolerations to allow the DaemonSet to schedule on tainted nodes.
+  # tolerations: []
+
+  ## Limit the DaemonSet to create pods on nodes matching the selector.
+  ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
+  # nodeSelector: {}
+
+  ## Allow the DaemonSet to schedule using affinity rules.
+  ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  # affinity: {}
+
+  ## If your network configuration restrictes outbound traffic, you can configure the Agent
+  ## to connect to the internet through a web proxy:
+  ##
+  ## An http URL to use as a proxy for http requests.
+  httpProxy:
+  ## An http URL to use as a proxy for https requests.
+  httpsProxy:
+  ## A comma-separated list of URLs for which no proxy should be used.
+  noProxy:
+
+service:
+  ## Creates a service endpoint for sending custom metrics and traces from your applications (8125/UDP and 8126/UDP).
+  ## Enabling this will implicitely create a network policy that permits access to these ports from all projects/namespaces.
+  ## Use this as an alternative to hostPort binding (see above) to ingest StatsD metrics to Datadog.
+  ## Caveat: K8s services do not gurantee that traffic will handled by pods locally to the client.
+  ## This might result in metrics being tagged with incorrect host tags.
+  enabled: false
+  ## Set serviceType to `NodePort` to make the service accessible from outside the cluster. Otherwise use `ClusterIP`.
+  serviceType: ClusterIP
+
+rbac:
+  ## Create RBAC resources required for Datadog
+  create: true
+  ## Use an existing service account with required role bindings.
+  ## Ignored if rbac.create is true.
+  serviceAccountName:
+
+## Create a kube-state-metrics deployment
+## ref: https://github.com/kubernetes/charts/tree/master/stable/kube-state-metrics
+deployKubeStateMetrics: false
+
+## Values for kube-state-metrics child chart
+kube-state-metrics:
+  rbac:
+    ## Create RBAC resources required for kube-state-metrics
+    create: true
+    ## Use an existing service account with required role bindings.
+    ## Ignored if rbac.create is true.
+    serviceAccountName:

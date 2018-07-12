@@ -1,0 +1,24 @@
+{{- if .Values.service.enabled -}}
+kind: NetworkPolicy
+apiVersion: extensions/v1beta1
+metadata:
+  name: {{ template "datadog.fullname" . }}
+  labels:
+    app: {{ template "datadog.fullname" . }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+spec:
+  ingress:
+  - from:
+    - namespaceSelector: {}
+    ports:
+    - port: 8125
+      protocol: UDP
+    {{- if .Values.datadog.apmEnabled }}
+    - port: 8126
+      protocol: UDP
+    {{- end }}
+  podSelector:
+    matchLabels:
+      app: {{ template "datadog.fullname" . }}
+{{- end -}}

@@ -1,0 +1,183 @@
+questions:
+#image configurations
+- variable: defaultImage
+  default: "true"
+  description: "Use default Datadog image or specify a custom one"
+  label: Use Default Datadog Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: image.repository
+    default: "datadog/agent"
+    description: "Datadog image name"
+    type: string
+    label: Datadog Image Name
+  - variable: image.tag
+    default: "6.3.1"
+    description: "Datadog Image Tag"
+    type: string
+    label: Datadog Image Tag
+#agent configurations
+- variable: datadog.apiKey
+  default: ""
+  description: "Enter your Datadog API Key."
+  type: string
+  label: Datadog API Key
+  group: "Agent Configuration"
+- variable: datadog.apiKeyExistingSecret
+  default: ""
+  description: "Provide the name of an existing secret that contains the API key"
+  type: string
+  label: Use Existing API Key Secret
+  group: "Agent Configuration"
+- variable: datadog.logLevel
+  default: "warn"
+  description: "Set Agent logging verbosity"
+  type: enum
+  options:
+    - "trace"
+    - "debug"
+    - "info"
+    - "warn"
+    - "error"
+    - "critical"
+  label: Log Level
+  group: "Agent Configuration"
+- variable: datadog.nonLocalTraffic
+  default: false
+  description: "Whether DogStatsD should listen to non local UDP traffic"
+  type: boolean
+  label: Non Local Traffic
+  group: "Agent Configuration"
+- variable: datadog.hostTags
+  default: ""
+  description: "Tag all nodes with these tags. Specify the tags separated by spaces, e.g; `simple-tag kube-cluster-name:my-cluster`."
+  type: string
+  label: Host Tags
+  group: "Agent Configuration"
+- variable: datadog.labelsAsTags
+  default: ""
+  description: 'Specify a JSON map, where the map key is the source label name and the map value the datadog tag name. E.g: {"app":"kube_app","release":"helm_release"}.'
+  type: string
+  label: Extract Pod Labels as Tags
+  group: "Agent Configuration"
+- variable: datadog.annotationsAsTags
+  default: ""
+  description: 'Specify a JSON map, where the map key is the source label name and the map value the datadog tag name. E.g: {"app":"kube_app","release":"helm_release"}.'
+  type: string
+  label: Extract Pod Annotations as Tags
+  group: "Agent Configuration"
+- variable: datadog.nodeLabelsAsTags
+  default: ""
+  description: 'Specify a JSON map, where the map key is the source label name and the map value the datadog tag name. E.g: {"app":"kube_app","release":"helm_release"}.'
+  type: string
+  label: Extract Node Labels As Tags
+  group: "Agent Configuration"
+- variable: datadog.collectEvents
+  default: true
+  description: "Enable event collection from the kubernetes API"
+  type: boolean
+  label: Collect Events
+  group: "Agent Configuration"
+- variable: datadog.collectLogs
+  default: false
+  description: "Enables Datadog log collection"
+  type: boolean
+  label: Collect Logs
+  group: "Agent Configuration"
+- variable: datadog.apmEnabled
+  default: false
+  description: "Run the trace-agent along with the infrastructure agent"
+  type: boolean
+  label: Enable APM
+  group: "Agent Configuration"
+#pod configurations
+- variable: pods.useHostPort
+  default: false
+  description: "Bind DogstatsD and Trace to hostPort"
+  type: boolean
+  label: Use HostPort
+  group: "Pod Configuration"
+- variable: pods.useHostNetwork
+  default: false
+  description: "Bind DogstatsD and Trace to hostNetwork"
+  type: boolean
+  label: Use HostNetwork
+  group: "Pod Configuration"
+- variable: pods.rkeDataControlPlane
+  default: true
+  description: "Configure Datadog Agent pods with the required tolerations to be deployed on the RKE data and control plane."
+  type: boolean
+  label: Run on RKE Control Plane Nodes
+  group: "Pod Configuration"
+- variable: pods.httpProxy
+  default: ""
+  description: "HTTP Proxy URL"
+  type: string
+  label: HTTP Proxy
+  group: "Pod Configuration"
+- variable: pods.httpsProxy
+  default: ""
+  description: "HTTPS Proxy URL"
+  type: string
+  label: HTTPS Proxy
+  group: "Pod Configuration"
+- variable: pods.noProxy
+  default: ""
+  description: "URLs that should not use a proxy (comma-separated)"
+  type: string
+  label: No Proxy
+  group: "Pod Configuration"
+#service configurations
+- variable: service.enabled
+  default: false
+  description: "Create a service endpoint"
+  type: boolean
+  label: Create Service
+  group: "Service Configuration"
+  show_subquestion_if: true
+  subquestions:
+  - variable: service.serviceType
+    default: "ClusterIP"
+    description: "Service type to create"
+    type: enum
+    options:
+      - "ClusterIP"
+      - "NodePort"
+      - "LoadBalancer"
+    label: Service Type
+#rbac configuration
+- variable: rbac.create
+  default: true
+  description: "Create RBAC resources for Datadog"
+  type: boolean
+  label: Create RBAC
+  group: "RBAC Configuration"
+  show_subquestion_if: false
+  subquestions:
+  - variable: rbac.serviceAccountName
+    default: ""
+    description: "Provide an existing service account that has the required role bindings"
+    type: string
+    label: Use Service Account
+#Kube State Metrics
+- variable: deployKubeStateMetrics
+  default: true
+  group: "Kube-State-Metrics"
+  description: "Create a kube-state-metrics deployment"
+  type: boolean
+  label: Create Deployment
+  required: false
+  show_subquestion_if: true
+  subquestions:
+  - variable: kube-state-metrics.rbac.create
+    default: true
+    description: "Create RBAC resources for kube-state-metrics"
+    type: boolean
+    label: Create RBAC
+  - variable: kube-state-metrics.rbac.serviceAccountName
+    default: ""
+    description: "Use an existing service account that has the required role bindings. This will be ignored if Create RBAC is set to true."
+    type: string
+    label: Use Service Account

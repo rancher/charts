@@ -1,0 +1,43 @@
+{{/* vim: set filetype=mustache: */}}
+{{/*
+Expand the name of the chart.
+*/}}
+{{- define "datadog.name" -}}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{/*
+Create a default fully qualified app name.
+We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
+*/}}
+{{- define "datadog.fullname" -}}
+{{- $name := default .Chart.Name .Values.nameOverride -}}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{/*
+Return secret name to be used based on provided values.
+*/}}
+{{- define "datadog.apiSecretName" -}}
+{{- $fullName := include "datadog.fullname" . -}}
+{{- default $fullName .Values.datadog.apiKeyExistingSecret | quote -}}
+{{- end -}}
+
+{{/*
+Return service account name to be used based on provided values.
+*/}}
+{{- define "datadog.serviceAccountName" -}}
+{{- $fullName := include "datadog.fullname" . -}}
+{{- default $fullName .Values.rbac.serviceAccountName | quote -}}
+{{- end -}}
+
+{{/*
+Return the appropriate apiVersion for RBAC APIs.
+*/}}
+{{- define "rbac.apiVersion" -}}
+{{- if semverCompare "^1.8-0" .Capabilities.KubeVersion.GitVersion -}}
+"rbac.authorization.k8s.io/v1"
+{{- else -}}
+"rbac.authorization.k8s.io/v1beta1"
+{{- end -}}
+{{- end -}}

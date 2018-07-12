@@ -1,0 +1,164 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: {{ template "datadog.fullname" . }}
+  labels:
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+spec:
+  template:
+    metadata:
+      labels:
+        app: {{ template "datadog.fullname" . }}
+      name: {{ template "datadog.fullname" . }}
+    spec:
+      {{- if .Values.pods.useHostNetwork }}
+      hostNetwork: true
+      {{- end }}
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        resources:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+        ports:
+        - containerPort: 8125
+          {{- if .Values.pods.useHostPort }}
+          hostPort: 8125
+          {{- end }}
+          name: dogstatsdport
+          protocol: UDP
+        {{- if .Values.datadog.apmEnabled }}
+        - containerPort: 8126
+          {{- if .Values.pods.useHostPort }}
+          hostPort: 8126
+          {{- end }}
+          name: traceport
+          protocol: TCP
+        {{- end }}
+        env:
+          - name: DD_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: {{ template "datadog.apiSecretName" . }}
+                key: api-key
+          {{- if .Values.datadog.logLevel }}
+          - name: DD_LOG_LEVEL
+            value: {{ .Values.datadog.logLevel | quote }}
+          {{- end }}
+          {{- if .Values.datadog.nonLocalTraffic }}
+          - name: DD_DOGSTATSD_NON_LOCAL_TRAFFIC
+            value: "true"
+          {{- end }}
+          {{- if .Values.datadog.hostTags }}
+          - name: DD_TAGS
+            value: {{ .Values.datadog.hostTags | quote }}
+          {{- end }}
+          {{- if .Values.datadog.labelsAsTags }}
+          - name: DD_KUBERNETES_POD_LABELS_AS_TAGS
+            value: {{ .Values.datadog.labelsAsTags | quote }}
+          {{- end }}
+          {{- if .Values.datadog.annotationsAsTags }}
+          - name: DD_KUBERNETES_POD_ANNOTATIONS_AS_TAGS
+            value: {{ .Values.datadog.annotationsAsTags | quote }}
+          {{- end }}
+          {{- if .Values.datadog.nodeLabelsAsTags }}
+          - name: DD_KUBERNETES_NODE_LABELS_AS_TAGS
+            value: {{ .Values.datadog.nodeLabelsAsTags | quote }}
+          {{- end }}
+          {{- if .Values.datadog.apmEnabled }}
+          - name: DD_APM_ENABLED
+            value: {{ .Values.datadog.apmEnabled | quote }}
+          {{- end }}
+          {{- if .Values.datadog.collectEvents }}
+          - name: DD_LEADER_ELECTION
+            value: "true"
+          - name: DD_COLLECT_KUBERNETES_EVENTS
+            value: "true"
+          {{- end }}
+          - name: KUBERNETES
+            value: "yes"
+          - name: DD_KUBERNETES_KUBELET_HOST
+            valueFrom:
+              fieldRef:
+                fieldPath: status.hostIP
+          {{- if .Values.datadog.collectLogs }}
+          - name: DD_LOGS_ENABLED
+            value: "true"
+          - name: DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL
+            value: "true"
+          {{- end }}
+
+          {{- if .Values.pods.httpProxy }}
+          - name: HTTP_PROXY
+            value: {{ .Values.pods.httpProxy | quote }}
+          {{- end }}
+          {{- if .Values.pods.httpsProxy }}
+          - name: HTTP_PROXY
+            value: {{ .Values.pods.httpsProxy | quote }}
+          {{- end }}
+          {{- if .Values.pods.noProxy }}
+          - name: HTTP_PROXY
+            value: {{ .Values.pods.noProxy | quote }}
+          {{- end }}
+        volumeMounts:
+          - name: dockersocket
+            mountPath: /var/run/docker.sock
+          - name: procdir
+            mountPath: /host/proc
+            readOnly: true
+          - name: cgroups
+            mountPath: /host/sys/fs/cgroup
+            readOnly: true
+          {{- if .Values.datadog.collectLogs }}
+          - name: pointerdir
+            mountPath: /opt/datadog-agent/run
+          {{- end }}
+        livenessProbe:
+          exec:
+            command:
+            - ./probe.sh
+          initialDelaySeconds: 15
+          periodSeconds: 5
+      volumes:
+        - hostPath:
+            path: /var/run/docker.sock
+          name: dockersocket
+        - hostPath:
+            path: /proc
+          name: procdir
+        - hostPath:
+            path: /sys/fs/cgroup
+          name: cgroups
+        {{- if .Values.datadog.collectLogs }}
+        - hostPath:
+            path: /opt/datadog-agent/run
+          name: pointerdir
+        {{- end }}
+      {{- if (or (.Values.pods.tolerations) (.Values.pods.rkeDataControlPlane)) }}
+      tolerations:
+        {{- if .Values.pods.rkeDataControlPlane }}
+        - key: "node-role.kubernetes.io/etcd"
+          value: "true"
+        - key: "node-role.kubernetes.io/controlplane"
+          value: "true"
+        {{- end }}
+        {{- if .Values.pods.tolerations }}
+{{ toYaml .Values.pods.tolerations | indent 8 }}
+        {{- end }}
+      {{- end }}
+      {{- if .Values.pods.affinity }}
+      affinity:
+{{ toYaml .Values.pods.affinity | indent 8 }}
+      {{- end }}
+      serviceAccountName: {{ template "datadog.serviceAccountName" . }}
+      {{- if .Values.pods.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.pods.nodeSelector | indent 8 }}
+      {{- end }}
+  updateStrategy:
+    type: "OnDelete"
