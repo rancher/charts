@@ -2,8 +2,8 @@ questions:
 #image configurations
 - variable: defaultImage
   default: "true"
-  description: "Use default Docker image"
-  label: Use Default Image
+  description: "Use default Datadog image or specify a custom one"
+  label: Use Default Datadog Image
   type: boolean
   show_subquestion_if: false
   group: "Container Images"
@@ -21,20 +21,27 @@ questions:
 #agent configurations
 - variable: datadog.apiKey
   default: ""
-  description: "Enter your Datadog API Key"
+  description: "Enter your Datadog API Key."
   type: string
   label: Datadog API Key
   group: "Agent Configuration"
 - variable: datadog.apiKeyExistingSecret
   default: ""
-  description: "Existing secret that contains the API key"
+  description: "Provide the name of an existing secret that contains the API key"
   type: string
-  label: Datadog API Key Secret
+  label: Use Existing API Key Secret
   group: "Agent Configuration"
 - variable: datadog.logLevel
   default: "warn"
   description: "Set Agent logging verbosity"
-  type: string
+  type: enum
+  options:
+    - "trace"
+    - "debug"
+    - "info"
+    - "warn"
+    - "error"
+    - "critical"
   label: Log Level
   group: "Agent Configuration"
 - variable: datadog.nonLocalTraffic
@@ -45,27 +52,27 @@ questions:
   group: "Agent Configuration"
 - variable: datadog.hostTags
   default: ""
-  description: "Tag all nodes with these tags"
+  description: "Tag all nodes with these tags. Specify the tags separated by spaces, e.g; `simple-tag kube-cluster-name:my-cluster`."
   type: string
   label: Host Tags
   group: "Agent Configuration"
 - variable: datadog.labelsAsTags
   default: ""
-  description: "Extract Pod Labels"
+  description: "Specify a JSON map, where the map key is the source label name and the map value the datadog tag name. E.g: `{app:kube_app,release:helm_release}`."
   type: string
-  label: Pod Labels
+  label: Extract Pod Labels as Tags
   group: "Agent Configuration"
 - variable: datadog.annotationsAsTags
   default: ""
-  description: "Extract Pod Annotations"
+  description: "Specify a JSON map, where the map key is the source label name and the map value the datadog tag name. E.g: `{app:kube_app,release:helm_release}`."
   type: string
-  label: Pod Annotations
+  label: Extract Pod Annotations as Tags
   group: "Agent Configuration"
 - variable: datadog.nodeLabelsAsTags
   default: ""
-  description: "Extract Node Labels"
+  description: "Specify a JSON map, where the map key is the source label name and the map value the datadog tag name. E.g: `{app:kube_app,release:helm_release}`."
   type: string
-  label: Node Labels
+  label: Extract Node Labels As Tags
   group: "Agent Configuration"
 - variable: datadog.collectEvents
   default: true
@@ -129,12 +136,17 @@ questions:
   type: boolean
   label: Create Service
   group: "Service Configuration"
-- variable: service.serviceType
-  default: "ClusterIP"
-  description: "Service type to create"
-  type: string
-  label: Service Type
-  group: "Service Configuration"
+  show_subquestion_if: true
+  subquestions:
+  - variable: service.serviceType
+    default: "ClusterIP"
+    description: "Service type to create"
+    type: enum
+    options:
+      - "ClusterIP"
+      - "NodePort"
+      - "LoadBalancer"
+    label: Service Type
 #rbac configuration
 - variable: rbac.create
   default: true
@@ -142,15 +154,16 @@ questions:
   type: boolean
   label: Create RBAC
   group: "RBAC Configuration"
-- variable: rbac.serviceAccountName
-  default: ""
-  description: "Use an existing service account with required role bindings"
-  type: string
-  label: Use Service Account
-  group: "RBAC Configuration"
+  show_subquestion_if: false
+  subquestions:
+  - variable: rbac.serviceAccountName
+    default: ""
+    description: "Provide an existing service account that has the required role bindings"
+    type: string
+    label: Use Service Account
 #Kube State Metrics
 - variable: deployKubeStateMetrics
-  default: false
+  default: true
   group: "Kube-State-Metrics"
   description: "Create a kube-state-metrics deployment"
   type: boolean
@@ -163,8 +176,10 @@ questions:
     description: "Create RBAC resources for kube-state-metrics"
     type: boolean
     label: Create RBAC
-  - variable: kube-state-metrics.rbac.serviceAccountName
-    default: ""
-    description: "Use an existing service account with required role bindings"
-    type: string
-    label: Use Service Account
+    show_subquestion_if: false
+    subquestions:
+    - variable: kube-state-metrics.rbac.serviceAccountName
+      default: ""
+      description: "Use an existing service account with required role bindings"
+      type: string
+      label: Use Service Account
