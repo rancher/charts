@@ -11,7 +11,23 @@ Please refer to [the agent6 image documentation](https://github.com/DataDog/data
 
 ## Prerequisites
 
-Kubernetes 1.8+
+- Kubernetes 1.8+
+
+## Kubelet configuration for RKE clusters
+
+Datadog Agent requires access to the kubelet API in order to function properly.
+For RKE clusters, this means you will need to enable read-only access to the kubelet on port 10255 before deploying this chart.
+
+In Rancher v2.0.4, a custom RKE config can be applied both while creating new and updating existing clusters. Just navigate to `=> Cluster Options => Edit as YAML` and add/update the kubelet subkey in the services stanza:
+
+```yaml
+    services:
+      kubelet:
+        extra_args:
+          read-only-port: 10255
+```
+
+Note: You should make sure this port is properly firewalled on all your nodes.
 
 ## Deploying the Chart
 
@@ -29,4 +45,4 @@ TODO: Add table of configurable parameters
 
 ### Event Collection
 
-The Datadog Agent can collect events from the Kubernetes API server. This can be enabled by setting the value of `apps.datadog.collectEvents` to `true`. This implicitely enables leader election among members of the Datadog DaemonSet through kubernetes to ensure only one leader agent instance is gathering events at a given time.
+The Datadog Agent can collect events from the Kubernetes API server. This can be enabled by setting the value of `datadog.collectEvents` to `true`. This implicitely enables leader election among members of the Datadog DaemonSet through kubernetes to ensure only one leader agent instance is gathering events at a given time.
