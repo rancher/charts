@@ -1,0 +1,52 @@
+questions:
+- variable: persistence.enabled
+  default: false
+  description: "Enable persistent volume for Docker registry"
+  type: boolean
+  label: Docker Registry Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "Settings"
+  subquestions:
+  - variable: persistence.size
+    default: "10Gi"
+    description: "Docker registry Registry Persistent Volume Size"
+    type: string
+    label: Docker Registry Volume Size
+  - variable: persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for Docker Registry
+- variable: ingress.enabled
+  default: true
+  description: "Expose app using Layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose app using Layer 7 Load Balancer
+  show_subquestion_if: true
+  group: "Services and Load Balancing"
+  subquestions:
+  - variable: ingress.hosts[0]
+    default: "xip.io"
+    description: "Hostname to your Docker Registry installation"
+    type: hostname
+    required: true
+    label: Hostname
+- variable: service.type
+  default: "NodePort"
+  description: "Docker Registry Service type"
+  type: enum
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: Docker Registry Service Type
+  show_subquestion_if: "NodePort"
+  group: "Services and Load Balancing"
+  subquestions:
+  - variable: service.nodePort
+    default: ""
+    description: "NodePort http port(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    label: NodePort Http Port
