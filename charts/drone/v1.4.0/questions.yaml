@@ -1,0 +1,95 @@
+categories:
+- CI/CD
+questions:
+- variable: defaultImage
+  default: true
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: images.server.repository
+    default: "docker.io/drone/drone"
+    description: "Drone Server image name"
+    type: string
+    label: Drone Server Image Name
+  - variable: images.server.tag
+    default: "0.8.5"
+    description: "Drone Server image tag"
+    type: string
+    label: Drone Server Image Tag
+  - variable: images.agent.repository
+    default: "docker.io/drone/agent"
+    description: "Drone Agent image name"
+    type: string
+    label: Drone Agent Image Name
+  - variable: images.agent.tag
+    default: "0.8.5"
+    description: "Drone Agent image tag"
+    type: string
+    label: Drone Agent Image Tag
+  - variable: images.dind.repository
+    default: "docker.io/library/docker"
+    description: "Drone Dind image name"
+    type: string
+    label: Drone Dind Image Name
+  - variable: images.dind.tag
+    default: "17.12.0-ce-dind"
+    description: "Drone Dind image tag"
+    type: string
+    label: Drone Dind Image Tag
+- variable: persistence.enabled
+  default: "false"
+  description: "Enable persistent volume for Drone Application"
+  type: boolean
+  required: true
+  label: Drone Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "Drone Settings"
+  subquestions:
+  - variable: persistence.size
+    default: "10Gi"
+    description: "Drone Persistent Volume Size"
+    type: string
+    label: Drone Volume Size
+  - variable: persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for Drone
+- variable: ingress.enabled
+  default: false
+  description: "Expose app using Layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose app using Layer 7 Load Balancer
+  show_subquestion_if: true
+  group: "Services and Load Balancing"
+  subquestions:
+  - variable: ingress.hosts[0]
+    default: "xip.io"
+    description: "Hostname to your Drone application"
+    type: hostname
+    required: true
+    label: Hostname
+- variable: service.type
+  default: "NodePort"
+  description: "Drone Service type"
+  type: enum
+  show_if: "ingress.enabled=false"
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: Drone Service Type
+  show_subquestion_if: "NodePort"
+  group: "Services and Load Balancing"
+  subquestions:
+  - variable: service.nodePort
+    default: ""
+    description: "NodePort http port(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    show_if: "ingress.enabled=false&&service.type=NodePort"
+    label: NodePort Http Port
