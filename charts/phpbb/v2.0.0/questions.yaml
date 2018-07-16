@@ -1,0 +1,154 @@
+categories:
+questions:
+- variable: defaultImage
+  default: true
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: image.repository
+    default: "bitnami/phpbb"
+    description: "phpBB image name"
+    type: string
+    label: phpBB Image Name
+  - variable: image.tag
+    default: "3.2.2"
+    description: "phpBB image tag"
+    type: string
+    label: Image Tag
+  - variable: mariadb.image.repository
+    default: "bitnami/mariadb"
+    description: "phpBB image name"
+    type: string
+    label: phpBB Image Name
+  - variable: mariadb.image.tag
+    default: "10.1.32"
+    description: "phpBB image tag"
+    type: string
+    label: Image Tag
+- variable: phpbbUser
+  default: "admin"
+  description: "Username of the phpBB"
+  type: string
+  required: true
+  label: phpUser Usernname
+  group: "phpBB Settings"
+- variable: phpbbPassword
+  default: ""
+  description: "password will be auto-generated if not specified"
+  type: password
+  label: phpBB Password
+  group: "phpBB Settings"
+- variable: phpbbEmail
+  default: "user@example.com"
+  description: "phpBB email"
+  type: string
+  required: true
+  label: phpBB Admin Email
+  group: "phpBB Settings"
+- variable: serviceType
+  default: "NodePort"
+  description: "phpBB Service type"
+  type: enum
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: phpBB Service Type
+  show_subquestion_if: "NodePort"
+  group: "phpBB Settings"
+- variable: mariadb.enabled
+  default: true
+  description: "Deploy a database server as part of this deployment, or set to false and configure an external database connection."
+  type: boolean
+  required: true
+  label: Install MariaDB
+  show_subquestion_if: true
+  group: "Database Settings"
+- variable: externalDatabase.host
+  default: ""
+  description: "Host of the external database"
+  type: string
+  label: External Database Host
+  show_if: "mariadb.enabled=false"
+  group: "Database Settings"
+- variable: externalDatabase.user
+  default: "bn_phpbb"
+  description: "Existing username in the external DB"
+  type: string
+  label: External Database username
+  show_if: "mariadb.enabled=false"
+  group: "Database Settings"
+- variable: externalDatabase.password
+  default: ""
+  description: "External database password"
+  type: password
+  label: External Database password
+  show_if: "mariadb.enabled=false"
+  group: "Database Settings"
+- variable: externalDatabase.database
+  default: "bitnami_phpbb"
+  description: "Name of the existing database"
+  type: string
+  label: External Database
+  show_if: "mariadb.enabled=false"
+  group: "Database Settings"
+- variable: externalDatabase.port
+  default: "3306"
+  description: "External database port number"
+  type: string
+  label: External Database Port
+  show_if: "mariadb.enabled=false"
+  group: "Database Settings"
+- variable: mariadb.persistence.enabled
+  show_if: "mariadb.enabled=true"
+  default: false
+  description: "Enable persistent volume for MariaDB"
+  type: boolean
+  required: true
+  label: MariaDB Persistent Volume Enabled
+  show_if: "mariadb.enabled=true"
+  show_subquestion_if: true
+  group: "Database Settings"
+  subquestions:
+  - variable: mariadb.persistence.size
+    default: "10Gi"
+    description: "MariaDB Persistent Volume Size"
+    type: string
+    label: MariaDB Volume Size
+  - variable: mariadb.persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for MariaDB
+- variable: persistence.enabled
+  default: "false"
+  description: "Enable persistent volume for phpBB & Apache"
+  type: boolean
+  required: true
+  label: phpBB Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "phpBB Persistent Storage"
+  subquestions:
+  - variable: persistence.apache.size
+    default: "2Gi"
+    description: "Apache Persistent Volume Size"
+    type: string
+    label: Apache Volume Size
+  - variable: persistence.apache.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for Apache
+  - variable: persistence.phpbb.size
+    default: "8Gi"
+    description: "phpBB Persistent Volume Size"
+    type: string
+    label: phpBB Volume Size
+  - variable: persistence.phpbb.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for phpBB
