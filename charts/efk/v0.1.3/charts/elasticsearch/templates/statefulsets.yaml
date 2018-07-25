@@ -1,0 +1,134 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: {{ template "elasticsearch.fullname" . }}
+  labels:
+    app: {{ template "elasticsearch.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  podManagementPolicy: Parallel
+  serviceName: {{ template "elasticsearch.fullname" . }}
+  replicas: {{ .Values.master.replicas }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "elasticsearch.name" . }}
+        component: "{{ .Values.master.name }}"
+        release: {{ .Release.Name }}
+        {{- if .Values.master.podAnnotations }}
+      annotations:
+{{ toYaml .Values.master.podAnnotations | indent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ template "elasticsearch.fullname" . }}
+      {{- if .Values.securityContextEnable }}
+      securityContext:
+        fsGroup: 1000
+      {{- end }}
+      {{- if eq .Values.master.antiAffinity "hard" }}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: "kubernetes.io/hostname"
+              labelSelector:
+                matchLabels:
+                  app: "{{ template "elasticsearch.name" . }}"
+                  release: "{{ .Release.Name }}"
+                  component: "{{ .Values.master.name }}"
+      {{- else if eq .Values.master.antiAffinity "soft" }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: "{{ template "elasticsearch.name" . }}"
+                  release: "{{ .Release.Name }}"
+                  component: "{{ .Values.master.name }}"
+      {{- end }}
+      initContainers:
+      # see https://www.elastic.co/guide/en/elasticsearch/reference/current/vm-max-map-count.html
+      # and https://www.elastic.co/guide/en/elasticsearch/reference/current/setup-configuration-memory.html#mlockall
+      - name: "sysctl"
+        image: "busybox"
+        imagePullPolicy: "Always"
+        command: ["sysctl", "-w", "vm.max_map_count=262144"]
+        securityContext:
+          allowPrivilegeEscalation: true
+          privileged: true
+      containers:
+      - name: elasticsearch
+        env:
+        - name: cluster.name
+          value: {{ .Release.Name }}-cluster
+        - name: discovery.zen.ping.unicast.hosts
+          value: {{ template "elasticsearch.fullname" . }}
+        - name: discovery.zen.minimum_master_nodes
+          value: "{{ .Values.master.minimum_master_nodes }}"
+        - name: KUBERNETES_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        # node roles, default to all true
+        # - name: NODE_MASTER
+        #   value: "true"
+        # - name: NODE_DATA
+        #   value: "true"
+        # - name: NODE_INGEST
+        #   value: "true"
+        - name: PROCESSORS
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.cpu
+        - name: ES_JAVA_OPTS
+          value: "-Djava.net.preferIPv4Stack=true -Xms{{ .Values.master.heapSize }} -Xmx{{ .Values.master.heapSize }}"
+        {{- range $key, $value :=  .Values.master.env }}
+        - name: {{ $key }}
+          value: {{ $value | quote }}
+        {{- end }}
+        resources:
+{{ toYaml .Values.master.resources | indent 12 }}
+        readinessProbe:
+          httpGet:
+            path: /_cluster/health?local=true
+            port: 9200
+          initialDelaySeconds: 5
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+        ports:
+        - containerPort: 9300
+          name: transport
+        {{- if .Values.master.exposeHttp }}
+        - containerPort: 9200
+          name: http
+        {{- end }}
+        volumeMounts:
+        - mountPath: /usr/share/elasticsearch/data
+          name: es-data
+      volumes:
+  {{- if not .Values.master.persistence.enabled }}
+      - name: es-data
+        emptyDir: {}
+  {{- else }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+  volumeClaimTemplates:
+  - metadata:
+      name: {{ .Values.master.persistence.name }}
+    spec:
+      accessModes:
+        - {{ .Values.master.persistence.accessMode | quote }}
+    {{- if .Values.master.persistence.storageClass }}
+    {{- if (eq "-" .Values.master.persistence.storageClass) }}
+      storageClassName: ""
+    {{- else }}
+      storageClassName: "{{ .Values.master.persistence.storageClass }}"
+    {{- end }}
+    {{- end }}
+      resources:
+        requests:
+          storage: "{{ .Values.master.persistence.size }}"
+  {{ end }}

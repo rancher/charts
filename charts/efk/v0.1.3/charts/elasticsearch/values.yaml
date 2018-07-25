@@ -1,0 +1,54 @@
+# Default values for efk.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+rbac:
+  create: true
+securityContextEnable: true
+
+image:
+  repository: "docker.elastic.co/elasticsearch/elasticsearch-oss"
+  tag: "6.2.4"
+  pullPolicy: "IfNotPresent"
+
+terminationGracePeriodSeconds: 30  # Duration in seconds a elasticsearch pod needs to terminate gracefully.
+
+# config elasticsearch master nodes
+master:
+  name: master
+  exposeHttp: true
+  replicas: 3
+  minimum_master_nodes: "2"
+  heapSize: "512m"
+  antiAffinity: "soft"
+  resources:
+    limits:
+      cpu: "1"
+      # memory: "1024Mi"
+    requests:
+      cpu: "25m"
+      memory: "512Mi"
+
+  service:
+    name: elasticsearch
+    type: ClusterIP
+
+  ## Enable persistence using Persistent Volume Claims
+  ## ref: http://kubernetes.io/docs/user-guide/persistent-volumes/
+  ##
+  persistence:
+    name: es-data
+    enabled: false
+    ## data Persistent Volume Storage Class
+    ## If defined, storageClassName: <storageClass>
+    ## If set to "-", storageClassName: "", which disables dynamic provisioning
+    ## If undefined (the default) or set to null, no storageClassName spec is
+    ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+    ##   GKE, AWS & OpenStack)
+    ##
+    # storageClass: "-"
+    ##
+    ## If you want to reuse an existing claim, you can pass the name of the PVC using
+    ## the existingClaim variable
+    # existingClaim: your-claim
+    accessMode: ReadWriteOnce
+    size: 10Gi

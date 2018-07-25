@@ -1,0 +1,270 @@
+# Default values for efk.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+elasticsearch:
+  rbac:
+    create: true
+  securityContextEnable: true
+
+  image:
+    repository: "docker.elastic.co/elasticsearch/elasticsearch-oss"
+    tag: "6.2.4"
+    pullPolicy: "IfNotPresent"
+
+  terminationGracePeriodSeconds: 30  # Duration in seconds a pod needs to terminate gracefully.
+
+  # config elasticsearch master nodes
+  master:
+    name: master
+    exposeHttp: true
+    replicas: 3
+    minimum_master_nodes: "2"
+    heapSize: "512m"
+    antiAffinity: "soft"
+    resources:
+      limits:
+        cpu: "1"
+        # memory: "1024Mi"
+      requests:
+        cpu: "25m"
+        memory: "512Mi"
+
+    service:
+      name: elasticsearch
+      type: NodePort
+
+    ## Enable persistence using Persistent Volume Claims
+    ## ref: http://kubernetes.io/docs/user-guide/persistent-volumes/
+    ##
+    persistence:
+      name: es-data
+      enabled: false
+      ## wordpress data Persistent Volume Storage Class
+      ## If defined, storageClassName: <storageClass>
+      ## If set to "-", storageClassName: "", which disables dynamic provisioning
+      ## If undefined (the default) or set to null, no storageClassName spec is
+      ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+      ##   GKE, AWS & OpenStack)
+      ##
+      # storageClass: "-"
+      ##
+      ## If you want to reuse an existing claim, you can pass the name of the PVC using
+      ## the existingClaim variable
+      # existingClaim: your-claim
+      accessMode: ReadWriteOnce
+      size: 10Gi
+
+kibana:
+  enabled: true
+
+  #Secure Kibana Dashboard with Rancher Magic Proxy
+  proxyEnabled: true
+
+  image:
+    repository: "docker.elastic.co/kibana/kibana-oss"
+    tag: "6.2.4"
+    pullPolicy: "IfNotPresent"
+
+  commandline:
+    args:
+
+  env:
+    # All Kibana configuration options are adjustable via env vars.
+    # To adjust a config option to an env var uppercase + replace `.` with `_`
+    # Ref: https://www.elastic.co/guide/en/kibana/current/settings.html
+    #
+    # ELASTICSEARCH_URL: http://elasticsearch:9200
+    # SERVER_PORT: 5601
+    # LOGGING_VERBOSE: "true"
+    # SERVER_DEFAULTROUTE: "/app/kibana"
+
+  # use configmap for its env configmap
+  envConfigMap: 
+    enabled: true
+    # name:  kibana
+
+  service:
+    type: NodePort
+    externalPort: 443
+    internalPort: 5601
+    ## External IP addresses of service
+    ## Default: nil
+    ##
+    # externalIPs:
+    # - 192.168.0.1
+    #
+    ## LoadBalancer IP if service.type is LoadBalancer
+    ## Default: nil
+    ##
+    # loadBalancerIP: 10.2.2.2
+    annotations:
+      # Annotation example: setup ssl with aws cert when service.type is LoadBalancer
+      # service.beta.kubernetes.io/aws-load-balancer-ssl-cert: arn:aws:acm:us-east-1:EXAMPLE_CERT
+
+  ingress:
+    enabled: false
+    # hosts:
+      # - chart-example.local
+    # annotations:
+    #   kubernetes.io/ingress.class: nginx
+    #   kubernetes.io/tls-acme: "true"
+    # tls:
+      # - secretName: chart-example-tls
+      #   hosts:
+      #     - chart-example.local
+
+  resources: {}  
+    # limits:
+    #   cpu: 100m
+    #   memory: 300Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 300Mi
+
+  # Affinity for pod assignment
+  # Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  # affinity: {}
+
+  # Tolerations for pod assignment
+  # Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  tolerations: []
+
+  # Node labels for pod assignment
+  # Ref: https://kubernetes.io/docs/user-guide/node-selection/
+  nodeSelector: {}
+
+  podAnnotations: {}
+  replicaCount: 1
+
+fluent-bit:
+  enabled: false
+  # Minikube stores its logs in a separate directory.
+  # enable if started in minikube.
+  on_minikube: false
+
+  image:
+    fluent_bit:
+      repository: fluent/fluent-bit
+      tag: 0.13.0
+    pullPolicy: Always
+
+  # When enabled, exposes json and prometheus metrics on {{ .Release.Name }}-metrics service
+  metrics:
+    enabled: false
+    service:
+      port: 2020
+      type: ClusterIP
+
+  backend:
+    type: es
+    forward:
+      host: fluentd
+      port: 24284
+    es:
+      host: elasticsearch
+      port: 9200
+      # Elastic Index Name
+      index: kubernetes_cluster
+      type: flb_type
+      logstash_prefix: kubernetes_cluster
+      # Optional username credential for Elastic X-Pack access
+      http_user:
+      # Password for user defined in HTTP_User
+      http_passwd:
+      # Optional TLS encryption to ElasticSearch instance
+      tls: "off"
+      tls_verify: "on"
+      # TLS certificate for the Elastic (in PEM format). Use if tls=on and tls_verify=on.
+      tls_ca: ""
+      # TLS debugging levels = 1-5
+      tls_debug: 1
+
+  parsers:
+    ## List the respective parsers in key: value format per entry
+    ## Regex required fields are name and regex. JSON required field
+    ## is name.
+    regex: []
+    json: []
+
+    ##
+    ## Ref: http://fluentbit.io/documentation/current/output/http.html
+    ##
+    http:
+      host: 127.0.0.1
+      port: 80
+      uri: "/"
+      ## Specify the data format to be used in the HTTP request body
+      ## Can be either 'msgpack' or 'json'
+      format: msgpack
+
+  env: []
+
+  ## Annotations to add to the DaemonSet's Pods
+  podAnnotations: {}
+
+  ## ConfigMap override where fullname is {{.Release.Name}}-{{.Values.existingConfigMap}}
+  ## Defining existingConfigMap will cause templates/config.yaml
+  ## to NOT generate a ConfigMap resource
+  ##
+  existingConfigMap: ""
+
+  ## Extra volumes containing additional files required for fluent-bit to work
+  ## (eg. CA certificates)
+  ## Ref: https://kubernetes.io/docs/concepts/storage/volumes/
+  ##
+  extraVolumes: []
+
+  ## Extra volume mounts for the fluent-bit pod.
+  ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-volume-storage/
+  ##
+  extraVolumeMounts: []
+
+  resources:
+    limits:
+      memory: 100Mi
+    requests:
+      cpu: 100m
+      memory: 100Mi
+
+  ## Node tolerations for fluent-bit scheduling to nodes with taints
+  ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+  ##
+  tolerations: []
+  # - key: "key"
+  #  operator: "Equal|Exists"
+  #  value: "value"
+  #  effect: "NoSchedule|PreferNoSchedule|NoExecute(1.6 only)"
+
+  ## Node labels for fluent-bit pod assignment
+  ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
+  ##
+  nodeSelector: {}
+
+  filter:
+    kubeURL: https://kubernetes.default.svc:443
+    kubeCAFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    kubeTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    kubeTag: kube
+  # If true, check to see if the log field content is a JSON string map, if so,
+  # it append the map fields as part of the log structure.
+  #  mergeJSONLog: true
+
+  # If true, enable the use of monitoring for a pod annotation of
+  # fluentbit.io/parser: parser_name. parser_name must be the name
+  # of a parser contained within parsers.conf
+  #  enableParser: true
+
+  # If true, enable the use of monitoring for a pod annotation of
+  # fluentbit.io/exclude: true. If present, discard logs from that pod.
+  #  enableExclude: true
+
+  rbac:
+    # Specifies whether RBAC resources should be created
+    create: true
+
+  serviceAccount:
+    # Specifies whether a ServiceAccount should be created
+    create: true
+    # The name of the ServiceAccount to use.
+    # If not set and create is true, a name is generated using the fullname template
+    name:
