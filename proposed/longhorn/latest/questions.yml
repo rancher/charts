@@ -1,0 +1,90 @@
+categories:
+- storage
+labels:
+  io.rancher.certified: experimental
+questions:
+- variable: defaultImage
+  default: "true"
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  group: "Container Images"
+  show_subquestion_if: false
+  subquestions:
+  - variable: image.longhorn.engine
+    default: "rancher/longhorn-engine"
+    description: "longhorn engine image name"
+    type: string
+    label: Longhorn Engine Image Name
+  - variable: image.longhorn.engineTag
+    default: "de88734"
+    description: "longhorn engineTag image tag"
+    type: string
+    label: Longhorn Engine Image Tag
+  - variable: image.longhorn.manager
+    default: "rancher/longhorn-manager"
+    description: "longhorn manager image name"
+    type: string
+    label: Longhorn Manager Image Name
+  - variable: image.longhorn.managerTag
+    default: "1ebf5cb"
+    description: "longhorn managerTag image tag"
+    type: string
+    label: Longhorn Manager Image Tag
+  - variable: image.longhorn.ui
+    default: "rancher/longhorn-ui"
+    description: "longhorn ui image name"
+    type: string
+    label: Longhorn UI Image Name
+  - variable: image.longhorn.uiTag
+    default: "1455f4f"
+    description: "longhorn uiTag image tag"
+    type: string
+    label: Longhorn UI Image Tag
+- variable: persistence.defaultClass
+  default: "true"
+  description: "Set as default StorageClass"
+  group: "Longhorn Settings"
+  type: boolean
+  required: true
+  label: Default Storage Class
+- variable: persistence.flexvolumePath
+  default: "/var/lib/kubelet/volumeplugins"
+  description: "For GKE uses `/home/kubernetes/flexvolume/` instead, users can find the correct directory by running `ps aux|grep kubelet` on the host and check the --volume-plugin-dir parameter.  If there is none, the default `/usr/libexec/kubernetes/kubelet-plugins/volume/exec/` will be used."
+  type: string
+  label: Longhorn Flexvolume Path
+  group: "Longhorn Settings"
+- variable: ingress.enabled
+  default: "true"
+  description: "Expose app using Layer 7 Load Balancer - ingress"
+  type: boolean
+  group: "Services and Load Balancing"
+  label: Expose app using Layer 7 Load Balancer
+  show_subquestion_if: true
+  subquestions:
+  - variable: ingress.host
+    default: "xip.io"
+    description: "layer 7 Load Balancer hostname"
+    type: hostname
+    required: true
+    label: Layer 7 Load Balancer Hostname
+- variable: service.ui.type
+  default: "NodePort"
+  description: "Define Longhorn UI service type"
+  type: enum
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  label: Longhorn UI Service
+  show_if: "ingress.enabled=false"
+  group: "Services and Load Balancing"
+  show_subquestion_if: "NodePort"
+  subquestions: 
+  - variable: service.ui.nodePort
+    default: ""
+    description: "NodePort port number(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    show_if: "service.ui.type=NodePort"
+    label: UI Service NodePort number
