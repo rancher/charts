@@ -1,16 +1,19 @@
-apiVersion: apps/v1beta1
+apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
   labels:
-    app: {{ .Release.Name }}-ui
+    app: longhorn-ui
   name: longhorn-ui
   namespace: {{ .Release.Namespace }}
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      app: longhorn-ui
   template:
     metadata:
       labels:
-        app: {{ .Release.Name }}-ui
+        app: longhorn-ui
     spec:
       containers:
       - name: longhorn-ui
@@ -26,13 +29,13 @@ kind: Service
 apiVersion: v1
 metadata:
   labels:
-    app: {{ .Release.Name }}-ui
+    app: longhorn-ui
   name: longhorn-frontend
   namespace: {{ .Release.Namespace }}
 spec:
   type: {{ .Values.service.ui.type }}
   selector:
-    app: {{ .Release.Name }}-ui
+    app: longhorn-ui
   ports:
   - name: longhorn-ui
     port: 80
