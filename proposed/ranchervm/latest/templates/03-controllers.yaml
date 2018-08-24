@@ -1,0 +1,104 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: vm-controller
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.question.replicas }}
+  strategy:
+  {{- if .Values.question.zeroDowntime }}
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 99%
+  {{- else }}
+    type: Recreate
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        app: vm-controller
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values: ["vm-controller"]
+            topologyKey: "kubernetes.io/hostname"
+      containers:
+      - name: vm-controller
+        image: {{ .Values.image.vm }}:v{{ .Chart.Version }}
+        args:
+        - -vm
+        - -bridge-iface={{ .Values.question.bridgeInterface }}
+        - -v={{ .Values.question.logLevel }}
+        {{- if not .Values.question.enforceResourceLimits }}
+        - -no-resource-limits
+        {{- end }}
+        - -image-novnc={{ .Values.image.novnc }}:v{{ .Chart.Version }}
+        - -image-tools={{ .Values.image.tools }}:v{{ .Chart.Version }}
+        - -image-vm={{ .Values.image.vm }}:v{{ .Chart.Version }}
+      serviceAccountName: {{ .Chart.Name }}-service-account
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: ip-controller
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.question.replicas }}
+  strategy:
+  {{- if .Values.question.zeroDowntime }}
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 99%
+  {{- else }}
+    type: Recreate
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        app: ip-controller
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values: ["ip-controller"]
+            topologyKey: "kubernetes.io/hostname"
+      hostNetwork: true
+      containers:
+      - name: ip-controller
+        image: {{ .Values.image.vm }}:v{{ .Chart.Version }}
+        command: [ "sh", "-c"]
+        args:
+        - exec /ranchervm -ip -nodename ${MY_NODE_NAME} -v {{ .Values.question.logLevel }}
+        env:
+        - name: MY_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+      - name: arp-scanner
+        image: {{ .Values.image.vm }}:v{{ .Chart.Version }}
+        imagePullPolicy: Always
+        command: [ "bash", "-c"]
+        # This is probably too aggressive for anything bigger than class 3 network
+        args:
+        - while true; do
+            iface=br0;
+            inet_addr=$(ifconfig $iface | grep "inet " | awk '{print $2}' | cut -d':' -f2);
+            inet_mask=$(ifconfig $iface | grep "inet " | awk '{print $4}' | cut -d':' -f2);
+            ips="$(arp-scan -interface=$iface $inet_addr:$inet_mask | awk -F'\t' '$2 ~ /[0-9a-f][0-9a-f]:/ {print $1}')";
+            for ip in $ips; do 
+              ping -c 1 -t 1 $ip &>/dev/null & 
+            done;
+            sleep 5;
+          done
+      serviceAccountName: {{ .Chart.Name }}-service-account

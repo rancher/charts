@@ -1,0 +1,47 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.question.replicas }}
+  strategy:
+  {{- if .Values.question.zeroDowntime }}
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 99%
+  {{- else }}
+    type: Recreate
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values: ["frontend"]
+            topologyKey: "kubernetes.io/hostname"
+      containers:
+      - name: frontend
+        image: {{ .Values.image.ui }}:v{{ .Chart.Version }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: {{ .Release.Namespace }}
+spec:
+  ports:
+  - name: ui
+    port: 80
+    targetPort: 8000
+  selector:
+    app: frontend
+  type: NodePort

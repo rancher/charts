@@ -1,0 +1,50 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.question.replicas }}
+  strategy:
+  {{- if .Values.question.zeroDowntime }}
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 99%
+  {{- else }}
+    type: Recreate
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values: ["backend"]
+            topologyKey: "kubernetes.io/hostname"
+      containers:
+      - name: backend
+        image: {{ .Values.image.vm }}:v{{ .Chart.Version }}
+        args:
+        - -backend
+        - -v={{ .Values.question.logLevel }}
+      serviceAccountName: {{ .Chart.Name }}-service-account
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: {{ .Release.Namespace }}
+spec:
+  ports:
+  - name: api
+    port: 9500
+  selector:
+    app: backend
+  type: ClusterIP

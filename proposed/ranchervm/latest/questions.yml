@@ -1,0 +1,55 @@
+categories:
+- virtualization
+labels:
+  io.rancher.certified: experimental
+namespace: ranchervm-system
+questions:
+- variable: question.bridgeInterface
+  label: Bridged Interface Name
+  description: Name of the interface to bridge virtual network devices to.
+  group: General
+  type: string
+  required: true
+  default: ens4
+- variable: question.enforceResourceLimits
+  label: Enforce Resource Limits
+  description: Disallow over-allocation of Memory and CPU to VMs.
+  group: General
+  type: boolean
+  default: true
+- variable: question.replicas
+  label: Replication Factor
+  description: Number of replicas of each core component to deploy. Increase for high availability, max 5.
+  group: Availability
+  type: int
+  min: 1
+  max: 5
+  default: 1
+- variable: question.zeroDowntime
+  label: Zero Downtime Upgrade
+  description: If enabled, upgrades will not incur API downtime. Requires at least 2 schedulable nodes.
+  group: Availability
+  type: boolean
+  default: false
+- variable: ingress.enabled
+  label: Enable Ingress
+  description: Expose app using Layer 7 Load Balancer
+  type: boolean
+  group: Load Balancing
+  default: true
+  show_subquestion_if: true
+  subquestions:
+  - variable: ingress.host
+    label: Wildcard DNS Hostname
+    description: Domain name of a service that provides wildcard DNS for any IP address
+    type: hostname
+    required: true
+    default: xip.io
+- variable: question.logLevel
+  label: Log Verbosity
+  description: Logging level from 0 to 5, where 0 is the most succinct and 5 is the most verbose.
+  group: Logging
+  type: int
+  min: 0
+  max: 5
+  default: 3
