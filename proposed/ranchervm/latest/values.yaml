@@ -1,0 +1,49 @@
+question:
+  bridgeInterface: en0
+  enforceResourceLimits: true
+  replicas: 1
+  zeroDowntime: false
+  logLevel: 3
+
+image:
+  vm: rancher/vm
+  ui: rancher/vm-frontend
+  novnc: rancher/vm-novnc
+  tools: rancher/vm-tools
+
+ingress:
+  enabled: true
+  host: xip.io
+
+  ## Set this to true in order to enable TLS on the ingress record
+  ## A side effect of this will be that the backend service will be connected at port 443
+  tls: false
+
+  ## If TLS is set to true, you must declare what secret will store the key/certificate for TLS
+  tlsSecret: longhorn.local-tls
+
+  ## Ingress annotations done as key:value pairs
+  ## If you're using kube-lego, you will want to add:
+  ## kubernetes.io/tls-acme: true
+  ##
+  ## For a full list of possible ingress annotations, please see
+  ## ref: https://github.com/kubernetes/ingress-nginx/blob/master/docs/annotations.md
+  ##
+  ## If tls is set to true, annotation ingress.kubernetes.io/secure-backends: "true" will automatically be set
+  annotations:
+  #  kubernetes.io/ingress.class: nginx
+  #  kubernetes.io/tls-acme: true
+
+  secrets:
+  ## If you're providing your own certificates, please use this to add the certificates as secrets
+  ## key and certificate should start with -----BEGIN CERTIFICATE----- or
+  ## -----BEGIN RSA PRIVATE KEY-----
+  ##
+  ## name should line up with a tlsSecret set further up
+  ## If you're using kube-lego, this is unneeded, as it will create the secret for you if it is not set
+  ##
+  ## It is also possible to create and manage the certificates outside of this helm chart
+  ## Please see README.md for more information
+  # - name: longhorn.local-tls
+  #   key:
+  #   certificate:
