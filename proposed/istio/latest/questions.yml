@@ -1,0 +1,282 @@
+categories:
+- Microservice 
+- Service mesh 
+namespace: istio-system
+questions:
+- variable: defaultImage
+  default: "true"
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: global.hub
+    default: "gcr.io/istio-release"
+    description: "Default hub for Istio images"
+    type: string
+    label: Global Hub For Istio Images
+  - variable: global.tag
+    default: "release-1.0-latest-daily"
+    description: "The image tag of istio image"
+    type: string
+    label: Global Tag For Istio Images
+  - variable: global.proxy.image
+    default: "proxyv2"
+    description: "The image name of istio proxy"
+    type: string
+    label: Image Name of Istio Proxy
+  - variable: global.proxy_init.image
+    default: "proxy_init"
+    description: "The image name of istio proxy_init"
+    type: string
+    label: Image Name of Istio Proxy_init
+  - variable: sidecarInjectorWebhook.image
+    default: "sidecar_injector"
+    description: "Image name of the sidecar-injector webhook"
+    type: string
+    label: Sidecar-Injector Webhook Image Name
+  - variable: galley.image
+    default: "galley"
+    description: "Image name of the galley"
+    type: string
+    label: Galley Image Name
+  - variable: mixer.image
+    default: "mixer"
+    description: "Image name of the mixer"
+    type: string
+    label: Mixer Image Name
+  - variable: pilot.image
+    default: "pilot"
+    description: "Image name of the pilot"
+    type: string
+    label: Pilot Image Name
+  - variable: security.image
+    default: "citadel"
+    description: "Image name of the isito security"
+    type: string
+    label: Istio Security Image Name
+  - variable: grafana.image
+    default: "grafana"
+    description: "Image name of the grafana"
+    type: string
+    label: Grafana Image Name
+  - variable: servicegraph.image
+    default: "servicegraph"
+    description: "Image name of the servicegraph"
+    type: string
+    label: Servicegraph Image Name
+  - variable: mixer.prometheusStatsdExporter.hub
+    default: "docker.io/prom"
+    description: "PrometheusStats Exporter image repository"
+    type: string
+    label: PrometheusStats Exporter Image Repository
+  - variable: mixer.prometheusStatsdExporter.tag
+    default: "v0.6.0"
+    description: "PrometheusStats Exporter image tag"
+    type: string
+    label: PrometheusStats Exporter Image Tag
+  - variable: tracing.jaeger.hub
+    default: "docker.io/jaegertracing"
+    description: "The jaeger image repository"
+    type: string
+    label: Jaeger Image Repository
+  - variable: tracing.jaeger.tag
+    default: "1.5"
+    description: "The jaeger image tag"
+    type: string
+    label: Jaeger Image Tag
+  - variable: prometheus.hub
+    default: "docker.io/prom"
+    description: "The prometheuscomponent image repository"
+    type: string
+    label: Prometheus Image Repository
+  - variable: prometheus.tag
+    default: "v2.3.1"
+    description: "The prometheus image tag"
+    type: string
+    label: Prometheus Image Tag
+  - variable: global.hyperkube.hub
+    default: "quay.io/coreos"
+    description: "The hyperkube image of istio"
+    type: string
+    label: Initial Image Repository of Istio Proxy
+  - variable: global.hyperkube.tag
+    default: "v1.7.6_coreos.0"
+    description: "The hyperkube image tag"
+    type: string
+    label: Istio Hyperkube Image Tag
+  - variable: kiali.hub
+    default: "docker.io/kiali"
+    description: "The kiali image repository"
+    type: string
+    label: Kiali Image Repository
+  - variable: kiali.tag
+    default: "istio-release-1.0"
+    description: "The kiali image tag"
+    type: string
+    label: Kiali Image Tag
+  - variable: certmanager.hub
+    default: "quay.io/jetstack"
+    description: "The jetstack image repository"
+    type: string
+    label: Jetstack Image Repository
+  - variable: certmanager.tag
+    default: "v0.3.1"
+    description: "The jetstack image tag"
+    type: string
+    label: Jetstack Image Tag
+# ingress settings
+- variable: ingress.enabled
+  default: false
+  description: "Enabled istio ingress"
+  group: "Istio Ingress Settings"
+  type: boolean
+  label: Enabled Istio Ingress 
+  show_subquestion_if: "true"
+  subquestions:
+  - variable: ingress.service.type
+    default: "NodePort"
+    description: "Ingress service type"
+    type: enum 
+    label: Ingress service type
+    options:
+        - "ClusterIP"
+        - "NodePort"
+        - "LoadBalancer"
+# grafana and prometheus settings
+- variable: grafana.enabled 
+  default: false
+  description: "Enabled the grafana component of istio"
+  type: boolean 
+  required: true
+  label: Enabled the Grafana Component 
+  show_subquestion_if: true
+  group: "Grafana Settings"
+  subquestions:
+- variable: grafana.service.type
+  default: "NodePort"
+  description: "Grafana service type"
+  show_if: "grafana.ingress.enabled=false"
+  type: enum 
+  label: Grafana Service Type 
+  group: "Grafana Settings"
+  options:
+      - "ClusterIP"
+      - "NodePort"
+- variable: prometheus.enabled 
+  default: true
+  description: "Enabled prometheus server"
+  type: boolean 
+  required: true
+  label: Enable the prometheus Server 
+  show_subquestion_if: true
+  group: "Prometheus Settings"
+- variable: sidecarInjectorWebhook.enabled 
+  default: true
+  description: "Specifies whether automatic sidecar-injector should be installed"
+  type: boolean 
+  required: true
+  label: Enabled Auto Sidecar Injector
+  show_subquestion_if: true
+  group: "Sidecar Injector Settings"
+  subquestions:
+# tracing settings
+- variable: tracing.enabled
+  default: true
+  description: "Enabled the jaeger component of istio"
+  type: boolean
+  required: true
+  label: Enabled the Jaeger Component
+  group: "Tracing Component Settings"
+- variable: tracing.service.type
+  default: "NodePort"
+  description: "Jaeger service type"
+  type: enum
+  label: Tracing Service Type
+  show_if: "tracing.enabled=true"
+  group: "Tracing Component Settings"
+  options:
+      - "ClusterIP"
+      - "NodePort"
+- variable: tracing.ingress.enabled
+  default: false
+  description: "Expose tracing using Layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose Tracing using Layer 7 Load Balancer
+  group: "Tracing Component Settings"
+  show_if: "tracing.enabled=true"
+  show_subquestion_if: "true"
+  subquestions:
+  - variable: tracing.ingress.hosts[0]
+    default: "xip.io"
+    description: "The hostname to access tracing"
+    type: hostname
+    label: Hostname to Access Tracing
+# servicegraph settings
+- variable: servicegraph.enabled
+  default: false
+  description: "Enabled the servicegraph component of istio"
+  type: boolean
+  required: true
+  label: Enabled the Servicegraph Component
+  show_subquestion_if: true
+  group: "Servicegraph Settings"
+- variable: servicegraph.ingress.enabled
+  default: false
+  description: "Expose servicegraph using layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose servicegraph using Layer 7 Load Balancer
+  show_if: "servicegraph.enabled=true"
+  group: "Servicegraph Settings"
+  show_subquestion_if: "true"
+  subquestions:
+  - variable: servicegraph.ingress.hosts[0]
+    default: "xip.io"
+    description: "The hostname to access servicegraph, it is a json array"
+    type: hostname
+    label: Hostname to Access Servicegraph
+- variable: servicegraph.service.typ
+  default: "NodePort"
+  description: "Servicegraph service type"
+  type: enum
+  label: Servicegraph Service Type
+  show_if: "servicegraph.enabled=true"
+  group: "Servicegraph Settings"
+  options:
+      - "ClusterIP"
+      - "NodePort"
+# kiali settings
+- variable: kiali.enabled
+  default: false
+  description: "Enabled Kiali server"
+  type: boolean
+  required: true
+  label: Enable the Kiali Server
+  show_subquestion_if: true
+  group: "Kiali Settings"
+- variable: kiali.service.type
+  default: "NodePort"
+  description: "Kiali service type"
+  type: enum
+  label: Kiali Service Type
+  group: "Kiali Settings"
+  show_if: "kiali.enabled=true"
+  options:
+      - "ClusterIP"
+      - "NodePort"
+- variable: kiali.ingress.enabled
+  default: false
+  description: "Expose kiali using Layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose Kiali using Layer 7 Load Balancer
+  show_if: "kiali.enabled=true"
+  show_subquestion_if: true
+  group: "Kiali Settings"
+  subquestions:
+  - variable: kiali.ingress.hosts[0]
+    default: "xip.io"
+    description: "The hostname to access kiali server"
+    type: hostname 
+    label: Hostname to Access Kiali Server 
+    show_if: "kiali.enabled=true&&kiali.ingress.enabled=true"
