@@ -1,30 +1,3 @@
-# Istio
-
-[Istio](https://istio.io/) is an open platform for providing a uniform way to integrate microservices, manage traffic flow across microservices, enforce policies and aggregate telemetry data.
-
-## Introduction
-
-This chart bootstraps all istio [components](https://istio.io/docs/concepts/what-is-istio/overview.html) deployment on a [Kubernetes](http://kubernetes.io) cluster using the [Helm](https://helm.sh) package manager.
-
-## Chart Details
-
-This chart can install multiple istio components as subcharts:
-- ingress
-- ingressgateway
-- egressgateway
-- sidecarInjectorWebhook
-- galley
-- mixer
-- pilot
-- security(citadel)
-- grafana
-- prometheus
-- servicegraph
-- tracing(jaeger)
-- kiali
-
-To enable or disable each component, change the corresponding `enabled` flag.
-
 ## Prerequisites
 
 - Kubernetes 1.9 or newer cluster with RBAC (Role-Based Access Control) enabled is required
@@ -34,38 +7,6 @@ To enable or disable each component, change the corresponding `enabled` flag.
 ## Resources Required
 
 The chart deploys pods that consume minimum resources as specified in the resources configuration parameter.
-
-## Installing the Chart
-
-1. If a service account has not already been installed for Tiller, install one:
-```
-$ kubectl apply -f install/kubernetes/helm/helm-service-account.yaml
-```
-
-2. Install Tiller on your cluster with the service account:
-```
-$ helm init --service-account tiller
-```
-
-3. Install Istio’s [Custom Resource Definitions](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/#customresourcedefinitions) via `kubectl apply`, and wait a few seconds for the CRDs to be committed in the kube-apiserver:
-   ```
-   $ kubectl apply -f install/kubernetes/helm/istio/templates/crds.yaml
-   ```
-   **Note**: If you are enabling `certmanager`, you also need to install its CRDs and wait a few seconds for the CRDs to be committed in the kube-apiserver:
-   ```
-   $ kubectl apply -f install/kubernetes/helm/istio/charts/certmanager/templates/crds.yaml
-   ```
-
-4. To install the chart with the release name `istio` in namespace `istio-system`:
-    - With [automatic sidecar injection](https://istio.io/docs/setup/kubernetes/sidecar-injection/#automatic-sidecar-injection) (requires Kubernetes >=1.9.0):
-    ```
-    $ helm install install/kubernetes/helm/istio --name istio --namespace istio-system
-    ```
-
-    - Without the sidecar injection webhook:
-    ```
-    $ helm install install/kubernetes/helm/istio --name istio --namespace istio-system --set sidecarInjectorWebhook.enabled=false
-    ```
 
 ## Configuration
 
@@ -99,6 +40,40 @@ Helm charts expose configuration options which are currently in alpha.  The curr
 | `servicegraph.enabled` | Specifies whether Servicegraph addon should be installed | true/false | `false` |
 | `tracing.enabled` | Specifies whether Tracing(jaeger) addon should be installed | true/false | `false` |
 | `kiali.enabled` | Specifies whether Kiali addon should be installed | true/false | `false` |
+
+
+## Custom Installation
+
+1. If a service account has not already been installed for Tiller, install one:
+```
+$ kubectl apply -f install/kubernetes/helm/helm-service-account.yaml
+```
+
+2. Install Tiller on your cluster with the service account:
+```
+$ helm init --service-account tiller
+```
+
+3. Install Istio’s [Custom Resource Definitions](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/#customresourcedefinitions) via `kubectl apply`, and wait a few seconds for the CRDs to be committed in the kube-apiserver:
+   ```
+   $ kubectl apply -f install/kubernetes/helm/istio/templates/crds.yaml
+   ```
+   **Note**: If you are enabling `certmanager`, you also need to install its CRDs and wait a few seconds for the CRDs to be committed in the kube-apiserver:
+   ```
+   $ kubectl apply -f install/kubernetes/helm/istio/charts/certmanager/templates/crds.yaml
+   ```
+
+4. To install the chart with the release name `istio` in namespace `istio-system`:
+    - With [automatic sidecar injection](https://istio.io/docs/setup/kubernetes/sidecar-injection/#automatic-sidecar-injection) (requires Kubernetes >=1.9.0):
+    ```
+    $ helm install install/kubernetes/helm/istio --name istio --namespace istio-system
+    ```
+
+    - Without the sidecar injection webhook:
+    ```
+    $ helm install install/kubernetes/helm/istio --name istio --namespace istio-system --set sidecarInjectorWebhook.enabled=false
+    ```
+
 
 ## Uninstalling the Chart
 
