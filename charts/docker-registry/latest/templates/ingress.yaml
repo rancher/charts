@@ -1,5 +1,5 @@
 {{- if .Values.ingress.enabled -}}
-{{- $serviceName := .Release.Name -}}
+{{- $serviceName := include "docker-registry.fullname" . -}}
 {{- $servicePort := .Values.service.port -}}
 {{- $path := .Values.ingress.path -}}
 apiVersion: extensions/v1beta1
@@ -25,14 +25,9 @@ spec:
             backend:
               serviceName: {{ $serviceName }}
               servicePort: {{ $servicePort }}
-    {{- end }}
-  tls:
-  - hosts:
-    {{- range $host := .Values.ingress.hosts }}
-    - {{ $host }}
-    {{- end }}
-    secretName: {{ .Release.Name }}-crt
+    {{- end -}}
   {{- if .Values.ingress.tls }}
+  tls:
 {{ toYaml .Values.ingress.tls | indent 4 }}
-  {{- end }}
-{{- end }}
+  {{- end -}}
+{{- end -}}
