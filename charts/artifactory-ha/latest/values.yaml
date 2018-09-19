@@ -9,6 +9,33 @@ initContainerImage: "alpine:3.6"
 # For supporting pulling from private registries
 imagePullSecrets:
 
+## Role Based Access Control
+## Ref: https://kubernetes.io/docs/admin/authorization/rbac/
+rbac:
+  create: true
+  role:
+    ## Rules to create. It follows the role specification
+    rules:
+    - apiGroups:
+      - ''
+      resources:
+      - services
+      - endpoints
+      - pods
+      verbs:
+      - get
+      - watch
+      - list
+
+## Service Account
+## Ref: https://kubernetes.io/docs/admin/service-accounts-admin/
+##
+serviceAccount:
+  create: true
+  ## The name of the ServiceAccount to use.
+  ## If not set and create is true, a name is generated using the fullname template
+  name:
+
 ingress:
   enabled: false
   # Used to create an Ingress record.
@@ -32,19 +59,20 @@ postgresql:
   postgresDatabase: "artifactory"
   postgresUser: "artifactory"
   postgresPassword:
+  postgresConfig:
+    maxConnections: "1500"
   service:
     port: 5432
   persistence:
     enabled: true
     size: 50Gi
-  # resources: {}
-  resources:
-    requests:
-      memory: "512Mi"
-      cpu: "100m"
-    limits:
-      memory: "1Gi"
-      cpu: "500m"
+  resources: {}
+  #  requests:
+  #    memory: "512Mi"
+  #    cpu: "100m"
+  #  limits:
+  #    memory: "1Gi"
+  #    cpu: "500m"
 
 ## If NOT using the PostgreSQL in this chart (postgresql.enabled=false),
 ## you must specify the following database details
@@ -60,7 +88,8 @@ artifactory:
   name: artifactory-ha
   image:
     repository: "docker.bintray.io/jfrog/artifactory-pro"
-    version: 6.0.0
+    # Note that by default we use appVersion to get image tag
+    # version: 6.3.2
     pullPolicy: IfNotPresent
   ## Artifactory requires a unique master key
   ## You can generate one with the command:
@@ -78,6 +107,10 @@ artifactory:
     dataKey:
   ## Create configMap with artifactory.config.import.xml and security.import.xml and pass name of configMap in following parameter
   configMapName:
+
+  ## Extra postStart command to install JDBC driver for MySql/MariaDb/Oracle
+  # postStartCommand: "curl -L -o /opt/jfrog/artifactory/tomcat/lib/mysql-connector-java-5.1.41.jar https://jcenter.bintray.com/mysql/mysql-connector-java/5.1.41/mysql-connector-java-5.1.41.jar && chown 1030:1030 /opt/jfrog/artifactory/tomcat/lib/mysql-connector-java-5.1.41.jar"
+
   membershipPort: 10017
   externalPort: 8081
   internalPort: 8081
@@ -102,6 +135,7 @@ artifactory:
     successThreshold: 1
   persistence:
     enabled: true
+    # local: false
     redundancy: 3
     mountPath: "/var/opt/jfrog/artifactory"
     accessMode: ReadWriteOnce
@@ -152,7 +186,7 @@ artifactory:
       path: "artifactory-ha/filestore"
   service:
     name: artifactory
-    type: NodePort
+    type: ClusterIP
     ## Which nodes in the cluster should be in the external load balancer pool (have external traffic routed to them)
     ## Supported pool values
     ## members
@@ -163,7 +197,7 @@ artifactory:
   ## This will be passed to all cluster members. Primary and member nodes.
   javaOpts:
     other: "-Dartifactory.locking.provider.type=db"
-  ## Artifactory Replicator
+  ## Artifactory Replicator is available only for Enterprise Plus
   replicator:
     enabled: false
     publicUrl:
@@ -177,56 +211,65 @@ artifactory:
     name: artifactory-ha-primary
     persistence:
       ## Set existingClaim to true or false
-      ## If true, you must prepare a PVC with the name
+      ## If true, you must prepare a PVC with the name e.g `artifactory-ha-primary`
       existingClaim: false
     ## Resources for the primary node
-    # resources: {}
-    resources:
-      requests:
-        memory: "1Gi"
-        cpu: "500m"
-      limits:
-        memory: "2Gi"
-        cpu: "1"
+    resources: {}
+    #  requests:
+    #    memory: "1Gi"
+    #    cpu: "500m"
+    #  limits:
+    #    memory: "2Gi"
+    #    cpu: "1"
     ## The following Java options are passed to the java process running Artifactory primary node.
     ## You should set them according to the resources set above
-    # javaOpts: {}
-    javaOpts:
-      xms: "1g"
-      xmx: "2g"
-      # other:
+    javaOpts: {}
+    #  xms: "1g"
+    #  xmx: "2g"
+    #  other:
+    nodeSelector: {}
+
+    tolerations: []
+
+    affinity: {}
   node:
     name: artifactory-ha-member
     persistence:
       ## Set existingClaim to true or false
-      ## If true, you must prepare a PVC with the name
+      ## If true, you must prepare a PVC with the name e.g `artifactory-ha-member`
       existingClaim: false
     replicaCount: 2
     ## Resources for the member nodes
-    # resources: {}
-    resources:
-      requests:
-        memory: "1Gi"
-        cpu: "500m"
-      limits:
-        memory: "2Gi"
-        cpu: "1"
+    resources: {}
+    #  requests:
+    #    memory: "1Gi"
+    #    cpu: "500m"
+    #  limits:
+    #    memory: "2Gi"
+    #    cpu: "1"
     ## The following Java options are passed to the java process running Artifactory member nodes.
     ## You should set them according to the resources set above
-    # javaOpts: {}
-    javaOpts:
-      xms: "1g"
-      xmx: "2g"
-      # other:
+    javaOpts: {}
+    #  xms: "1g"
+    #  xmx: "2g"
+    #  other:
+    nodeSelector: {}
+
+    tolerations: []
+
+    affinity: {}
 
 # Nginx
 nginx:
   enabled: true
   name: nginx
   replicaCount: 1
+  uid: 104
+  gid: 107
   image:
     repository: "docker.bintray.io/jfrog/nginx-artifactory-pro"
-    version: 6.0.0
+    # Note that by default we use appVersion to get image tag
+    # version: 6.3.2
     pullPolicy: IfNotPresent
   service:
     ## For minikube, set this to NodePort, elsewhere use LoadBalancer
@@ -267,6 +310,8 @@ nginx:
     ssl: true
     # artUrl: "http://artifactory:8081/artifactory"
     skipAutoConfigUpdate: false
+  ## Custom ConfigMap for nginx.conf
+  customConfigMap:
   persistence:
     mountPath: "/var/opt/jfrog/nginx"
     enabled: false
@@ -285,11 +330,16 @@ nginx:
     ##   GKE, AWS & OpenStack)
     ##
     # storageClass: "-"
-  # resources: {}
-  resources:
-    requests:
-      memory: "250Mi"
-      cpu: "100m"
-    limits:
-      memory: "250Mi"
-      cpu: "500m"
+  resources: {}
+  #  requests:
+  #    memory: "250Mi"
+  #    cpu: "100m"
+  #  limits:
+  #    memory: "250Mi"
+  #    cpu: "500m"
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
