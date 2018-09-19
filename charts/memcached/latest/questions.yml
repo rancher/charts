@@ -1,0 +1,82 @@
+categories:
+- Cache
+questions:
+- variable: defaultImage
+  default: "true"
+  description: "Use default Docker image"
+  label: Use Default Images
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: image
+    default: "memcached"
+    description: "Memcached Docker image"
+    type: string
+    label: Memcached Docker Image
+  - variable: imageTag
+    default: "1.5.6-alpine"
+    description: "memcached Docker image tag"
+    type: string
+    label: Memcached Docker Image Tag
+- variable: replicaCount
+  default: "3"
+  description: "Number or Memcached pods to run"
+  type: string
+  required: true
+  label: Memcached Replicas
+  group: "Memcached Settings"
+- variable: AntiAffinity
+  default: "hard"
+  description: "Select AnitAffinity as either hard or soft, default is soft"
+  type: enum
+  options:
+    - "soft"
+    - "hard"
+  required: true
+  label: AnitAffinity
+  group: "Memcached Settings"
+- variable: showMemcachedOptions
+  default: "false"
+  description: "More Details:(https://github.com/memcached/memcached/wiki/ConfiguringServer#commandline-arguments)"
+  label: Set Advanced Memcached Configurations
+  type: boolean
+  show_subquestion_if: true
+  group: "Memcached Settings"
+  subquestions:
+  - variable: memcached.maxItemMemory
+    default: "64"
+    description: "Max memory to use for items(in MB), from 1-65535"
+    type: string
+    label: max_memory(MB)
+    required: true
+  - variable: memcached.verbosity
+    default: "v"
+    description: "Verbosity level (v, vv, or vvv)"
+    type: enum
+    label: Verbosity Level
+    options:
+      - "v"
+      - "vv"
+      - "vvv"
+    required: true
+- variable: metrics.enabled
+  default: false
+  description: "Expose metrics in prometheus format"
+  label: Enable Memcached Metrics
+  type: boolean
+  show_subquestion_if: true
+  group: "Metrics Settings"
+  subquestions:
+  - variable: metrics.image
+    default: "quay.io/prometheus/memcached-exporter"
+    description: "Docker repository of memcached metrics exporter"
+    type: string
+    label: Metrics Image Repository
+    required: true
+  - variable: metrics.imageTag
+    default: "v0.4.1"
+    description: "memcached metrics image tag"
+    type: string
+    required: true
+    label: Metrics Image Tag

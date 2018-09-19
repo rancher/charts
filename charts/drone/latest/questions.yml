@@ -1,0 +1,204 @@
+categories:
+- CI/CD
+questions:
+- variable: defaultImage
+  default: true
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: images.server.repository
+    default: "docker.io/drone/drone"
+    description: "Drone Server image name"
+    type: string
+    label: Drone Server Image Name
+  - variable: images.server.tag
+    default: "0.8.6"
+    description: "Drone Server image tag"
+    type: string
+    label: Drone Server Image Tag
+  - variable: images.agent.repository
+    default: "docker.io/drone/agent"
+    description: "Drone Agent image name"
+    type: string
+    label: Drone Agent Image Name
+  - variable: images.agent.tag
+    default: "0.8.6"
+    description: "Drone Agent image tag"
+    type: string
+    label: Drone Agent Image Tag
+  - variable: images.dind.repository
+    default: "docker.io/library/docker"
+    description: "Drone Dind image name"
+    type: string
+    label: Drone Dind Image Name
+  - variable: images.dind.tag
+    default: "18.06.1-ce-dind"
+    description: "Drone Dind image tag"
+    type: string
+    label: Drone Dind Image Tag
+- variable: server.env.DRONE_PROVIDER
+  default: "github"
+  description: "Choose your server integrations"
+  type: enum
+  required: true
+  label: Drone Integration Server
+  group: "Drone Settings"
+  options:
+    - "github"
+    - "gitlab"
+    - "gitea"
+    - "gogs"
+    - "bitbucket"
+    - "coding"
+- variable: server.env.DRONE_GITHUB_CLIENT
+  default: ""
+  description: "Github OAuth2 Client ID"
+  type: string
+  required: true
+  label: Github OAuth2 Client ID
+  show_if: "server.env.DRONE_PROVIDER=github"
+  group: "Drone Settings"
+- variable: server.env.DRONE_GITHUB_SECRET
+  default: ""
+  description: "Github oauth2 client secret"
+  type: string
+  required: true
+  show_if: "server.env.DRONE_PROVIDER=github"
+  group: "Drone Settings"
+  label: Github OAuth2 Client Secret
+- variable: server.env.DRONE_GITLAB_CLIENT
+  default: ""
+  description: "GitLab oauth2 client id"
+  type: string
+  required: true
+  label: GitLab OAuth2 Client ID
+  show_if: "server.env.DRONE_PROVIDER=gitlab"
+  group: "Drone Settings"
+- variable: server.env.DRONE_GITLAB_SECRET
+  default: ""
+  description: "GitLab oauth2 client secret"
+  type: string
+  required: true
+  label: GitLab OAuth2 Client Secret
+  show_if: "server.env.DRONE_PROVIDER=gitlab"
+  group: "Drone Settings"
+- variable: server.env.DRONE_GITLAB_URL
+  default: ""
+  description: "GitLab Server Address"
+  type: string
+  required: true
+  label: GitLab Server Address
+  show_if: "server.env.DRONE_PROVIDER=gitlab"
+  group: "Drone Settings"
+- variable: server.env.DRONE_GITEA_URL
+  default: ""
+  description: "Gitea Server Address"
+  type: string
+  required: true
+  label: Gitea Server Address
+  show_if: "server.env.DRONE_PROVIDER=gitea"
+  group: "Drone Settings"
+- variable: server.env.DRONE_GOGS_URL
+  default: ""
+  description: "Gogs Server Address"
+  type: string
+  required: true
+  label: Gogs Server Address
+  show_if: "server.env.DRONE_PROVIDER=gogs"
+  group: "Drone Settings"
+- variable: server.env.DRONE_BITBUCKET_CLIENT
+  default: ""
+  description: "Bitbucket oauth2 client id"
+  type: string
+  required: true
+  label: Bitbucket OAuth2 Client ID
+  show_if: "server.env.DRONE_PROVIDER=bitbucket"
+  group: "Drone Settings"
+- variable: server.env.DRONE_BITBUCKET_SECRET
+  default: ""
+  description: "Bitbucket oauth2 client secret"
+  type: string
+  required: true
+  label: Bitbucket OAuth2 Client Secret
+  show_if: "server.env.DRONE_PROVIDER=bitbucket"
+  group: "Drone Settings"
+- variable: server.env.DRONE_CODING_CLIENT
+  default: ""
+  description: "Coding oauth2 client id"
+  type: string
+  required: true
+  label: Coding OAuth2 Client ID
+  show_if: "server.env.DRONE_PROVIDER=coding"
+  group: "Drone Settings"
+- variable: server.env.DRONE_CODING_SECRET
+  default: ""
+  description: "Coding oauth2 client secret"
+  type: string
+  required: true
+  label: Coding OAuth2 Client Secret
+  show_if: "server.env.DRONE_PROVIDER=coding"
+  group: "Drone Settings"
+# persistent setting
+- variable: persistence.enabled
+  default: false
+  description: "Enable persistent volume for Drone Application"
+  type: boolean
+  required: true
+  label: Drone Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "Drone Settings"
+  subquestions:
+  - variable: persistence.size
+    default: "10Gi"
+    description: "Drone Persistent Volume Size"
+    type: string
+    label: Drone Volume Size
+  - variable: persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for Drone
+- variable: ingress.enabled
+  default: false
+  description: "Expose app using Layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose app using Layer 7 Load Balancer
+  show_subquestion_if: true
+  group: "Services and Load Balancing"
+  subquestions:
+  - variable: ingress.hosts[0]
+    default: "xip.io"
+    description: "Hostname to your Drone application"
+    type: hostname
+    required: true
+    label: Hostname
+- variable: service.type
+  default: "NodePort"
+  description: "Drone Service type"
+  type: enum
+  show_if: "ingress.enabled=false"
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: Drone Service Type
+  show_subquestion_if: "NodePort"
+  group: "Services and Load Balancing"
+  subquestions:
+  - variable: service.nodePort
+    default: ""
+    description: "NodePort http port(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    show_if: "ingress.enabled=false&&service.type=NodePort"
+    label: NodePort Http Port
+- variable: metrics.prometheus.enabled
+  default: false
+  description: "Enable Prometheus metrics endpoint"
+  type: boolean
+  label: Enable Prometheus Metrics Endpoint
+  group: "Metrics Setting"
