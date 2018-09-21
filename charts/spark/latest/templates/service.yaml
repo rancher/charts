@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "spark.fullname" . }}
+  labels:
+    app: {{ template "spark.name" . }}
+    chart: {{ template "spark.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: ClusterIP
+  ports:
+  - name: driver
+    port: 7078
+    protocol: TCP
+    targetPort: driver
+  - name: blockmanager
+    port: 7079
+    protocol: TCP
+    targetPort: blockmanager
+  selector:
+    app: {{ template "spark.name" . }}
+    release: {{ .Release.Name }}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "spark.fullname" . }}-ui
+  labels:
+    app: {{ template "spark.name" . }}
+    chart: {{ template "spark.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    {{- if eq .Values.service.type "Rancher-Proxy" }}
+    kubernetes.io/cluster-service: "true"
+    {{- end }}
+spec:
+  {{- if eq .Values.service.type "Rancher-Proxy" }}
+  type: ClusterIP
+  {{- else }}
+  type: {{ .Values.service.type }}
+  {{- end }}
+  ports:
+  - name: http
+    port: 4040
+    protocol: TCP
+    targetPort: dashboard
+  selector:
+    app: {{ template "spark.name" . }}
+    release: {{ .Release.Name }}

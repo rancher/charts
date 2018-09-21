@@ -1,0 +1,134 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ template "spark.fullname" . }}-driver
+  labels:
+    app: {{ template "spark.name" . }}
+    chart: {{ template "spark.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  template:
+    metadata:
+      labels:
+        app: {{ template "spark.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ template "spark.fullname" . }}
+      restartPolicy: Never
+      initContainers:
+      - name: spark-init
+        args:
+        - init
+        - /etc/spark-init/spark-init.properties
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        volumeMounts:
+        - mountPath: /etc/spark-init
+          name: spark-init-properties
+        - mountPath: /var/spark-data/spark-jars
+          name: download-jars-volume
+        - mountPath: /var/spark-data/spark-files
+          name: download-files-volume
+      containers:
+        - name: spark-driver
+          args:
+            - driver
+          env:
+          - name: SPARK_DRIVER_MEMORY
+            value: 1g
+          - name: SPARK_DRIVER_CLASS
+            value: org.apache.spark.examples.SparkPi
+          - name: SPARK_DRIVER_BIND_ADDRESS
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: SPARK_MOUNTED_CLASSPATH
+            value: /var/spark-data/spark-jars/spark-examples_2.11-2.3.1.jar:/var/spark-data/spark-jars/spark-examples_2.11-2.3.1.jar
+          - name: SPARK_MOUNTED_FILES_DIR
+            value: /var/spark-data/spark-files
+          - name: SPARK_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: SPARK_JAVA_OPT_0
+            value: -Dspark.kubernetes.driver.pod.name=$(SPARK_POD_NAME)
+          - name: SPARK_JAVA_OPT_1
+            value: -Dspark.app.name=spark-pi
+          - name: SPARK_JAVA_OPT_2
+            value: -Dspark.kubernetes.initContainer.configMapName={{ template "spark.fullname" . }}-driver
+          - name: SPARK_JAVA_OPT_3
+            value: -Dspark.kubernetes.executor.podNamePrefix={{ .Release.Name }}
+          - name: SPARK_JAVA_OPT_4
+            value: -Dspark.submit.deployMode=cluster
+          - name: SPARK_JAVA_OPT_5
+            value: -Dspark.driver.blockManager.port=7079
+          - name: SPARK_JAVA_OPT_6
+            value: -Dspark.driver.port=7078
+          - name: SPARK_JAVA_OPT_8
+            value: -Dspark.jars={{ .Values.javaOpts.remoteJars }}
+          - name: SPARK_JAVA_OPT_9
+            value: -Dspark.driver.host=$(SPARK_DRIVER_BIND_ADDRESS)
+          - name: SPARK_JAVA_OPT_10
+            value: -Dspark.kubernetes.initContainer.configMapKey=spark-init.properties
+          - name: SPARK_JAVA_OPT_11
+            value: -Dspark.executor.instances={{ .Values.javaOpts.instances }}
+          - name: SPARK_JAVA_OPT_12
+            value: -Dspark.kubernetes.container.image={{ .Values.image.repository }}:{{ .Values.image.tag }}
+          - name: SPARK_JAVA_OPT_13
+            value: -Dspark.master=k8s://kubernetes.default.svc
+          - name: SPARK_JAVA_OPT_14
+            value: -Dspark.kubernetes.namespace={{ .Release.Namespace }}
+          - name: SPARK_JAVA_OPT_15
+            value: -Dspark.kubernetes.authenticate.driver.serviceAccountName={{ template "spark.fullname" . }}
+          {{- if .Values.javaOpts.env }}
+          {{- range $key, $value := .Values.javaOpts.env }}
+          - name: {{ $key }}
+            value: {{ $value }}
+          {{- end }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          ports:
+            - name: driver
+              containerPort: 7078
+              protocol: TCP
+            - name: blockmanager
+              containerPort: 7079
+              protocol: TCP
+            - name: dashboard
+              containerPort: 4040
+              protocol: TCP
+          volumeMounts:
+          - mountPath: /var/spark-data/spark-jars
+            name: download-jars-volume
+          - mountPath: /var/spark-data/spark-files
+            name: download-files-volume
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+      volumes:
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: spark-init.properties
+            path: spark-init.properties
+          name: {{ template "spark.fullname" . }}-driver
+        name: spark-init-properties
+      - emptyDir: {}
+        name: download-jars-volume
+      - emptyDir: {}
+        name: download-files-volume
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}

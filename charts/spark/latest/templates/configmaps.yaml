@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "spark.fullname" . }}-driver
+  labels:
+    app: {{ template "spark.name" . }}
+    chart: {{ template "spark.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  spark-init.properties: |
+    spark.kubernetes.mountDependencies.jarsDownloadDir=/var/spark-data/spark-jars
+    spark.kubernetes.mountDependencies.filesDownloadDir=/var/spark-data/spark-files
+    spark.kubernetes.initContainer.remoteJars={{ .Values.javaOpts.remoteJars }}
