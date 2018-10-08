@@ -1,42 +1,54 @@
+categories:
+- storage
+namespace: kube-system
+labels:
+  io.rancher.certified: partner
 questions:
 
 ################################### KVDB options ################################
-- variable: kvdb
-  description: "Points to your key value store, such as an etcd cluster or a consul cluster. Use semicolon separated for multiple endpoints. (example: etcd:http://etcd-1.com.net:2379;etcd:http://etcd-2.com.net:2379;etcd:http://etcd-3.com.net:2379)"
-  type: string
-  label: "Endpoint address"
-  group: "Key value store parameters (Required)"
 - variable: internalKVDB
   description: "Select if you wish to run internal kvdb. Note internal kvdb is in beta. DO NOT enable internal kvdb when running with KOPS. The kvdb endpoints provided above will be ignored."
   type: boolean
   label: Enable Internal KVDB store
-  required: false
+  default: false
+  group: "Key value store parameters (Required)"
+- variable: kvdb
+  description: "Points to your key value store, such as an etcd cluster or a consul cluster. Use semicolon separated for multiple endpoints. (example: etcd:http://etcd-1.com.net:2379;etcd:http://etcd-2.com.net:2379;etcd:http://etcd-3.com.net:2379)"
+  type: string
+  label: "Endpoint address"
+  required: true
+  show_if: "internalKVDB=false"
   group: "Key value store parameters (Required)"
 - variable: etcd.ca
   description: "Name of CA file for ETCD authentication. Example: etcd-ca.crt. Follow https://docs.portworx.com/scheduler/kubernetes/etcd-certs-using-secrets.html to create a Kubernetes secret for the etcd certs."
   type: string
   label: "ETCD CA file"
   group: "Key value store security Parameters"
+  show_if: "internalKVDB=false"
 - variable: etcd.cert
   description: "Name of certificate for ETCD authentication. Example: etcd.crt"
   type: string
   label: "ETCD cert file"
   group: "Key value store security Parameters"
+  show_if: "internalKVDB=false"
 - variable: etcd.key
   description: "Name of certificate key for ETCD authentication Example: etcd.key"
   type: string
   label: "ETCD cert key file"
   group: "Key value store security Parameters"
+  show_if: "internalKVDB=false"
 - variable: etcd.credentials
   description: "Username and password for ETCD authentication in the form user:password. Not needed if using certificates."
   type: string
   label: "ETCD credentials"
   group: "Key value store security Parameters"
+  show_if: "internalKVDB=false"
 - variable: consul.acl
   description: "ACL token value used for Consul authentication. (example: 398073a8-5091-4d9c-871a-bbbeb030d1f6). Needed only for consul."
   type: string
   group: "Key value store security Parameters"
   label: Consul ACL Token
+  show_if: "internalKVDB=false"
 
 
 ################################### Storage options ################################
