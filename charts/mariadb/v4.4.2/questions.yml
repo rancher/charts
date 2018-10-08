@@ -1,0 +1,147 @@
+categories:
+- Database
+- MySQL
+questions:
+- variable: defaultImage
+  default: "true"
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: image.repository
+    default: "bitnami/mariadb"
+    description: "Docker image name"
+    type: string
+    label: MariaDB Image Name
+  - variable: image.tag
+    default: "10.1.36-debian-9"
+    description: "Docker image tag"
+    type: string
+    label: MariaDB Image Tag
+  - variable: metrics.image
+    default: "prom/mysqld-exporter"
+    description: "image name for metrics"
+    type: string
+    label: Metrics Image Name
+    show_if: "metrics.enabled=true"
+  - variable: metrics.imageTag
+    default: "v0.10.0"
+    description: "image tag for metrics"
+    type: string
+    label: Metrics Image Tag
+    show_if: "metrics.enabled=true"
+- variable: db.user
+  default: "admin"
+  description: "Username of new user to create."
+  type: string
+  label: MariaDB Database User
+  required: true
+  group: "Master Settings"
+- variable: db.password
+  default: "admin"
+  description: "Password for the new user, defaults to a random 10-character alphanumeric string if not set"
+  type: password
+  label: MariaDB Database Password
+  group: "Master Settings"
+- variable: db.name
+  default: "my_database"
+  description: "Name of database to create"
+  type: string
+  label: MariaDB Database Name
+  required: true
+  group: "Master Settings"
+- variable: master.persistence.enabled
+  default: false
+  description: "Enable persistent volume for MariaDB Master Pod"
+  type: boolean
+  required: true
+  label: Enable Persistent Volume for MariaDB Master Pod
+  show_subquestion_if: true
+  group: "Master Settings"
+  subquestions:
+  - variable: master.persistence.size
+    default: "8Gi"
+    description: "MariaDB Persistent Volume Size"
+    type: string
+    label: MariaDB Volume Size
+    required: true
+  - variable: master.persistence.storageClass
+    default: ""
+    description: "If undefined or  null, uses the default StorageClass. Defaults to null."
+    type: storageclass
+    label: Storage Class for MariaDB
+- variable: replication.enabled
+  default: true
+  description: "Enable MariaDB Replication"
+  type: boolean
+  required: true
+  label: Enable MariaDB Replication 
+  group: "Replica Settings"
+  show_subquestion_if: true
+  subquestions:
+  - variable: slave.replicas
+    default: "2"
+    description: "Desired number of slave replicas"
+    type: int
+    required: true
+    label: MariaDB Replica Count 
+    show_subquestion_if: true
+    group: "Replica Settings"
+    min: 1
+    max: 5
+  - variable: slave.persistence.enabled
+    default: false
+    description: "Enable persistent volume for MariaDB Slave"
+    type: boolean
+    required: true
+    label: Enable Persistent Volume for MariaDB Slave
+    show_subquestion_if: true
+    subquestions:
+  - variable: slave.persistence.size
+    default: "8Gi"
+    description: "MariaDB Slave Persistent Volume Size"
+    type: string
+    label: MariaDB Slave Volume Size
+    required: true
+    show_if: "slave.persistence.enabled=true"
+  - variable: slave.persistence.storageClass
+    default: ""
+    description: "If undefined or  null, uses the default StorageClass. Defaults to null."
+    type: storageclass
+    label: Storage Class for MariaDB Slave
+    show_if: "slave.persistence.enabled=true"
+- variable: service.type
+  default: "NodePort"
+  description: "MariaDB K8s Service type"
+  type: enum
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: MariaDB Service Type
+  show_subquestion_if: "NodePort"
+  group: "Services and Load Balancing"
+  subquestions:
+  - variable: service.nodePort.master
+    default: ""
+    description: "NodePort port number(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    label: Service NodePort number
+  - variable: service.nodePort.slave
+    default: ""
+    description: "NodePort port number(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    label: Service NodePort number
+- variable: metrics.enabled
+  default: false
+  description: "Start a side-car prometheus exporter"
+  type: boolean
+  required: true
+  label: Enable Metrics
+  group: "Metrics Settings"
