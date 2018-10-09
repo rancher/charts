@@ -4,7 +4,6 @@
 
 This helm chart deploys [Portworx](https://portworx.com/) and [Stork](https://docs.portworx.com/scheduler/kubernetes/stork.html) on your Kubernetes cluster. The minimum requirements for deploying the helm chart are as follows:
 
-- Tiller v2.9.0 and above is running on the Kubernetes cluster where you wish to deploy Portworx.
 - All [Pre-requisites](https://docs.portworx.com/#minimum-requirements). for Portworx fulfilled.
 
 ## Limitations
