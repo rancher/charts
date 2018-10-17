@@ -1,14 +1,3 @@
-------------------------------------------------------------------------------
-IMPORTANT!!
-
-DEPRECATION NOTICE:
-
-The support for this chart will be discontinued soon. Please plan to migrate
-and use stable/openebs chart located at:
- [https://github.com/helm/charts/tree/master/stable/openebs](https://github.com/helm/charts/tree/master/stable/openebs)
-
-------------------------------------------------------------------------------
-
 ## Prerequisites
 
 - Kubernetes 1.9.7+ with RBAC enabled
