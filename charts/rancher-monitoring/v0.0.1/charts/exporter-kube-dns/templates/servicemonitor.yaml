@@ -1,0 +1,30 @@
+apiVersion: {{ template "operator_api_version" . }}
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: {{ template "app.name" . }}
+    chart: {{ template "app.version" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+    source: rancher-monitoring
+    {{- if .Values.serviceMonitor.labels }}
+{{ toYaml .Values.serviceMonitor.labels | indent 4 }}
+    {{- end }}  
+  name: {{ template "app.fullname" . }}
+spec:
+  jobLabel: kube-dns
+  selector:
+    matchLabels:
+      k8s-app: coredns
+  namespaceSelector:
+    any: true
+    matchNames:
+      - "kube-system"
+      - {{ .Release.Namespace | quote }}
+  endpoints:
+  - port: dnsmasq-metrics
+    interval: 15s
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+  - port: skydns-metrics
+    interval: 15s
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token

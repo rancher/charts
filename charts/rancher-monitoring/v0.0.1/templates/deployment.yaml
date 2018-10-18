@@ -1,0 +1,55 @@
+{{- if .Values.enabled }}
+apiVersion: {{ template "deployment_api_version" . }}
+kind: Deployment
+metadata:
+  labels:
+    app: {{ template "app.name" . }}
+    chart: {{ template "app.version" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+  name: {{ template "app.fullname" . }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ template "app.name" . }}
+      chart: {{ template "app.version" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "app.name" . }}
+        chart: {{ template "app.version" . }}
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: prometheus-operator
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          args:
+            - --kubelet-service={{ .Release.Namespace }}/expose-kubelets-metrics
+            - --log-format={{ .Values.logFormat }}
+            - --log-level={{ .Values.logLevel }}
+            - --prometheus-config-reloader={{ .Values.image.prometheusConfigReloader.repository }}:{{ .Values.image.prometheusConfigReloader.tag }}
+            - --config-reloader-image={{ .Values.image.configmapReload.repository }}:{{ .Values.image.configmapReload.tag }}
+            - --labels=monitoring.cattle.io=true
+            - --crd-apigroup={{ template "operator_api_group" . }}
+            - --manage-crds={{ .Values.manageCRDs }}
+            - --with-validation={{ .Values.withValidation }}
+            - --disable-auto-user-group={{ .Values.disableAutoUserGroup }}
+          ports:
+            - containerPort: 8080
+              name: http
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+    {{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+    {{- end }}
+    {{- if .Values.enabledRBAC }}
+      serviceAccountName: {{ .Values.serviceAccountName }}
+    {{- end }}
+    {{- if .Values.tolerations }}
+      tolerations:
+{{ toYaml .Values.tolerations | indent 8 }}
+    {{- end }}
+{{- end }}

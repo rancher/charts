@@ -1,0 +1,49 @@
+apiVersion: {{ template "operator_api_version" . }}
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: {{ template "app.name" . }}
+    chart: {{ template "app.version" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+    source: rancher-monitoring
+    {{- if .Values.serviceMonitor.labels }}
+{{ toYaml .Values.serviceMonitor.labels | indent 4 }}
+    {{- end }}  
+  name: {{ template "charts.exporter-kubelets.fullname" . }}
+spec:
+  jobLabel: kubelet
+  selector:
+    matchLabels:
+      k8s-app: kubelet
+  namespaceSelector:
+    any: true
+    matchNames:
+      - "kube-system"
+      - {{ .Release.Namespace | quote }}
+  endpoints:
+  - port: https-metrics
+    scheme: https
+    interval: 15s
+    tlsConfig:
+      caFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      {{- if .Values.insecureSkipVerify }}
+      insecureSkipVerify: true
+      {{- end }}
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+  - port: https-metrics
+    scheme: https
+    path: /metrics/cadvisor
+    interval: 30s
+    honorLabels: true
+    tlsConfig:
+      caFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      {{- if .Values.insecureSkipVerify }}
+      insecureSkipVerify: true
+      {{- end }}
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+  - port: http-metrics
+    interval: 15s
+  - port: cadvisor
+    interval: 30s
+    honorLabels: true

@@ -1,0 +1,138 @@
+apiVersion: {{ template "operator_api_version" . }}
+kind: Prometheus
+metadata:
+  labels:
+    app: {{ template "app.name" . }}
+    chart: {{ template "app.version" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+{{- if .Values.labels }}
+{{ toYaml .Values.labels | indent 4 }}
+{{- end }}
+  name: {{ .Release.Name }}
+spec:
+{{- if .Values.labels }}
+  podMetadata:
+    labels:
+      app: {{ template "app.name" . }}
+      chart: {{ template "app.version" . }}
+      release: {{ .Release.Name }}
+{{ toYaml .Values.labels | indent 6 }}
+{{- end }}
+{{- if .Values.alertingEndpoints }}
+  alerting:
+    alertmanagers:
+{{ toYaml .Values.alertingEndpoints | indent 6 }}
+{{- else }}
+  alerting:
+    alertmanagers:
+      - namespace: {{ .Release.Namespace }}
+        name: alertmanager-operated
+        port: http
+{{- end }}
+  baseImage: "{{ .Values.image.repository }}"
+{{- if .Values.externalLabels }}
+  externalLabels:
+{{ toYaml .Values.externalLabels | indent 4}}
+{{- end }}
+{{- if .Values.externalUrl }}
+  externalUrl: "{{ .Values.externalUrl }}"
+{{- end }}
+{{- if .Values.nodeSelector }}
+  nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 4 }}
+{{- end }}
+  paused: {{ .Values.paused }}
+  replicas: {{ .Values.replicaCount }}
+  logLevel:  {{ .Values.logLevel }}
+  resources:
+{{ toYaml .Values.resources | indent 4 }}
+  retention: "{{ .Values.retention }}"
+{{- if .Values.routePrefix }}
+  routePrefix: "{{ .Values.routePrefix }}"
+{{- end }}
+{{- if .Values.secrets }}
+  secrets:
+{{ toYaml .Values.secrets | indent 4 }}
+{{- end }}
+{{- if .Values.enabledRBAC }}
+  serviceAccountName: {{ .Values.serviceAccountName }}
+{{- end }}
+{{- if .Values.serviceMonitorNamespaceSelector }}
+  serviceMonitorNamespaceSelector:
+{{ toYaml .Values.serviceMonitorNamespaceSelector | indent 4 }}
+{{- end }}
+  serviceMonitorSelector:
+{{- if .Values.serviceMonitorsSelector }}
+{{ toYaml .Values.serviceMonitorsSelector | indent 4 }}
+{{- else }}
+    matchLabels:
+      source: rancher-monitoring
+      release: {{ .Release.Name }}
+{{- end }}
+{{- if .Values.remoteRead }}
+  remoteRead:
+{{ toYaml .Values.remoteRead | indent 4 }}
+{{- end }}
+{{- if .Values.remoteWrite }}
+  remoteWrite:
+{{ toYaml .Values.remoteWrite | indent 4 }}
+{{- end }}
+{{- if .Values.ruleNamespaceSelector }}
+  ruleNamespaceSelector:
+{{ toYaml .Values.ruleNamespaceSelector | indent 4 }}
+{{- end }}
+  ruleSelector:
+{{- if .Values.rulesSelector }}
+{{ toYaml .Values.rulesSelector | indent 4 }}
+{{- else }}
+    matchLabels:
+      source: rancher-monitoring
+      release: {{ .Release.Name }}
+{{- end }}
+{{- if or .Values.storageSpec .Values.persistence.enabled }}
+  storage:
+    volumeClaimTemplate:
+      spec:
+{{- if .Values.storageSpec }}
+{{ toYaml .Values.storageSpec | indent 8 }}
+{{- else }}
+        storageClassName: {{ default "default" .Values.persistence.storageClass }}
+        accessModes: 
+          - {{ default "ReadWriteOnce" .Values.persistence.accessMode }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size | quote }}
+{{- end }}
+{{- end }}
+  version: "{{ .Values.image.tag }}"
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          topologyKey: kubernetes.io/hostname
+          labelSelector:
+            matchLabels:
+              app: {{ template "app.name" . }}
+              prometheus: {{ .Release.Name }}
+{{- if .Values.tolerations }}
+  tolerations:
+{{ toYaml .Values.tolerations | indent 4 }}
+{{- end }}
+  imagePullSecrets: 
+{{ toYaml .Values.image.pullSecrets | indent 4 }}
+{{- if and .Values.additionalScrapeConfigsEnabled .Values.additionalScrapeConfigs  }}
+  additionalScrapeConfigs:
+    name: {{ template "app.fullname" . }}-additional-scrape-configs
+    key: additional-scrape-configs.yaml
+{{- end }}
+{{- if and .Values.additionalAlertManagerConfigsEnabled .Values.additionalAlertManagerConfigs }}
+  additionalAlertManagerConfigs:
+    name: {{ template "app.fullname" . }}-additional-alertmanager-configs
+    key: additional-alertmanager-configs.yaml
+{{- end }}
+{{- if .Values.sidecarsSpec }}
+  containers:
+{{ toYaml .Values.sidecarsSpec | indent 4 }}
+{{- end }}

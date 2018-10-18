@@ -1,0 +1,81 @@
+apiVersion: {{ template "operator_api_version" . }}
+kind: Alertmanager
+metadata:
+  labels:
+    app: {{ template "app.name" . }}
+    chart: {{ template "app.version" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+{{- if .Values.labels }}
+{{ toYaml .Values.labels | indent 4 }}
+{{- end }}
+  name: {{ .Release.Name }}
+spec:
+{{- if .Values.labels }}
+  podMetadata:
+    labels:
+      app: {{ template "app.name" . }}
+      chart: {{ template "app.version" . }}
+      release: {{ .Release.Name }}
+{{ toYaml .Values.labels | indent 6 }}
+{{- end }}
+  baseImage: "{{ .Values.image.repository }}"
+{{- if .Values.externalUrl }}
+  externalUrl: "{{ .Values.externalUrl }}"
+{{- end }}
+{{- if .Values.nodeSelector }}
+  nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 4 }}
+{{- end }}
+  paused: {{ .Values.paused }}
+  replicas: {{ .Values.replicaCount }}
+  logLevel:  {{ .Values.logLevel }}
+  resources:
+{{ toYaml .Values.resources | indent 4 }}
+  retention: "{{ .Values.retention }}"
+{{- if .Values.routePrefix }}
+  routePrefix: "{{ .Values.routePrefix }}"
+{{- end }}
+{{- if .Values.secrets }}
+  secrets:
+{{ toYaml .Values.secrets | indent 4 }}
+{{- end }}
+{{- if .Values.enabledRBAC }}
+  serviceAccountName: {{ .Values.serviceAccountName }}
+{{- end }}
+{{- if or .Values.storageSpec .Values.persistence.enabled }}
+  storage:
+    volumeClaimTemplate:
+      spec:
+{{- if .Values.storageSpec }}
+{{ toYaml .Values.storageSpec | indent 8 }}
+{{- else }}
+        storageClassName: {{ default "default" .Values.persistence.storageClass }}
+        accessModes: 
+          - {{ default "ReadWriteOnce" .Values.persistence.accessMode }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size | quote }}
+{{- end }}
+{{- end }}
+  version: "{{ .Values.image.tag }}"
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          topologyKey: kubernetes.io/hostname
+          labelSelector:
+            matchLabels:
+              app: {{ template "app.name" . }}
+              alertmanager: {{ .Release.Name }}
+{{- if .Values.tolerations }}
+  tolerations:
+{{ toYaml .Values.tolerations | indent 4 }}
+{{- end }}
+  imagePullSecrets:
+{{ toYaml .Values.image.pullSecrets | indent 4 }}
+{{- if .Values.sidecarsSpec }}
+  containers:
+{{ toYaml .Values.sidecarsSpec | indent 4 }}
+{{- end }}

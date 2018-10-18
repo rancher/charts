@@ -1,0 +1,59 @@
+apiVersion: {{ template "daemonset_api_version" . }}
+kind: DaemonSet
+metadata:
+  labels:
+    app: {{ template "app.name" . }}
+    chart: {{ template "app.version" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+  name: {{ template "app.fullname" . }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ template "app.name" . }}
+      chart: {{ template "app.version" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "app.name" . }}
+        chart: {{ template "app.version" . }}
+        release: {{ .Release.Name }}
+    spec:
+      tolerations:
+      - operator: "Exists"
+      containers:
+        - name: exporter-node
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          args:
+          - --web.listen-address=0.0.0.0:{{ .Values.ports.metrics.port }}
+          {{- if and .Values.container .Values.container.args }}
+{{ toYaml .Values.container.args | indent 10 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.ports.metrics.port }}
+              hostPort: {{ .Values.ports.metrics.port }}
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+          {{- if and .Values.container .Values.container.volumeMounts }}
+          volumeMounts:
+{{ toYaml .Values.container.volumeMounts | indent 10 }}
+          {{- end }}
+    {{- if .Values.enabledRBAC }}
+      serviceAccountName: {{ .Values.serviceAccountName }}
+    {{- end }}
+    {{- if .Values.tolerations }}
+      tolerations:
+{{ toYaml .Values.tolerations | indent 8 }}
+    {{- end }}
+    {{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+    {{- end }}
+      hostNetwork: true
+      hostPID: true
+      {{- if and .Values.container .Values.container.volumes }}
+      volumes:
+{{ toYaml .Values.container.volumes | indent 6 }}
+      {{- end}}

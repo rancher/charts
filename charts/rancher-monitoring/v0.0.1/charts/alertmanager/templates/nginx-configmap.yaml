@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "app.nginx.fullname" . }}
+  labels:
+    app: {{ template "app.name" . }}
+    chart: {{ template "app.version" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+    component: nginx
+data:
+  nginx.conf: |-
+    user  nginx;
+    worker_processes  auto;
+    error_log  /dev/null warn;
+    pid        /var/run/nginx.pid;
+    
+    events {
+       worker_connections  1024;
+    }
+
+    http {
+      include /etc/nginx/mime.types;
+
+      log_format  main  '[$time_local - $status] $remote_addr - $remote_user $request ($http_referer)';
+
+      server {
+        listen 80;
+
+        access_log off;
+
+        gzip on;
+        gzip_min_length 1k;
+        gzip_comp_level 2;
+        gzip_types text/plain application/javascript application/x-javascript text/css application/xml text/javascript image/jpeg image/gif image/png;
+        gzip_vary on;
+        gzip_disable "MSIE [1-6]\.";
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        location / {
+          proxy_pass     http://alertmanager-operated:9093/;
+        }
+
+      }
+
+    }

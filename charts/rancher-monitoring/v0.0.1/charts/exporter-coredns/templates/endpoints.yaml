@@ -1,0 +1,41 @@
+{{- if .Values.endpoints }}
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: {{ template "app.name" . }}
+    chart: {{ template "app.version" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+    k8s-app: coredns
+  name: {{ template "app.dnsname" . }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: metrics
+      port: {{ .Values.ports.metrics.port }}
+      protocol: TCP
+      targetPort: {{ .Values.ports.metrics.port }}
+---
+
+apiVersion: v1
+kind: Endpoints
+metadata:
+  labels:
+    app: {{ template "app.name" . }}
+    chart: {{ template "app.version" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+  name: {{ template "app.dnsname" . }}
+subsets:
+  - addresses:
+      {{- range .Values.endpoints }}
+      - ip: {{ . }}
+      {{- end }}
+    ports:
+      - name: metrics
+        port: {{ .Values.ports.metrics.port }}
+        protocol: TCP
+{{- end }}
+

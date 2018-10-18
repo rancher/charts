@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: access-grafana
+  labels:
+    app: {{ template "app.name" . }}
+    chart: {{ template "app.version" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+    kubernetes.io/cluster-service: "true"
+spec:
+  type: ClusterIP
+  sessionAffinity: ClientIP
+  selector:
+    app: {{ template "app.name" . }}
+    chart: {{ template "app.version" . }}
+    release: {{ .Release.Name }}
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

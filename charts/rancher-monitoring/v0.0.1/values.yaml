@@ -1,0 +1,275 @@
+enabled: false
+
+nameOverride: "prometheus-operator"
+
+enabledRBAC: true
+
+## CRD apiGroup
+##
+apiGroup: "monitoring.coreos.com"
+
+## Prometheus-operator image
+##
+image:
+  # Reference to one or more secrets to be used when pulling images
+  pullSecrets: []
+  repository: quay.io/coreos/prometheus-operator
+  tag: v0.23.2
+  ## Prometheus-config-reloader image to use for config and rule reloading
+  ##
+  prometheusConfigReloader:
+    repository: quay.io/coreos/prometheus-config-reloader
+    tag: v0.23.2
+  ## Configmap-reload image to use for reloading configmaps
+  ##
+  configmapReload:
+    repository: quay.io/coreos/configmap-reload
+    tag: v0.0.1
+
+## Node labels for prometheus-operator pod assignment
+##
+nodeSelector:
+  beta.kubernetes.io/os: linux
+
+## Tolerations for use with node taints
+## Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+##
+tolerations: {}
+
+logFormat: "logfmt"
+
+logLevel: "info"
+
+manageCRDs: false
+
+withValidation: true
+
+disableAutoUserGroup: false
+
+serviceMonitor:
+  ## Custom Labels to be added to ServiceMonitor
+  ##
+  labels: {}
+
+## Prometheus-operator resource limits & requests
+## Ref: https://kubernetes.io/docs/user-guide/compute-resources/
+##
+resources: {}
+  # limits:
+  #   cpu: 200m
+  #   memory: 100Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 50Mi
+
+## Already exist ServiceAccount
+##
+serviceAccountName: ""
+
+alertmanager:
+  enabled: false
+  apiGroup: "monitoring.coreos.com"
+  image:
+    repository: quay.io/prometheus/alertmanager
+    tag: v0.15.2
+  nodeSelector:
+    beta.kubernetes.io/os: linux
+  config:
+    global:
+      resolve_timeout: 5m
+    route:
+      group_by: ['job']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+      receiver: 'null'
+      routes:
+      - match:
+          alertname: DeadMansSwitch
+        receiver: 'null'
+    receivers:
+    - name: 'null'
+  persistence:
+    enabled: false
+    storageClass: ""
+    accessMode: "ReadWriteOnce"
+    size: 50Gi
+  ## Already exist ServiceAccount
+  ##
+  serviceAccountName: ""
+
+exporter-coredns:
+  enabled: false
+  apiGroup: "monitoring.coreos.com"
+  endpoints: []
+  ports:
+    metrics:
+      port: 9153
+
+exporter-kube-controller-manager:
+  enabled: false
+  apiGroup: "monitoring.coreos.com"
+  endpoints: []
+  ports:
+    metrics:
+      port: 10252
+
+exporter-kube-dns:
+  enabled: false
+  apiGroup: "monitoring.coreos.com"
+  endpoints: []
+  ports:
+    metrics:
+      dnsmasq:
+        port: 10054
+      skydns:
+        port: 10055
+
+exporter-kube-etcd:
+  enabled: false
+  apiGroup: "monitoring.coreos.com"
+  endpoints: []
+  ports:
+    metrics:
+      scheme: "https"
+      port: 4001
+  caFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+  certFile: ""
+  keyFile: ""
+
+exporter-kube-scheduler:
+  enabled: false
+  apiGroup: "monitoring.coreos.com"
+  endpoints: []
+  ports:
+    metrics:
+      port: 10251
+
+exporter-kube-state:
+  enabled: false
+  apiGroup: "monitoring.coreos.com"
+  ports:
+    metrics:
+      port: 8080
+  image:
+    repository: quay.io/coreos/kube-state-metrics
+    tag: v1.4.0
+  nodeSelector:
+    beta.kubernetes.io/os: linux
+  ## Already exist ServiceAccount
+  ##
+  serviceAccountName: ""
+
+exporter-kubelets:
+  enabled: false
+  apiGroup: "monitoring.coreos.com"
+
+exporter-kubernetes:
+  enabled: false
+  apiGroup: "monitoring.coreos.com"
+
+exporter-node:
+  enabled: false
+  apiGroup: "monitoring.coreos.com"
+  image:
+    repository: quay.io/prometheus/node-exporter
+    tag: v0.16.0
+  nodeSelector:
+    beta.kubernetes.io/os: linux
+  ports:
+    metrics:
+      port: 9100
+  ## Already exist ServiceAccount
+  ##
+  serviceAccountName: ""
+
+grafana:
+  enabled: false
+  level: cluster
+  apiGroup: "monitoring.coreos.com"
+  image:
+    repository: grafana/grafana
+    tag: 5.3.0
+  nodeSelector:
+    beta.kubernetes.io/os: linux
+  persistence:
+    enabled: false
+    storageClass: ""
+    accessMode: "ReadWriteOnce"
+    size: 50Gi
+  adminUser: "admin"
+  adminPassword: "admin"
+  ## Already exist ServiceAccount
+  ##
+  serviceAccountName: ""
+  prometheusDatasourceURL: "http://prometheus-operated:9090"
+
+prometheus:
+  enabled: false
+  apiGroup: "monitoring.coreos.com"
+  image:
+    ## Reference to one or more secrets to be used when pulling images
+    ##
+    pullSecrets: []
+    repository: quay.io/prometheus/prometheus
+    tag: v2.4.3
+  nodeSelector:
+    beta.kubernetes.io/os: linux
+  persistence:
+    enabled: false
+    storageClass: ""
+    accessMode: "ReadWriteOnce"
+    size: 50Gi
+  alertingEndpoints: []
+  secrets: []
+  ## Already exist ServiceAccount
+  ##
+  serviceAccountName: ""
+  serviceMonitorsSelector:
+    matchExpressions:
+    - key: app
+      operator: In
+      values:
+      - alertmanager
+      - exporter-coredns
+      - exporter-kube-controller-manager
+      - exporter-kube-dns
+      - exporter-kube-etcd
+      - exporter-kube-scheduler
+      - exporter-kube-state
+      - exporter-kubelets
+      - exporter-kubernetes
+      - exporter-node
+      - grafana
+      - prometheus
+      - prometheus-operator
+  additionalScrapeConfigsEnabled: true
+  additionalScrapeConfigs:
+  - job_name: 'ingress-nginx-endpoints'
+    kubernetes_sd_configs:
+    - role: pod
+      namespaces:
+        names:
+        - ingress-nginx
+        - kube-system
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+      action: keep
+      regex: true
+    - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scheme]
+      action: replace
+      target_label: __scheme__
+      regex: (https?)
+    - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+      action: replace
+      target_label: __metrics_path__
+      regex: (.+)
+    - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+      action: replace
+      target_label: __address__
+      regex: ([^:]+)(?::\d+)?;(\d+)
+      replacement: $1:$2
+    - source_labels: [__meta_kubernetes_service_name]
+      regex: prometheus-operated
+      action: drop
+

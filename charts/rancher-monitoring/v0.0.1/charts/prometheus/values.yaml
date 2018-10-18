@@ -1,0 +1,183 @@
+enabledRBAC: true
+
+## Already exist ServiceAccount
+##
+serviceAccountName: ""
+
+## CRD apiGroup
+##
+apiGroup: "monitoring.coreos.com"
+
+## Alertmanagers to which alerts will be sent
+## Ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#alertmanagerendpoints
+##
+alertingEndpoints: []
+#   - name: ""
+#     namespace: ""
+#     port: http
+#     scheme: http
+
+## External labels to add to any time series or alerts when communicating with external systems
+##
+externalLabels: {}
+
+## External URL at which Prometheus will be reachable
+##
+externalUrl: ""
+
+serviceMonitor:
+  ## Custom Labels to be added to ServiceMonitor
+  ##
+  labels: {}
+
+##Custom Labels to be added to Prometheus Rules CRDs
+##
+additionalRulesLabels: {}
+
+## Prometheus container image
+##
+image:
+  ## Reference to one or more secrets to be used when pulling images
+  ##
+  pullSecrets: []
+  repository: quay.io/prometheus/prometheus
+  tag: v2.4.3
+  ## Hyperkube image to use when cleaning up
+  ##
+  hyperkube:
+    repository: quay.io/coreos/hyperkube
+    tag: v1.10.5_coreos.0
+
+## Labels to be added to the Prometheus
+##
+labels: {}
+
+## Node labels for Prometheus pod assignment
+## Ref: https://kubernetes.io/docs/user-guide/node-selection/
+##
+nodeSelector: {}
+
+## Tolerations for use with node taints
+## Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+##
+tolerations: {}
+  #  - key: "key"
+  #    operator: "Equal"
+  #    value: "value"
+  #    effect: "NoSchedule"
+
+
+## If true, the Operator won't process any Prometheus configuration changes
+##
+paused: false
+
+
+## Number of Prometheus replicas desired
+##
+replicaCount: 1
+
+## The remote_read spec configuration for Prometheus.
+## Ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#remotereadspec
+remoteRead: {}
+  # remoteRead:
+  #   - url: http://remote1/read
+
+## The remote_write spec configuriation for Prometheus.
+## Ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#remotewritespec
+remoteWrite: {}
+  # remoteWrite:
+  #   - url: http://remote1/push
+
+## Resource limits & requests
+## Ref: https://kubernetes.io/docs/user-guide/compute-resources/
+##
+resources: {}
+  # requests:
+  #   memory: 400Mi
+
+## How long to retain metrics
+##
+retention: 24h
+
+## Prefix used to register routes, overriding externalUrl route.
+## Useful for proxies that rewrite URLs.
+##
+routePrefix: ""
+
+## Namespaces to be selected for PrometheusRules discovery.
+## If unspecified, only the same namespace as the Prometheus object is in is used.
+ruleNamespaceSelector: {}
+## Rules CRD selector
+## Ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/design.md
+##
+## 1. If `matchLabels` is used, `rules.additionalLabels` must contain all the labels from
+##    `matchLabels` in order to be be matched by Prometheus
+## 2. If `matchExpressions` is used `rules.additionalLabels` must contain at least one label
+##    from `matchExpressions` in order to be matched by Prometheus
+## Ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels
+rulesSelector: {}
+ # rulesSelector: {
+ #   matchExpressions: [{key: prometheus, operator: In, values: [example-rules, example-rules-2]}]
+ # }
+ ### OR
+ # rulesSelector: {
+ #   matchLabels: {role: example-rules}
+ # }
+
+## List of Secrets in the same namespace as the Prometheus
+## object, which shall be mounted into the Prometheus Pods.
+## Ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#prometheusspec
+##
+secrets: []
+
+serviceMonitorNamespaceSelector: {}
+
+## Service monitors selector
+## Ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/design.md
+##
+serviceMonitorsSelector: {}
+
+logLevel: "info"
+
+## Prometheus StorageSpec for persistent data
+## Ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/user-guides/storage.md
+##
+storageSpec: {}
+#  storageClassName: gluster
+#  accessModes: ["ReadWriteOnce"]
+#  resources:
+#    requests:
+#      storage: 50Gi
+#  selector: {}
+
+## Easy way to create persistent data
+##
+persistence: {}
+#  enabled: true
+#  storageClass: gluster
+#  accessMode: "ReadWriteOnce"
+#  size: 50Gi
+
+## Prometheus AdditionalScrapeConfigs
+## Ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#prometheusspec
+##
+additionalScrapeConfigsEnabled: false
+additionalScrapeConfigs: []
+# - job_name: "prometheus"
+#   static_configs:
+#   - targets:
+#     - "localhost:9090"
+
+## Prometheus AdditionalAlertManagerConfigs
+## Ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#prometheusspec
+##
+additionalAlertManagerConfigsEnabled: false
+additionalAlertManagerConfigs: {}
+# static_configs:
+# - targets:
+#   - "localhost:9093"
+
+
+sidecarsSpec: []
+# - name: sidecar
+#   image: registry/name:tag

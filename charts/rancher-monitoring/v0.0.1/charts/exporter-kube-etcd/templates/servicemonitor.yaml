@@ -1,0 +1,41 @@
+apiVersion: {{ template "operator_api_version" . }}
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: {{ template "app.name" . }}
+    chart: {{ template "app.version" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+    source: rancher-monitoring
+    {{- if .Values.serviceMonitor.labels }}
+{{ toYaml .Values.serviceMonitor.labels | indent 4 }}
+    {{- end }}  
+  name: {{ template "app.fullname" . }}
+spec:
+  jobLabel: kube-etcd
+  selector:
+    matchLabels:
+      k8s-app: etcd-server
+  namespaceSelector:
+    any: true
+    matchNames:
+      - "kube-system"
+      - {{ .Release.Namespace | quote }}
+  endpoints:
+  - port: metrics
+    interval: 15s
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    {{- if eq .Values.ports.metrics.scheme "https" }}
+    scheme: https
+    tlsConfig:
+      caFile: {{ .Values.caFile }}
+      {{- if  .Values.certFile }}
+      certFile: {{ .Values.certFile }}
+      {{- end }}
+      {{- if .Values.keyFile }}
+      keyFile: {{ .Values.keyFile }}
+      {{- end}}
+      {{- if .Values.insecureSkipVerify }}
+      insecureSkipVerify: true
+      {{- end }}
+    {{- end }}

@@ -1,0 +1,190 @@
+enabledRBAC: true
+
+## Already exist ServiceAccount
+##
+serviceAccountName: ""
+
+## CRD apiGroup
+##
+apiGroup: "monitoring.coreos.com"
+
+## The name of a secret in the same kubernetes namespace which contains the Alertmanager config
+## If defined this will be used instead of the `config` block values.
+## The name of the secret must be alertmanager-{{ .Release.Name }} and its data must contain, at least, a key called `alertmanager.yaml`
+## that contains the configuration as value.
+##
+configFromSecret: ""
+
+## Alertmanager configuration directives
+## Ref: https://prometheus.io/docs/alerting/configuration/
+##
+config: {}
+#
+# An example config:
+#   global:
+#     resolve_timeout: 5m
+#   route:
+#     group_by: ['job']
+#     group_wait: 30s
+#     group_interval: 5m
+#     repeat_interval: 12h
+#     receiver: 'null'
+#     routes:
+#     - match:
+#         alertname: DeadMansSwitch
+#       receiver: 'null'
+#   receivers:
+#   - name: 'null'
+
+## Alertmanager template files to include
+#
+templates: {}
+#
+# An example template:
+#   template_1.tmpl: |-
+#       {{ define "cluster" }}{{ .ExternalURL | reReplaceAll ".*alertmanager\\.(.*)" "$1" }}{{ end }}
+#
+#       {{ define "slack.myorg.text" }}
+#       {{- $root := . -}}
+#       {{ range .Alerts }}
+#         *Alert:* {{ .Annotations.summary }} - `{{ .Labels.severity }}`
+#         *Cluster:*  {{ template "cluster" $root }}
+#         *Description:* {{ .Annotations.description }}
+#         *Graph:* <{{ .GeneratorURL }}|:chart_with_upwards_trend:>
+#         *Runbook:* <{{ .Annotations.runbook }}|:spiral_note_pad:>
+#         *Details:*
+#           {{ range .Labels.SortedPairs }} • *{{ .Name }}:* `{{ .Value }}`
+#           {{ end }}
+
+## External URL at which Alertmanager will be reachable
+##
+externalUrl: ""
+
+serviceMonitor:
+  ## Custom Labels to be added to ServiceMonitor
+  ##
+  labels: {}
+
+## Alertmanager container image
+##
+image:
+  repository: quay.io/prometheus/alertmanager
+  tag: v0.15.2
+  ## Hyperkube image to use when cleaning up
+  ##
+  hyperkube:
+    repository: quay.io/coreos/hyperkube
+    tag: v1.10.5_coreos.0
+
+## Labels to be added to the Alertmanager
+##
+labels: {}
+
+## Node labels for Alertmanager pod assignment
+## Ref: https://kubernetes.io/docs/user-guide/node-selection/
+##
+nodeSelector: {}
+
+## Tolerations for use with node taints
+## Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+##
+tolerations: {}
+  #  - key: "key"
+  #    operator: "Equal"
+  #    value: "value"
+  #    effect: "NoSchedule"
+
+## If true, the Operator won't process any Alertmanager configuration changes
+##
+paused: false
+
+## Number of Alertmanager replicas desired
+##
+replicaCount: 1
+
+## Resource limits & requests
+## Ref: https://kubernetes.io/docs/user-guide/compute-resources/
+##
+resources: {}
+  # requests:
+  #   memory: 400Mi
+
+## How long to retain metrics
+##
+retention: 24h
+
+## Prefix used to register routes, overriding externalUrl route.
+## Useful for proxies that rewrite URLs.
+##
+routePrefix: ""
+
+## List of Secrets in the same namespace as the Alertmanager
+## object, which shall be mounted into the Alertmanager Pods.
+## Ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#prometheusspec
+##
+secrets: []
+
+service:
+  ## Maintains session affinity.  Should be set to ClientIP for HA setup
+  ## Only options are ClientIP and None.  Do not leave blank.
+  sessionAffinity: None
+
+  ## Annotations to be added to the Service
+  ##
+  annotations: {}
+
+  ## Cluster-internal IP address for Alertmanager Service
+  ##
+  clusterIP: ""
+
+  ## List of external IP addresses at which the Alertmanager Service will be available
+  ##
+  externalIPs: []
+
+  ## Labels to be added to the Service
+  ##
+  labels: {}
+
+  ## External IP address to assign to Alertmanager Service
+  ## Only used if service.type is 'LoadBalancer' and supported by cloud provider
+  ##
+  loadBalancerIP: ""
+
+  ## List of client IPs allowed to access Alertmanager Service
+  ## Only used if service.type is 'LoadBalancer' and supported by cloud provider
+  ##
+  loadBalancerSourceRanges: []
+
+  ## Port to expose on each node
+  ## Only used if service.type is 'NodePort'
+  ##
+  # nodePort: 30903
+
+  ## Service type
+  ##
+  type: ClusterIP
+
+logLevel: "info"
+
+## Alertmanager StorageSpec for persistent data
+## Ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/user-guides/storage.md
+##
+storageSpec: {}
+#  storageClassName: gluster
+#  accessModes: ["ReadWriteOnce"]
+#  resources:
+#    requests:
+#       storage: 50Gi
+#  selector: {}
+
+## Easy way to create persistent data
+##
+persistence: {}
+#  enabled: true
+#  storageClass: gluster
+#  accessMode: "ReadWriteOnce"
+#  size: 50Gi
+
+sidecarsSpec: []
+# - name: sidecar
+#   image: registry/name:tag
