@@ -22,23 +22,15 @@ This leaves the primary node free to handle jobs and tasks and not be interrupte
 > This can be controlled by the parameter `artifactory.service.pool`.
 
 ## Installing the Chart
-
-### Add JFrog Helm repository
-Before installing JFrog helm charts, you need to add the [JFrog helm repository](https://charts.jfrog.io/) to your helm client
-```bash
-helm repo add jfrog https://charts.jfrog.io
-```
-
-### Install Chart
 To install the chart with the release name `artifactory-ha`:
 ```bash
-helm install --name artifactory-ha jfrog/artifactory-ha
+$ helm install --name artifactory-ha jfrog/artifactory-ha
 ```
 
 ### Deploying Artifactory with replicator enabled
 ```bash
 ## Artifactory replicator is disabled by default. To enable it use the following:
-helm install --name artifactory --set artifactory.replicator.enabled=true jfrog/artifactory-ha
+$ helm install --name artifactory --set artifactory.replicator.enabled=true jfrog/artifactory-ha
 ```
 
 ### Accessing Artifactory
@@ -48,7 +40,7 @@ Follow the instructions outputted by the install command to get the Artifactory 
 ### Updating Artifactory
 Once you have a new chart version, you can update your deployment with
 ```bash
-helm upgrade artifactory-ha jfrog/artifactory-ha
+$ helm upgrade artifactory-ha jfrog/artifactory-ha
 ```
 
 This will apply any configuration changes on your existing deployment.
@@ -61,7 +53,7 @@ See more information on [setting resources for your Artifactory based on planned
 
 ```bash
 # Example of setting resource requests and limits to all pods (including passing java memory settings to Artifactory)
-helm install --name artifactory-ha \
+$ helm install --name artifactory-ha \
                --set artifactory.primary.resources.requests.cpu="500m" \
                --set artifactory.primary.resources.limits.cpu="2" \
                --set artifactory.primary.resources.requests.memory="1Gi" \
@@ -91,17 +83,17 @@ Get more details on configuring Artifactory in the [official documentation](http
 ### Create Distribution Certificates for Artifactory Enterprise Plus
 ```bash
 # Create private.key and root.crt
-openssl req -newkey rsa:2048 -nodes -keyout private.key -x509 -days 365 -out root.crt
+$ openssl req -newkey rsa:2048 -nodes -keyout private.key -x509 -days 365 -out root.crt
 ```
 
 Once Created, Use it to create ConfigMap
 ```bash
 # Create ConfigMap distribution-certs
-kubectl create configmap distribution-certs --from-file=private.key=private.key --from-file=root.crt=root.crt
+$ kubectl create configmap distribution-certs --from-file=private.key=private.key --from-file=root.crt=root.crt
 ```
 Pass it to `helm`
 ```bash
-helm install --name artifactory --set artifactory.distributionCerts=distribution-certs jfrog/artifactory-ha
+$ helm install --name artifactory --set artifactory.distributionCerts=distribution-certs jfrog/artifactory-ha
 ```
 
 ### Artifactory storage
@@ -144,13 +136,11 @@ To use an AWS S3 bucket as the cluster's filestore
 ```bash
 ...
 --set artifactory.persistence.type=aws-s3 \
---set artifactory.persistence.awsS3.endpoint=${AWS_S3_ENDPOINT} \
 --set artifactory.persistence.awsS3.region=${AWS_REGION} \
 --set artifactory.persistence.awsS3.identity=${AWS_ACCESS_KEY_ID} \
 --set artifactory.persistence.awsS3.credential=${AWS_SECRET_ACCESS_KEY} \
 ...
 ```
-**NOTE:** Make sure S3 `endpoint` and `region` match. See [AWS documentation on endpoint](https://docs.aws.amazon.com/general/latest/gr/rande.html)
 
 ### Create a unique Master Key
 Artifactory HA cluster requires a unique master key. By default the chart has one set in values.yaml (`artifactory.masterKey`).
@@ -160,26 +150,13 @@ Artifactory HA cluster requires a unique master key. By default the chart has on
 You should generate a unique one and pass it to the template at install/upgrade time.
 ```bash
 # Create a key
-export MASTER_KEY=$(openssl rand -hex 32)
-echo ${MASTER_KEY}
+$ export MASTER_KEY=$(openssl rand -hex 32)
+$ echo ${MASTER_KEY}
 
 # Pass the created master key to helm
-helm install --name artifactory-ha --set artifactory.masterKey=${MASTER_KEY} jfrog/artifactory-ha
+$ helm install --name artifactory-ha --set artifactory.masterKey=${MASTER_KEY} jfrog/artifactory-ha
 ```
-
-Alternatively, you can create a secret containing the master key manually and pass it to the template at install/upgrade time.
-```bash
-# Create a key
-export MASTER_KEY=$(openssl rand -hex 32)
-echo ${MASTER_KEY}
-
-# Create a secret containing the key. The key in the secret must be named master-key
-kubectl create secret generic my-secret --from-literal=master-key=${MASTER_KEY}
-
-# Pass the created secret to helm
-helm install --name artifactory-ha --set artifactory.masterKeySecretName=my-secret jfrog/artifactory-ha
-```
-**NOTE:** In either case, make sure to pass the same master key on all future calls to `helm install` and `helm upgrade`! In the first case, this means always passing `--set artifactory.masterKey=${MASTER_KEY}`. In the second, this means always passing `--set artifactory.masterKeySecretName=my-secret` and ensuring the contents of the secret remain unchanged.
+**NOTE:** Make sure to pass the same master key with `--set artifactory.masterKey=${MASTER_KEY}` on all future calls to `helm install` and `helm upgrade`!
 
 ### Install Artifactory HA license
 For activating Artifactory HA, you must install an appropriate license. There are two ways to manage the license. **Artifactory UI** or a **Kubernetes Secret**.
@@ -194,10 +171,10 @@ You can deploy the Artifactory license(s) as a [Kubernetes secret](https://kuber
 Prepare a text file with the license(s) written in it. If writing multiple licenses, it's important to put **two new lines between each license block**!
 ```bash
 # Create the Kubernetes secret (assuming the local license file is 'art.lic')
-kubectl create secret generic artifactory-cluster-license --from-file=./art.lic
+$ kubectl create secret generic artifactory-cluster-license --from-file=./art.lic
 
 # Pass the license to helm
-helm install --name artifactory-ha --set artifactory.license.secret=artifactory-cluster-license,artifactory.license.dataKey=art.lic jfrog/artifactory-ha
+$ helm install --name artifactory-ha --set artifactory.license.secret=artifactory-cluster-license,artifactory.license.dataKey=art.lic jfrog/artifactory-ha
 ```
 **NOTE:** You have to keep passing the license secret parameters as `--set artifactory.license.secret=artifactory-cluster-license,artifactory.license.dataKey=art.lic` on all future calls to `helm install` and `helm upgrade`!
 
@@ -222,12 +199,12 @@ data:
 
 Create configMap in Kubernetes:
 ```bash
-kubectl apply -f bootstrap-config.yaml
+$ kubectl apply -f bootstrap-config.yaml
 ```
 
 #### Pass the configMap to helm
 ```bash
-helm install --name artifactory-ha --set artifactory.license.secret=artifactory-cluster-license,artifactory.license.dataKey=art.lic,artifactory.configMapName=my-release-bootstrap-config jfrog/artifactory-ha
+$ helm install --name artifactory-ha --set artifactory.license.secret=artifactory-cluster-license,artifactory.license.dataKey=art.lic,artifactory.configMapName=my-release-bootstrap-config jfrog/artifactory-ha
 ```
 
 ### Use custom nginx.conf with Nginx
@@ -250,7 +227,7 @@ A key feature in Artifactory HA is the ability to set an initial cluster size wi
 
 Get the current database password
 ```bash
-export DB_PASSWORD=$(kubectl get $(kubectl get secret -o name | grep postgresql) -o jsonpath="{.data.postgres-password}" | base64 --decode)
+$ export DB_PASSWORD=$(kubectl get $(kubectl get secret -o name | grep postgresql) -o jsonpath="{.data.postgres-password}" | base64 --decode)
 ```
 Use `--set postgresql.postgresPassword=${DB_PASSWORD}` with every scale action to prevent a miss configured cluster!
 
@@ -258,7 +235,7 @@ Use `--set postgresql.postgresPassword=${DB_PASSWORD}` with every scale action t
 Let's assume you have a cluster with **2** member nodes, and you want to scale up to **3** member nodes (a total of 4 nodes).
 ```bash
 # Scale to 4 nodes (1 primary and 3 member nodes)
-helm upgrade --install artifactory-ha --set artifactory.node.replicaCount=3 --set postgresql.postgresPassword=${DB_PASSWORD} jfrog/artifactory-ha
+$ helm upgrade --install artifactory-ha --set artifactory.node.replicaCount=3 --set postgresql.postgresPassword=${DB_PASSWORD} jfrog/artifactory-ha
 ```
 
 ##### Scale down
@@ -266,16 +243,16 @@ Let's assume you have a cluster with **3** member nodes, and you want to scale d
 
 ```bash
 # Scale down to 2 member nodes
-helm upgrade --install artifactory-ha --set artifactory.node.replicaCount=2 --set postgresql.postgresPassword=${DB_PASSWORD} jfrog/artifactory-ha
+$ helm upgrade --install artifactory-ha --set artifactory.node.replicaCount=2 --set postgresql.postgresPassword=${DB_PASSWORD} jfrog/artifactory-ha
 ```
 - **NOTE:** Since Artifactory is running as a Kubernetes Stateful Set, the removal of the node will **not** remove the persistent volume. You need to explicitly remove it
 ```bash
 # List PVCs
-kubectl get pvc
+$ kubectl get pvc
 
 # Remove the PVC with highest ordinal!
 # In this example, the highest node ordinal was 2, so need to remove its storage.
-kubectl delete pvc volume-artifactory-node-2
+$ kubectl delete pvc volume-artifactory-node-2
 ```
 
 ### Use an external Database
@@ -299,28 +276,15 @@ This can be done with the following parameters
 ```
 **NOTE:** You must set `postgresql.enabled=false` in order for the chart to use the `database.*` parameters. Without it, they will be ignored!
 
-If you store your database credentials in a pre-existing Kubernetes `Secret`, you can specify them via `database.secrets` instead of `database.user` and `database.password`:
-```bash
-# Create a secret containing the database credentials
-kubectl create secret generic my-secret --from-literal=user=${DB_USER} --from-literal=password=${DB_PASSWORD}
-...
---set postgresql.enabled=false \
---set database.secrets.user.name=my-secret \
---set database.secrets.user.key=user \
---set database.secrets.password.name=my-secret \
---set database.secrets.password.key=password \
-...
-```
-
 ### Deleting Artifactory
 To delete the Artifactory HA cluster
 ```bash
-helm delete --purge artifactory-ha
+$ helm delete --purge artifactory-ha
 ```
 This will completely delete your Artifactory HA cluster.  
 **NOTE:** Since Artifactory is running as Kubernetes Stateful Sets, the removal of the helm release will **not** remove the persistent volumes. You need to explicitly remove them
 ```bash
-kubectl delete pvc -l release=artifactory-ha
+$ kubectl delete pvc -l release=artifactory-ha
 ```
 See more details in the official [Kubernetes Stateful Set removal page](https://kubernetes.io/docs/tasks/run-application/delete-stateful-set/)
 
@@ -329,11 +293,11 @@ If you need to pull your Docker images from a private registry (for example, whe
 [Kubernetes Docker registry secret](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/) and pass it to helm
 ```bash
 # Create a Docker registry secret called 'regsecret'
-kubectl create secret docker-registry regsecret --docker-server=${DOCKER_REGISTRY} --docker-username=${DOCKER_USER} --docker-password=${DOCKER_PASS} --docker-email=${DOCKER_EMAIL}
+$ kubectl create secret docker-registry regsecret --docker-server=${DOCKER_REGISTRY} --docker-username=${DOCKER_USER} --docker-password=${DOCKER_PASS} --docker-email=${DOCKER_EMAIL}
 ```
 Once created, you pass it to `helm`
 ```bash
-helm install --name artifactory-ha --set imagePullSecrets=regsecret jfrog/artifactory-ha
+$ helm install --name artifactory-ha --set imagePullSecrets=regsecret jfrog/artifactory-ha
 ```
 
 ## Configuration
@@ -351,8 +315,7 @@ The following table lists the configurable parameters of the artifactory chart a
 | `artifactory.image.pullPolicy`       | Container pull policy                | `IfNotPresent`                             |
 | `artifactory.image.repository`       | Container image                      | `docker.bintray.io/jfrog/artifactory-pro`  |
 | `artifactory.image.version`          | Container image tag                  | `.Chart.AppVersion`                        |
-| `artifactory.masterKey`           | Artifactory Master Key. Can be generated with `openssl rand -hex 32` |`FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF`|
-| `artifactory.masterKeySecretName` | Artifactory Master Key secret name                                   |                                                                  |
+| `artifactory.masterKey`      | Artifactory Master Key. Can be generated with `openssl rand -hex 32` |`FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF`|
 | `artifactory.license.secret` | Artifactory license secret name              |                                            |
 | `artifactory.license.dataKey`| Artifactory license secret data key          |                                            |
 | `artifactory.service.name`   | Artifactory service name to be set in Nginx configuration | `artifactory`                 |
@@ -374,13 +337,12 @@ The following table lists the configurable parameters of the artifactory chart a
 | `artifactory.readinessProbe.timeoutSeconds`      | When the probe times out                  | 10                                                    |
 | `artifactory.readinessProbe.successThreshold`    | Minimum consecutive successes for the probe to be considered successful after having failed. | 1  |
 | `artifactory.readinessProbe.failureThreshold`    | Minimum consecutive failures for the probe to be considered failed after having succeeded.   | 10 |
-| `artifactory.persistence.mountPath`    | Artifactory persistence volume mount path           | `"/var/opt/jfrog/artifactory"`  |
-| `artifactory.persistence.enabled`      | Artifactory persistence volume enabled              | `true`                          |
-| `artifactory.persistence.accessMode`   | Artifactory persistence volume access mode          | `ReadWriteOnce`                 |
-| `artifactory.persistence.size`         | Artifactory persistence or local volume size        | `200Gi`                         |
-| `artifactory.persistence.maxCacheSize` | Artifactory cache-fs provider maxCacheSize in bytes | `50000000000`                   |
-| `artifactory.persistence.type`         | Artifactory HA storage type                         | `file-system`                   |
-| `artifactory.persistence.redundancy`   | Artifactory HA storage redundancy                   | `3`                             |
+| `artifactory.persistence.mountPath`  | Artifactory persistence volume mount path       | `"/var/opt/jfrog/artifactory"`  |
+| `artifactory.persistence.enabled`    | Artifactory persistence volume enabled          | `true`                          |
+| `artifactory.persistence.accessMode` | Artifactory persistence volume access mode      | `ReadWriteOnce`                 |
+| `artifactory.persistence.size`       | Artifactory persistence volume size             | `200Gi`                         |
+| `artifactory.persistence.type`       | Artifactory HA storage type                     | `file-system`                   |
+| `artifactory.persistence.redundancy` | Artifactory HA storage redundancy               | `3`                             |
 | `artifactory.persistence.nfs.ip`            | NFS server IP                        |                                     |
 | `artifactory.persistence.nfs.haDataMount`   | NFS data directory                   | `/data`                             |
 | `artifactory.persistence.nfs.haBackupMount` | NFS backup directory                 | `/backup`                           |
@@ -391,14 +353,11 @@ The following table lists the configurable parameters of the artifactory chart a
 | `artifactory.persistence.googleStorage.identity`    | Google Storage service account id   |                              |
 | `artifactory.persistence.googleStorage.credential`  | Google Storage service account key  |                              |
 | `artifactory.persistence.googleStorage.path`        | Google Storage path in bucket       | `artifactory-ha/filestore`   |
-| `artifactory.persistence.awsS3.bucketName`          | AWS S3 bucket name                     | `artifactory-ha`             |
-| `artifactory.persistence.awsS3.endpoint`            | AWS S3 bucket endpoint                 | See https://docs.aws.amazon.com/general/latest/gr/rande.html |
-| `artifactory.persistence.awsS3.region`              | AWS S3 bucket region                   |                              |
-| `artifactory.persistence.awsS3.identity`            | AWS S3 AWS_ACCESS_KEY_ID               |                              |
-| `artifactory.persistence.awsS3.credential`          | AWS S3 AWS_SECRET_ACCESS_KEY           |                              |
-| `artifactory.persistence.awsS3.path`                | AWS S3 path in bucket                  | `artifactory-ha/filestore`   |
-| `artifactory.persistence.awsS3.refreshCredentials`  | AWS S3 renew credentials on expiration | `true`                       |
-| `artifactory.persistence.awsS3.testConnection`      | AWS S3 test connection on start up     | `false`                      |
+| `artifactory.persistence.awsS3.bucketName`          | AWS S3 bucket name                  | `artifactory-ha`             |
+| `artifactory.persistence.awsS3.region`              | AWS S3 bucket region                |                              |
+| `artifactory.persistence.awsS3.identity`            | AWS S3 AWS_ACCESS_KEY_ID            |                              |
+| `artifactory.persistence.awsS3.credential`          | AWS S3 AWS_SECRET_ACCESS_KEY        |                              |
+| `artifactory.persistence.awsS3.path`                | AWS S3 path in bucket               | `artifactory-ha/filestore`   |
 | `artifactory.javaOpts.other` | Artifactory extra java options (for all nodes) | `-Dartifactory.locking.provider.type=db` |
 | `artifactory.replicator.enabled`            | Enable Artifactory Replicator | `false`                                    |
 | `artifactory.distributionCerts`            | Name of ConfigMap for Artifactory Distribution Certificate  |               |
@@ -410,8 +369,7 @@ The following table lists the configurable parameters of the artifactory chart a
 | `artifactory.primary.javaOpts.xms`              | Artifactory primary node java Xms size           |                     |
 | `artifactory.primary.javaOpts.xmx`              | Artifactory primary node java Xms size           |                     |
 | `artifactory.primary.javaOpts.other`            | Artifactory primary node additional java options |                     |
-| `artifactory.node.replicaCount`                 | Artifactory member node replica count            | `2`                 |
-| `artifactory.node.minAvailable`                 | Artifactory member node min available count      | `1`                 |
+| `artifactory.node.replicaCount`                 | Artifactory member node replica count            | `1`                 |
 | `artifactory.node.resources.requests.memory`    | Artifactory member node initial memory request   |                     |
 | `artifactory.node.resources.requests.cpu`       | Artifactory member node initial cpu request      |                     |
 | `artifactory.node.resources.limits.memory`      | Artifactory member node memory limit             |                     |
@@ -423,8 +381,6 @@ The following table lists the configurable parameters of the artifactory chart a
 | `ingress.annotations`       | Artifactory Ingress annotations     | `{}`                                                 |
 | `ingress.hosts`             | Artifactory Ingress hostnames       | `[]`                                                 |
 | `ingress.tls`               | Artifactory Ingress TLS configuration (YAML) | `[]`                                        |
-| `ingress.defaultBackend.enabled` | If true, the default `backend` will be added using serviceName and servicePort | `true` |
-| `ingress.annotations`       | Ingress annotations, which are written out if annotations section exists in values. Everything inside of the annotations section will appear verbatim inside the resulting manifest. See `Ingress annotations` section below for examples of how to leverage the annotations, specifically for how to enable docker authentication. |  |
 | `nginx.enabled`             | Deploy nginx server                      | `true`                                          |
 | `nginx.name`                | Nginx name                        | `nginx`                                                |
 | `nginx.replicaCount`        | Nginx replica count               | `1`                                                    |
@@ -436,7 +392,6 @@ The following table lists the configurable parameters of the artifactory chart a
 | `nginx.service.type`        | Nginx service type                | `LoadBalancer`                                         |
 | `nginx.service.loadBalancerSourceRanges`| Nginx service array of IP CIDR ranges to whitelist (only when service type is LoadBalancer) |        |
 | `nginx.service.annotations` | Nginx service annotations           | `{}`                            |
-| `nginx.service.externalTrafficPolicy`| Nginx service desires to route external traffic to node-local or cluster-wide endpoints. | `Cluster` |
 | `nginx.loadBalancerIP`| Provide Static IP to configure with Nginx |                                 |
 | `nginx.externalPortHttp` | Nginx service external port            | `80`                            |
 | `nginx.internalPortHttp` | Nginx service internal port            | `80`                            |
@@ -475,15 +430,11 @@ The following table lists the configurable parameters of the artifactory chart a
 | `postgresql.resources.requests.cpu`       | PostgreSQL initial cpu request     |                                         |
 | `postgresql.resources.limits.memory`      | PostgreSQL memory limit            |                                         |
 | `postgresql.resources.limits.cpu`         | PostgreSQL cpu limit               |                                         |
-| `database.type`                  | External database type (`postgresql`, `mysql`, `oracle` or `mssql`)  |                       |
-| `database.host`                  | External database hostname                         |                                         |
-| `database.port`                  | External database port                             |                                         |
-| `database.user`                  | External database username                         |                                         |
-| `database.password`              | External database password                         |                                         |
-| `database.secrets.user.name`     | External database username `Secret` name           |                                         |
-| `database.secrets.user.key`      | External database username `Secret` key            |                                         |
-| `database.secrets.password.name` | External database password `Secret` name           |                                         |
-| `database.secrets.password.key`  | External database password `Secret` key            |                                         |
+| `database.type`           | External database type (`postgresql`, `mysql`, `oracle` or `mssql`)  |                       |
+| `database.host`           | External database hostname                         |                                         |
+| `database.port`           | External database port                             |                                         |
+| `database.user`           | External database username                         |                                         |
+| `database.password`       | External database password                         |                                         |
 
 
 Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`.
@@ -531,31 +482,6 @@ Include the secret's name, along with the desired hostnames, in the Artifactory 
           - artifactory.domain.com
 ```
 
-### Ingress annotations
-
-This example specifically enables Artifactory to work as a Docker Registry using the Repository Path method. See [Artifactory as Docker Registry](https://www.jfrog.com/confluence/display/RTF/Getting+Started+with+Artifactory+as+a+Docker+Registry) documentation for more information about this setup.
-
-```
-ingress:
-  enabled: true
-  defaultBackend:
-    enabled: false
-  hosts:
-    - myhost.example.com
-  annotations:
-    ingress.kubernetes.io/force-ssl-redirect: "true"
-    ingress.kubernetes.io/proxy-body-size: "0"
-    ingress.kubernetes.io/proxy-read-timeout: "600"
-    ingress.kubernetes.io/proxy-send-timeout: "600"
-    kubernetes.io/ingress.class: nginx
-    nginx.ingress.kubernetes.io/configuration-snippet: |
-      rewrite ^/(v2)/token /artifactory/api/docker/null/v2/token;
-      rewrite ^/(v2)/([^\/]*)/(.*) /artifactory/api/docker/$2/$1/$3;
-    nginx.ingress.kubernetes.io/proxy-body-size: "0"
-  tls:
-    - hosts:
-      - "myhost.example.com"
-```
 
 ## Useful links
 - https://www.jfrog.com/confluence/display/EP/Getting+Started

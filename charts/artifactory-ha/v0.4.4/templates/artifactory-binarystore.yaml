@@ -65,7 +65,7 @@ data:
 
         <!-- Set max cache-fs size -->
         <provider id="cache-fs" type="cache-fs">
-            <maxCacheSize>{{ .Values.artifactory.persistence.maxCacheSize }}</maxCacheSize>
+            <maxCacheSize>50000000000</maxCacheSize>
         </provider>
 
         <provider id="eventual-cluster" type="eventual-cluster">
@@ -98,22 +98,25 @@ data:
 {{- if eq .Values.artifactory.persistence.type "aws-s3" }}
     <!-- AWS S3 -->
     <config version="2">
-        <chain> <!--template="cluster-s3"-->
-            <provider id="cache-fs" type="cache-fs">
-                <provider id="sharding-cluster" type="sharding-cluster">
-                    <sub-provider id="eventual-cluster" type="eventual-cluster">
-                        <provider id="retry-s3" type="retry">
-                            <provider id="s3" type="s3"/>
-                        </provider>
-                    </sub-provider>
-                    <dynamic-provider id="remote" type="remote"/>
-                </provider>
+        <chain>
+            <provider id="sharding-cluster" type="sharding-cluster">
+                <readBehavior>crossNetworkStrategy</readBehavior>
+                <writeBehavior>crossNetworkStrategy</writeBehavior>
+                <redundancy>{{ .Values.artifactory.persistence.redundancy }}</redundancy>
+                <minSpareUploaderExecutor>2</minSpareUploaderExecutor>
+                <sub-provider id="eventual-cluster" type="eventual-cluster">
+                    <provider id="retry" type="retry">
+                        <provider id="s3" type="s3"/>
+                    </provider>
+                </sub-provider>
+                <dynamic-provider id="remote" type="remote"/>
+                <property name="zones" value="local,remote"/>
             </provider>
         </chain>
 
         <!-- Set max cache-fs size -->
         <provider id="cache-fs" type="cache-fs">
-            <maxCacheSize>{{ .Values.artifactory.persistence.maxCacheSize }}</maxCacheSize>
+            <maxCacheSize>50000000000</maxCacheSize>
         </provider>
 
         <provider id="eventual-cluster" type="eventual-cluster">
@@ -126,26 +129,21 @@ data:
             <zone>remote</zone>
         </provider>
 
-        <provider id="sharding-cluster" type="sharding-cluster">
-            <readBehavior>crossNetworkStrategy</readBehavior>
-            <writeBehavior>crossNetworkStrategy</writeBehavior>
-            <redundancy>{{ .Values.artifactory.persistence.redundancy }}</redundancy>
-            <property name="zones" value="local,remote"/>
+        <provider id="file-system" type="file-system">
+            <fileStoreDir>{{ .Values.artifactory.persistence.mountPath }}/data/filestore</fileStoreDir>
+            <tempDir>/tmp</tempDir>
         </provider>
 
         <provider id="s3" type="s3">
-            <endpoint>{{ .Values.artifactory.persistence.awsS3.endpoint }}</endpoint>
-            <refreshCredentials>{{ .Values.artifactory.persistence.awsS3.refreshCredentials }}</refreshCredentials>
-            <testConnection>{{ .Values.artifactory.persistence.awsS3.testConnection }}</testConnection>
+            <endpoint>s3.amazonaws.com</endpoint>
+            <refreshCredentials>true</refreshCredentials>
+            <testConnection>false</testConnection>
             <httpsOnly>true</httpsOnly>
             <region>{{ .Values.artifactory.persistence.awsS3.region }}</region>
             <bucketName>{{ .Values.artifactory.persistence.awsS3.bucketName }}</bucketName>
             <identity>{{ .Values.artifactory.persistence.awsS3.identity }}</identity>
             <credential>{{ .Values.artifactory.persistence.awsS3.credential }}</credential>
             <path>{{ .Values.artifactory.persistence.awsS3.path }}</path>
-            {{- range $key, $value := .Values.artifactory.persistence.awsS3.properties }}
-            <property name="{{ $key }}" value="{{ $value }}"/>
-            {{- end }}
         </provider>
     </config>
 {{- end }}

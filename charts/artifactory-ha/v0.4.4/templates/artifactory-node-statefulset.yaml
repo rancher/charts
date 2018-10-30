@@ -25,11 +25,6 @@ spec:
         role: {{ template "artifactory-ha.node.name" . }}
         component: {{ .Values.artifactory.name }}
         release: {{ .Release.Name }}
-      annotations:
-        checksum/binarystore: {{ include (print $.Template.BasePath "/artifactory-binarystore.yaml") . | sha256sum }}
-      {{- range $key, $value := .Values.artifactory.annotations }}
-        {{ $key }}: {{ $value | quote }}
-      {{- end }}
     spec:
       serviceAccountName: {{ template "artifactory-ha.serviceAccountName" . }}
     {{- if .Values.imagePullSecrets }}
@@ -113,18 +108,6 @@ spec:
           value: '{{ .Values.database.host }}'
         - name: DB_PORT
           value: '{{ .Values.database.port }}'
-      {{- if .Values.database.secrets }}
-        - name: DB_USER
-          valueFrom:
-            secretKeyRef:
-              name: {{ .Values.database.secrets.user.name }}
-              key: {{ .Values.database.secrets.user.key }}
-        - name: DB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: {{ .Values.database.secrets.password.name }}
-              key: {{ .Values.database.secrets.password.key }}
-      {{- else }}
         - name: DB_USER
           value: '{{ .Values.database.user }}'
         - name: DB_PASSWORD
@@ -132,7 +115,6 @@ spec:
             secretKeyRef:
               name: {{ template "artifactory-ha.fullname" . }}
               key: db-password
-      {{- end }}
       {{- end }}
         - name: EXTRA_JAVA_OPTIONS
           value: "
@@ -159,7 +141,7 @@ spec:
         - name: ARTIFACTORY_MASTER_KEY
           valueFrom:
             secretKeyRef:
-              name: "{{ .Values.artifactory.masterKeySecretName | default (include "artifactory-ha.fullname" .) }}"
+              name: {{ template "artifactory-ha.fullname" . }}
               key: master-key
         - name: HA_IS_PRIMARY
           value: "false"
@@ -228,33 +210,9 @@ spec:
       nodeSelector:
 {{ toYaml . | indent 8 }}
     {{- end }}
-    {{- if .Values.artifactory.node.affinity }}
     {{- with .Values.artifactory.node.affinity }}
       affinity:
 {{ toYaml . | indent 8 }}
-    {{- end }}
-    {{- else if eq .Values.artifactory.node.podAntiAffinity.type "soft" }}
-      affinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              topologyKey: {{ .Values.artifactory.node.podAntiAffinity.topologyKey }}
-              labelSelector:
-                matchLabels:
-                  app: {{ template "artifactory-ha.name" . }}
-                  release: {{ .Release.Name }}
-                  role: {{ template "artifactory-ha.node.name" . }}
-    {{- else if eq .Values.artifactory.node.podAntiAffinity.type "hard" }}
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - topologyKey: {{ .Values.artifactory.node.podAntiAffinity.topologyKey }}
-            labelSelector:
-              matchLabels:
-                app: {{ template "artifactory-ha.name" . }}
-                release: {{ .Release.Name }}
-                role: {{ template "artifactory-ha.node.name" . }}
     {{- end }}
     {{- with .Values.artifactory.node.tolerations }}
       tolerations:
@@ -282,11 +240,11 @@ spec:
         persistentVolumeClaim:
           claimName: {{ template "artifactory-ha.fullname" . }}-backup-pvc
       {{- end }}
-      {{- if .Values.artifactory.persistence.local }}
+      {{- if not .Values.artifactory.persistence.enabled }}
       - name: volume
-        emptyDir:
-          sizeLimit: {{ .Values.artifactory.persistence.size }}
+        emptyDir: {}
       {{- else }}
+  {{- if .Values.artifactory.persistence.enabled }}
   volumeClaimTemplates:
   - metadata:
       name: volume
@@ -308,4 +266,5 @@ spec:
         requests:
           storage: {{ .Values.artifactory.persistence.size }}
     {{- end }}
+  {{- end }}
   {{- end }}
