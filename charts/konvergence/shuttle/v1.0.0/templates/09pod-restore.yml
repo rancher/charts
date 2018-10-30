@@ -1,0 +1,81 @@
+{{- if .Values.restore.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: deploy-restore
+  labels:
+    app: app-shuttle
+spec:
+#  serviceName: shuttle-postgres
+#  replicas: 1
+  # selector:
+    # matchLabels:
+        # app: shuttle-limited-app
+  # template:
+    # metadata:
+      # labels:
+        # app: shuttle-limited-app
+    # # spec:
+      # # affinity:
+        # # nodeAffinity:
+          # # requiredDuringSchedulingIgnoredDuringExecution:
+            # # nodeSelectorTerms:
+            # # - matchExpressions:
+              # # - key: role
+                # # operator: DoesNotExist
+      containers:
+      - image: konvergence/duplicity:0.7.17
+        name: restore
+        env:
+        - name: CLEAN_BEFORE_RESTORE
+          value: 'yes'
+          
+        - name: PASSPHRASE
+          value: Bl13Wt729n0Ya68Do4m
+        - name: DATA_FOLDER
+          value: /data
+        - name: EXCLUDE_PATHS
+          value: /data/shuttle/home/backupFiles /data/shuttle/home/caches /data/shuttle/instance/temp/Shuttle
+        - name: DAILY_BACKUP_PREFIX
+          value: daily_test_shuttle
+        - name: DAILY_OS_REGION_NAME
+          value: GRA3
+        - name: DAILY_SWIFT_CONTAINER
+          value: object-storage-gra3-olivier-test
+        - name: MONTHLY_BACKUP_PREFIX
+          value: daily_test_shuttle
+        - name: MONTHLY_OS_REGION_NAME
+          value: SBG3
+        - name: MONTHLY_SWIFT_CONTAINER
+          value: cloud-archive-sbg3-olivier-test
+        - name: OS_AUTH_URL
+          value: https://auth.cloud.ovh.net/v2.0/
+        - name: OS_PASSWORD
+          value: 6heBt49cvWG8J2fsrQGmf5KKme25ycAB
+        - name: OS_TENANT_ID
+          value: 69cd4ff477a04064be803c2dbb309ae6
+        - name: OS_TENANT_NAME
+          value: '6873343940432905'
+        - name: OS_USERNAME
+          value: GcxAggjc67QG
+        - name: DAILY_SFTP_CONTAINER
+          value: external-sftp-lab:8022/backup/olivier/TEST/daily
+        - name: SFTP_USER
+          value: testdump
+        - name: SFTP_PASSWORD
+          value: y2b1EH3FORaZbCPZ6jEH
+        - name: DEFAULT_CONTAINER
+          value: sftp
+        args:
+        - --restore-latest
+        volumeMounts:
+        - name: pv-shuttle-data
+          mountPath: /data
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      restartPolicy: Never
+      volumes:
+      - name: pv-shuttle-data
+        persistentVolumeClaim:
+          claimName: pvc-shuttle-restore
+{{- end -}}
