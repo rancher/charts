@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-postgres
+  labels:
+    app: app-shuttle
+spec:
+  replicas: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+  selector:
+    matchLabels:
+        app: app-shuttle
+  template:
+    metadata:
+      labels:
+        app: app-shuttle
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: role
+                operator: DoesNotExist
+      containers:
+      - env:
+        - name: POSTGRES_USER
+          value: {{ .Values.database.user | quote }}
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        - name: POSTGRES_PASSWORD
+          value: {{ .Values.database.password | quote }}
+        image: "{{ .Values.database.image.repository}}:{{ .Values.database.image.tag  }}"
+        name: postgres
+        ports:
+        - containerPort: {{ .Values.database.port }}
+          name: postgres-port
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+
+        volumeMounts:
+         - name: pv-postgres-data
+           mountPath: /data
+      volumes:
+      - name: pv-postgres-data
+      {{- if .Values.persistentVolume.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ .Values.persistentVolume.postgresExistingClaimName  | quote }}
+      {{- else }}
+        emptyDir: {}
+      {{- end }}

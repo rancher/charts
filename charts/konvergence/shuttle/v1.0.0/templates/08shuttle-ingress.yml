@@ -1,0 +1,25 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: shuttle
+spec:
+  rules:
+  - host:  {{ .Values.basicUrl | quote }}
+    http:
+      paths:
+      - backend:
+          serviceName: svc-shuttle
+          servicePort: 80
+        path: /{{ .Values.shuttle.WEBAPP_NAME }}.WebService/
+      - backend:
+          serviceName: svc-shuttle
+          servicePort: 80
+        path: /{{ .Values.shuttle.WEBAPP_NAME }}.Tailon/
+      - backend:
+          serviceName: svc-shuttle
+          servicePort: 80
+        path: /{{ .Values.shuttle.WEBAPP_NAME }}.ownCloud/
+  tls:
+  - hosts:
+    - demo-k8s-lab.shuttle-cloud.com
+    secretName: shuttle-slassh-shuttle-cloud-com
