@@ -1,0 +1,115 @@
+## the basic url that will be used in shuttle server url , ownCloud domain  and ingress host
+basicUrl: demo-k8s-lab.shuttle-cloud.com
+
+shuttle:
+  image:
+    repository: konvergence/shuttle
+    tag: 4.9.0
+    pullPolicy: IfNotPresent
+  privateRegistry:
+    enabled: true
+    imagePullSecrets: konvegence-hub-docker-secret
+  CATALINA_OPTS: -Xms512m -Xmx8192m -Dfile.encoding=UTF-8 -Djava.awt.headless=true
+  WEBAPP_NAME: Shuttles
+  EXTERNAL_URL_PORT: '443'
+  EXTERNAL_URL_PROTOCOL: https
+  DB_SHUTTLE_USER: gogs
+  DB_SHUTTLE_PASSWORD: changeme
+  DB_SHUTTLE_REPO: SHUT_REPO
+  LICENSEKEY: changeme
+
+database:
+  image:
+    repository: postgres
+    tag: 9.6.2
+    pullPolicy: IfNotPresent
+## data base type
+# type: postgres
+## database kubernetes service
+  host: svc-postgres
+  port: 5432
+## database name
+  name: postgres
+
+## this variable is used in conjunction with DB_SYSTEM_USER for shuttle container to define the database super user.
+  user: user
+## this variable is used in conjunction with DB_SYSTEM_PASSWORD for shuttle container to define the database super user password.
+  password: changeme
+
+ownCloud:
+  enabled: true
+  image:
+    repository: owncloud/server
+    tag: 10.0.8
+    pullPolicy: IfNotPresent
+## ENV
+  OWNCLOUD_ADMIN_PASSWORD: password
+  OWNCLOUD_ADMIN_USERNAME: admin
+  OWNCLOUD_ALLOW_EXTERNAL_LOCAL_STORAGE: true
+# OWNCLOUD_DOMAIN: use basicUrl
+  OWNCLOUD_LOGLEVEL: 4
+## END onwcloud ENV
+tailon:
+  image:
+    repository: konvergence/tailon
+    tag: 1.2.1
+    pullPolicy: IfNotPresent
+  enabled: false
+
+logstash:
+  image:
+    repository: konvergence/logstash-shuttle
+    tag: 2.3
+    pullPolicy: IfNotPresent
+  enabled: true
+## ENV
+  EL_HOST: svc-elasticsearch.elasticsearch
+  LOG_BASE_DIR: /data/shuttle/home/logs
+  AUDIT_FILES: audit/
+  USERS_FILES: users/
+  EL_PORT: 9243
+  EL_INDEX: staging_prod
+## deprecated use Release.Namespace instead
+  STACK_CLIENT: shuttle-slassh
+  EL_SSL_VERIF_CERT: false
+  EL_SSL: true
+  EL_USER: logstash
+  EL_PASSWORD: Eb7t4f6s5Re8Hl10Ao2O
+  LOG_VERSION: v01
+## END logstash ENV
+
+backup:
+  enabled: true
+  image:
+    repository: konvergence/duplicity
+    tag: 0.7.17
+    pullPolicy: IfNotPresent
+## ENV
+  PASSPHRASE: Bl13Wt729n0Ya68Do4m
+  DATA_FOLDER: /data
+  EXCLUDE_PATHS: /data/shuttle/home/backupFiles /data/shuttle/home/caches /data/shuttle/instance/temp/Shuttle
+  DAILY_JOB_HOUR: 00 30 04
+  DAILY_BACKUP_PREFIX: daily_test_shuttle
+  DAILY_OS_REGION_NAME: GRA3
+  DAILY_SWIFT_CONTAINER: object-storage-gra3-olivier-test
+  MONTHLY_BACKUP_PREFIX: daily_test_shuttle
+  MONTHLY_OS_REGION_NAME: SBG3
+  MONTHLY_SWIFT_CONTAINER: cloud-archive-sbg3-olivier-test
+  OS_AUTH_URL: https://auth.cloud.ovh.net/v2.0/
+  OS_PASSWORD: 6heBt49cvWG8J2fsrQGmf5KKme25ycAB
+  OS_TENANT_ID: 69cd4ff477a04064be803c2dbb309ae6
+  OS_TENANT_NAME: '6873343940432905'
+  OS_USERNAME: GcxAggjc67QG
+  DAILY_SFTP_CONTAINER: external-sftp-lab:8022/backup/olivier/TEST/daily
+  SFTP_USER: testdump
+  SFTP_PASSWORD: y2b1EH3FORaZbCPZ6jEH
+  DEFAULT_CONTAINER: sftp
+## END backup ENV
+
+persistentVolume:
+  enabled: false
+  shuttleExistingClaimName: pvc-shuttle
+  postgresExistingClaimName: pvc-postgres
+
+restore:
+  enabled: false
