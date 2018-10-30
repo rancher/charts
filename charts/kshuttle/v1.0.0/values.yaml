@@ -1,6 +1,4 @@
-
-
-# the basic url that will be used in shuttle server url , ownCloud domain  and ingress host
+## the basic url that will be used in shuttle server url , ownCloud domain  and ingress host
 basicUrl: demo-k8s-lab.shuttle-cloud.com
 
 shuttle:
@@ -15,8 +13,6 @@ shuttle:
   WEBAPP_NAME: Shuttles
   EXTERNAL_URL_PORT: '443'
   EXTERNAL_URL_PROTOCOL: https
-  ## à revoir peut etre qu'il faut utiliser celui de l'ingress
-#  EXTERNAL_URL_SERVER: demo-k8s-lab.shuttle-cloud.com
   DB_SHUTTLE_USER: gogs
   DB_SHUTTLE_PASSWORD: changeme
   DB_SHUTTLE_REPO: SHUT_REPO
@@ -27,12 +23,12 @@ database:
     repository: postgres
     tag: 9.6.2
     pullPolicy: IfNotPresent
-    #  type: postgres
-    # à revoir ! on fait quoi si on utilise mysql ou sql server ?
+## data base type 
+# type: postgres
+## database kubernetes service
   host: svc-postgres
-  # peut le meme que le nome du service !
   port: 5432
-##database name
+## database name
   name: postgres
 
 ## this variable is used in conjunction with DB_SYSTEM_USER for shuttle container to define the database super user.
@@ -46,13 +42,13 @@ ownCloud:
     repository: owncloud/server
     tag: 10.0.8
     pullPolicy: IfNotPresent  
- ##ENV
+## ENV
   OWNCLOUD_ADMIN_PASSWORD: password
   OWNCLOUD_ADMIN_USERNAME: admin
   OWNCLOUD_ALLOW_EXTERNAL_LOCAL_STORAGE: true
-  #OWNCLOUD_DOMAIN: demo-k8s-lab.shuttle-cloud.com peut etre utilisé celui de shuttle 
+# OWNCLOUD_DOMAIN: use basicUrl 
   OWNCLOUD_LOGLEVEL: 4
-  ## END onwcloud ENV
+## END onwcloud ENV
 tailon:
   image:
     repository: konvergence/tailon
@@ -66,21 +62,21 @@ logstash:
     tag: 2.3
     pullPolicy: IfNotPresent
   enabled: true
-  ##ENV
+## ENV
   EL_HOST: svc-elasticsearch.elasticsearch
   LOG_BASE_DIR: /data/shuttle/home/logs
   AUDIT_FILES: audit/
   USERS_FILES: users/
   EL_PORT: 9243
   EL_INDEX: staging_prod
-  ##deprecated use Release.Namespace instead
+## deprecated use Release.Namespace instead
   STACK_CLIENT: shuttle-slassh
   EL_SSL_VERIF_CERT: false
   EL_SSL: true
   EL_USER: logstash
   EL_PASSWORD: Eb7t4f6s5Re8Hl10Ao2O
   LOG_VERSION: v01
-  ## END logstash ENV
+## END logstash ENV
 
 backup: 
   enabled: true
@@ -88,7 +84,7 @@ backup:
     repository: konvergence/duplicity
     tag: 0.7.17
     pullPolicy: IfNotPresent
-  ##ENV
+## ENV
   PASSPHRASE: Bl13Wt729n0Ya68Do4m
   DATA_FOLDER: /data
   EXCLUDE_PATHS: /data/shuttle/home/backupFiles /data/shuttle/home/caches /data/shuttle/instance/temp/Shuttle
@@ -108,12 +104,9 @@ backup:
   SFTP_USER: testdump
   SFTP_PASSWORD: y2b1EH3FORaZbCPZ6jEH
   DEFAULT_CONTAINER: sftp
-  ##END backup ENV
+## END backup ENV
   
 persistentVolume:
   enabled: false
   shuttleExistingClaimName: pvc-shuttle
   postgresExistingClaimName: pvc-postgres
-
-restore:
-  enabled: false
