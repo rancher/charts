@@ -1,0 +1,242 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-shuttle
+  labels:
+    app: app-shuttle
+    namerelease: {{ .Release.Name }}
+    namespacerelease: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+  selector:
+    matchLabels:
+        app: app-shuttle
+        tier: frontend
+  template:
+    metadata:
+      labels:
+        app: app-shuttle
+        tier: frontend
+    spec:
+
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: role
+                operator: DoesNotExist
+
+      containers:
+      
+#Shuttle container
+      - image: "{{ .Values.shuttle.image.repository}}:{{ .Values.shuttle.image.tag  }}"
+        name: shuttle
+        imagePullPolicy: {{ .Values.shuttle.image.pullPolicy | quote }}
+        env:
+        - name: CATALINA_OPTS
+          value: {{ .Values.shuttle.CATALINA_OPTS | quote }}
+        - name: DB_HOST
+          value: {{ .Values.database.host | quote }}
+        - name: DB_PORT
+          value: {{ .Values.database.port | quote }}
+        - name: DB_SHUTTLE_PASSWORD
+          value: {{ .Values.shuttle.DB_SHUTTLE_PASSWORD | quote }}
+        - name: DB_SHUTTLE_REPO
+          value: {{ .Values.shuttle.DB_SHUTTLE_REPO | quote }}
+        - name: DB_SHUTTLE_USER
+          value: {{ .Values.shuttle.DB_SHUTTLE_USER | quote }}
+        - name: DB_SYSTEM_PASSWORD
+          value: {{ .Values.database.password | quote }}
+        - name: DB_SYSTEM_USER
+          value: {{ .Values.database.user | quote }}
+        - name: WEBAPP_NAME
+          value: {{ .Values.shuttle.WEBAPP_NAME | quote  }}
+        - name: EXTERNAL_URL_PORT
+          value: {{ .Values.shuttle.EXTERNAL_URL_PORT | quote }}
+        - name: EXTERNAL_URL_PROTOCOL
+          value: {{ .Values.shuttle.EXTERNAL_URL_PROTOCOL | quote }}
+        - name: EXTERNAL_URL_SERVER
+          value: {{ .Values.basicUrl | quote }}
+        - name: LICENSEKEY
+          value: {{ .Values.shuttle.LICENSEKEY  | quote }}
+        ports:
+        - containerPort: 8080
+
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        
+        volumeMounts:
+         - name: pv-shuttle-data
+           mountPath: /shuttle
+        
+        args:
+        - --run
+#ownCloud container
+{{ if .Values.ownCloud.enabled }}
+      - image: "{{ .Values.ownCloud.image.repository}}:{{ .Values.ownCloud.image.tag  }}"
+        name: owncloud
+        imagePullPolicy: {{ .Values.ownCloud.image.pullPolicy | quote }}
+        env:
+        - name: OWNCLOUD_ADMIN_PASSWORD
+          value: {{ .Values.ownCloud.OWNCLOUD_ADMIN_PASSWORD  | quote }}
+        - name: OWNCLOUD_ADMIN_USERNAME
+          value: {{ .Values.ownCloud.OWNCLOUD_ADMIN_USERNAME  | quote }}
+        - name: OWNCLOUD_ALLOW_EXTERNAL_LOCAL_STORAGE
+          value: {{ .Values.ownCloud.OWNCLOUD_ALLOW_EXTERNAL_LOCAL_STORAGE  | quote }}
+        - name: OWNCLOUD_DOMAIN
+          value: {{ .Values.shuttle.EXTERNAL_URL_SERVER  | quote }}
+        - name: OWNCLOUD_LOGLEVEL
+          value: {{ .Values.ownCloud.OWNCLOUD_LOGLEVEL  | quote }}
+        - name: OWNCLOUD_SUB_URL
+          value: /{{ .Values.shuttle.WEBAPP_NAME | quote }}}.ownCloud
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        ports:
+        - containerPort: 80
+        
+        volumeMounts:
+        - name: pv-shuttle-data
+          mountPath: /shuttle
+{{- end }}
+#tailon container
+{{ if .Values.tailon.enabled }}
+      - image: "{{ .Values.tailon.image.repository}}:{{ .Values.tailon.image.tag  }}"
+        name: tailon
+        imagePullPolicy: {{ .Values.tailon.image.pullPolicy | quote }}
+        env:
+        - name: OPTIONS
+          value: --bind 8081 --relative-root /{{ .Values.shuttle.WEBAPP_NAME | quote }}}.Tailon/ --allow-transfers --follow-names --tail-lines 1000
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        ports:
+        - containerPort: 8081
+        volumeMounts:
+        - name: pv-shuttle-data
+          mountPath: /data
+        args:
+        - /data/shuttle/home/logs/
+        - /data/shuttle/home/logs/perf/
+        - /data/shuttle/home/logs/audit/
+        - /data/shuttle/instance/logs/
+
+          
+{{- end }}
+#logstash container
+{{ if .Values.logstash.enabled }}
+      - image: "{{ .Values.logstash.image.repository}}:{{ .Values.logstash.image.tag  }}"
+        name: logstash
+        imagePullPolicy: {{ .Values.logstash.image.pullPolicy | quote }}
+        env:
+        - name: EL_HOST
+          value: {{ .Values.logstash.EL_HOST  | quote }}
+        - name: LOG_BASE_DIR
+          value: {{ .Values.logstash.LOG_BASE_DIR | quote  }}
+        - name: AUDIT_FILES
+          value: {{ .Values.logstash.AUDIT_FILES  | quote }}
+        - name: USERS_FILES
+          value:  {{ .Values.logstash.USERS_FILES  | quote }}
+        - name: EL_PORT
+          value: {{ .Values.logstash.EL_PORT | quote }}
+        - name: EL_INDEX
+          value: {{ .Values.logstash.EL_INDEX  | quote }}
+        - name: STACK_CLIENT
+          value: {{ .Release.Namespace | quote }}
+        - name: EL_SSL_VERIF_CERT
+          value: {{ .Values.logstash.EL_SSL_VERIF_CERT  | quote }}
+        - name: EL_SSL
+          value: {{ .Values.logstash.EL_SSL  | quote }}
+        - name: EL_USER
+          value: {{ .Values.logstash.EL_USER  | quote }}
+        - name: EL_PASSWORD
+          value: {{ .Values.logstash.EL_PASSWORD  | quote }}
+        - name: LOG_VERSION
+          value: {{ .Values.logstash.LOG_VERSION  | quote }}
+          
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+
+        volumeMounts:
+        - name: pv-shuttle-data
+          mountPath: /data
+
+        - name: ed-logstash-sincdb
+          mountPath: /var/lib/logstash/plugins/inputs/file
+
+        args:
+        - --run
+{{- end }}
+#backup container
+{{ if .Values.backup.enabled }}
+      - image: "{{ .Values.backup.image.repository}}:{{ .Values.backup.image.tag }}"
+        name: backup
+        imagePullPolicy: {{ .Values.backup.image.pullPolicy | quote }}
+        env:
+        - name: PASSPHRASE
+          value: {{ .Values.backup.PASSPHRASE  | quote }}
+        - name: DATA_FOLDER
+          value: {{ .Values.backup.DATA_FOLDER  | quote }}
+        - name: EXCLUDE_PATHS
+          value: {{ .Values.backup.EXCLUDE_PATHS  | quote }}
+        - name: DAILY_JOB_HOUR
+          value: {{ .Values.backup.DAILY_JOB_HOUR  | quote }}
+        - name: DAILY_BACKUP_PREFIX
+          value: {{ .Values.backup.DAILY_BACKUP_PREFIX  | quote }}
+        - name: DAILY_OS_REGION_NAME
+          value: {{ .Values.backup.DAILY_OS_REGION_NAME  | quote }}
+        - name: DAILY_SWIFT_CONTAINER
+          value: {{ .Values.backup.DAILY_SWIFT_CONTAINER  | quote }}
+        - name: MONTHLY_BACKUP_PREFIX
+          value: {{ .Values.backup.MONTHLY_BACKUP_PREFIX  | quote }}
+        - name: MONTHLY_OS_REGION_NAME
+          value: {{ .Values.backup.MONTHLY_OS_REGION_NAME  | quote }}
+        - name: MONTHLY_SWIFT_CONTAINER
+          value: {{ .Values.backup.MONTHLY_SWIFT_CONTAINER  | quote }}
+        - name: OS_AUTH_URL
+          value: {{ .Values.backup.OS_AUTH_URL  | quote }}
+        - name: OS_PASSWORD
+          value: {{ .Values.backup.OS_PASSWORD  | quote }}
+        - name: OS_TENANT_ID
+          value: {{ .Values.backup.OS_TENANT_ID  | quote }}
+        - name: OS_TENANT_NAME
+          value: {{ .Values.backup.OS_TENANT_NAME  | quote }}
+        - name: OS_USERNAME
+          value: {{ .Values.backup.OS_USERNAME  | quote }}
+        - name: DAILY_SFTP_CONTAINER
+          value: {{ .Values.backup.DAILY_SFTP_CONTAINER  | quote }}
+        - name: SFTP_USER
+          value: {{ .Values.backup.SFTP_USER  | quote }}
+        - name: SFTP_PASSWORD
+          value: {{ .Values.backup.SFTP_PASSWORD  | quote }}
+        - name: DEFAULT_CONTAINER
+          value: {{ .Values.backup.DEFAULT_CONTAINER  | quote }}
+          
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+
+        volumeMounts:
+        - name: pv-shuttle-data
+          mountPath: /data
+          
+        args:
+        - --jobber-backup
+{{- end }}
+{{ if .Values.shuttle.privateRegistry.enabled }}
+      imagePullSecrets:
+        - name: {{.Values.shuttle.privateRegistry.imagePullSecrets  | quote }}
+{{- end }}        
+      volumes:
+      - name: pv-shuttle-data
+      {{- if .Values.persistentVolume.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ .Values.persistentVolume.shuttleExistingClaiName  | quote }}
+      {{- else }}
+        emptyDir: {}
+      {{- end }}
+      - name: ed-logstash-sincdb
+        emptyDir: {}
