@@ -38,8 +38,6 @@ serviceAccount:
 
 ingress:
   enabled: false
-  defaultBackend:
-    enabled: true
   # Used to create an Ingress record.
   hosts:
   #  - artifactory.domain.example
@@ -82,19 +80,8 @@ database:
   type:
   host:
   port:
-  ## If you would like this chart to create the secret containing the db
-  ## password, use these values
   user:
   password:
-  ## If you have existing Kubernetes secrets containing db credentials, use
-  ## these values
-  secrets: {}
-  #  user:
-  #    name: "rds-artifactory"
-  #    key: "db-user"
-  #  password:
-  #    name: "rds-artifactory"
-  #    key: "db-password"
 
 # Artifactory
 artifactory:
@@ -102,17 +89,14 @@ artifactory:
   image:
     repository: "docker.bintray.io/jfrog/artifactory-pro"
     # Note that by default we use appVersion to get image tag
-    # version:
+    # version: 6.3.2
     pullPolicy: IfNotPresent
   ## Artifactory requires a unique master key
   ## You can generate one with the command:
   ## 'openssl rand -hex 32'
   ## Pass it to helm with '--set artifactory.masterKey=${MASTER_KEY}'
-  ## Alternatively, you can use a pre-existing secret with a key called master-key by specifying masterKeySecretName
   ## IMPORTANT: You should NOT use the example masterKey for a production deployment!
   masterKey: FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
-  # masterKeySecretName:
-
 
   ## Artifactory license secret.
   ## If artifactory.license.secret is passed, it will be mounted as
@@ -151,12 +135,11 @@ artifactory:
     successThreshold: 1
   persistence:
     enabled: true
-    local: false
+    # local: false
     redundancy: 3
     mountPath: "/var/opt/jfrog/artifactory"
     accessMode: ReadWriteOnce
     size: 200Gi
-    maxCacheSize: 50000000000
     ## artifactory data Persistent Volume Storage Class
     ## If defined, storageClassName: <storageClass>
     ## If set to "-", storageClassName: "", which disables dynamic provisioning
@@ -194,20 +177,13 @@ artifactory:
       credential:
       path: "artifactory-ha/filestore"
     ## For artifactory.persistence.type aws-s3
-    ## IMPORTANT: Make sure S3 `endpoint` and `region` match! See https://docs.aws.amazon.com/general/latest/gr/rande.html
     awsS3:
       # Set a unique bucket name
       bucketName: "artifactory-ha-aws"
-      endpoint:
       region:
       identity:
       credential:
       path: "artifactory-ha/filestore"
-      refreshCredentials: true
-      testConnection: false
-      ## Additional properties to set on the s3 provider
-      properties: {}
-      #  httpclient.max-connections: 100
   service:
     name: artifactory
     type: ClusterIP
@@ -227,8 +203,6 @@ artifactory:
     publicUrl:
   # Name of ConfigMap for Distribution Cert
   distributionCerts:
-
-  annotations: {}
 
   ## Type specific configurations.
   ## There is a difference between the primary and the member nodes.
@@ -265,7 +239,6 @@ artifactory:
       ## If true, you must prepare a PVC with the name e.g `artifactory-ha-member`
       existingClaim: false
     replicaCount: 2
-    minAvailable: 1
     ## Resources for the member nodes
     resources: {}
     #  requests:
@@ -284,15 +257,7 @@ artifactory:
 
     tolerations: []
 
-    ## Complete specification of the "affinity" of the member nodes; if this is non-empty,
-    ## "podAntiAffinity" values are not used.
     affinity: {}
-
-    ## Only used if "affinity" is empty
-    podAntiAffinity:
-      ## Valid values are "soft" or "hard"; any other value indicates no anti-affinity
-      type: ""
-      topologyKey: "kubernetes.io/hostname"
 
 # Nginx
 nginx:
@@ -304,7 +269,7 @@ nginx:
   image:
     repository: "docker.bintray.io/jfrog/nginx-artifactory-pro"
     # Note that by default we use appVersion to get image tag
-    # version:
+    # version: 6.3.2
     pullPolicy: IfNotPresent
   service:
     ## For minikube, set this to NodePort, elsewhere use LoadBalancer
@@ -317,8 +282,6 @@ nginx:
     loadBalancerSourceRanges: []
     ## Provide static ip address
     loadBalancerIP:
-    ## There are two available options: “Cluster” (default) and “Local”.
-    externalTrafficPolicy: Cluster
   externalPortHttp: 80
   internalPortHttp: 80
   externalPortHttps: 443

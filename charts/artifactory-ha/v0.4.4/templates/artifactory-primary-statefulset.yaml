@@ -1,7 +1,7 @@
 apiVersion: apps/v1beta2
 kind: StatefulSet
 metadata:
-  name: {{ template "artifactory-ha.node.name" . }}
+  name: {{ template "artifactory-ha.primary.name" . }}
   labels:
     app: {{ template "artifactory-ha.name" . }}
     chart: {{ template "artifactory-ha.chart" . }}
@@ -9,27 +9,22 @@ metadata:
     heritage: {{ .Release.Service }}
     release: {{ .Release.Name }}
 spec:
-  serviceName: {{ template "artifactory-ha.node.name" . }}
-  replicas: {{ .Values.artifactory.node.replicaCount }}
+  serviceName: {{ template "artifactory-ha.primary.name" . }}
+  replicas: 1
   updateStrategy:
     type: RollingUpdate
   selector:
     matchLabels:
       app: {{ template "artifactory-ha.name" . }}
-      role: {{ template "artifactory-ha.node.name" . }}
+      role: {{ template "artifactory-ha.primary.name" . }}
       release: {{ .Release.Name }}
   template:
     metadata:
       labels:
         app: {{ template "artifactory-ha.name" . }}
-        role: {{ template "artifactory-ha.node.name" . }}
+        role: {{ template "artifactory-ha.primary.name" . }}
         component: {{ .Values.artifactory.name }}
         release: {{ .Release.Name }}
-      annotations:
-        checksum/binarystore: {{ include (print $.Template.BasePath "/artifactory-binarystore.yaml") . | sha256sum }}
-      {{- range $key, $value := .Values.artifactory.annotations }}
-        {{ $key }}: {{ $value | quote }}
-      {{- end }}
     spec:
       serviceAccountName: {{ template "artifactory-ha.serviceAccountName" . }}
     {{- if .Values.imagePullSecrets }}
@@ -78,6 +73,9 @@ spec:
               - '/bin/sh'
               - '-c'
               - >
+                {{- if .Values.artifactory.configMapName }}
+                cp -Lrfv /bootstrap/* /artifactory_extra_conf/
+                {{- end }}
                 {{- if .Values.artifactory.replicator.enabled }}
                 mkdir -p {{ .Values.artifactory.persistence.mountPath }}/replicator/etc;
                 cp -fv /tmp/replicator/replicator.yaml {{ .Values.artifactory.persistence.mountPath }}/replicator/etc/replicator.yaml;
@@ -100,7 +98,7 @@ spec:
         - name: DB_PORT
           value: '{{ .Values.postgresql.service.port }}'
         - name: DB_USER
-          value: '{{.Values.postgresql.postgresUser }}'
+          value: '{{ .Values.postgresql.postgresUser }}'
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
@@ -113,18 +111,6 @@ spec:
           value: '{{ .Values.database.host }}'
         - name: DB_PORT
           value: '{{ .Values.database.port }}'
-      {{- if .Values.database.secrets }}
-        - name: DB_USER
-          valueFrom:
-            secretKeyRef:
-              name: {{ .Values.database.secrets.user.name }}
-              key: {{ .Values.database.secrets.user.key }}
-        - name: DB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: {{ .Values.database.secrets.password.name }}
-              key: {{ .Values.database.secrets.password.key }}
-      {{- else }}
         - name: DB_USER
           value: '{{ .Values.database.user }}'
         - name: DB_PASSWORD
@@ -133,20 +119,19 @@ spec:
               name: {{ template "artifactory-ha.fullname" . }}
               key: db-password
       {{- end }}
-      {{- end }}
         - name: EXTRA_JAVA_OPTIONS
           value: "
       {{- if .Values.artifactory.javaOpts.other }}
           {{ .Values.artifactory.javaOpts.other }}
       {{- end}}
-      {{- if .Values.artifactory.node.javaOpts.other }}
-          {{ .Values.artifactory.node.javaOpts.other }}
+      {{- if .Values.artifactory.primary.javaOpts.other }}
+          {{ .Values.artifactory.primary.javaOpts.other }}
       {{- end}}
-      {{- if .Values.artifactory.node.javaOpts.xms }}
-          -Xms{{ .Values.artifactory.node.javaOpts.xms }}
+      {{- if .Values.artifactory.primary.javaOpts.xms }}
+          -Xms{{ .Values.artifactory.primary.javaOpts.xms }}
       {{- end}}
-      {{- if .Values.artifactory.node.javaOpts.xmx }}
-          -Xmx{{ .Values.artifactory.node.javaOpts.xmx }}
+      {{- if .Values.artifactory.primary.javaOpts.xmx }}
+          -Xmx{{ .Values.artifactory.primary.javaOpts.xmx }}
       {{- end}}
       {{- if .Values.artifactory.replicator.enabled }}
           -Dartifactory.releasebundle.feature.enabled=true
@@ -159,18 +144,16 @@ spec:
         - name: ARTIFACTORY_MASTER_KEY
           valueFrom:
             secretKeyRef:
-              name: "{{ .Values.artifactory.masterKeySecretName | default (include "artifactory-ha.fullname" .) }}"
+              name: {{ template "artifactory-ha.fullname" . }}
               key: master-key
         - name: HA_IS_PRIMARY
-          value: "false"
+          value: "true"
         - name: HA_MEMBERSHIP_PORT
           value: "{{ .Values.artifactory.membershipPort }}"
         - name: HA_NODE_ID
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
-        - name: ART_PRIMARY_BASE_URL
-          value: 'http://{{ template "artifactory-ha.primary.name" . }}:8081/artifactory'
       {{- if eq .Values.artifactory.persistence.type "nfs" }}
         - name: HA_DATA_DIR
           value: "{{ .Values.artifactory.persistence.nfs.dataDir }}"
@@ -179,9 +162,15 @@ spec:
       {{- end }}
         ports:
         - containerPort: {{ .Values.artifactory.internalPort }}
+        {{- if .Values.artifactory.replicator.enabled }}
+        - containerPort: {{ .Values.artifactory.internalPortReplicator }}
+        {{- end }}
         volumeMounts:
         - name: volume
           mountPath: "{{ .Values.artifactory.persistence.mountPath }}"
+        - name: artifactory-inactiveservercleaner
+          mountPath: "/tmp/plugins/inactiveServerCleaner.groovy"
+          subPath: inactiveServerCleaner.groovy
       {{- if eq .Values.artifactory.persistence.type "nfs" }}
         - name: artifactory-ha-data
           mountPath: "{{ .Values.artifactory.persistence.nfs.dataDir }}"
@@ -192,6 +181,15 @@ spec:
           mountPath: "/artifactory_extra_conf/binarystore.xml"
           subPath: binarystore.xml
       {{- end }}
+      {{- if .Values.artifactory.configMapName }}
+        - name: bootstrap-config
+          mountPath: "/bootstrap/"
+      {{- end }}
+      {{- if .Values.artifactory.license.secret }}
+        - name: artifactory-license
+          mountPath: "/artifactory_extra_conf/artifactory.cluster.license"
+          subPath: {{ .Values.artifactory.license.dataKey }}
+      {{- end }}
       {{- if .Values.artifactory.distributionCerts }}
         - name: distribution-certs
           mountPath: "/tmp/access/etc/keys"
@@ -201,7 +199,7 @@ spec:
           mountPath: "/tmp/replicator/replicator.yaml"
       {{- end }}
         resources:
-{{ toYaml .Values.artifactory.node.resources | indent 10 }}
+{{ toYaml .Values.artifactory.primary.resources | indent 10 }}
         {{- if .Values.artifactory.readinessProbe.enabled }}
         readinessProbe:
           httpGet:
@@ -224,39 +222,15 @@ spec:
           failureThreshold: {{ .Values.artifactory.livenessProbe.failureThreshold }}
           successThreshold: {{ .Values.artifactory.livenessProbe.successThreshold }}
         {{- end }}
-    {{- with .Values.artifactory.node.nodeSelector }}
+    {{- with .Values.artifactory.primary.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}
     {{- end }}
-    {{- if .Values.artifactory.node.affinity }}
-    {{- with .Values.artifactory.node.affinity }}
+    {{- with .Values.artifactory.primary.affinity }}
       affinity:
 {{ toYaml . | indent 8 }}
     {{- end }}
-    {{- else if eq .Values.artifactory.node.podAntiAffinity.type "soft" }}
-      affinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              topologyKey: {{ .Values.artifactory.node.podAntiAffinity.topologyKey }}
-              labelSelector:
-                matchLabels:
-                  app: {{ template "artifactory-ha.name" . }}
-                  release: {{ .Release.Name }}
-                  role: {{ template "artifactory-ha.node.name" . }}
-    {{- else if eq .Values.artifactory.node.podAntiAffinity.type "hard" }}
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - topologyKey: {{ .Values.artifactory.node.podAntiAffinity.topologyKey }}
-            labelSelector:
-              matchLabels:
-                app: {{ template "artifactory-ha.name" . }}
-                release: {{ .Release.Name }}
-                role: {{ template "artifactory-ha.node.name" . }}
-    {{- end }}
-    {{- with .Values.artifactory.node.tolerations }}
+    {{- with .Values.artifactory.primary.tolerations }}
       tolerations:
 {{ toYaml . | indent 8 }}
     {{- end }}
@@ -274,6 +248,19 @@ spec:
         configMap:
           name: {{ template "artifactory-ha.fullname" . }}-replicator-config
       {{- end }}
+      {{- if .Values.artifactory.configMapName }}
+      - name: bootstrap-config
+        configMap:
+          name: {{ .Values.artifactory.configMapName }}
+      {{- end}}
+      - name: artifactory-inactiveservercleaner
+        configMap:
+          name: {{ template "artifactory-ha.fullname" . }}-isc
+      {{- if .Values.artifactory.license.secret }}
+      - name: artifactory-license
+        secret:
+          secretName: {{ .Values.artifactory.license.secret }}
+      {{- end }}
       {{- if eq .Values.artifactory.persistence.type "nfs" }}
       - name: artifactory-ha-data
         persistentVolumeClaim:
@@ -282,19 +269,19 @@ spec:
         persistentVolumeClaim:
           claimName: {{ template "artifactory-ha.fullname" . }}-backup-pvc
       {{- end }}
-      {{- if .Values.artifactory.persistence.local }}
+      {{- if not .Values.artifactory.persistence.enabled }}
       - name: volume
-        emptyDir:
-          sizeLimit: {{ .Values.artifactory.persistence.size }}
+        emptyDir: {}
       {{- else }}
+  {{- if .Values.artifactory.persistence.enabled }}
   volumeClaimTemplates:
   - metadata:
       name: volume
     spec:
-    {{- if .Values.artifactory.node.persistence.existingClaim }}
+    {{- if .Values.artifactory.primary.persistence.existingClaim }}
       selector:
         matchLabels:
-          app: artifactory-ha-member
+          app: artifactory-ha-primary
     {{- else }}
       {{- if .Values.artifactory.persistence.storageClass }}
       {{- if (eq "-" .Values.artifactory.persistence.storageClass) }}
@@ -308,4 +295,5 @@ spec:
         requests:
           storage: {{ .Values.artifactory.persistence.size }}
     {{- end }}
+  {{- end }}
   {{- end }}

@@ -25,6 +25,11 @@ spec:
         role: {{ template "artifactory-ha.primary.name" . }}
         component: {{ .Values.artifactory.name }}
         release: {{ .Release.Name }}
+      annotations:
+        checksum/binarystore: {{ include (print $.Template.BasePath "/artifactory-binarystore.yaml") . | sha256sum }}
+      {{- range $key, $value := .Values.artifactory.annotations }}
+        {{ $key }}: {{ $value | quote }}
+      {{- end }}
     spec:
       serviceAccountName: {{ template "artifactory-ha.serviceAccountName" . }}
     {{- if .Values.imagePullSecrets }}
@@ -111,6 +116,18 @@ spec:
           value: '{{ .Values.database.host }}'
         - name: DB_PORT
           value: '{{ .Values.database.port }}'
+      {{- if .Values.database.secrets }}
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.database.secrets.user.name }}
+              key: {{ .Values.database.secrets.user.key }}
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.database.secrets.password.name }}
+              key: {{ .Values.database.secrets.password.key }}
+      {{- else }}
         - name: DB_USER
           value: '{{ .Values.database.user }}'
         - name: DB_PASSWORD
@@ -118,6 +135,7 @@ spec:
             secretKeyRef:
               name: {{ template "artifactory-ha.fullname" . }}
               key: db-password
+      {{- end }}
       {{- end }}
         - name: EXTRA_JAVA_OPTIONS
           value: "
@@ -144,7 +162,7 @@ spec:
         - name: ARTIFACTORY_MASTER_KEY
           valueFrom:
             secretKeyRef:
-              name: {{ template "artifactory-ha.fullname" . }}
+              name: "{{ .Values.artifactory.masterKeySecretName | default (include "artifactory-ha.fullname" .) }}"
               key: master-key
         - name: HA_IS_PRIMARY
           value: "true"
@@ -269,11 +287,11 @@ spec:
         persistentVolumeClaim:
           claimName: {{ template "artifactory-ha.fullname" . }}-backup-pvc
       {{- end }}
-      {{- if not .Values.artifactory.persistence.enabled }}
+      {{- if .Values.artifactory.persistence.local }}
       - name: volume
-        emptyDir: {}
+        emptyDir:
+          sizeLimit: {{ .Values.artifactory.persistence.size }}
       {{- else }}
-  {{- if .Values.artifactory.persistence.enabled }}
   volumeClaimTemplates:
   - metadata:
       name: volume
@@ -295,5 +313,4 @@ spec:
         requests:
           storage: {{ .Values.artifactory.persistence.size }}
     {{- end }}
-  {{- end }}
   {{- end }}
