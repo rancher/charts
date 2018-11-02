@@ -20,7 +20,7 @@ spec:
         image: "{{ .Values.image.longhorn.ui }}:{{ .Values.image.longhorn.uiTag }}"
         ports:
         - containerPort: 8000
-          name: longhorn-ui
+          name: http
         env:
           - name: LONGHORN_MANAGER_IP
             value: "http://longhorn-backend:9500"
@@ -30,16 +30,23 @@ apiVersion: v1
 metadata:
   labels:
     app: longhorn-ui
+    {{- if eq .Values.service.ui.type "Rancher-Proxy" }}
+    kubernetes.io/cluster-service: "true"
+    {{- end }}
   name: longhorn-frontend
   namespace: {{ .Release.Namespace }}
 spec:
+  {{- if eq .Values.service.ui.type "Rancher-Proxy" }}
+  type: ClusterIP
+  {{- else }}
   type: {{ .Values.service.ui.type }}
+  {{- end }}
   selector:
     app: longhorn-ui
   ports:
-  - name: longhorn-ui
+  - name: http
     port: 80
-    targetPort: longhorn-ui
+    targetPort: http
     {{- if .Values.service.ui.nodePort }}
     nodePort: {{ .Values.service.ui.nodePort }}
     {{- end }}
