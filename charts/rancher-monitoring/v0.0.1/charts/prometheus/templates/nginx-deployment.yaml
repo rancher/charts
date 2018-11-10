@@ -24,6 +24,22 @@ spec:
         release: {{ .Release.Name }}
         component: nginx
     spec:
+      {{- if .Values.enabledRBAC }}
+      serviceAccountName: {{ .Values.serviceAccountName }}
+      {{- end }}
+      initContainers:
+      - name: nginx-init-auth-add
+        image: {{ .Values.image.inits.tools.repository }}:{{ .Values.image.inits.tools.tag }}
+        command:
+        - /usr/bin/replace-config-by-auth.sh
+        volumeMounts:
+        - name: prometheus-static-hooks
+          mountPath: /usr/bin/replace-config-by-auth.sh
+          subPath: replace-config-by-auth.sh
+        - name: prometheus-static-contents
+          mountPath: /host
+        - name: prometheus-nginx-template
+          mountPath: /template
       containers:
       - name: nginx
         image: nginx:1.15.2
@@ -34,18 +50,24 @@ spec:
         - -c
         - /nginx/nginx.conf
         volumeMounts:
-        - mountPath: /nginx/
-          name: prometheus-nginx
+        - mountPath: /nginx
+          name: prometheus-static-contents
         ports:
         - name: http
           containerPort: 80
           protocol: TCP
       volumes:
-      - name: prometheus-nginx
+      - name: prometheus-static-hooks
         configMap:
+          name: {{ template "app.hooks.fullname" . }}
+          defaultMode: 0777
+      - name: prometheus-static-contents
+        emptyDir: {}
+      - name: prometheus-nginx-template
+        configMap:
+          name: {{ template "app.nginx.fullname" . }}
           defaultMode: 438
           items:
           - key: nginx.conf
             mode: 438
             path: nginx.conf
-          name: {{ template "app.nginx.fullname" . }}

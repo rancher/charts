@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: {{ template "app.name" . }}
+    chart: {{ template "app.version" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+  name: {{ template "app.hooks.fullname" . }}
+data:
+  replace-config-by-auth.sh: |-
+    #!/bin/sh
+
+    srcpath="/template/nginx.conf"
+    dstpath="/host/nginx.conf"
+
+    if [ -f $srcpath ] && [ -d /host ]; then
+      token=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+
+      sed "s/REPLACE_PARAM_AUTHORIZATION/Bearer ${token}/g" $srcpath > $dstpath
+      cat $dstpath
+
+      exit 0
+    fi
+
+    exit 1
+
+

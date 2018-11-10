@@ -51,6 +51,12 @@
 {{- end -}}
 
 
+{{- define "app.hooks.fullname" -}}
+{{- $name := include "app.name" . -}}
+{{- printf "%s-%s-hooks" $name .Release.Name -}}
+{{- end -}}
+
+
 {{- define "app.cleanup.fullname" -}}
 {{- $name := include "app.name" . -}}
 {{- printf "%s-%s-cleanup" $name .Release.Name -}}

@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: {{ template "app.name" . }}
+    chart: {{ template "app.version" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+  name: {{ template "app.hooks.fullname" . }}
+data:
+  copy-datasource-plugin-json.sh: |-
+    #!/bin/bash
+
+    srcpath="/usr/share/grafana/public/app/plugins/datasource/prometheus/plugin.json"
+    dstpath="/host/grafana/raw-plugin.json"
+
+    if [[ -f $srcpath ]] && [[ -d /host ]]; then
+      mkdir -p /host/grafana
+      cp -f $srcpath $dstpath
+      cat $srcpath
+
+      exit 0
+    fi
+
+    exit 1
+
+  modify-datasource-plugin-json.sh: |-
+    #!/bin/sh
+
+    srcpath="/host/grafana/raw-plugin.json"
+    dstpath="/host/grafana/plugin.json"
+
+    if [ -f $srcpath ] && [ -d /host ]; then
+      mkdir -p /host/grafana
+
+      token=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+
+      cat $srcpath | K8S_BEARERTOKEN="Bearer $token" jq 'to_entries | . + [{"key":"routes","value":[{"path":"api/v1","url":"{{ .Values.prometheusDatasourceURL }}/api/v1","headers":[{"name":"Authorization","content":env.K8S_BEARERTOKEN}]}]}] | from_entries' > $dstpath
+      cat $dstpath
+
+      exit 0
+    fi
+
+    exit 1
+
+

@@ -21,6 +21,25 @@ spec:
         chart: {{ template "app.version" . }}
         release: {{ .Release.Name }}
     spec:
+      initContainers:
+      - name: grafana-init-plugin-json-copy
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        volumeMounts:
+        - name: grafana-static-hooks
+          mountPath: /run.sh
+          subPath: copy-datasource-plugin-json.sh
+        - name: grafana-static-contents
+          mountPath: /host
+      - name: grafana-init-plugin-json-modify
+        image: {{ .Values.image.inits.tools.repository }}:{{ .Values.image.inits.tools.tag }}
+        command:
+        - /usr/bin/modify-datasource-plugin-json.sh
+        volumeMounts:
+        - name: grafana-static-hooks
+          mountPath: /usr/bin/modify-datasource-plugin-json.sh
+          subPath: modify-datasource-plugin-json.sh
+        - name: grafana-static-contents
+          mountPath: /host
       containers:
       - name: grafana
         image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
@@ -45,6 +64,9 @@ spec:
         volumeMounts:
         - name: grafana-storage
           mountPath: /var/lib/grafana
+        - name: grafana-static-contents
+          mountPath: /usr/share/grafana/public/app/plugins/datasource/prometheus/plugin.json
+          subPath: grafana/plugin.json
       {{- if .Values.mountGrafanaConfig }}
         - name: grafana-config
           mountPath: /etc/grafana
@@ -114,7 +136,7 @@ spec:
       nodeSelector:
     {{ toYaml .Values.nodeSelector | indent 4 }}
     {{- end }}
-    {{- if .Values.enabeldRBAC }}
+    {{- if .Values.enabledRBAC }}
       serviceAccountName: {{ .Values.serviceAccountName }}
     {{- end }}
     {{- if .Values.tolerations }}
@@ -122,6 +144,12 @@ spec:
 {{ toYaml .Values.tolerations | indent 8 }}
     {{- end }}
       volumes:
+      - name: grafana-static-hooks
+        configMap:
+          name: {{ template "app.hooks.fullname" . }}
+          defaultMode: 0777
+      - name: grafana-static-contents
+        emptyDir: {}
       - name: grafana-storage
         {{- if or .Values.storageSpec .Values.persistence.enabled }}
         persistentVolumeClaim:
