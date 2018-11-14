@@ -30,8 +30,7 @@ spec:
             topologyKey: "kubernetes.io/hostname"
       containers:
       - name: vm-controller
-        image: {{ .Values.image.vm }}
-        imagePullPolicy: Always
+        image: {{ .Values.image.vm }}:v{{ .Chart.Version }}
         args:
         - -vm
         - -bridge-iface={{ .Values.question.bridgeInterface }}
@@ -39,9 +38,9 @@ spec:
         {{- if not .Values.question.enforceResourceLimits }}
         - -no-resource-limits
         {{- end }}
-        - -image-novnc={{ .Values.image.novnc }}
-        - -image-tools={{ .Values.image.tools }}
-        - -image-vm={{ .Values.image.vm }}
+        - -image-novnc={{ .Values.image.novnc }}:v{{ .Chart.Version }}
+        - -image-tools={{ .Values.image.tools }}:v{{ .Chart.Version }}
+        - -image-vm={{ .Values.image.vm }}:v{{ .Chart.Version }}
       serviceAccountName: {{ .Chart.Name }}-service-account
 ---
 apiVersion: apps/v1beta1
@@ -77,13 +76,17 @@ spec:
       hostNetwork: true
       containers:
       - name: ip-controller
-        image: {{ .Values.image.vm }}
-        imagePullPolicy: Always
+        image: {{ .Values.image.vm }}:v{{ .Chart.Version }}
         command: [ "sh", "-c"]
         args:
-        - exec /ranchervm -ip -devicename br0 -v {{ .Values.question.logLevel }}
+        - exec /ranchervm -ip -nodename ${MY_NODE_NAME} -v {{ .Values.question.logLevel }}
+        env:
+        - name: MY_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
       - name: arp-scanner
-        image: {{ .Values.image.vm }}
+        image: {{ .Values.image.vm }}:v{{ .Chart.Version }}
         imagePullPolicy: Always
         command: [ "bash", "-c"]
         # This is probably too aggressive for anything bigger than class 3 network
