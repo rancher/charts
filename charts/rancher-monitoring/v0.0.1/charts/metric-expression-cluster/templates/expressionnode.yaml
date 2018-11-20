@@ -1,0 +1,572 @@
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-network-transmit-bytes-sum-rate
+  labels:
+    app: metric-expression
+    component: node
+    details: "false"
+    graph: network-io
+    level: cluster
+    metric: network-transmit-bytes-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(node_network_transmit_bytes_total{device!~"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*",instance=~"$instance"}[5m]))
+     * 8 / 1024
+  legendFormat: Transmit
+  description: node network transmit bytes sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-network-transmit-bytes-sum-rate-details
+  labels:
+    app: metric-expression
+    component: node
+    details: "true"
+    graph: network-io
+    level: cluster
+    metric: network-transmit-bytes-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(node_network_transmit_bytes_total{device!~"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*",instance=~"$instance"}[5m]))
+    by (device) * 8 / 1024
+  legendFormat: '[[device]]'
+  description: node network transmit bytes sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-network-receive-packets-dropped-sum-rate
+  labels:
+    app: metric-expression
+    component: node
+    details: "false"
+    graph: network-packet
+    level: cluster
+    metric: network-receive-packets-dropped-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(node_network_receive_drop_total{device!~"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*",instance=~"$instance"}[5m]))
+    
+  legendFormat: Receive packets
+  description: node network receive packets dropped sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-network-receive-packets-dropped-sum-rate-details
+  labels:
+    app: metric-expression
+    component: node
+    details: "true"
+    graph: network-packet
+    level: cluster
+    metric: network-receive-packets-dropped-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(node_network_receive_drop_total{device!~"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*",instance=~"$instance"}[5m]))
+    by (device)
+  legendFormat: Receive packets([[device]])
+  description: node network receive packets dropped sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-network-transmit-packets-sum-rate
+  labels:
+    app: metric-expression
+    component: node
+    details: "false"
+    graph: network-packet
+    level: cluster
+    metric: network-transmit-packets-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(node_network_transmit_packets_total{instance=~"$instance"}[5m]))
+    
+  legendFormat: Transmit packets
+  description: node network transmit packets sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-network-transmit-packets-sum-rate-details
+  labels:
+    app: metric-expression
+    component: node
+    details: "true"
+    graph: network-packet
+    level: cluster
+    metric: network-transmit-packets-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(node_network_transmit_packets_total{instance=~"$instance"}[5m]))
+    by (device)
+  legendFormat: Transmit packets([[device]])
+  description: node network transmit packets sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-disk-io-writes-bytes-sum-rate
+  labels:
+    app: metric-expression
+    component: node
+    details: "false"
+    graph: disk-io
+    level: cluster
+    metric: disk-io-writes-bytes-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(node_disk_written_bytes_total{instance=~"$instance"}[5m]))
+     * 8 / 1024
+  legendFormat: Write
+  description: node disk io writes bytes sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-disk-io-writes-bytes-sum-rate-details
+  labels:
+    app: metric-expression
+    component: node
+    details: "true"
+    graph: disk-io
+    level: cluster
+    metric: disk-io-writes-bytes-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(node_disk_written_bytes_total{instance=~"$instance"}[5m]))
+    by (device) * 8 / 1024
+  legendFormat: Write([[device]])
+  description: node disk io writes bytes sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-disk-io-reads-bytes-sum-rate
+  labels:
+    app: metric-expression
+    component: node
+    details: "false"
+    graph: disk-io
+    level: cluster
+    metric: disk-io-reads-bytes-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(node_disk_read_bytes_total{instance=~"$instance"}[5m])) by
+    () * 8 / 1024
+  legendFormat: Read
+  description: node disk io reads bytes sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-disk-io-reads-bytes-sum-rate-details
+  labels:
+    app: metric-expression
+    component: node
+    details: "true"
+    graph: disk-io
+    level: cluster
+    metric: disk-io-reads-bytes-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(node_disk_read_bytes_total{instance=~"$instance"}[5m])) by
+    (device) * 8 / 1024
+  legendFormat: Read([[device]])
+  description: node disk io reads bytes sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-fs-usage-percent
+  labels:
+    app: metric-expression
+    component: node
+    details: "false"
+    level: cluster
+    metric: fs-usage-percent
+    source: rancher-monitoring
+spec:
+  expression: (sum(node_filesystem_size_bytes{device!="rootfs",instance=~"$instance"})
+     - sum(node_filesystem_free_bytes{device!="rootfs",instance=~"$instance"})
+    ) / sum(node_filesystem_size_bytes{device!="rootfs",instance=~"$instance"})
+    
+  legendFormat: Disk usage
+  description: node fs usage percent
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-fs-usage-percent-details
+  labels:
+    app: metric-expression
+    component: node
+    details: "true"
+    level: cluster
+    metric: fs-usage-percent
+    source: rancher-monitoring
+spec:
+  expression: (sum(node_filesystem_size_bytes{device!="rootfs",instance=~"$instance"})
+    by (device) - sum(node_filesystem_free_bytes{device!="rootfs",instance=~"$instance"})
+    by (device)) / sum(node_filesystem_size_bytes{device!="rootfs",instance=~"$instance"})
+    by (device)
+  legendFormat: '[[device]]'
+  description: node fs usage percent
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-network-receive-packets-sum-rate
+  labels:
+    app: metric-expression
+    component: node
+    details: "false"
+    graph: network-packet
+    level: cluster
+    metric: network-receive-packets-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(node_network_receive_packets_total{device!~"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*",instance=~"$instance"}[5m]))
+    
+  legendFormat: Receive packets
+  description: node network receive packets sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-network-receive-packets-sum-rate-details
+  labels:
+    app: metric-expression
+    component: node
+    details: "true"
+    graph: network-packet
+    level: cluster
+    metric: network-receive-packets-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(node_network_receive_packets_total{device!~"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*",instance=~"$instance"}[5m]))
+    by (device)
+  legendFormat: Receive packets([[device]])
+  description: node network receive packets sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-network-transmit-errors-sum-rate
+  labels:
+    app: metric-expression
+    component: node
+    details: "false"
+    graph: network-packet
+    level: cluster
+    metric: network-transmit-errors-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(node_network_transmit_errs_total{device!~"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*",instance=~"$instance"}[5m]))
+    
+  legendFormat: Transmit errors
+  description: node network transmit errors sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-network-transmit-errors-sum-rate-details
+  labels:
+    app: metric-expression
+    component: node
+    details: "true"
+    graph: network-packet
+    level: cluster
+    metric: network-transmit-errors-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(node_network_transmit_errs_total{device!~"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*",instance=~"$instance"}[5m]))
+    by (device)
+  legendFormat: Transmit errors([[device]])
+  description: node network transmit errors sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-cpu-load-5
+  labels:
+    app: metric-expression
+    component: node
+    details: "false"
+    graph: cpu-load
+    level: cluster
+    metric: cpu-load-5
+    source: rancher-monitoring
+spec:
+  expression: sum(node_load1{instance=~"$instance"})  / count(node_cpu_seconds_total{mode="system",instance=~"$instance"})
+    
+  legendFormat: Load1
+  description: node cpu load 1
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-cpu-load-5-details
+  labels:
+    app: metric-expression
+    component: node
+    details: "true"
+    graph: cpu-load
+    level: cluster
+    metric: cpu-load-5
+    source: rancher-monitoring
+spec:
+  expression: sum(node_load1{instance=~"$instance"})  / count(node_cpu_seconds_total{mode="system",instance=~"$instance"})
+    
+  legendFormat: Load1
+  description: node cpu load 1
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-cpu-load-15
+  labels:
+    app: metric-expression
+    component: node
+    details: "false"
+    graph: cpu-load
+    level: cluster
+    metric: cpu-load-15
+    source: rancher-monitoring
+spec:
+  expression: sum(node_load15{instance=~"$instance"})  / count(node_cpu_seconds_total{mode="system",instance=~"$instance"})
+    
+  legendFormat: Load15
+  description: node cpu load 15
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-cpu-load-15-details
+  labels:
+    app: metric-expression
+    component: node
+    details: "true"
+    graph: cpu-load
+    level: cluster
+    metric: cpu-load-15
+    source: rancher-monitoring
+spec:
+  expression: sum(node_load15{instance=~"$instance"})  / count(node_cpu_seconds_total{mode="system",instance=~"$instance"})
+    
+  legendFormat: Load15
+  description: node cpu load 15
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-cpu-usage-seconds-sum-rate
+  labels:
+    app: metric-expression
+    component: node
+    details: "false"
+    level: cluster
+    metric: cpu-usage-seconds-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: 1 - (avg(irate(node_cpu_seconds_total{mode="idle", instance=~"$instance"}[5m])) by (instance))
+  legendFormat: CPU
+  description: node cpu usage seconds sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-cpu-usage-seconds-sum-rate-details
+  labels:
+    app: metric-expression
+    component: node
+    details: "true"
+    level: cluster
+    metric: cpu-usage-seconds-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: avg(irate(node_cpu_seconds_total{instance=~"$instance"}[5m]))by (mode) 
+  legendFormat: '[[mode]]'
+  description: node cpu usage seconds sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-memory-usage-percent
+  labels:
+    app: metric-expression
+    component: node
+    details: "false"
+    level: cluster
+    metric: memory-usage-percent
+    source: rancher-monitoring
+spec:
+  expression: 1 - sum(node_memory_MemAvailable_bytes{instance=~"$instance"}) 
+    / sum(node_memory_MemTotal_bytes{instance=~"$instance"}) 
+  legendFormat: Memory usage
+  description: node memory usage percent
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-memory-usage-percent-details
+  labels:
+    app: metric-expression
+    component: node
+    details: "true"
+    level: cluster
+    metric: memory-usage-percent
+    source: rancher-monitoring
+spec:
+  expression: 1 - sum(node_memory_MemAvailable_bytes{instance=~"$instance"}) 
+    / sum(node_memory_MemTotal_bytes{instance=~"$instance"}) 
+  legendFormat: Memory usage
+  description: node memory usage percent
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-network-receive-bytes-sum-rate
+  labels:
+    app: metric-expression
+    component: node
+    details: "false"
+    graph: network-io
+    level: cluster
+    metric: network-receive-bytes-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(node_network_receive_bytes_total{device!~"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*",instance=~"$instance"}[5m]))
+     * 8 / 1024
+  legendFormat: Receive
+  description: node network receive bytes sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-network-receive-bytes-sum-rate-details
+  labels:
+    app: metric-expression
+    component: node
+    details: "true"
+    graph: network-io
+    level: cluster
+    metric: network-receive-bytes-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(node_network_receive_bytes_total{device!~"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*",instance=~"$instance"}[5m]))
+    by (device) * 8 / 1024
+  legendFormat: Receive([[device]])
+  description: node network receive bytes sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-network-receive-errors-sum-rate
+  labels:
+    app: metric-expression
+    component: node
+    details: "false"
+    graph: network-packet
+    level: cluster
+    metric: network-receive-errors-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(node_network_receive_errs_total{device!~"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*",instance=~"$instance"}[5m]))
+    
+  legendFormat: Receive packets
+  description: node network receive errors sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-network-receive-errors-sum-rate-details
+  labels:
+    app: metric-expression
+    component: node
+    details: "true"
+    graph: network-packet
+    level: cluster
+    metric: network-receive-errors-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(node_network_receive_errs_total{device!~"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*",instance=~"$instance"}[5m]))
+    by (device)
+  legendFormat: Receive packets([[device]])
+  description: node network receive errors sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-cpu-load-1
+  labels:
+    app: metric-expression
+    component: node
+    details: "false"
+    graph: cpu-load
+    level: cluster
+    metric: cpu-load-1
+    source: rancher-monitoring
+spec:
+  expression: sum(node_load5{instance=~"$instance"})  / count(node_cpu_seconds_total{mode="system",instance=~"$instance"})
+    
+  legendFormat: Load1
+  description: node cpu load 1
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-cpu-load-1-details
+  labels:
+    app: metric-expression
+    component: node
+    details: "true"
+    graph: cpu-load
+    level: cluster
+    metric: cpu-load-1
+    source: rancher-monitoring
+spec:
+  expression: sum(node_load5{instance=~"$instance"})  / count(node_cpu_seconds_total{mode="system",instance=~"$instance"})
+    
+  legendFormat: Load1
+  description: node cpu load 1
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-network-transmit-packets-dropped-sum-rate
+  labels:
+    app: metric-expression
+    component: node
+    details: "false"
+    graph: network-packet
+    level: cluster
+    metric: network-transmit-packets-dropped-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(node_network_transmit_drop_total{device!~"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*",instance=~"$instance"}[5m]))
+    
+  legendFormat: Transmit dropped
+  description: node network transmit packets dropped sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: node-network-transmit-packets-dropped-sum-rate-details
+  labels:
+    app: metric-expression
+    component: node
+    details: "true"
+    graph: network-packet
+    level: cluster
+    metric: network-transmit-packets-dropped-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(node_network_transmit_drop_total{device!~"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*",instance=~"$instance"}[5m]))
+    by (device)
+  legendFormat: Transmit dropped([[device]])
+  description: node network transmit packets dropped sum rate
+---

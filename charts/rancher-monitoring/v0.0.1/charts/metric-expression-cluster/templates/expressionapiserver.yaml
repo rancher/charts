@@ -1,0 +1,105 @@
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: apiserver-request-latency-milliseconds-avg
+  labels:
+    app: metric-expression
+    component: apiserver
+    details: "false"
+    level: cluster
+    metric: request-latency-milliseconds-avg
+    source: rancher-monitoring
+spec:
+  expression: avg(apiserver_request_latencies_sum / apiserver_request_latencies_count)
+    by (instance) /1e+06
+  legendFormat: '[[instance]]'
+  description: apiserver request latency milliseconds avg
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: apiserver-request-latency-milliseconds-avg-details
+  labels:
+    app: metric-expression
+    component: apiserver
+    details: "true"
+    level: cluster
+    metric: request-latency-milliseconds-avg
+    source: rancher-monitoring
+spec:
+  expression: avg(apiserver_request_latencies_sum / apiserver_request_latencies_count)
+    by (instance, verb) /1e+06
+  legendFormat: '[[verb]]([[instance]])'
+  description: apiserver request latency milliseconds avg
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: apiserver-request-count-sum-rate
+  labels:
+    app: metric-expression
+    component: apiserver
+    details: "false"
+    graph: request-count
+    level: cluster
+    metric: request-count-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(apiserver_request_count[5m])) by (instance)
+  legendFormat: '[[instance]]'
+  description: apiserver request count sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: apiserver-request-count-sum-rate-details
+  labels:
+    app: metric-expression
+    component: apiserver
+    details: "true"
+    graph: request-count
+    level: cluster
+    metric: request-count-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(apiserver_request_count[5m])) by (instance,
+    code)
+  legendFormat: '[[code]]([[instance]])'
+  description: apiserver request count sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: apiserver-request-error-count-sum-rate
+  labels:
+    app: metric-expression
+    component: apiserver
+    details: "false"
+    graph: request-count
+    level: cluster
+    metric: request-error-count-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(apiserver_request_count{instance=~"$instance", code!~"2.."}[5m]))
+    by (instance)
+  legendFormat: '[[instance]]'
+  description: apiserver request error count sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: apiserver-request-error-count-sum-rate-details
+  labels:
+    app: metric-expression
+    component: apiserver
+    details: "true"
+    graph: request-count
+    level: cluster
+    metric: request-error-count-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(apiserver_request_count{instance=~"$instance", code!~"2.."}[5m]))
+    by (instance, code)
+  legendFormat: '[[code]]([[instance]])'
+  description: apiserver request error count sum rate
+---

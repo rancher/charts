@@ -1,0 +1,781 @@
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-server-failed-proposal
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "false"
+    level: cluster
+    metric: server-failed-proposal
+    source: rancher-monitoring
+spec:
+  expression: count(up{job="exporter-kube-etcd-cluster-monitoring"}) by (instance)
+  legendFormat: Failed proposal
+  description: etcd Server failed proposal
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-server-failed-proposal-details
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "true"
+    level: cluster
+    metric: server-failed-proposal
+    source: rancher-monitoring
+spec:
+  expression: count(up{job="exporter-kube-etcd-cluster-monitoring"}) by (instance)
+  legendFormat: Failed proposal
+  description: etcd Server failed proposal
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-server-leader-changes-seen-sum-increase
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "false"
+    level: cluster
+    metric: server-leader-changes-seen-sum-increase
+    source: rancher-monitoring
+spec:
+  expression: max(etcd_server_leader_changes_seen_total)
+  legendFormat: Number of leader changes per hour
+  description: etcd server leader changes seen sum increase
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-server-leader-changes-seen-sum-increase-details
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "true"
+    level: cluster
+    metric: server-leader-changes-seen-sum-increase
+    source: rancher-monitoring
+spec:
+  expression: max(etcd_server_leader_changes_seen_total)
+  legendFormat: Number of leader changes per hour
+  description: etcd server leader changes seen sum increase
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-grpc-client-receive-bytes-sum-rate
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "false"
+    graph: rpc-client-traffic
+    level: cluster
+    metric: grpc-client-receive-bytes-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(etcd_network_client_grpc_received_bytes_total[5m]))  *
+    8 / 1024
+  legendFormat: Client traffic in
+  description: etcd grpc client receive bytes sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-grpc-client-receive-bytes-sum-rate-details
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "true"
+    graph: rpc-client-traffic
+    level: cluster
+    metric: grpc-client-receive-bytes-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(etcd_network_client_grpc_received_bytes_total[5m])) by (instance)
+    * 8 / 1024
+  legendFormat: Client traffic in([[instance]])
+  description: etcd grpc client receive bytes sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-db-bytes-sum
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "false"
+    level: cluster
+    metric: db-bytes-sum
+    source: rancher-monitoring
+spec:
+  expression: sum(etcd_debugging_mvcc_db_total_size_in_bytes) 
+  legendFormat: DB size
+  description: etcd db bytes sum
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-db-bytes-sum-details
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "true"
+    level: cluster
+    metric: db-bytes-sum
+    source: rancher-monitoring
+spec:
+  expression: sum(etcd_debugging_mvcc_db_total_size_in_bytes) by (instance)
+  legendFormat: DB size([[instance]])
+  description: etcd db bytes sum
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-grpc-client-transmit-bytes-sum-rate
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "false"
+    graph: rpc-client-traffic
+    level: cluster
+    metric: grpc-client-transmit-bytes-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(etcd_network_client_grpc_sent_bytes_total[5m])) 
+  legendFormat: Client traffic out
+  description: etcd grpc client transmit bytes sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-grpc-client-transmit-bytes-sum-rate-details
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "true"
+    graph: rpc-client-traffic
+    level: cluster
+    metric: grpc-client-transmit-bytes-sum-rate
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(etcd_network_client_grpc_sent_bytes_total[5m])) by (instance)
+  legendFormat: Client traffic out([[instance]])
+  description: etcd grpc client transmit bytes sum rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-server-leader-sum
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "false"
+    level: cluster
+    metric: server-leader-sum
+    source: rancher-monitoring
+spec:
+  expression: max(etcd_server_has_leader)
+  legendFormat: Has leader
+  description: etcd server leader sum
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-server-leader-sum-details
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "true"
+    level: cluster
+    metric: server-leader-sum
+    source: rancher-monitoring
+spec:
+  expression: max(etcd_server_has_leader)
+  legendFormat: Has leader
+  description: etcd server leader sum
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-server-proposals-committed-sum-increase
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "false"
+    graph: proposal
+    level: cluster
+    metric: server-proposals-committed-sum-increase
+    source: rancher-monitoring
+spec:
+  expression: sum(increase(etcd_server_proposals_committed_total[5m])) 
+  legendFormat: Proposal commit rate
+  description: etcd server proposals committed sum increase
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-server-proposals-committed-sum-increase-details
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "true"
+    graph: proposal
+    level: cluster
+    metric: server-proposals-committed-sum-increase
+    source: rancher-monitoring
+spec:
+  expression: sum(increase(etcd_server_proposals_committed_total[5m])) by (instance)
+  legendFormat: Proposal commit rate([[instance]])
+  description: etcd server proposals committed sum increase
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-server-proposals-applied-sum-increase
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "false"
+    graph: proposal
+    level: cluster
+    metric: server-proposals-applied-sum-increase
+    source: rancher-monitoring
+spec:
+  expression: sum(increase(etcd_server_proposals_applied_total[5m])) 
+  legendFormat: Proposals applied
+  description: etcd server proposals applied sum increase
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-server-proposals-applied-sum-increase-details
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "true"
+    graph: proposal
+    level: cluster
+    metric: server-proposals-applied-sum-increase
+    source: rancher-monitoring
+spec:
+  expression: sum(increase(etcd_server_proposals_applied_total[5m])) by (instance)
+  legendFormat: proposals applied([[instance]])
+  description: etcd server proposals applied sum increase
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-server-proposals-failed-sum-increase
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "false"
+    graph: proposal
+    level: cluster
+    metric: server-proposals-failed-sum-increase
+    source: rancher-monitoring
+spec:
+  expression: sum(increase(etcd_server_proposals_failed_total[5m])) 
+  legendFormat: Proposals failed"
+  description: etcd server proposals failed sum increase
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-server-proposals-failed-sum-increase-details
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "true"
+    graph: proposal
+    level: cluster
+    metric: server-proposals-failed-sum-increase
+    source: rancher-monitoring
+spec:
+  expression: sum(increase(etcd_server_proposals_failed_total[5m])) by (instance)
+  legendFormat: proposals failed([[instance]])
+  description: etcd server proposals failed sum increase
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-server-proposals-pending-sum-increase
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "false"
+    graph: proposal
+    level: cluster
+    metric: server-proposals-pending-sum-increase
+    source: rancher-monitoring
+spec:
+  expression: sum(increase(etcd_server_proposals_pending[5m])) 
+  legendFormat: Proposals pending"
+  description: etcd server proposals pending sum increase
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-server-proposals-pending-sum-increase-details
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "true"
+    graph: proposal
+    level: cluster
+    metric: server-proposals-pending-sum-increase
+    source: rancher-monitoring
+spec:
+  expression: sum(increase(etcd_server_proposals_pending[5m])) by (instance)
+  legendFormat: proposals pending([[instance]])
+  description: etcd server proposals pending sum increase
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-disk-wal-fsync-duration-seconds-sum-quantile
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "false"
+    graph: sync-duration
+    level: cluster
+    metric: disk-wal-fsync-duration-seconds-sum-quantile
+    source: rancher-monitoring
+spec:
+  expression: sum(histogram_quantile(0.99, rate(etcd_disk_wal_fsync_duration_seconds_bucket[5m])))
+    
+  legendFormat: WAL fsync"
+  description: etcd disk wal fsync duration seconds sum quantile
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-disk-wal-fsync-duration-seconds-sum-quantile-details
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "true"
+    graph: sync-duration
+    level: cluster
+    metric: disk-wal-fsync-duration-seconds-sum-quantile
+    source: rancher-monitoring
+spec:
+  expression: sum(histogram_quantile(0.99, rate(etcd_disk_wal_fsync_duration_seconds_bucket[5m])))
+    by (instance)
+  legendFormat: WAL fsync([[instance]])
+  description: etcd disk wal fsync duration seconds sum quantile
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-grpc-request-error-percent
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "false"
+    level: cluster
+    metric: grpc-request-error-percent
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(grpc_server_handled_total{grpc_code!="OK"}[5m]))  / sum(rate(grpc_server_handled_total[5m]))
+    
+  legendFormat: Rpc failed rate
+  description: etcd grpc request error percent
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-grpc-request-error-percent-details
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "true"
+    level: cluster
+    metric: grpc-request-error-percent
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(grpc_server_handled_total{grpc_code!="OK"}[5m])) by (instance)
+    / sum(rate(grpc_server_handled_total[5m])) by (instance)
+  legendFormat: RPC failed rate([[instance]])
+  description: etcd grpc request error percent
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-disk-commit-duration-seconds-sum-quantile
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "false"
+    graph: sync-duration
+    level: cluster
+    metric: disk-commit-duration-seconds-sum-quantile
+    source: rancher-monitoring
+spec:
+  expression: sum(histogram_quantile(0.99, rate(etcd_disk_backend_commit_duration_seconds_bucket[5m])))
+    
+  legendFormat: DB fsync
+  description: etcd disk commit duration seconds sum quantile
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-disk-commit-duration-seconds-sum-quantile-details
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "true"
+    graph: sync-duration
+    level: cluster
+    metric: disk-commit-duration-seconds-sum-quantile
+    source: rancher-monitoring
+spec:
+  expression: sum(histogram_quantile(0.99, rate(etcd_disk_backend_commit_duration_seconds_bucket[5m])))
+    by (instance)
+  legendFormat: DB fsync([[instance]])
+  description: etcd disk commit duration seconds sum quantile
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-grpc-request-slow-quantile
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "false"
+    level: cluster
+    metric: grpc-request-slow-quantile
+    source: rancher-monitoring
+spec:
+  expression: sum(histogram_quantile(0.99, sum(rate(grpc_server_handling_seconds_bucket{grpc_type="unary"}[5m]))))
+    
+  legendFormat: Request slow"
+  description: etcd grpc request slow quantile
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-grpc-request-slow-quantile-details
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "true"
+    level: cluster
+    metric: grpc-request-slow-quantile
+    source: rancher-monitoring
+spec:
+  expression: sum(histogram_quantile(0.99, sum(rate(grpc_server_handling_seconds_bucket{grpc_type="unary"}[5m]))))
+    by (instance)
+  legendFormat: Request slow([[instance]])
+  description: etcd grpc request slow quantile
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-active-watch-stream
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "false"
+    graph: etcd-stream
+    level: cluster
+    metric: active-watch-stream
+    source: rancher-monitoring
+spec:
+  expression: sum(grpc_server_started_total{grpc_service="etcdserverpb.Watch",grpc_type="bidi_stream"})
+     - sum(grpc_server_handled_total{grpc_service="etcdserverpb.Watch",grpc_type="bidi_stream"})
+    
+  legendFormat: Watch streams
+  description: Etcd watch stream
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-active-watch-stream-details
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "true"
+    graph: etcd-stream
+    level: cluster
+    metric: active-watch-stream
+    source: rancher-monitoring
+spec:
+  expression: sum(grpc_server_started_total{grpc_service="etcdserverpb.Watch",grpc_type="bidi_stream"})
+    by (instance) - sum(grpc_server_handled_total{grpc_service="etcdserverpb.Watch",grpc_type="bidi_stream"})
+    by (instance)
+  legendFormat: Watch streams([[instance]])
+  description: Etcd watch stream
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-lease-watch-stream
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "false"
+    graph: etcd-stream
+    level: cluster
+    metric: lease-watch-stream
+    source: rancher-monitoring
+spec:
+  expression: sum(grpc_server_started_total{grpc_service="etcdserverpb.Lease",grpc_type="bidi_stream"})
+     - sum(grpc_server_handled_total{grpc_service="etcdserverpb.Lease",grpc_type="bidi_stream"})
+    
+  legendFormat: Lease watch stream
+  description: Etcd lease stream
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-lease-watch-stream-details
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "true"
+    graph: etcd-stream
+    level: cluster
+    metric: lease-watch-stream
+    source: rancher-monitoring
+spec:
+  expression: sum(grpc_server_started_total{grpc_service="etcdserverpb.Lease",grpc_type="bidi_stream"})
+    by (instance) - sum(grpc_server_handled_total{grpc_service="etcdserverpb.Lease",grpc_type="bidi_stream"})
+    by (instance)
+  legendFormat: Lease watch stream([[instance]])
+  description: Etcd lease stream
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-peer-traffic-in
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "false"
+    graph: etcd-peer-traffic
+    level: cluster
+    metric: peer-traffic-in
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(etcd_network_peer_received_bytes_total[5m]))  * 8 / 1024
+  legendFormat: Traffic in"
+  description: Etcd peer traffic in
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-peer-traffic-in-details
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "true"
+    graph: etcd-peer-traffic
+    level: cluster
+    metric: peer-traffic-in
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(etcd_network_peer_received_bytes_total[5m])) by (instance)
+    * 8 / 1024
+  legendFormat: Traffic in([[instance]])
+  description: Etcd peer traffic in
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-peer-traffic-out
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "false"
+    graph: etcd-peer-traffic
+    level: cluster
+    metric: peer-traffic-out
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(etcd_network_peer_sent_bytes_total[5m])) 
+  legendFormat: Traffic out"
+  description: Etcd peer traffic out
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-peer-traffic-out-details
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "true"
+    graph: etcd-peer-traffic
+    level: cluster
+    metric: peer-traffic-out
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(etcd_network_peer_sent_bytes_total[5m])) by (instance)
+  legendFormat: Traffic out([[instance]])
+  description: Etcd peer traffic out
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-proposal-failure-rate
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "false"
+    graph: proposal
+    level: cluster
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(etcd_server_proposals_failed_total[5m])) 
+  legendFormat: Proposal failure"
+  description: Proposal Failure Rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-proposal-failure-rate-details
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "true"
+    graph: proposal
+    level: cluster
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(etcd_server_proposals_failed_total[5m])) by (instance)
+  legendFormat: Proposal failure([[instance]])
+  description: Proposal Failure Rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-rpc-rate
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "false"
+    graph: rpc-rate
+    level: cluster
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(grpc_server_started_total{grpc_type="unary"}[5m])) 
+  legendFormat: Rpc rate"
+  description: rpc-rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-rpc-rate-details
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "true"
+    graph: rpc-rate
+    level: cluster
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(grpc_server_started_total{grpc_type="unary"}[5m])) by (instance)
+  legendFormat: Rpc rate([[instance]])
+  description: rpc-rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-rpc-rate-failed
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "false"
+    graph: rpc-rate
+    level: cluster
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(grpc_server_handled_total{grpc_type="unary",grpc_code!="OK"}[5m]))
+    
+  legendFormat: Rpc failed rate
+  description: rpc-rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-rpc-rate-failed-details
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "true"
+    graph: rpc-rate
+    level: cluster
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(grpc_server_handled_total{grpc_type="unary",grpc_code!="OK"}[5m]))
+    by (instance)
+  legendFormat: Rpc failed rate([[instance]])
+  description: rpc-rate
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-latency-distributions-of-commit-called-by-backend
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "false"
+    graph: disk-operate
+    level: cluster
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(etcd_disk_backend_commit_duration_seconds_sum[1m])) 
+  legendFormat: Commit latency called by backend
+  description: The latency distributions of commit called by backend
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-latency-distributions-of-commit-called-by-backend-details
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "true"
+    graph: disk-operate
+    level: cluster
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(etcd_disk_backend_commit_duration_seconds_sum[1m])) by (instance)
+  legendFormat: Commit latency called by backend([[instance]])
+  description: The latency distributions of commit called by backend
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-latency-distributions-of-fsync-called-by-wal
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "false"
+    graph: disk-operate
+    level: cluster
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(etcd_disk_wal_fsync_duration_seconds_sum[1m])) 
+  legendFormat: Fsync latency called by wal
+  description: The latency distributions of fsync called by wal
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: etcd-latency-distributions-of-fsync-called-by-wal-details
+  labels:
+    app: metric-expression
+    component: etcd
+    details: "true"
+    graph: disk-operate
+    level: cluster
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(etcd_disk_wal_fsync_duration_seconds_sum[1m])) by (instance)
+  legendFormat: Fsync latency called by wal([[instance]])
+  description: The latency distributions of fsync called by wal
+---

@@ -1,0 +1,98 @@
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: scheduler-e-2-e-scheduling-latency-seconds-quantile
+  labels:
+    app: metric-expression
+    component: scheduler
+    details: "false"
+    level: cluster
+    metric: e-2-e-scheduling-latency-seconds-quantile
+    source: rancher-monitoring
+spec:
+  expression: histogram_quantile(0.99, sum(scheduler_e2e_scheduling_latency_microseconds_bucket)
+    by (le, instance)) / 1e+06
+  legendFormat: E2E latency
+  description: scheduler e 2 e scheduling latency seconds quantile
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: scheduler-e-2-e-scheduling-latency-seconds-quantile-details
+  labels:
+    app: metric-expression
+    component: scheduler
+    details: "true"
+    level: cluster
+    metric: e-2-e-scheduling-latency-seconds-quantile
+    source: rancher-monitoring
+spec:
+  expression: histogram_quantile(0.99, sum(scheduler_e2e_scheduling_latency_microseconds_bucket)
+    by (le, instance)) / 1e+06
+  legendFormat: E2E latency([[instance]])
+  description: scheduler e 2 e scheduling latency seconds quantile
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: scheduler-total-preemption-attempts
+  labels:
+    app: metric-expression
+    component: scheduler
+    details: "false"
+    level: cluster
+    metric: total-preemption-attempts
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(scheduler_total_preemption_attempts[5m])) by (instance)
+  legendFormat: Preemption attempts
+  description: Scheduler scheduling algorithm latency seconds quantile
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: scheduler-total-preemption-attempts-details
+  labels:
+    app: metric-expression
+    component: scheduler
+    details: "true"
+    level: cluster
+    metric: total-preemption-attempts
+    source: rancher-monitoring
+spec:
+  expression: sum(rate(scheduler_total_preemption_attempts[5m])) 
+  legendFormat: Preemption attempts([[instance]])
+  description: Scheduler scheduling algorithm latency seconds quantile
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: scheduler-pod-unscheduler
+  labels:
+    app: metric-expression
+    component: scheduler
+    details: "false"
+    level: cluster
+    metric: pod-unscheduler
+    source: rancher-monitoring
+spec:
+  expression: sum(kube_pod_status_scheduled{condition="false"})
+  legendFormat: Scheduling failed pods
+  description: pod unscheduler
+---
+kind: MonitorMetric
+apiVersion: management.cattle.io/v3
+metadata:
+  name: scheduler-pod-unscheduler-details
+  labels:
+    app: metric-expression
+    component: scheduler
+    details: "true"
+    level: cluster
+    metric: pod-unscheduler
+    source: rancher-monitoring
+spec:
+  expression: sum(kube_pod_status_scheduled{condition="false"})
+  legendFormat: Scheduling failed pods
+  description: pod unscheduler
+---
