@@ -69,15 +69,6 @@ spec:
                 {{- if .Values.nginx.customConfigMap }}
                 cp -Lrf /tmp/nginx.conf /etc/nginx/nginx.conf;
                 {{- end }}
-                {{- if .Values.nginx.customArtifactoryConfigMap }}
-                cp -Lrf /tmp/conf.d/artifactory*.conf /etc/nginx/conf.d/artifactory.conf;
-                {{- else }}
-                if ! grep -q 'upstream' /etc/nginx/conf.d/artifactory.conf; then
-                sed -i -e 's,proxy_pass .*,proxy_pass     http://{{ $serviceName }}:{{ $servicePort }}/artifactory/;,g' \
-                    -e 's,server_name .*,server_name ~(?<repo>.+)\\.{{ $serviceName }} {{ $serviceName }};,g' \
-                    /etc/nginx/conf.d/artifactory.conf;
-                fi;
-                {{- end }}
                 if [ -f /tmp/replicator-nginx.conf ]; then
                 cp -fv /tmp/replicator-nginx.conf /etc/nginx/conf.d/replicator-nginx.conf;
                 fi;
@@ -86,6 +77,14 @@ spec:
                 cp -fv /tmp/ssl/* /var/opt/jfrog/nginx/ssl;
                 fi;
                 until [ -f /etc/nginx/conf.d/artifactory.conf ]; do sleep 1; done;
+                if ! grep -q 'upstream' /etc/nginx/conf.d/artifactory.conf; then
+                sed -i -e 's,proxy_pass .*,proxy_pass     http://{{ $serviceName }}:{{ $servicePort }}/artifactory/;,g' \
+                    -e 's,server_name .*,server_name ~(?<repo>.+)\\.{{ $serviceName }} {{ $serviceName }};,g' \
+                    /etc/nginx/conf.d/artifactory.conf;
+                fi;
+                if ! grep -q 'proxy_http_version' /etc/nginx/conf.d/artifactory.conf; then
+                sed -i 's,\(proxy_next_upstream .*\),proxy_http_version  1.1;\n    \1,g' /etc/nginx/conf.d/artifactory.conf;
+                fi;
                 sleep 5; nginx -s reload; touch /var/log/nginx/conf.done
         env:
         - name: ART_BASE_URL
@@ -96,13 +95,8 @@ spec:
           {{- end }}
         - name: SSL
           value: "{{ .Values.nginx.env.ssl }}"
-        {{- if .Values.nginx.customArtifactoryConfigMap }}
-        - name: SKIP_AUTO_UPDATE_CONFIG
-          value: "true"
-        {{- else }}
         - name: SKIP_AUTO_UPDATE_CONFIG
           value: "{{ .Values.nginx.env.skipAutoConfigUpdate }}"
-        {{- end }}
         ports:
         - containerPort: {{ .Values.nginx.internalPortHttp }}
         - containerPort: {{ .Values.nginx.internalPortHttps }}
@@ -124,10 +118,6 @@ spec:
         {{- if .Values.nginx.customConfigMap }}
         - name: nginx-config
           mountPath: "/tmp/"
-        {{- end }}
-        {{- if .Values.nginx.customArtifactoryConfigMap }}
-        - name: artifactory-nginx-config
-          mountPath: "/tmp/conf.d"
         {{- end }}
         resources:
 {{ toYaml .Values.nginx.resources | indent 10 }}
@@ -176,11 +166,6 @@ spec:
         configMap:
           name: {{ .Values.nginx.customConfigMap }}
       {{- end }}
-      {{- if .Values.nginx.customArtifactoryConfigMap }}
-      - name: artifactory-nginx-config
-        configMap:
-          name: {{ .Values.nginx.customArtifactoryConfigMap }}
-      {{- end}}
       - name: nginx-volume
       {{- if .Values.nginx.persistence.enabled }}
         persistentVolumeClaim:

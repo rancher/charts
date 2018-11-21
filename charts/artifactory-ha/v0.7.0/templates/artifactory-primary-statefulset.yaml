@@ -61,11 +61,7 @@ spec:
       {{- if .Values.postgresql.enabled }}
           until nc -z -w 2 {{ .Release.Name }}-postgresql {{ .Values.postgresql.service.port }} && echo database ok; do
       {{- else }}
-        {{- if and .Values.database.host .Values.database.port }}
           until nc -z -w 2 {{ .Values.database.host }} {{ .Values.database.port }} && echo database ok; do
-        {{- else }}
-          until true; do
-        {{- end }}
       {{- end }}
             sleep 2;
           done;
@@ -75,15 +71,6 @@ spec:
         imagePullPolicy: {{ .Values.artifactory.image.pullPolicy }}
         securityContext:
           allowPrivilegeEscalation: false
-      {{- if .Values.artifactory.preStartCommand }}
-        command:
-        - '/bin/sh'
-        - '-c'
-        - >
-          echo "Running custom preStartCommand command";
-          {{ .Values.artifactory.preStartCommand }};
-          /entrypoint-artifactory.sh
-      {{- end }}
         lifecycle:
           postStart:
             exec:
@@ -92,7 +79,7 @@ spec:
               - '-c'
               - >
                 {{- if .Values.artifactory.configMapName }}
-                cp -Lrf /bootstrap/* /artifactory_extra_conf/;
+                cp -Lrfv /bootstrap/* /artifactory_extra_conf/
                 {{- end }}
                 {{- if .Values.artifactory.replicator.enabled }}
                 mkdir -p {{ .Values.artifactory.persistence.mountPath }}/replicator/etc;
@@ -124,38 +111,23 @@ spec:
               key: postgres-password
       {{- else }}
         - name: DB_TYPE
-          value: '{{ required "Must set database.type when not using the PostgreSQL sub-chart (postgresql.enabled=false) " .Values.database.type }}'
-        {{- if or .Values.database.url .Values.database.secrets.url }}
-        - name: DB_URL
-        {{- if .Values.database.url }}
-          value: '{{.Values.database.url }}'
-        {{- else }}
-          valueFrom:
-            secretKeyRef:
-              name: {{ .Values.database.secrets.url.name }}
-              key: {{ .Values.database.secrets.url.key }}
-        {{- end }}
-        {{- else }}
+          value: '{{ .Values.database.type }}'
         - name: DB_HOST
           value: '{{ .Values.database.host }}'
         - name: DB_PORT
           value: '{{ .Values.database.port }}'
-        {{- end }}
-        {{- if .Values.database.secrets.user }}
+      {{- if .Values.database.secrets }}
         - name: DB_USER
           valueFrom:
             secretKeyRef:
               name: {{ .Values.database.secrets.user.name }}
               key: {{ .Values.database.secrets.user.key }}
-        {{- end }}
-        {{- if .Values.database.secrets.password }}
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
               name: {{ .Values.database.secrets.password.name }}
               key: {{ .Values.database.secrets.password.key }}
-        {{- else }}
-        {{- if and .Values.database.type .Values.database.user }}
+      {{- else }}
         - name: DB_USER
           value: '{{ .Values.database.user }}'
         - name: DB_PASSWORD
@@ -163,8 +135,7 @@ spec:
             secretKeyRef:
               name: {{ template "artifactory-ha.fullname" . }}
               key: db-password
-        {{- end }}
-        {{- end }}
+      {{- end }}
       {{- end }}
         - name: EXTRA_JAVA_OPTIONS
           value: "
@@ -251,7 +222,7 @@ spec:
         readinessProbe:
           httpGet:
             path: '/artifactory/webapp/#/login'
-            port: 8040
+            port: 8081
           initialDelaySeconds: {{ .Values.artifactory.readinessProbe.initialDelaySeconds }}
           periodSeconds: {{ .Values.artifactory.readinessProbe.periodSeconds }}
           timeoutSeconds: {{ .Values.artifactory.readinessProbe.timeoutSeconds }}
@@ -262,7 +233,7 @@ spec:
         livenessProbe:
           httpGet:
             path: '/artifactory/webapp/#/login'
-            port: 8040
+            port: 8081
           initialDelaySeconds: {{ .Values.artifactory.livenessProbe.initialDelaySeconds }}
           periodSeconds: {{ .Values.artifactory.livenessProbe.periodSeconds }}
           timeoutSeconds: {{ .Values.artifactory.livenessProbe.timeoutSeconds }}
@@ -273,31 +244,9 @@ spec:
       nodeSelector:
 {{ toYaml . | indent 8 }}
     {{- end }}
-    {{- if .Values.artifactory.primary.affinity }}
     {{- with .Values.artifactory.primary.affinity }}
       affinity:
 {{ toYaml . | indent 8 }}
-    {{- end }}
-    {{- else if eq .Values.artifactory.primary.podAntiAffinity.type "soft" }}
-      affinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              topologyKey: {{ .Values.artifactory.primary.podAntiAffinity.topologyKey }}
-              labelSelector:
-                matchLabels:
-                  app: {{ template "artifactory-ha.name" . }}
-                  release: {{ .Release.Name }}
-    {{- else if eq .Values.artifactory.primary.podAntiAffinity.type "hard" }}
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - topologyKey: {{ .Values.artifactory.primary.podAntiAffinity.topologyKey }}
-            labelSelector:
-              matchLabels:
-                app: {{ template "artifactory-ha.name" . }}
-                release: {{ .Release.Name }}
     {{- end }}
     {{- with .Values.artifactory.primary.tolerations }}
       tolerations:
