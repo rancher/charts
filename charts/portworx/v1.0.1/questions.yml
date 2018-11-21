@@ -1,0 +1,173 @@
+categories:
+- storage
+namespace: kube-system
+labels:
+  io.rancher.certified: partner
+questions:
+
+################################### KVDB options ################################
+- variable: internalKVDB
+  description: "Select if you wish to run internal kvdb. Note internal kvdb is in beta. DO NOT enable internal kvdb when running with KOPS. The kvdb endpoints provided above will be ignored."
+  type: boolean
+  label: Enable Internal KVDB store
+  default: false
+  group: "Key value store parameters (Required)"
+- variable: kvdb
+  description: "Points to your key value store, such as an etcd cluster or a consul cluster. Use semicolon separated for multiple endpoints. (example: etcd:http://etcd-1.com.net:2379;etcd:http://etcd-2.com.net:2379;etcd:http://etcd-3.com.net:2379)"
+  type: string
+  label: "Endpoint address"
+  required: true
+  show_if: "internalKVDB=false"
+  group: "Key value store parameters (Required)"
+- variable: etcd.ca
+  description: "Name of CA file for ETCD authentication. Example: etcd-ca.crt. Follow https://docs.portworx.com/scheduler/kubernetes/etcd-certs-using-secrets.html to create a Kubernetes secret for the etcd certs."
+  type: string
+  label: "ETCD CA file"
+  group: "Key value store security Parameters"
+  show_if: "internalKVDB=false"
+- variable: etcd.cert
+  description: "Name of certificate for ETCD authentication. Example: etcd.crt"
+  type: string
+  label: "ETCD cert file"
+  group: "Key value store security Parameters"
+  show_if: "internalKVDB=false"
+- variable: etcd.key
+  description: "Name of certificate key for ETCD authentication Example: etcd.key"
+  type: string
+  label: "ETCD cert key file"
+  group: "Key value store security Parameters"
+  show_if: "internalKVDB=false"
+- variable: etcd.credentials
+  description: "Username and password for ETCD authentication in the form user:password. Not needed if using certificates."
+  type: string
+  label: "ETCD credentials"
+  group: "Key value store security Parameters"
+  show_if: "internalKVDB=false"
+- variable: consul.acl
+  description: "ACL token value used for Consul authentication. (example: 398073a8-5091-4d9c-871a-bbbeb030d1f6). Needed only for consul."
+  type: string
+  group: "Key value store security Parameters"
+  label: Consul ACL Token
+  show_if: "internalKVDB=false"
+
+
+################################### Storage options ################################
+- variable: drives
+  description: "This is a ';' seperated list of drives. For eg: '/dev/sda;/dev/sdb;/dev/sdc'. If left empty, Portworx will try to use available drives."
+  label: "Drives"
+  type: string
+  group: "Storage Parameters"
+- variable: usefileSystemDrive
+  default: false
+  label: "Use drives with a filesystem."
+  description: "Instructs PX to use drives with a filesystem."
+  type: boolean
+  group: "Storage Parameters"
+- variable: usedrivesAndPartitions
+  default: false
+  description: "Instructs PX to use unmounted drives and partitions."
+  type: boolean
+  label: "Use unmounted drives and partitions"
+  group: "Storage Parameters"
+- variable: journalDevice
+  description: "This allows PX to create it’s own journal partition on the best drive to absorb PX metadata writes. Journal writes are small with frequent syncs and hence a separate journal partition will enable better performance. Use value 'auto' if you want Portworx to create it's own journal partition."
+  type: string
+  label: "Journal Device"
+  group: "Storage Parameters"
+
+
+################################### Network options ################################
+- variable: dataInterface
+  description: "Specify data network interface. This is useful if your instances have non-standard network interfaces. (example: eth1). By default, Portworx will select the first routable interface."
+  type: string
+  label: "Data Network Interface"
+  group: "Network Parameters"
+- variable: managementInterface
+  description: "Specify management network interface. This is useful if your instances have non-standard network interfaces. (example: eth1). By default, Portworx will select the first routable interface.<Paste>"
+  type: string
+  label: "Management Network Interface"
+  group: "Network Parameters"
+
+################################### Platform options ################################
+- variable: pksInstall
+  default: false
+  label: "Installing on Pivotal Container Service (PKS)"
+  description: "Select if installing on Pivotal Container service."
+  type: boolean
+  group: "Platform Parameters"
+- variable: AKSorEKSInstall
+  default: false
+  label: "Installing on AKS or EKS"
+  description: "Select if installing on Amazon Elastic Container Service for Kubernetes (EKS) or Azure Kubernetes Service (AKS)."
+  type: boolean
+  group: "Platform Parameters"
+- variable: isTargetOSCoreOS
+  default: false
+  label: "Installing on CoreOS"
+  description: "Select if installing on CoreOS"
+  type: boolean
+  group: "Platform Parameters"
+
+################################### Registry settings options ################################
+- variable: registrySecret
+  description: "Specify a custom Kubernetes secret that will be used to authenticate with a container registry. Must be defined in kube-system namespace. (example: regcred)"
+  type: string
+  label: "Registry Kubernetes Secret"
+  group: "Container Registry Parameters"
+- variable: customRegistryURL
+  description: "Specify a custom container registry server (including repository) that will be used instead of index.docker.io to download Docker images. (example: dockerhub.acme.net:5443 or myregistry.com/myrepository/)"
+  label: "Custom Registry URL"
+  type: string
+  group: "Container Registry Parameters"
+
+
+
+################################## Optional features ############################
+- variable: csi
+  description: "Select if you want to enable CSI (Container Storage Interface). CSI is still in ALPHA."
+  type: boolean
+  label: "Enable CSI"
+  default: false
+  required: false
+  group: "Advanced parameters"
+- variable: stork
+  default: true
+  label: "Install Stork"
+  description: "Storage Orchestration Runtime for Kubernetes (STORK) is a scheduler plugin that provides hyper-convergence, snapshots and storage-aware scheduling (recommended)."
+  type: boolean
+  group: "Advanced parameters"
+- variable: storkVersion
+  default: "1.2.0"
+  label: "Stork version"
+  description: "Version of Stork to be used"
+  type: string
+  group: "Advanced parameters"
+- variable: lighthouse
+  default: false
+  label: "Lighthouse"
+  description: "Select if you want to install Portworx Lighthouse GUI."
+  type: boolean
+  group: "Advanced parameters"
+- variable: lighthouseVersion
+  default: "1.4.0"
+  description: "Version of the Lighthouse GUI to be used"
+  type: string
+  label: "Lighthouse version"
+  group: "Advanced parameters"
+- variable: envVars
+  label: "Environment variables"
+  description: "semi-colon-separated list of environment variables that will be exported to portworx. (example: API_SERVER=http://lighthouse-new.portworx.com;MYENV1=val1;MYENV2=val2)"
+  type: string
+  group: "Advanced parameters"
+- variable: imageVersion
+  default: "1.5.1"
+  description: "The Portworx image version to be used while deploying"
+  type: string
+  label: Portworx version to be deployed.
+  group: "Advanced parameters"
+- variable: clusterName
+  description: "Name of the Portworx Cluster"
+  type: string
+  label: Portworx cluster name
+  default: mycluster
+  group: "Advanced parameters"
