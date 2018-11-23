@@ -1,11 +1,15 @@
+{{- if .Values.ingress.enabled -}}
 {{- $servicePort := .Values.service.externalPort -}}
 {{- $serviceName := include "chartmuseum.fullname" . -}}
-{{- if .Values.ingress.enabled }}
----
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: {{ include "chartmuseum.fullname" . }}
+  name: {{ template "chartmuseum.fullname" . }}
+  labels:
+    app: {{ template "chartmuseum.name" . }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
   annotations:
 {{ toYaml .Values.ingress.annotations | indent 4 }}
   labels:
@@ -15,15 +19,15 @@ metadata:
 {{ include "chartmuseum.labels.standard" . | indent 4 }}
 spec:
   rules:
-  {{- range $host := .Values.ingress.hosts }}
-  - host: {{ $host }}
-    http:
-      paths:
-      - path:
-        backend:
-          serviceName: {{ $serviceName }}
-          servicePort: {{ $servicePort }}
-  {{- end -}}
+    {{- range $host := .Values.ingress.hosts }}
+    - host: {{ $host }}
+      http:
+        paths:
+        - path:
+          backend:
+            serviceName: {{ $serviceName }}
+            servicePort: {{ $servicePort }}
+    {{- end -}}
   {{- if .Values.ingress.tls }}
   tls:
 {{ toYaml .Values.ingress.tls | indent 4 }}
