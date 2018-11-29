@@ -289,7 +289,7 @@ This can be done with the following parameters
 # Make sure your Artifactory Docker image has the MySQL database driver in it
 ...
 --set postgresql.enabled=false \
---set artifactory.preStartCommand="curl -L -o /opt/jfrog/artifactory/tomcat/lib/mysql-connector-java-5.1.41.jar https://jcenter.bintray.com/mysql/mysql-connector-java/5.1.41/mysql-connector-java-5.1.41.jar" \
+--set artifactory.postStartCommand="curl -L -o /opt/jfrog/artifactory/tomcat/lib/mysql-connector-java-5.1.41.jar https://jcenter.bintray.com/mysql/mysql-connector-java/5.1.41/mysql-connector-java-5.1.41.jar && chown 1030:1030 /opt/jfrog/artifactory/tomcat/lib/mysql-connector-java-5.1.41.jar" \
 --set database.type=mysql \
 --set database.host=${DB_HOST} \
 --set database.port=${DB_PORT} \
@@ -353,8 +353,6 @@ The following table lists the configurable parameters of the artifactory chart a
 | `artifactory.image.version`          | Container image tag                  | `.Chart.AppVersion`                        |
 | `artifactory.masterKey`           | Artifactory Master Key. Can be generated with `openssl rand -hex 32` |`FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF`|
 | `artifactory.masterKeySecretName` | Artifactory Master Key secret name                                   |                                                                  |
-| `artifactory.preStartCommand`                    | Command to run before entrypoint starts |                             |
-| `artifactory.postStartCommand`                   | Command to run after container starts   |                             |
 | `artifactory.license.secret` | Artifactory license secret name              |                                            |
 | `artifactory.license.dataKey`| Artifactory license secret data key          |                                            |
 | `artifactory.service.name`   | Artifactory service name to be set in Nginx configuration | `artifactory`                 |
@@ -462,7 +460,6 @@ The following table lists the configurable parameters of the artifactory chart a
 | `nginx.env.ssl`                   | Nginx Environment enable ssl               | `true`                                  |
 | `nginx.env.skipAutoConfigUpdate`  | Nginx Environment to disable auto configuration update | `false`                     |
 | `nginx.customConfigMap`           | Nginx CustomeConfigMap name for `nginx.conf` | ` `                                   |
-| `nginx.customArtifactoryConfigMap`| Nginx CustomeConfigMap name for `artifactory-ha.conf` | ` `                          |
 | `nginx.resources.requests.memory` | Nginx initial memory request               | `250Mi`                                 |
 | `nginx.resources.requests.cpu`    | Nginx initial cpu request                  | `100m`                                  |
 | `nginx.resources.limits.memory`   | Nginx memory limit                         | `250Mi`                                 |
@@ -481,15 +478,12 @@ The following table lists the configurable parameters of the artifactory chart a
 | `database.type`                  | External database type (`postgresql`, `mysql`, `oracle` or `mssql`)  |                       |
 | `database.host`                  | External database hostname                         |                                         |
 | `database.port`                  | External database port                             |                                         |
-| `database.url`                   | External database connection URL                   |                                         |
 | `database.user`                  | External database username                         |                                         |
 | `database.password`              | External database password                         |                                         |
 | `database.secrets.user.name`     | External database username `Secret` name           |                                         |
 | `database.secrets.user.key`      | External database username `Secret` key            |                                         |
 | `database.secrets.password.name` | External database password `Secret` name           |                                         |
 | `database.secrets.password.key`  | External database password `Secret` key            |                                         |
-| `database.secrets.url.name     ` | External database url `Secret` name                |                                         |
-| `database.secrets.url.key`       | External database url `Secret` key                 |                                         |
 
 
 Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`.

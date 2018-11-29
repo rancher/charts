@@ -1,7 +1,7 @@
 apiVersion: apps/v1beta2
 kind: StatefulSet
 metadata:
-  name: {{ template "artifactory-ha.primary.name" . }}
+  name: {{ template "artifactory-ha.node.name" . }}
   labels:
     app: {{ template "artifactory-ha.name" . }}
     chart: {{ template "artifactory-ha.chart" . }}
@@ -9,20 +9,20 @@ metadata:
     heritage: {{ .Release.Service }}
     release: {{ .Release.Name }}
 spec:
-  serviceName: {{ template "artifactory-ha.primary.name" . }}
-  replicas: 1
+  serviceName: {{ template "artifactory-ha.node.name" . }}
+  replicas: {{ .Values.artifactory.node.replicaCount }}
   updateStrategy:
     type: RollingUpdate
   selector:
     matchLabels:
       app: {{ template "artifactory-ha.name" . }}
-      role: {{ template "artifactory-ha.primary.name" . }}
+      role: {{ template "artifactory-ha.node.name" . }}
       release: {{ .Release.Name }}
   template:
     metadata:
       labels:
         app: {{ template "artifactory-ha.name" . }}
-        role: {{ template "artifactory-ha.primary.name" . }}
+        role: {{ template "artifactory-ha.node.name" . }}
         component: {{ .Values.artifactory.name }}
         release: {{ .Release.Name }}
       annotations:
@@ -61,11 +61,7 @@ spec:
       {{- if .Values.postgresql.enabled }}
           until nc -z -w 2 {{ .Release.Name }}-postgresql {{ .Values.postgresql.service.port }} && echo database ok; do
       {{- else }}
-        {{- if and .Values.database.host .Values.database.port }}
           until nc -z -w 2 {{ .Values.database.host }} {{ .Values.database.port }} && echo database ok; do
-        {{- else }}
-          until true; do
-        {{- end }}
       {{- end }}
             sleep 2;
           done;
@@ -75,15 +71,6 @@ spec:
         imagePullPolicy: {{ .Values.artifactory.image.pullPolicy }}
         securityContext:
           allowPrivilegeEscalation: false
-      {{- if .Values.artifactory.preStartCommand }}
-        command:
-        - '/bin/sh'
-        - '-c'
-        - >
-          echo "Running custom preStartCommand command";
-          {{ .Values.artifactory.preStartCommand }};
-          /entrypoint-artifactory.sh
-      {{- end }}
         lifecycle:
           postStart:
             exec:
@@ -91,9 +78,6 @@ spec:
               - '/bin/sh'
               - '-c'
               - >
-                {{- if .Values.artifactory.configMapName }}
-                cp -Lrf /bootstrap/* /artifactory_extra_conf/;
-                {{- end }}
                 {{- if .Values.artifactory.replicator.enabled }}
                 mkdir -p {{ .Values.artifactory.persistence.mountPath }}/replicator/etc;
                 cp -fv /tmp/replicator/replicator.yaml {{ .Values.artifactory.persistence.mountPath }}/replicator/etc/replicator.yaml;
@@ -116,7 +100,7 @@ spec:
         - name: DB_PORT
           value: '{{ .Values.postgresql.service.port }}'
         - name: DB_USER
-          value: '{{ .Values.postgresql.postgresUser }}'
+          value: '{{.Values.postgresql.postgresUser }}'
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
@@ -124,38 +108,23 @@ spec:
               key: postgres-password
       {{- else }}
         - name: DB_TYPE
-          value: '{{ required "Must set database.type when not using the PostgreSQL sub-chart (postgresql.enabled=false) " .Values.database.type }}'
-        {{- if or .Values.database.url .Values.database.secrets.url }}
-        - name: DB_URL
-        {{- if .Values.database.url }}
-          value: '{{.Values.database.url }}'
-        {{- else }}
-          valueFrom:
-            secretKeyRef:
-              name: {{ .Values.database.secrets.url.name }}
-              key: {{ .Values.database.secrets.url.key }}
-        {{- end }}
-        {{- else }}
+          value: '{{ .Values.database.type }}'
         - name: DB_HOST
           value: '{{ .Values.database.host }}'
         - name: DB_PORT
           value: '{{ .Values.database.port }}'
-        {{- end }}
-        {{- if .Values.database.secrets.user }}
+      {{- if .Values.database.secrets }}
         - name: DB_USER
           valueFrom:
             secretKeyRef:
               name: {{ .Values.database.secrets.user.name }}
               key: {{ .Values.database.secrets.user.key }}
-        {{- end }}
-        {{- if .Values.database.secrets.password }}
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
               name: {{ .Values.database.secrets.password.name }}
               key: {{ .Values.database.secrets.password.key }}
-        {{- else }}
-        {{- if and .Values.database.type .Values.database.user }}
+      {{- else }}
         - name: DB_USER
           value: '{{ .Values.database.user }}'
         - name: DB_PASSWORD
@@ -163,22 +132,21 @@ spec:
             secretKeyRef:
               name: {{ template "artifactory-ha.fullname" . }}
               key: db-password
-        {{- end }}
-        {{- end }}
+      {{- end }}
       {{- end }}
         - name: EXTRA_JAVA_OPTIONS
           value: "
       {{- if .Values.artifactory.javaOpts.other }}
           {{ .Values.artifactory.javaOpts.other }}
       {{- end}}
-      {{- if .Values.artifactory.primary.javaOpts.other }}
-          {{ .Values.artifactory.primary.javaOpts.other }}
+      {{- if .Values.artifactory.node.javaOpts.other }}
+          {{ .Values.artifactory.node.javaOpts.other }}
       {{- end}}
-      {{- if .Values.artifactory.primary.javaOpts.xms }}
-          -Xms{{ .Values.artifactory.primary.javaOpts.xms }}
+      {{- if .Values.artifactory.node.javaOpts.xms }}
+          -Xms{{ .Values.artifactory.node.javaOpts.xms }}
       {{- end}}
-      {{- if .Values.artifactory.primary.javaOpts.xmx }}
-          -Xmx{{ .Values.artifactory.primary.javaOpts.xmx }}
+      {{- if .Values.artifactory.node.javaOpts.xmx }}
+          -Xmx{{ .Values.artifactory.node.javaOpts.xmx }}
       {{- end}}
       {{- if .Values.artifactory.replicator.enabled }}
           -Dartifactory.releasebundle.feature.enabled=true
@@ -194,13 +162,15 @@ spec:
               name: "{{ .Values.artifactory.masterKeySecretName | default (include "artifactory-ha.fullname" .) }}"
               key: master-key
         - name: HA_IS_PRIMARY
-          value: "true"
+          value: "false"
         - name: HA_MEMBERSHIP_PORT
           value: "{{ .Values.artifactory.membershipPort }}"
         - name: HA_NODE_ID
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
+        - name: ART_PRIMARY_BASE_URL
+          value: 'http://{{ template "artifactory-ha.primary.name" . }}:8081/artifactory'
       {{- if eq .Values.artifactory.persistence.type "nfs" }}
         - name: HA_DATA_DIR
           value: "{{ .Values.artifactory.persistence.nfs.dataDir }}"
@@ -209,15 +179,9 @@ spec:
       {{- end }}
         ports:
         - containerPort: {{ .Values.artifactory.internalPort }}
-        {{- if .Values.artifactory.replicator.enabled }}
-        - containerPort: {{ .Values.artifactory.internalPortReplicator }}
-        {{- end }}
         volumeMounts:
         - name: volume
           mountPath: "{{ .Values.artifactory.persistence.mountPath }}"
-        - name: artifactory-inactiveservercleaner
-          mountPath: "/tmp/plugins/inactiveServerCleaner.groovy"
-          subPath: inactiveServerCleaner.groovy
       {{- if eq .Values.artifactory.persistence.type "nfs" }}
         - name: artifactory-ha-data
           mountPath: "{{ .Values.artifactory.persistence.nfs.dataDir }}"
@@ -228,15 +192,6 @@ spec:
           mountPath: "/artifactory_extra_conf/binarystore.xml"
           subPath: binarystore.xml
       {{- end }}
-      {{- if .Values.artifactory.configMapName }}
-        - name: bootstrap-config
-          mountPath: "/bootstrap/"
-      {{- end }}
-      {{- if .Values.artifactory.license.secret }}
-        - name: artifactory-license
-          mountPath: "/artifactory_extra_conf/artifactory.cluster.license"
-          subPath: {{ .Values.artifactory.license.dataKey }}
-      {{- end }}
       {{- if .Values.artifactory.distributionCerts }}
         - name: distribution-certs
           mountPath: "/tmp/access/etc/keys"
@@ -246,12 +201,12 @@ spec:
           mountPath: "/tmp/replicator/replicator.yaml"
       {{- end }}
         resources:
-{{ toYaml .Values.artifactory.primary.resources | indent 10 }}
+{{ toYaml .Values.artifactory.node.resources | indent 10 }}
         {{- if .Values.artifactory.readinessProbe.enabled }}
         readinessProbe:
           httpGet:
             path: '/artifactory/webapp/#/login'
-            port: 8040
+            port: 8081
           initialDelaySeconds: {{ .Values.artifactory.readinessProbe.initialDelaySeconds }}
           periodSeconds: {{ .Values.artifactory.readinessProbe.periodSeconds }}
           timeoutSeconds: {{ .Values.artifactory.readinessProbe.timeoutSeconds }}
@@ -262,44 +217,46 @@ spec:
         livenessProbe:
           httpGet:
             path: '/artifactory/webapp/#/login'
-            port: 8040
+            port: 8081
           initialDelaySeconds: {{ .Values.artifactory.livenessProbe.initialDelaySeconds }}
           periodSeconds: {{ .Values.artifactory.livenessProbe.periodSeconds }}
           timeoutSeconds: {{ .Values.artifactory.livenessProbe.timeoutSeconds }}
           failureThreshold: {{ .Values.artifactory.livenessProbe.failureThreshold }}
           successThreshold: {{ .Values.artifactory.livenessProbe.successThreshold }}
         {{- end }}
-    {{- with .Values.artifactory.primary.nodeSelector }}
+    {{- with .Values.artifactory.node.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}
     {{- end }}
-    {{- if .Values.artifactory.primary.affinity }}
-    {{- with .Values.artifactory.primary.affinity }}
+    {{- if .Values.artifactory.node.affinity }}
+    {{- with .Values.artifactory.node.affinity }}
       affinity:
 {{ toYaml . | indent 8 }}
     {{- end }}
-    {{- else if eq .Values.artifactory.primary.podAntiAffinity.type "soft" }}
+    {{- else if eq .Values.artifactory.node.podAntiAffinity.type "soft" }}
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
           - weight: 100
             podAffinityTerm:
-              topologyKey: {{ .Values.artifactory.primary.podAntiAffinity.topologyKey }}
+              topologyKey: {{ .Values.artifactory.node.podAntiAffinity.topologyKey }}
               labelSelector:
                 matchLabels:
                   app: {{ template "artifactory-ha.name" . }}
                   release: {{ .Release.Name }}
-    {{- else if eq .Values.artifactory.primary.podAntiAffinity.type "hard" }}
+                  role: {{ template "artifactory-ha.node.name" . }}
+    {{- else if eq .Values.artifactory.node.podAntiAffinity.type "hard" }}
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
-          - topologyKey: {{ .Values.artifactory.primary.podAntiAffinity.topologyKey }}
+          - topologyKey: {{ .Values.artifactory.node.podAntiAffinity.topologyKey }}
             labelSelector:
               matchLabels:
                 app: {{ template "artifactory-ha.name" . }}
                 release: {{ .Release.Name }}
+                role: {{ template "artifactory-ha.node.name" . }}
     {{- end }}
-    {{- with .Values.artifactory.primary.tolerations }}
+    {{- with .Values.artifactory.node.tolerations }}
       tolerations:
 {{ toYaml . | indent 8 }}
     {{- end }}
@@ -316,19 +273,6 @@ spec:
       - name: replicator-config
         configMap:
           name: {{ template "artifactory-ha.fullname" . }}-replicator-config
-      {{- end }}
-      {{- if .Values.artifactory.configMapName }}
-      - name: bootstrap-config
-        configMap:
-          name: {{ .Values.artifactory.configMapName }}
-      {{- end}}
-      - name: artifactory-inactiveservercleaner
-        configMap:
-          name: {{ template "artifactory-ha.fullname" . }}-isc
-      {{- if .Values.artifactory.license.secret }}
-      - name: artifactory-license
-        secret:
-          secretName: {{ .Values.artifactory.license.secret }}
       {{- end }}
       {{- if eq .Values.artifactory.persistence.type "nfs" }}
       - name: artifactory-ha-data
@@ -347,10 +291,10 @@ spec:
   - metadata:
       name: volume
     spec:
-    {{- if .Values.artifactory.primary.persistence.existingClaim }}
+    {{- if .Values.artifactory.node.persistence.existingClaim }}
       selector:
         matchLabels:
-          app: artifactory-ha-primary
+          app: artifactory-ha-member
     {{- else }}
       {{- if .Values.artifactory.persistence.storageClass }}
       {{- if (eq "-" .Values.artifactory.persistence.storageClass) }}

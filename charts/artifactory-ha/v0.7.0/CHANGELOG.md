@@ -1,24 +1,6 @@
 # JFrog Artifactory-ha Chart Changelog
 All changes to this chart will be documented in this file.
 
-## [0.7.6] - Nov 18, 2018
-* Added support for configMap to use custom Reverse Proxy Configuration with Nginx
-
-## [0.7.5] - Nov 14, 2018
-* Updated Artifactory version to 6.5.3
-
-## [0.7.4] - Nov 13, 2018
-* Allow pod anti-affinity settings to include primary node
-
-## [0.7.3] - Nov 12, 2018
-* Support artifactory.preStartCommand for running command before entrypoint starts
-
-## [0.7.2] - Nov 7, 2018
-* Support database.url parameter (DB_URL)
-
-## [0.7.1] - Oct 29, 2018
-* Change probes port to 8040 (so they will not be blocked when all tomcat threads on 8081 are exhausted)
-
 ## [0.7.0] - Oct 28, 2018
 * Update postgresql chart to version 0.9.5 to be able and use `postgresConfig` options
 
