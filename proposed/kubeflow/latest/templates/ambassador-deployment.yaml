@@ -1,0 +1,50 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    ksonnet.io/component: ambassador
+  name: ambassador
+  namespace: kubeflow
+spec:
+  replicas: {{ .Values.ambassador.replicas }}
+  template:
+    metadata:
+      labels:
+        service: ambassador
+      namespace: kubeflow
+    spec:
+      containers:
+      - name: ambassador
+        env:
+        - name: AMBASSADOR_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: AMBASSADOR_SINGLE_NAMESPACE
+          value: "true"
+        image: "{{ .Values.ambassador.image.repository }}:{{ .Values.ambassador.image.tag }}"
+        livenessProbe:
+          httpGet:
+            path: /ambassador/v0/check_alive
+            port: 8877
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ambassador/v0/check_ready
+            port: 8877
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        resources:
+          limits:
+            cpu: 1
+            memory: 400Mi
+          requests:
+            cpu: 200m
+            memory: 100Mi
+      - name: statsd
+        image: "{{ .Values.ambassador.statsdImage.repository }}:{{ .Values.ambassador.statsdImage.tag }}"
+      - name: statsd-sink
+        image: "{{ .Values.ambassador.exporterImage.repository }}:{{ .Values.ambassador.exporterImage.tag }}"
+      restartPolicy: Always
+      serviceAccountName: ambassador
