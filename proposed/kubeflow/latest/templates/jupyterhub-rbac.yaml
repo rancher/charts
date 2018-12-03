@@ -1,0 +1,115 @@
+{{- if .Values.jupyterhub.enabled }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: jupyter-hub
+    ksonnet.io/component: jupyterhub
+  name: jupyter-hub
+  namespace: kubeflow
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    ksonnet.io/component: jupyterhub
+  name: jupyter-notebook
+  namespace: kubeflow
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: Role
+metadata:
+  labels:
+    ksonnet.io/component: jupyterhub
+  name: jupyter-notebook-role
+  namespace: kubeflow
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - services
+  verbs:
+  - '*'
+- apiGroups:
+  - ""
+  - apps
+  - extensions
+  resources:
+  - deployments
+  - replicasets
+  verbs:
+  - '*'
+- apiGroups:
+  - kubeflow.org
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: Role
+metadata:
+  labels:
+    ksonnet.io/component: jupyterhub
+  name: jupyter-role
+  namespace: kubeflow
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - persistentvolumeclaims
+  verbs:
+  - get
+  - watch
+  - list
+  - create
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - get
+  - watch
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+  labels:
+    ksonnet.io/component: jupyterhub
+  name: jupyter-notebook-role
+  namespace: kubeflow
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: jupyter-notebook-role
+subjects:
+- kind: ServiceAccount
+  name: jupyter-notebook
+  namespace: kubeflow
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+  labels:
+    ksonnet.io/component: jupyterhub
+  name: jupyter-role
+  namespace: kubeflow
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: jupyter-role
+subjects:
+- kind: ServiceAccount
+  name: jupyter-hub
+  namespace: kubeflow
+{{- end }}

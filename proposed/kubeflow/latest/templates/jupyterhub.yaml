@@ -1,0 +1,52 @@
+{{- if .Values.jupyterhub.enabled }}
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  labels:
+    ksonnet.io/component: jupyterhub
+  name: tf-hub
+  namespace: kubeflow
+spec:
+  replicas: 1
+  serviceName: ""
+  template:
+    metadata:
+      labels:
+        app: tf-hub
+    spec:
+      containers:
+      - command:
+        - jupyterhub
+        - -f
+        - /etc/config/jupyterhub_config.py
+        env:
+        - name: NOTEBOOK_PVC_MOUNT
+          value: /home/jovyan
+        - name: CLOUD_NAME
+          value: "null"
+        - name: REGISTRY
+          value: gcr.io
+        - name: REPO_NAME
+          value: kubeflow-images-public
+        - name: KF_AUTHENTICATOR
+          value: "null"
+        - name: DEFAULT_JUPYTERLAB
+          value: "false"
+        - name: KF_PVC_LIST
+          value: "null"
+        image: "{{ .Values.jupyterhub.image.repository }}:{{ .Values.jupyterhub.image.tag }}"
+        name: tf-hub
+        ports:
+        - containerPort: 8000
+        - containerPort: 8081
+        volumeMounts:
+        - mountPath: /etc/config
+          name: config-volume
+      serviceAccountName: jupyter-hub
+      volumes:
+      - configMap:
+          name: jupyterhub-config
+        name: config-volume
+  updateStrategy:
+    type: RollingUpdate
+{{- end }}

@@ -1,0 +1,105 @@
+# Default values for kubeflow.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+ambassador:
+  replicas: 3
+  image:
+    repository: quay.io/datawire/ambassador
+    tag: 0.40.2
+  statsdImage:
+    repository: quay.io/datawire/statsd
+    tag: 0.38.0
+  exporterImage:
+    repository: prom/statsd-exporter
+    tag: v0.8.0
+
+  service:
+    type: ClusterIP
+
+centraldashboard:
+  image:
+    repository: gcr.io/kubeflow-images-public/centraldashboard
+    tag: v0.3.0
+
+katib:
+  modeldbImage:
+    repository: gcr.io/kubeflow-images-public/modeldb-backend
+    tag: v0.2.0
+  modeldbDatabaseImage:
+    repository: mongo
+    tag: 3.4
+  modeldbFrontendImage:
+    repository: katib/katib-frontend
+    tag: latest
+  studyJobControllerImage:
+    repository: katib/studyjob-controller
+    tag: v0.3
+  vizierCoreImage:
+    repository: katib/vizier-core
+    tag: v0.3
+  vizierDbImage:
+    repository: mysql
+    tag: 8.0.3
+  suggestionBayesianOptimizationImage:
+    repository: gcr.io/kubeflow-images-public/katib/suggestion-bayesianoptimization
+    tag: v0.1.2-alpha-45-g3dce496
+  suggestionGridImage:
+    repository: katib/suggestion-grid
+    tag: v0.3
+  suggestionHyperbandImage:
+    repository: katib/suggestion-hyperband
+    tag: v0.3
+  suggestionRandomImage:
+    repository: katib/suggestion-random
+    tag: v0.3
+
+  vizierdb:
+    persistence:
+      enabled: true
+      ## mariadb data Persistent Volume Storage Class
+      ## If defined, storageClassName: <storageClass>
+      ## If set to "-", storageClassName: "", which disables dynamic provisioning
+      ## If undefined (the default) or set to null, no storageClassName spec is
+      ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+      ##   GKE, AWS & OpenStack)
+      ##
+      # storageClass: "-"
+      accessMode: ReadWriteOnce
+      size: 10Gi
+
+  vizier:
+    service:
+      type: ClusterIP
+      # nodePort: 30678
+
+jupyterhub:
+  enabled: true
+  image:
+    repository: gcr.io/kubeflow/jupyterhub-k8s
+    tag: v20180531-3bb991b1
+  service:
+    type: ClusterIP
+
+tfJobOperator:
+  enabled: true
+  image:
+    repository: gcr.io/kubeflow-images-public/tf_operator
+    tag: v0.3.0
+
+chainerOperator:
+  enabled: false
+  image:
+    repository: gcr.io/kubeflow-images-public/chainer-operator
+    tag: v0.3.0
+
+mxnetOperator:
+  enabled: false
+  image:
+    repository: mxjob/mxnet-operator
+    tag: v1
+
+pytorchOperator:
+  enabled: false
+  image:
+    repository: gcr.io/kubeflow-images-public/pytorch-operator
+    tag: v0.3.0

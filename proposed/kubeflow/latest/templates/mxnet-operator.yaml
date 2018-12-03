@@ -1,0 +1,146 @@
+{{- if .Values.mxnetOperator.enabled }}
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  labels:
+    ksonnet.io/component: mxnet-operator
+  annotations:
+    "helm.sh/hook": crd-install
+    "helm.sh/hook-delete-policy": before-hook-creation
+  name: mxjobs.kubeflow.org
+spec:
+  group: kubeflow.org
+  names:
+    kind: MXJob
+    plural: mxjobs
+    singular: mxjob
+  version: v1alpha1
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  labels:
+    app: mxnet-operator
+    ksonnet.io/component: mxnet-operator
+  name: mxnet-operator
+rules:
+- apiGroups:
+  - kubeflow.org
+  resources: - mxjobs
+  verbs:
+  - '*'
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - '*'
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - storageclasses
+  verbs:
+  - '*'
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - '*'
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - pods
+  - services
+  - endpoints
+  - persistentvolumeclaims
+  - events
+  verbs:
+  - '*'
+- apiGroups:
+  - apps
+  - extensions
+  resources:
+  - deployments
+  verbs:
+  - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app: mxnet-operator
+    ksonnet.io/component: mxnet-operator
+  name: mxnet-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: mxnet-operator
+subjects:
+- kind: ServiceAccount
+  name: mxnet-operator
+  namespace: kubeflow
+---
+apiVersion: v1
+data:
+  controller_config_file.yaml: |-
+    {
+
+    }
+kind: ConfigMap
+metadata:
+  labels:
+    ksonnet.io/component: mxnet-operator
+  name: mxnet-operator-config
+  namespace: kubeflow
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: mxnet-operator
+    ksonnet.io/component: mxnet-operator
+  name: mxnet-operator
+  namespace: kubeflow
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    ksonnet.io/component: mxnet-operator
+  name: mxnet-operator
+  namespace: kubeflow
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: mxnet-operator
+    spec:
+      containers:
+      - command:
+        - /opt/mlkube/mxnet-operator
+        - --alsologtostderr
+        - -v=1
+        env:
+        - name: MY_POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: MY_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        image: "{{ .Values.mxnetOperator.image.repository }}:{{ .Values.mxnetOperator.image.tag }}"
+        imagePullPolicy: Always
+        name: mxnet-operator
+        volumeMounts:
+        - mountPath: /etc/config
+          name: config-volume
+      serviceAccountName: mxnet-operator
+      volumes:
+      - configMap:
+          name: mxnet-operator-config
+        name: config-volume
+{{- end }}

@@ -1,0 +1,56 @@
+{{- if .Values.jupyterhub.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/scrape: "true"
+  labels:
+    app: tf-hub
+    ksonnet.io/component: jupyterhub
+  name: tf-hub-0
+  namespace: kubeflow
+spec:
+  clusterIP: None
+  ports:
+  - name: hub
+    port: 8000
+  selector:
+    app: tf-hub
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    getambassador.io/config: |-
+      ---
+      apiVersion: ambassador/v0
+      kind:  Mapping
+      name: tf-hub-lb-hub-mapping
+      prefix: /hub/
+      rewrite: /hub/
+      timeout_ms: 300000
+      service: tf-hub-lb.kubeflow
+      use_websocket: true
+      ---
+      apiVersion: ambassador/v0
+      kind:  Mapping
+      name: tf-hub-lb-user-mapping
+      prefix: /user/
+      rewrite: /user/
+      timeout_ms: 300000
+      service: tf-hub-lb.kubeflow
+      use_websocket: true
+  labels:
+    app: tf-hub-lb
+    ksonnet.io/component: jupyterhub
+  name: tf-hub-lb
+  namespace: kubeflow
+spec:
+  ports:
+  - name: hub
+    port: 80
+    targetPort: 8000
+  selector:
+    app: tf-hub
+  type: {{ .Values.jupyterhub.service.type }}
+{{- end }}
