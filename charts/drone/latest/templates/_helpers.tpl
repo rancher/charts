@@ -27,7 +27,7 @@ Create the name of the service account to use
 
 {{- define "drone.server.provider" -}}
 {{- if eq .Values.server.env.DRONE_PROVIDER "github" -}}
-{{- print "%s" "DRONE_GITHUB" -}}
+{{- print "DRONE_GITHUB" -}}
 {{- else if eq .Values.server.env.DRONE_PROVIDER "gitlab" -}}
 {{- print "DRONE_GITLAB" -}}
 {{- else if eq .Values.server.env.DRONE_PROVIDER "gitea" -}}
