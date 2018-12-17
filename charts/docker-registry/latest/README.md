@@ -1,25 +1,3 @@
-# Docker Registry Helm Chart
-
-This directory contains a Kubernetes chart to deploy a private Docker Registry.
-
-## Prerequisites Details
-
-* PV support on underlying infrastructure (if persistence is required)
-
-## Chart Details
-
-This chart will do the following:
-
-* Implement a Docker registry deployment
-
-## Installing the Chart
-
-To install the chart, use the following:
-
-```console
-$ helm install stable/docker-registry
-```
-
 ## Configuration
 
 The following table lists the configurable parameters of the docker-registry chart and
@@ -63,6 +41,11 @@ their default values.
 | `swift.container`           | Swift container                                                                            | `nil`           |
 | `nodeSelector`              | node labels for pod assignment                                                             | `{}`            |
 | `tolerations`               | pod tolerations                                                                            | `[]`            |
+| `ingress.enabled`           | If true, Ingress will be created                                                           | `false`         |
+| `ingress.annotations`       | Ingress annotations                                                                        | `{}`            |
+| `ingress.path`              | Ingress service path                                                                       | `/`            |
+| `ingress.hosts`             | Ingress hostnames                                                                          | `[]`            |
+| `ingress.tls`               | Ingress TLS configuration (YAML)                                                           | `[]`            |
 
 Specify each parameter using the `--set key=value[,key=value]` argument to
 `helm install`.
