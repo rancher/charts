@@ -1,0 +1,282 @@
+questions:
+- variable: defaultImage
+  default: true
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: image.repository
+    default: "guangbo/fluentd"
+    description: "Fluentd image name"
+    type: string
+    label: Fluentd Image Name
+  - variable: image.tag
+    default: "dev"
+    description: "Fluentd image tag"
+    type: string
+    label: Image Tag
+- variable: replicas
+  default: 1
+  description: "fluentd replicas"
+  type: int
+  required: true
+  label: Fluentd Replicas
+  group: "Fluentd Settings"
+  min: 1
+  max: 99
+- variable: service.type
+  default: "ClusterIP"
+  description: "Fluentd Service type"
+  type: enum
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: Fluentd Service Type
+  group: "Fluentd Settings"
+- variable: persistence.enabled
+  default: false
+  description: "Enable persistent volume for fluentd aggregator"
+  type: boolean
+  required: true
+  label: Fluentd Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "Fluentd Settings"
+  subquestions:
+  - variable: persistence.size
+    default: "10Gi"
+    description: "Fluntd Persistent Volume Size"
+    type: string
+    label: Fluntd Volume Size
+  - variable: persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for Fluntd
+# output configs
+- variable: output.type
+  default: "elasticsearch"
+  description: "config the fluentd output type"
+  type: enum
+  label: Fluentd Output Type
+  required: true
+  group: "Output Configs"
+  options:
+    - "elasticsearch"
+    - "splunk_hec"
+    - "kafka"
+    - "syslog"
+    - "custom"
+- variable: output.flushInterval
+  default: "5s"
+  description: "How often buffered logs would be flushed"
+  type: string
+  label: Flush Interval
+  group: "Output Configs"
+  required: true
+- variable: env.OUTPUT_ES_HOSTS
+  default: 'http://elasticsearch:9200'
+  description: "Endpoint should start with \"http://\" or \"https://\"."
+  type: string
+  label: Elasticsearch Endpoint
+  group: "Output Configs"
+  show_if: "output.type=elasticsearch"
+  required: true
+- variable: env.OUTPUT_ES_PREFIX
+  default: "k8s"
+  description: "Index patterns are used to generate Elacticsearch index"
+  type: string
+  label: Elasticsearch Index Prefix
+  required: true
+  group: "Output Configs"
+  show_if: "output.type=elasticsearch"
+- variable: env.OUTPUT_ES_DATEFORMAT
+  default: "%Y.%m.%d"
+  description: "The strftime format to generate index target index"
+  type: enum
+  label: Elasticsearch Index Dateformat
+  group: "Output Configs"
+  show_if: "output.type=elasticsearch"
+  required: true
+  options:
+    - "%Y.%m.%d"
+    - "%Y.%m."
+    - "%Y."
+- variable: env.OUTPUT_SPLUNK_HOST
+  default: ""
+  description: "e.g. https://192.168.1.10"
+  type: string
+  label: Splunk Endpoint
+  required: true
+  group: "Output Configs"
+  show_if: "output.type=splunk_hec"
+- variable: env.OUTPUT_SPLUNK_PORT
+  default: "9200"
+  description: "The splunk port"
+  type: string
+  label: Splunk Port
+  required: true
+  group: "Output Configs"
+  show_if: "output.type=splunk_hec"
+- variable: env.OUTPUT_SPLUNK_SOURCE_TYPE
+  default: ""
+  description: "A default field that identifies the source of an event, that is, where the event originated"
+  type: string
+  label: Splunk Source
+  group: "Output Configs"
+  show_if: "output.type=splunk_hec"
+- variable: env.OUTPUT_SPLUNK_INDEX
+  default: ""
+  description: "The index you specify here must within the list of this token’s allowed indexes"
+  type: string
+  label: Splunk Index
+  group: "Output Configs"
+  show_if: "output.type=splunk_hec"
+- variable: env.OUTPUT_SPLUNK_ACK
+  default: false
+  description: "Enable/Disable Indexer acknowledgement. When this is set true, channel parameter is required"
+  type: boolean
+  label: Enable/Disable Indexer Acknowledgement 
+  required: true
+  group: "Output Configs"
+  show_if: "output.type=splunk_hec"
+  show_subquestion_if: true
+  subquestions:
+  - variable: env.OUTPUT_SPLUNK_CHANNEL
+    default: ""
+    description: "This is used as channel identifier. When you set use_ack or raw, this parameter is required."
+    type: string
+    label: Splunk ACK Channel
+    required: true
+# kafka config
+- variable: env.OUTPUT_KAFKA_HOST_TYPE
+  default: "zookeeper"
+  description: "Kafka zookeeper endpoints: e.g. https://192.168.1.10:9200"
+  type: enum
+  label: Kafka Output Endpoint Type
+  required: true
+  group: "Output Configs"
+  show_if: "output.type=kafka"
+  options:
+    - "zookeeper"
+    - "brokers"
+- variable: env.OUTPUT_KAFKA_ZK_HOSTS
+  default: ""
+  description: "Kafka zookeeper endpoints: e.g. https://192.168.1.10:9200"
+  type: string
+  label: Zookeeper Endpoint of Kafka Output
+  required: true
+  group: "Output Configs"
+  show_if: "output.type=kafka&&env.OUTPUT_KAFKA_HOST_TYPE=zookeeper"
+- variable: env.OUTPUT_KAFKA_BROKER_HOSTS
+  default: ""
+  description: "Use either Zookeeper or Broker list as the Kafka connection entrypoint.e.g. <broker1_host>:<broker1_port>,<broker2_host>:<broker2_port>"
+  type: string
+  label: Kafka Broker Endpoints
+  required: true
+  group: "Output Configs"
+  show_if: "output.type=kafka&&env.OUTPUT_KAFKA_HOST_TYPE=brokers"
+- variable: env.OUTPUT_KAFKA_TOPIC_KEY
+  default: "topic"
+  description: "Logs will be send to this topic"
+  type: string
+  label: Kafka Topic
+  group: "Output Configs"
+  show_if: "output.type=kafka"
+- variable: env.OUTPUT_KAFKA_PARTITION
+  default: "partition"
+  description: "Kafka partition value"
+  type: string
+  label: Kafka Partition
+  group: "Output Configs"
+  show_if: "output.type=kafka"
+- variable: env.OUTPUT_KAFKA_PARTITION_KEY
+  default: "partition_key"
+  description: "Kafka partition key"
+  type: string
+  label: Kafka Partition Key
+  group: "Output Configs"
+  show_if: "output.type=kafka"
+- variable: env.OUTPUT_KAFKA_MESSAGE_KEY
+  default: "message_key"
+  description: "Kafka message key"
+  type: string
+  label: Kafka Message Key
+  group: "Output Configs"
+  show_if: "output.type=kafka"
+# syslog config
+- variable: env.OUTPUT_SYSLOG_HOST
+  default: ""
+  description: "Syslog endpoint, e.g. 192.168.1.10:514"
+  type: string
+  label: Syslog Endpoint
+  group: "Output Configs"
+  required: true
+  show_if: "output.type=syslog"
+- variable: env.OUTPUT_SYSLOG_PROTOCOL
+  default: "udp"
+  description: "syslog transfer protocol"
+  type: enum
+  label: Syslog Transfer Protocol
+  required: true
+  group: "Output Configs"
+  show_if: "output.type=syslog"
+  options:
+    - "udp"
+    - "tcp"
+- variable: output.syslogCaFile
+  default: ""
+  description: "syslog tls certificate file"
+  type: multiline
+  label: Syslog Certificate File
+  group: "Output Configs"
+  show_if: "output.type=syslog&&env.OUTPUT_SYSLOG_PROTOCOL=tcp"
+- variable: env.OUTPUT_SYSLOG_SEVERITY
+  default: "notice"
+  description: "The severity of logs"
+  type: string
+  label: Syslog Severity
+  group: "Output Configs"
+  show_if: "output.type=syslog"
+- variable: env.OUTPUT_SYSLOG_PROGRAM
+  default: "fluentd"
+  description: "The program name of the log."
+  type: string
+  label: Syslog Severity
+  group: "Output Configs"
+  show_if: "output.type=syslog"
+- variable: env.OUTPUT_SYSLOG_TOKEN
+  default: ""
+  description: "Will add token to structured data in every syslog message. For cloud syslog like Sumologic, Loggly etc, you could generate token on their configure page"
+  type: string
+  label: Syslog Token
+  group: "Output Configs"
+  show_if: "output.type=syslog"
+- variable: output.customConf
+  default: "<match pattern>\n  @type stdout\n</match>"
+  description: "fluentd custom output config"
+  type: multiline
+  label: Fluentd Custom Output Config
+  group: "Output Configs"
+  show_if: "output.type=custom"
+# fluentd configs
+- variable: configMaps.filter\.conf
+  default: ""
+  description: "fluentd filter config"
+  type: multiline
+  label: Fluentd Filter Config
+  group: "Filter Configs"
+- variable: configMaps.parser\.conf
+  default: ""
+  description: "fluentd parser config"
+  type: multiline
+  label: Fluentd Parser Config
+  group: "Fluentd Parser Configs"
+- variable: configMaps.formatter\.conf
+  default: ""
+  description: "fluentd formatter config"
+  type: multiline
+  label: Fluentd Formatter Config
+  group: "Formatter Configs"
