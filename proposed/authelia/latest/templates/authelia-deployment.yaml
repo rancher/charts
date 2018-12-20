@@ -1,0 +1,84 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: authelia
+  labels:
+    app.kubernetes.io/name: {{ include "authelia.name" . }}
+    app.kubernetes.io/component: {{ .Values.authelia.fullname }}
+    helm.sh/chart: {{ include "authelia.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "authelia.name" . }}
+      app.kubernetes.io/component: {{ .Values.authelia.fullname }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "authelia.name" . }}
+        app.kubernetes.io/component: {{ .Values.authelia.fullname }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.authelia.image.repository }}:{{ .Values.authelia.image.tag }}"
+        imagePullPolicy: {{ .Values.authelia.image.pullPolicy }}
+        ports:
+        - containerPort: 80
+        {{- if .Values.authelia.enableHealtcheck -}}
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 3
+          periodSeconds: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 3
+          periodSeconds: 3
+          {{- end }}
+        env:
+          - name: NODE_TLS_REJECT_UNAUTHORIZED
+            value: "0"
+        volumeMounts:
+          - name: authelia-config-volume
+            mountPath: /etc/authelia
+          {{- if eq .Values.authelia.config.authentication_backend "file" }}
+          - name: authelia-local-users-volume
+            mountPath: /authelia
+          {{- end }}
+      volumes:
+        - name: authelia-config-volume
+          configMap:
+            name: authelia-config
+            items:
+              - key: config.yml
+                path: config.yml
+        {{- if eq .Values.authelia.config.authentication_backend "file" }}
+        - name: authelia-local-users-volume
+          configMap:
+            name: authelia-local-users
+            items:
+              - key: users_database.yml
+                path: users_database.yml
+        {{- end }}
+      resources:
+{{ toYaml .Values.authelia.resources | indent 12 }}
+    {{- with .Values.authelia.nodeSelector }}
+        nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.authelia.affinity }}
+        affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.authelia.tolerations }}
+        tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+

@@ -1,0 +1,74 @@
+# Default values for authelia.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+authelia:
+  fullname: authelia
+  nameOverride: ""
+  fullnameOverride: ""
+  replicaCount: 1
+  image:
+    repository: clems4ever/authelia
+    tag: v3.9.0
+    pullPolicy: IfNotPresent
+  ingress:
+    enabled: true
+
+    ## Ingress annotations
+    ##
+    annotations: {}
+    #   kubernetes.io/ingress.class: nginx
+    #   kubernetes.io/tls-acme: 'true'
+
+    ## Ingress additional labels
+    ##
+    extraLabels: {}
+
+    path: /
+
+    ## Ingress hostnames with optional path
+    ## Must be provided if Ingress is enabled
+    ##
+    hosts:
+      - authelia.local
+
+    ## Ingress TLS configuration
+    ## Secrets must be manually created in the namespace
+    ##
+    tls: []
+    #   - secretName: portable-analytics-authelia-tls
+    #     hosts:
+    #       - authelia.example.domain.com
+
+  enableHealthcheck: false
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  config:
+    logsLevel: debug
+    authentication_backend: ldap
+    ldap:
+      url: "ldap://ldap-service"
+      user: "cn=admin,dc=example,dc=com"
+      password: "changeme"
+      base_dn: "dc=example,dc=com"
+    session:
+      secret: "changeme"
+
+
+  mongo:
+    enabled: true
+    fullname: authelia-mongo
+    image:
+      repository: mongo
+      tag: 3.4
+      pullPolicy: IfNotPresent
+
+  redis:
+    enabled: true
+    fullname: authelia-redis
+    image:
+      repository: redis
+      tag: 3.2.11-alpine
+      pullPolicy: IfNotPresent

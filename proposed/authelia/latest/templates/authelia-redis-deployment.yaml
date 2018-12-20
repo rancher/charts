@@ -1,0 +1,44 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: redis
+  labels:
+    app.kubernetes.io/name: {{ include "authelia.name" . }}
+    app.kubernetes.io/component: {{ .Values.authelia.redis.fullname }}
+    helm.sh/chart: {{ include "authelia.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "authelia.name" . }}
+      app.kubernetes.io/component: {{ .Values.authelia.redis.fullname }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "authelia.name" . }}
+        app.kubernetes.io/component: {{ .Values.authelia.redis.fullname }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+      - name: {{ .Chart.Name }}-{{ .Values.authelia.redis.fullname }}
+        image: "{{ .Values.authelia.redis.image.repository }}:{{ .Values.authelia.redis.image.tag }}"
+        imagePullPolicy: {{ .Values.authelia.redis.image.pullPolicy }}
+        ports:
+          - containerPort: 6379
+        resources:
+{{ toYaml .Values.authelia.resources | indent 12 }}
+    {{- with .Values.authelia.nodeSelector }}
+        nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.authelia.affinity }}
+        affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.authelia.tolerations }}
+        tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}

@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authelia-config
+data:
+  config.yml: |
+    port: 80
+    logs_level: {{ .Values.authelia.config.logsLevel }}
+    {{- if .Values.authelia.ingress.hosts }}
+    default_redirection_url: {{ index .Values.authelia.ingress.hosts 0 }}
+    {{- end }}
+    authentication_backend:
+      {{- if eq .Values.authelia.config.authentication_backend "ldap" }}
+      {{- if .Values.authelia.config.ldap }}
+      ldap:
+{{ toYaml .Values.authelia.config.ldap | indent 8 }}
+      {{- end }}
+      {{- else }}
+      file:
+        path: /authelia/users_database.yml
+      {{- end }}
+    authentication_methods:
+      default_method: single_factor
+    access_control:
+      default_policy: deny
+      any:
+        - domain: {{- printf " '*.%s'" .Values.authelia.config.domain }}
+          policy: deny
+      groups: {}
+      users: {}
+    session:
+      secret: {{ .Values.authelia.config.session.secret }}
+      expiration: 3600000 # 1 hour
+      inactivity: 300000 # 5 minutes
+      domain: {{ .Values.authelia.config.domain}}
+      redis:
+        host: {{ include "authelia.redis.fullname" . }}
+        port: 6379
+    regulation: {}
+    storage:
+      mongo:
+        url: mongodb://{{ include "authelia.mongo.fullname" . }}
+        database: authelia
+    notifier: {}

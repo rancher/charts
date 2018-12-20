@@ -1,0 +1,128 @@
+categories:
+- Authentication
+questions:
+- variable: authelia.enableHealtcheck
+  default: false
+  description: "Enable kubernetes health check"
+  label: Enable health check
+  type: boolean
+- variable: authelia.config.domain
+  default: "sample.example.com"
+  description: "The domain to protect"
+  label: Domain
+  type: string
+- variable: authelia.config.logsLevel
+  default: "info"
+  description: "Specify logs level"
+  label: Logs Level
+  type: enum
+  options:
+    - "info"
+    - "debug"
+- variable: authelia.config.session.secret
+  default: ""
+  description: "secret will be auto-generated if not specified"
+  type: password
+  label: Session Secret
+- variable: authelia.ingress.enabled
+  default: true
+  description: "Expose app using Layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose app using Layer 7 Load Balancer
+  show_subquestion_if: true
+  group: "Services and Load Balancing"
+  subquestions:
+  - variable: authelia.ingress.hosts[0]
+    default: "xip.io"
+    description: "Hostname to your Authelia installation"
+    type: hostname
+    required: true
+    label: Hostname
+- group: "Authentication Backend"
+  variable: authelia.config.authentication_backend
+  description: "Specify the authentication backend mechanism to use"
+  label: "Authentication Backend"
+  type: enum
+  options:
+    - "ldap"
+    - "file"
+  default: "ldap"
+- group: "LDAP Configuration"
+  show_if: "authelia.config.authentication_backend=ldap"
+  variable: authelia.config.ldap.url
+  default: ""
+  description: "LDAP Server URL (Example: ldap://ldap-service)"
+  label: LDAP Server URL
+  type: string
+  required: true
+- group: "LDAP Configuration"
+  show_if: "authelia.config.authentication_backend=ldap"
+  variable: authelia.config.ldap.user
+  default: ""
+  description: "Admin User (Example: cn=admin\\,dc=example\\,dc=com)"
+  label: Admin user
+  type: string
+  required: true
+- group: "LDAP Configuration"
+  show_if: "authelia.config.authentication_backend=ldap"
+  variable: authelia.config.ldap.password
+  description: "Admin user password"
+  label: Admin user password
+  type: password
+  required: true
+- group: "LDAP Configuration"
+  show_if: "authelia.config.authentication_backend=ldap"
+  variable: authelia.config.ldap.base_dn
+  default: ""
+  description: "The base dn for every entries (Example: dc=example\\,dc=com)"
+  label: Base DN
+  type: string
+  required: true
+- group: "LDAP Configuration"
+  show_if: "authelia.config.authentication_backend=ldap"
+  variable: authelia.config.ldap.additional_users_dn
+  default: ""
+  description: "An additional dn to define the scope of users (Example: ou=users)"
+  label: Additional Users DN
+  type: string
+  required: false
+- group: "LDAP Configuration"
+  show_if: "authelia.config.authentication_backend=ldap"
+  variable: authelia.config.ldap.users_filter
+  default: ""
+  description: "The users filter used to find the user DN. {0} is a matcher replaced by username (Example: cn={0})"
+  label: Users filter
+  type: string
+  required: false
+- group: "LDAP Configuration"
+  show_if: "authelia.config.authentication_backend=ldap"
+  variable: authelia.config.ldap.additional_groups_dn
+  default: ""
+  description: "An additional dn to define the scope of groups (Example: ou=groups)"
+  label: Additional DN
+  type: string
+  required: false
+- group: "LDAP Configuration"
+  show_if: "authelia.config.authentication_backend=ldap"
+  variable: authelia.config.ldap.groups_filter
+  default: ""
+  description: "The groups filter used for retrieving groups of a given user (Example: (&(member={dn})(objectclass=groupOfNames)))"
+  label: Groups filter
+  type: string
+  required: false
+- group: "LDAP Configuration"
+  show_if: "authelia.config.authentication_backend=ldap"
+  variable: authelia.config.ldap.group_name_attribute
+  default: ""
+  description: "The attribute holding the name of the group (Example: cn)"
+  label: Group Name Attribute
+  type: string
+  required: false
+- group: "LDAP Configuration"
+  show_if: "authelia.config.authentication_backend=ldap"
+  variable: authelia.config.ldap.mail_attribute
+  default: ""
+  description: "The attribute holding the mail address of the user (Example: mail)"
+  label: Mail Attribute
+  type: string
+  required: false

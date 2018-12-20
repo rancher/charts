@@ -1,0 +1,58 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: mongo
+  labels:
+    app.kubernetes.io/name: {{ include "authelia.name" . }}
+    app.kubernetes.io/component: {{ .Values.authelia.mongo.fullname }}
+    helm.sh/chart: {{ include "authelia.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "authelia.name" . }}
+      app.kubernetes.io/component: {{ .Values.authelia.mongo.fullname }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "authelia.name" . }}
+        app.kubernetes.io/component: {{ .Values.authelia.mongo.fullname }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+      # TODO: Check all names in other files
+      - name: {{ .Chart.Name }}-{{ .Values.authelia.mongo.fullname }}
+        image: "{{ .Values.authelia.mongo.image.repository }}:{{ .Values.authelia.mongo.image.tag }}"
+        imagePullPolicy: {{ .Values.authelia.mongo.image.pullPolicy }}
+        ports:
+          - containerPort: 27017
+        volumeMounts:
+          - name: data-volume
+            mountPath: /data/db
+          - name: config-volume
+            mountPath: /data/configdb
+        # TODO: Fix this
+      volumes:
+        - name: data-volume
+          hostPath:
+            path: /data/storage/mongo/data
+        - name: config-volume
+          hostPath:
+            path: /data/storage/mongo/config
+      resources:
+{{ toYaml .Values.authelia.resources | indent 12 }}
+    {{- with .Values.authelia.nodeSelector }}
+        nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.authelia.affinity }}
+        affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.authelia.tolerations }}
+        tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}

@@ -1,0 +1,38 @@
+{{- if .Values.authelia.ingress.enabled -}}
+{{- $fullName := include "authelia.fullname" . -}}
+{{- $ingressPath := .Values.authelia.ingress.path -}}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-{{ $fullName }}
+  labels:
+    app.kubernetes.io/name: {{ include "authelia.name" . }}
+    app.kubernetes.io/component: {{ .Values.authelia.fullname }}
+    helm.sh/chart: {{ include "authelia.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- with .Values.authelia.ingress.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+{{- if .Values.authelia.ingress.tls }}
+  tls:
+  {{- range .Values.authelia.ingress.tls }}
+    - hosts:
+      {{- range .hosts }}
+        - {{ . | quote }}
+      {{- end }}
+      secretName: {{ .secretName }}
+  {{- end }}
+{{- end }}
+  rules:
+  {{- range .Values.authelia.ingress.hosts }}
+    - host: {{ . | quote }}
+      http:
+        paths:
+          - backend:
+              serviceName: {{ $fullName }}
+              servicePort: 80
+  {{- end }}
+{{- end }}
