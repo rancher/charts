@@ -30,21 +30,18 @@ spec:
             topologyKey: "kubernetes.io/hostname"
       containers:
       - name: frontend
-        image: {{ .Values.image.frontend }}
-        imagePullPolicy: Always
+        image: {{ .Values.image.ui }}:v{{ .Chart.Version }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  labels:
-    kubernetes.io/cluster-service: "true"
   name: frontend
   namespace: {{ .Release.Namespace }}
 spec:
   ports:
-  - name: http
+  - name: ui
     port: 80
     targetPort: 8000
   selector:
     app: frontend
-  type: ClusterIP
+  type: NodePort

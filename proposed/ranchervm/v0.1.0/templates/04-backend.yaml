@@ -1,7 +1,7 @@
 apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
-  name: frontend
+  name: backend
   namespace: {{ .Release.Namespace }}
 spec:
   replicas: {{ .Values.question.replicas }}
@@ -17,7 +17,7 @@ spec:
   template:
     metadata:
       labels:
-        app: frontend
+        app: backend
     spec:
       affinity:
         podAntiAffinity:
@@ -26,25 +26,25 @@ spec:
               matchExpressions:
               - key: app
                 operator: In
-                values: ["frontend"]
+                values: ["backend"]
             topologyKey: "kubernetes.io/hostname"
       containers:
-      - name: frontend
-        image: {{ .Values.image.frontend }}
-        imagePullPolicy: Always
+      - name: backend
+        image: {{ .Values.image.vm }}:v{{ .Chart.Version }}
+        args:
+        - -backend
+        - -v={{ .Values.question.logLevel }}
+      serviceAccountName: {{ .Chart.Name }}-service-account
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  labels:
-    kubernetes.io/cluster-service: "true"
-  name: frontend
+  name: backend
   namespace: {{ .Release.Namespace }}
 spec:
   ports:
-  - name: http
-    port: 80
-    targetPort: 8000
+  - name: api
+    port: 9500
   selector:
-    app: frontend
+    app: backend
   type: ClusterIP
