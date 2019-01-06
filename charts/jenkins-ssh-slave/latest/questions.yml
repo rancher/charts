@@ -1,0 +1,55 @@
+categories:
+- Development
+- Continous Integration
+questions:
+- variable: defaultImage
+  default: true
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: image.repository
+    default: "jenkinsci/ssh-slave"
+    description: "Jenkins SSH Slave image name"
+    type: string
+    label: "Jenkins SSH Slave Image Name"
+  - variable: image.tag
+    default: "latest"
+    description: "Jenkins SSH Slave image tag"
+    type: string
+    label: "Jenkins SSH Slave Image Name Image Tag"
+- variable: jenkinsSSHPublicKey
+  description: "Public SSH Key used by the Jenkins Server to access this node"
+  type: string
+  label: SSH Public Key
+- variable: serviceType
+  default: "NodePort"
+  label: Jenkins SSH Slave Service Type
+  description: "Service type of Jenkins SSH Slave"
+  show_subquestion_if: "NodePort"
+  type: enum
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  subquestions:
+  - variable: nodePorts.ssh
+    default: ""
+    description: "NodePort to connect through SSH (to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    label: NodePort SSH Port
+    show_if: "serviceType=NodePort"
+- variable: resources.limits.memory
+  description: "Memory limit of during builds in mega bytes"
+  type: int
+  min: 30000
+  max: 32767
+  label: Memory limit (MB)
+- variable: resources.limits.cpu
+  description: "CPU limit in Kubernetes CPU units. Use the suffix m to mean milli."
+  type: string
+  label: CPU limit

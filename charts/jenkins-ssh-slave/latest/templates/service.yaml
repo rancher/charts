@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "fullname" . }}
+  labels:
+    app: {{ template "fullname" . }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+spec:
+  type: {{ .Values.serviceType }}
+  {{- if eq .Values.serviceType "NodePort" }}
+  externalTrafficPolicy: {{ .Values.serviceExternalTrafficPolicy | quote }}
+  {{- end }}
+  ports:
+    - name: ssh
+      port: 22
+      targetPort: ssh
+      {{- if (and (eq .Values.serviceType "NodePort") (not (empty .Values.nodePorts.ssh)))}}
+      nodePort: {{ .Values.nodePorts.ssh }}
+      {{- end }}
+  selector:
+    app: {{ template "fullname" . }}

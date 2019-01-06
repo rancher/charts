@@ -1,0 +1,68 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: {{ template "fullname" . }}
+  labels:
+    app: {{ template "fullname" . }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+spec:
+  replicas: {{ .Values.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "fullname" . }}
+        chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+        release: "{{ .Release.Name }}"
+    spec:
+      {{- if .Values.image.pullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.image.pullSecrets }}
+        - name: {{ . }}
+      {{- end}}
+      {{- end }}
+      containers:
+      - name: {{ template "fullname" . }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+        env:
+        - name: JENKINS_SLAVE_SSH_PUBKEY
+          value: {{ .Values.jenkinsSSHPublicKey | quote }}
+        ports:
+        - name: ssh
+          containerPort: 22
+        livenessProbe:
+          tcpSocket:
+            port: ssh
+          initialDelaySeconds: 15
+          periodSeconds: 20
+{{ toYaml .Values.livenessProbe | indent 10 }}
+        readinessProbe:
+          tcpSocket:
+            port: ssh
+          initialDelaySeconds: 5
+          periodSeconds: 10
+{{ toYaml .Values.readinessProbe | indent 10 }}
+        {{- if or .Values.resources.limits.memory .Values.resources.limits.cpu }}
+        resources:
+          {{- if ne .Values.resources.limits.memory "" }}
+            memory: {{ .Values.resources.limits.memory | quote }}
+          {{- end }}
+          {{- if .Values.resources.limits.cpu }}
+            cpu: {{ .Values.resources.limits.cpu | quote }}
+          {{- end }}
+        {{- end }}
+#{{ toYaml .Values.resources | indent 10 }}
+    {{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+      {{- end -}}
+    {{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}

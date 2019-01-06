@@ -1,0 +1,40 @@
+
+Testing your Jenkins SSH Slave:
+-------------------------------
+1. Test logging into your SSH Slave
+
+{{- if eq .Values.serviceType  "NodePort" }}
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ template "fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  ssh -i <path to your private key> -p $NODE_PORT jenkins@$NODE_IP
+
+Note down the NODE_PORT and NODE_IP.
+{{- else if eq .Values.serviceType "ClusterIP"}}
+  On any cluster node run:
+  export CLUSTER_IP=$(kubectl get services --namespace {{ .Release.Namespace }} -l "app={{ template "fullname" . }},release={{ .Release.Name }}" -o jsonpath="{.items[0].spec.clusterIP}")
+  ssh -i <path to your private key> $CLUSTER_IP
+
+Note down your cluster IP
+{{- end }}
+
+Adding the Jenkins SSH Slave to your Jenkins Server:
+----------------------------------------------------
+1. Make sure the SSH Slaves plugin is installed
+2. Open Jenkins and go to "Credentials". Create add new global credentials for the user jenkins with the private SSH key.
+3. Open jenkins and go the "Manage Nodes" screen. Create a new node with the following properties:
+    - Name: The name you want to assign this node
+    - # of executors: 1
+    - Start Agent via SSH
+{{- if eq .Values.serviceType "NodePort" }}
+    - Hostname: Hostname of the node or NODE_IP (as note above) 
+{{- else if eq .Values.serviceType "ClusterIP"}}
+    - Hostname: ClusterIP
+{{- end }}
+    - Credentials: Choose the SSH key you created above.
+    - Host Key Verification Strategy: Manually trusted key Verification Strategy
+    - Require manual verification of initial connection: yes
+{{- if eq .Values.serviceType "NodePort" }}
+    - Advanced->Port: NODE_PORT (as note above) 
+{{- end }}
+
+Enjoy!
