@@ -40,19 +40,18 @@ spec:
         runAsUser: {{ .Values.artifactory.uid }}
         fsGroup: {{ .Values.artifactory.uid }}
       initContainers:
+    {{- if .Values.artifactory.persistence.enabled }}
       - name: "remove-lost-found"
         image: "{{ .Values.initContainerImage }}"
         imagePullPolicy: {{ .Values.artifactory.image.pullPolicy }}
         command:
         - 'sh'
         - '-c'
-        - >
-          if [ -d {{ .Values.artifactory.persistence.mountPath }}/lost+found ]; then
-            rm -rfv {{ .Values.artifactory.persistence.mountPath }}/lost+found
-          fi
+        - 'rm -rfv {{ .Values.artifactory.persistence.mountPath }}/lost+found'
         volumeMounts:
         - mountPath: {{ .Values.artifactory.persistence.mountPath | quote }}
           name: volume
+    {{- end }}
       - name: "wait-for-db"
         image: "{{ .Values.initContainerImage }}"
         command:
@@ -96,8 +95,14 @@ spec:
                 cp -Lrf /bootstrap/* /artifactory_extra_conf/;
                 {{- end }}
                 {{- if .Values.artifactory.replicator.enabled }}
-                mkdir -p /opt/jfrog/artifactory/replicator/etc;
-                cp -fv /tmp/replicator/replicator.yaml /opt/jfrog/artifactory/replicator/etc/replicator.yaml;
+                mkdir -p {{ .Values.artifactory.persistence.mountPath }}/replicator/etc;
+                cp -fv /tmp/replicator/replicator.yaml {{ .Values.artifactory.persistence.mountPath }}/replicator/etc/replicator.yaml;
+                {{- end }}
+                {{- if .Values.artifactory.distributionCerts }}
+                mkdir -p {{ .Values.artifactory.persistence.mountPath }}/access/etc/keys/trusted;
+                cp -fv /tmp/access/etc/keys/private.key {{ .Values.artifactory.persistence.mountPath }}/access/etc/keys;
+                cp -fv /tmp/access/etc/keys/root.crt    {{ .Values.artifactory.persistence.mountPath }}/access/etc/keys;
+                cp -fv /tmp/access/etc/keys/root.crt    {{ .Values.artifactory.persistence.mountPath }}/access/etc/keys/trusted;
                 {{- end }}
                 {{- if .Values.artifactory.postStartCommand }}
                 {{ .Values.artifactory.postStartCommand }}
@@ -202,10 +207,6 @@ spec:
         - name: HA_BACKUP_DIR
           value: "{{ .Values.artifactory.persistence.nfs.backupDir }}"
       {{- end }}
-      {{- range .Values.artifactory.extraEnvironmentVariables }}
-        - name: {{ .name }}
-          value: '{{ .value }}'
-      {{- end }}
         ports:
         - containerPort: {{ .Values.artifactory.internalPort }}
         {{- if .Values.artifactory.replicator.enabled }}
@@ -235,6 +236,10 @@ spec:
         - name: artifactory-license
           mountPath: "/artifactory_extra_conf/artifactory.cluster.license"
           subPath: {{ .Values.artifactory.license.dataKey }}
+      {{- end }}
+      {{- if .Values.artifactory.distributionCerts }}
+        - name: distribution-certs
+          mountPath: "/tmp/access/etc/keys"
       {{- end }}
       {{- if .Values.artifactory.replicator.enabled }}
         - name: replicator-config
@@ -303,6 +308,11 @@ spec:
       - name: binarystore-xml
         configMap:
           name: {{ template "artifactory-ha.fullname" . }}-bs
+      {{- if .Values.artifactory.distributionCerts }}
+      - name: distribution-certs
+        configMap:
+          name: {{ .Values.artifactory.distributionCerts }}
+      {{- end }}
       {{- if .Values.artifactory.replicator.enabled }}
       - name: replicator-config
         configMap:
@@ -329,7 +339,7 @@ spec:
         persistentVolumeClaim:
           claimName: {{ template "artifactory-ha.fullname" . }}-backup-pvc
       {{- end }}
-      {{- if not .Values.artifactory.persistence.enabled }}
+      {{- if .Values.artifactory.persistence.local }}
       - name: volume
         emptyDir:
           sizeLimit: {{ .Values.artifactory.persistence.size }}

@@ -1,34 +1,6 @@
 # JFrog Artifactory-ha Chart Changelog
 All changes to this chart will be documented in this file.
 
-## [0.8.3] - Jan 1, 2019
-* Updated Artifactory version to 6.6.3
-* Add support for `artifactory.extraEnvironmentVariables` to pass more environment variables to Artifactory
-
-## [0.8.2] - Dec 28, 2018
-* Fix location `replicator.yaml` is copied to
-
-## [0.8.1] - Dec 27, 2018
-* Updated Artifactory version to 6.6.1
-
-## [0.8.0] - Dec 20, 2018
-* Updated Artifactory version to 6.6.0
-
-## [0.7.17] - Dec 17, 2018
-* Updated Artifactory version to 6.5.13
-
-## [0.7.16] - Dec 12, 2018
-* Fix documentation about Artifactory license setup using secret
-
-## [0.7.15] - Dec 9, 2018
-* AWS S3 add `roleName` for using IAM role
-
-## [0.7.14] - Dec 6, 2018
-* AWS S3 `identity` and `credential` are now added only if have a value to allow using IAM role 
-
-## [0.7.13] - Dec 5, 2018
-* Remove Distribution certificates creation.
-
 ## [0.7.12] - Dec 2, 2018
 * Remove Java option "-Dartifactory.locking.provider.type=db". This is already the default setting.
 
