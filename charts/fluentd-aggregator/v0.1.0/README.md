@@ -22,8 +22,8 @@ The following table lists the configurable parameters of the Fluentd elasticsear
 | `service.ports[].port`             | Service port                               | Not Set                                                    |
 | `service.ports[].nodePort`         | NodePort port(when service.type is NodePort) | Not Set                                                  |
 | `service.ports[].protocol`         | Service protocol(optional, can be TCP/UDP) | Not Set                                                    |
-| `tolerations`                      | Optional statefulset tolerations           | `{}`                                                       |
-| `annotations`                      | Optional statefulset annotations           | `NULL`                                                     |
+| `tolerations`                      | Optional daemonset tolerations             | `{}`                                                       |
+| `annotations`                      | Optional daemonset annotations             | `NULL`                                                     |
 | `persistence.enabled`              | Enable persistence using PVC               | `false`                                                    |
 | `persistence.storageClass`         | PVC Storage Class                          | `nil` (uses alpha storage class annotation)                |
 | `persistence.accessMode`           | PVC Access Mode                            | `ReadWriteOnce`                                            |
@@ -42,3 +42,4 @@ Alternatively, a YAML file that specifies the values for the above parameters ca
 ```console
 $ helm install --name my-release -f values.yaml stable/fluentd-aggregator
 ```
+
