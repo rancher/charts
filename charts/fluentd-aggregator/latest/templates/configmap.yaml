@@ -16,8 +16,11 @@ data:
 {{- end }}
 
   output.conf: |-
-    {{- if eq .Values.output.type "elasticsearch" }}
+    {{- if eq .Values.output.type "custom" }}
+{{ .Values.output.customConf | indent 4 }}
+    {{- else }}
     <match **>
+    {{- if eq .Values.output.type "elasticsearch" }}
       @type elasticsearch
       @log_level info
       include_tag_key true
@@ -100,7 +103,7 @@ data:
       # ssl parameter
       # use_ssl true
       # ca_file /path/to/ca.pem
-
+    {{- end }}
       # fluentd file buffer config
       <buffer>
         @type file
@@ -116,8 +119,4 @@ data:
         overflow_action block
       </buffer>
     </match>
-    {{- end }}
-
-    {{- if eq .Values.output.type "custom" }}
-{{ .Values.output.customConf | indent 4 }}
     {{- end }}
