@@ -89,8 +89,6 @@ spec:
           mountPath: /etc/fluent/config.d
         - name: buffer
           mountPath: "/var/log/fluentd-buffers"
-        - name: extra
-          mountPath: {{ .Values.extraPersistence.mountPath | default "/extra" | quote }}
         - name: ca
           mountPath: "/etc/fluent/ssl"
           readOnly: true
@@ -105,15 +103,9 @@ spec:
         - name: buffer
           emptyDir: {}
         {{- end }}
-        {{- if not .Values.extraPersistence.enabled }}
-        - name: extra
-          emptyDir: {}
-        {{- end }}
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
-  {{- if or .Values.persistence.enabled .Values.extraPersistence.enabled }}
-  volumeClaimTemplates:
-  {{- end }}
   {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
   - metadata:
       name: buffer
     spec:
@@ -127,23 +119,6 @@ spec:
       storageClassName: ""
       {{- else }}
       storageClassName: "{{ .Values.persistence.storageClass }}"
-      {{- end }}
-      {{- end }}
-  {{- end }}
-  {{- if .Values.extraPersistence.enabled }}
-  - metadata:
-      name: extra
-    spec:
-      accessModes:
-      - {{ .Values.extraPersistence.accessMode | quote }}
-      resources:
-        requests:
-          storage: {{ .Values.extraPersistence.size }}
-      {{- if .Values.extraPersistence.storageClass }}
-      {{- if (eq "-" .Values.extraPersistence.storageClass) }}
-      storageClassName: ""
-      {{- else }}
-      storageClassName: "{{ .Values.extraPersistence.storageClass }}"
       {{- end }}
       {{- end }}
   {{- end }}
