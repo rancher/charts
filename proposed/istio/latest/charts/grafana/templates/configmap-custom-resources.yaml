@@ -1,20 +1,16 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: istio-security-custom-resources
+  name: istio-grafana-custom-resources
   namespace: {{ .Release.Namespace }}
   labels:
-    app: istio-security
+    app: istio-grafana
     chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
-    istio: security
+    istio: grafana
 data:
   custom-resources.yaml: |-
-    {{- if .Values.global.mtls.enabled }}
-      {{- include "security-default.yaml.tpl" . | indent 4}}
-    {{- else }}
-      {{- include "security-permissive.yaml.tpl" . | indent 4}}
-    {{- end }}
+    {{- include "grafana-default.yaml.tpl" . | indent 4}}
   run.sh: |-
     {{- include "install-custom-resources.sh.tpl" . | indent 4}}

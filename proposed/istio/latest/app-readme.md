@@ -9,18 +9,17 @@ This chart bootstraps all istio [components](https://istio.io/docs/concepts/what
 ## Chart Details
 
 This chart can install multiple istio components as subcharts:
-- ingress
-- ingressgateway
-- egressgateway
+- gateways
 - sidecarInjectorWebhook
 - galley
 - mixer
 - pilot
 - security(citadel)
-- grafana
-- prometheus
-- servicegraph
 - tracing(jaeger)
 - kiali
+- grafana
+- prometheus
 
 To enable or disable each component, change the corresponding `enabled` flag.
+
+Notes: You will need to apply `kubectl label namespace $your-namesapce istio-injection=enabled` to enabled automatic sidecar injection of your desired kubernetes namespaces.
