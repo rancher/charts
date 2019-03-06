@@ -94,7 +94,7 @@ release: {{ .Release.Name | quote }}
         {{cat (trim .Values.customRegistryURL) "/portworx/" | replace " " ""}}
     {{- end -}}
 {{- else -}}
-        {{ "/portworx/" }}
+        {{ "portworx" }}
 {{- end -}}
 {{- end -}}
 
