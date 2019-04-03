@@ -40,18 +40,19 @@ spec:
         runAsUser: {{ .Values.artifactory.uid }}
         fsGroup: {{ .Values.artifactory.uid }}
       initContainers:
-    {{- if .Values.artifactory.persistence.enabled }}
       - name: "remove-lost-found"
         image: "{{ .Values.initContainerImage }}"
         imagePullPolicy: {{ .Values.artifactory.image.pullPolicy }}
         command:
         - 'sh'
         - '-c'
-        - 'rm -rfv {{ .Values.artifactory.persistence.mountPath }}/lost+found'
+        - >
+          if [ -d {{ .Values.artifactory.persistence.mountPath }}/lost+found ]; then
+            rm -rfv {{ .Values.artifactory.persistence.mountPath }}/lost+found
+          fi
         volumeMounts:
         - mountPath: {{ .Values.artifactory.persistence.mountPath | quote }}
           name: volume
-    {{- end }}
       - name: "wait-for-db"
         image: "{{ .Values.initContainerImage }}"
         command:
@@ -61,7 +62,11 @@ spec:
       {{- if .Values.postgresql.enabled }}
           until nc -z -w 2 {{ .Release.Name }}-postgresql {{ .Values.postgresql.service.port }} && echo database ok; do
       {{- else }}
+        {{- if and .Values.database.host .Values.database.port }}
           until nc -z -w 2 {{ .Values.database.host }} {{ .Values.database.port }} && echo database ok; do
+        {{- else }}
+          until true; do
+        {{- end }}
       {{- end }}
             sleep 2;
           done;
@@ -71,6 +76,15 @@ spec:
         imagePullPolicy: {{ .Values.artifactory.image.pullPolicy }}
         securityContext:
           allowPrivilegeEscalation: false
+      {{- if .Values.artifactory.preStartCommand }}
+        command:
+        - '/bin/sh'
+        - '-c'
+        - >
+          echo "Running custom preStartCommand command";
+          {{ .Values.artifactory.preStartCommand }};
+          /entrypoint-artifactory.sh
+      {{- end }}
         lifecycle:
           postStart:
             exec:
@@ -79,17 +93,11 @@ spec:
               - '-c'
               - >
                 {{- if .Values.artifactory.configMapName }}
-                cp -Lrfv /bootstrap/* /artifactory_extra_conf/
+                cp -Lrf /bootstrap/* /artifactory_extra_conf/;
                 {{- end }}
                 {{- if .Values.artifactory.replicator.enabled }}
-                mkdir -p {{ .Values.artifactory.persistence.mountPath }}/replicator/etc;
-                cp -fv /tmp/replicator/replicator.yaml {{ .Values.artifactory.persistence.mountPath }}/replicator/etc/replicator.yaml;
-                {{- end }}
-                {{- if .Values.artifactory.distributionCerts }}
-                mkdir -p {{ .Values.artifactory.persistence.mountPath }}/access/etc/keys/trusted;
-                cp -fv /tmp/access/etc/keys/private.key {{ .Values.artifactory.persistence.mountPath }}/access/etc/keys;
-                cp -fv /tmp/access/etc/keys/root.crt    {{ .Values.artifactory.persistence.mountPath }}/access/etc/keys;
-                cp -fv /tmp/access/etc/keys/root.crt    {{ .Values.artifactory.persistence.mountPath }}/access/etc/keys/trusted;
+                mkdir -p /opt/jfrog/artifactory/replicator/etc;
+                cp -fv /tmp/replicator/replicator.yaml /opt/jfrog/artifactory/replicator/etc/replicator.yaml;
                 {{- end }}
                 {{- if .Values.artifactory.postStartCommand }}
                 {{ .Values.artifactory.postStartCommand }}
@@ -111,23 +119,38 @@ spec:
               key: postgres-password
       {{- else }}
         - name: DB_TYPE
-          value: '{{ .Values.database.type }}'
+          value: '{{ required "Must set database.type when not using the PostgreSQL sub-chart (postgresql.enabled=false) " .Values.database.type }}'
+        {{- if or .Values.database.url .Values.database.secrets.url }}
+        - name: DB_URL
+        {{- if .Values.database.url }}
+          value: '{{.Values.database.url }}'
+        {{- else }}
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.database.secrets.url.name }}
+              key: {{ .Values.database.secrets.url.key }}
+        {{- end }}
+        {{- else }}
         - name: DB_HOST
           value: '{{ .Values.database.host }}'
         - name: DB_PORT
           value: '{{ .Values.database.port }}'
-      {{- if .Values.database.secrets }}
+        {{- end }}
+        {{- if .Values.database.secrets.user }}
         - name: DB_USER
           valueFrom:
             secretKeyRef:
               name: {{ .Values.database.secrets.user.name }}
               key: {{ .Values.database.secrets.user.key }}
+        {{- end }}
+        {{- if .Values.database.secrets.password }}
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
               name: {{ .Values.database.secrets.password.name }}
               key: {{ .Values.database.secrets.password.key }}
-      {{- else }}
+        {{- else }}
+        {{- if and .Values.database.type .Values.database.user }}
         - name: DB_USER
           value: '{{ .Values.database.user }}'
         - name: DB_PASSWORD
@@ -135,6 +158,8 @@ spec:
             secretKeyRef:
               name: {{ template "artifactory-ha.fullname" . }}
               key: db-password
+        {{- end }}
+        {{- end }}
       {{- end }}
       {{- end }}
         - name: EXTRA_JAVA_OPTIONS
@@ -178,6 +203,10 @@ spec:
         - name: HA_BACKUP_DIR
           value: "{{ .Values.artifactory.persistence.nfs.backupDir }}"
       {{- end }}
+      {{- range .Values.artifactory.extraEnvironmentVariables }}
+        - name: {{ .name }}
+          value: '{{ .value }}'
+      {{- end }}
         ports:
         - containerPort: {{ .Values.artifactory.internalPort }}
         {{- if .Values.artifactory.replicator.enabled }}
@@ -208,13 +237,10 @@ spec:
           mountPath: "/artifactory_extra_conf/artifactory.cluster.license"
           subPath: {{ .Values.artifactory.license.dataKey }}
       {{- end }}
-      {{- if .Values.artifactory.distributionCerts }}
-        - name: distribution-certs
-          mountPath: "/tmp/access/etc/keys"
-      {{- end }}
       {{- if .Values.artifactory.replicator.enabled }}
         - name: replicator-config
           mountPath: "/tmp/replicator/replicator.yaml"
+          subPath: replicator.yaml
       {{- end }}
         resources:
 {{ toYaml .Values.artifactory.primary.resources | indent 10 }}
@@ -222,7 +248,7 @@ spec:
         readinessProbe:
           httpGet:
             path: '/artifactory/webapp/#/login'
-            port: 8081
+            port: 8040
           initialDelaySeconds: {{ .Values.artifactory.readinessProbe.initialDelaySeconds }}
           periodSeconds: {{ .Values.artifactory.readinessProbe.periodSeconds }}
           timeoutSeconds: {{ .Values.artifactory.readinessProbe.timeoutSeconds }}
@@ -233,7 +259,7 @@ spec:
         livenessProbe:
           httpGet:
             path: '/artifactory/webapp/#/login'
-            port: 8081
+            port: 8040
           initialDelaySeconds: {{ .Values.artifactory.livenessProbe.initialDelaySeconds }}
           periodSeconds: {{ .Values.artifactory.livenessProbe.periodSeconds }}
           timeoutSeconds: {{ .Values.artifactory.livenessProbe.timeoutSeconds }}
@@ -244,9 +270,31 @@ spec:
       nodeSelector:
 {{ toYaml . | indent 8 }}
     {{- end }}
+    {{- if .Values.artifactory.primary.affinity }}
     {{- with .Values.artifactory.primary.affinity }}
       affinity:
 {{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- else if eq .Values.artifactory.primary.podAntiAffinity.type "soft" }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: {{ .Values.artifactory.primary.podAntiAffinity.topologyKey }}
+              labelSelector:
+                matchLabels:
+                  app: {{ template "artifactory-ha.name" . }}
+                  release: {{ .Release.Name }}
+    {{- else if eq .Values.artifactory.primary.podAntiAffinity.type "hard" }}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - topologyKey: {{ .Values.artifactory.primary.podAntiAffinity.topologyKey }}
+            labelSelector:
+              matchLabels:
+                app: {{ template "artifactory-ha.name" . }}
+                release: {{ .Release.Name }}
     {{- end }}
     {{- with .Values.artifactory.primary.tolerations }}
       tolerations:
@@ -256,11 +304,6 @@ spec:
       - name: binarystore-xml
         configMap:
           name: {{ template "artifactory-ha.fullname" . }}-bs
-      {{- if .Values.artifactory.distributionCerts }}
-      - name: distribution-certs
-        configMap:
-          name: {{ .Values.artifactory.distributionCerts }}
-      {{- end }}
       {{- if .Values.artifactory.replicator.enabled }}
       - name: replicator-config
         configMap:

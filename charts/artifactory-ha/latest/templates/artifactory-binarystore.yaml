@@ -135,17 +135,26 @@ data:
 
         <provider id="s3" type="s3">
             <endpoint>{{ .Values.artifactory.persistence.awsS3.endpoint }}</endpoint>
+        {{- if .Values.artifactory.persistence.awsS3.roleName }}
+            <roleName>{{ .Values.artifactory.persistence.awsS3.roleName }}</roleName>
+            <refreshCredentials>true</refreshCredentials>
+        {{- else }}
             <refreshCredentials>{{ .Values.artifactory.persistence.awsS3.refreshCredentials }}</refreshCredentials>
+        {{- end }}
             <testConnection>{{ .Values.artifactory.persistence.awsS3.testConnection }}</testConnection>
             <httpsOnly>true</httpsOnly>
             <region>{{ .Values.artifactory.persistence.awsS3.region }}</region>
             <bucketName>{{ .Values.artifactory.persistence.awsS3.bucketName }}</bucketName>
+        {{- if .Values.artifactory.persistence.awsS3.identity }}
             <identity>{{ .Values.artifactory.persistence.awsS3.identity }}</identity>
+        {{- end }}
+        {{- if .Values.artifactory.persistence.awsS3.credential }}
             <credential>{{ .Values.artifactory.persistence.awsS3.credential }}</credential>
+        {{- end }}
             <path>{{ .Values.artifactory.persistence.awsS3.path }}</path>
-            {{- range $key, $value := .Values.artifactory.persistence.awsS3.properties }}
+        {{- range $key, $value := .Values.artifactory.persistence.awsS3.properties }}
             <property name="{{ $key }}" value="{{ $value }}"/>
-            {{- end }}
+        {{- end }}
         </provider>
     </config>
 {{- end }}

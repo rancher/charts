@@ -1,0 +1,326 @@
+questions:
+- variable: defaultImage
+  default: true
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: image.repository
+    default: "chartmuseum/chartmuseum"
+    description: "Docker image repository"
+    type: string
+    label: Image Repository
+  - variable: image.tag
+    default: "v0.7.1"
+    description: "Docker image tag"
+    type: string
+    label: Image Tag
+# storage settings
+- variable: env.open.STORAGE
+  required: true
+  default: "local"
+  description: "Storage Backend to use"
+  type: enum
+  label: Storage Backend To Use
+  group: "Storage Options"
+  options:
+    - "local"
+    - "amazon"
+    - "alibaba"
+    - "google"
+    - "microsoft"
+    - "openstack"
+- variable: env.open.STORAGE_AMAZON_BUCKET
+  default: ""
+  type: string
+  description: "S3 bucket to store charts for amazon storage backend"
+  label: S3 Bucket Name
+  group: "Storage Options"
+  required: true
+  show_if: "env.open.STORAGE=amazon"
+- variable: env.open.STORAGE_AMAZON_PREFIX
+  default: ""
+  type: string
+  description: "prefix to store charts for amazon storage backend"
+  label: Prefix To Store Charts Under for AWS S3 (Optional)
+  group: "Storage Options"
+  show_if: "env.open.STORAGE=amazon"
+- variable: env.open.STORAGE_AMAZON_REGION
+  default: ""
+  required: true
+  type: string
+  description: "Region to use for bucket access for AWS	"
+  label: Region for S3 Bucket Storage
+  group: "Storage Options"
+  show_if: "env.open.STORAGE=amazon"
+# Alibaba Cloud Storage Options
+- variable: env.open.STORAGE_ALIBABA_BUCKET
+  default: ""
+  type: string
+  description: "OSS bucket to store charts for alibaba storage backend"
+  label: OSS Bucket Name
+  group: "Storage Options"
+  show_if: "env.open.STORAGE=alibaba"
+- variable: env.open.STORAGE_ALIBABA_PREFIX
+  default: ""
+  type: string
+  description: "Prefix to store charts for alibaba storage backend"
+  label: OSS Bucket Prefix
+  group: "Storage Options"
+  show_if: "env.open.STORAGE=alibaba"
+- variable: env.open.STORAGE_ALIBABA_ENDPOINT
+  default: ""
+  type: string
+  description: "OSS endpoint to store charts for alibaba storage backend"
+  label: Alternative OSS Storage Endpoint	
+  group: "Storage Options"
+  show_if: "env.open.STORAGE=alibaba"
+# Google Storage Options
+- variable: env.open.STORAGE_GOOGLE_BUCKET
+  default: ""
+  type: string
+  description: "GCS bucket to store charts for google storage backend"
+  label: GCS Bucket Name
+  group: "Storage Options"
+  show_if: "env.open.STORAGE=google"
+- variable: env.open.STORAGE_GOOGLE_PREFIX
+  default: ""
+  type: string
+  description: "Prefix to store charts for google storage backend"
+  label: GCS Bucket Prefix
+  group: "Storage Options"
+  show_if: "env.open.STORAGE=google"
+# Microsoft Azure Storage Options
+- variable: env.open.STORAGE_MICROSOFT_CONTAINER
+  default: ""
+  type: string
+  description: "Container to store charts for microsoft storage backend"
+  label: Microsoft Azure Blob Storage Name
+  group: "Storage Options"
+  show_if: "env.open.STORAGE=microsoft"
+- variable: env.open.STORAGE_MICROSOFT_PREFIX
+  default: ""
+  type: string
+  description: "Prefix to store charts for microsoft storage backend"
+  label: Microsoft Azure Blob Storage Prefix
+  group: "Storage Options"
+  show_if: "env.open.STORAGE=microsoft"
+# OpenStack Storage Options
+- variable: env.open.STORAGE_OPENSTACK_CONTAINER
+  default: ""
+  type: string
+  description: "Prefix to store charts for openstack storage backend"
+  label: Openstack Object Storage Container Name
+  group: "Storage Options"
+  show_if: "env.open.STORAGE=openstack"
+- variable: env.open.STORAGE_OPENSTACK_PREFIX
+  default: ""
+  type: string
+  description: "Prefix to store charts for openstack storage backend"
+  label: Prefix To Openstack Object Storage Container
+  group: "Storage Options"
+  show_if: "env.open.STORAGE=openstack"
+- variable: env.open.STORAGE_OPENSTACK_REGION
+  default: ""
+  type: string
+  description: "Region of openstack container"
+  label: Region Of Openstack Object Storage Container	
+  group: "Storage Options"
+  show_if: "env.open.STORAGE=openstack"
+# Storage Secret
+- variable: env.secret.AWS_ACCESS_KEY_ID
+  default: ""
+  type: string
+  description: "AWS access key id value"
+  label: AWS Access Key ID Value
+  group: "Storage Secret"
+  show_if: "env.open.STORAGE=amazon"
+- variable: env.secret.AWS_SECRET_ACCESS_KEY
+  default: ""
+  type: string
+  description: "aws access key secret value "
+  label: AWS Access Key Secret Value 
+  group: "Storage Secret"
+  show_if: "env.open.STORAGE=amazon"
+- variable: env.secret.ALIBABA_CLOUD_ACCESS_KEY_ID
+  default: ""
+  type: string
+  description: "alibaba OSS access key id"
+  label: OSS Access Key ID
+  group: "Storage Secret"
+  show_if: "env.open.STORAGE=alibaba"
+- variable: env.secret.ALIBABA_CLOUD_ACCESS_KEY_SECRET
+  default: ""
+  type: string
+  description: "alibaba OSS access key secret "
+  label: OSS Access Key Secret 
+  group: "Storage Secret"
+  show_if: "env.open.STORAGE=alibaba"
+- variable: gcp.secret.enabled
+  default: false
+  type: boolean
+  description: "Flag for the GCP service account"
+  label: Enable GCP Service Account
+  group: "Storage Secret"
+  show_if: "env.open.STORAGE=google"
+  show_subquestion_if: true
+  subquestions:
+  - variable: gcp.secret.name
+    default: ""
+    type: string
+    description: "secret name for the gcp json file"
+    label: Secret Name For The GCP Json File
+  - variable: gcp.secret.key
+    default: "credentials.json"
+    type: string
+    description: "Secret key for the GCP json file"
+    label: Secret Key For The GCP Json File
+# Openstack Object Storage secret
+- variable: env.secret.OS_AUTH_URL
+  default: ""
+  type: string
+  description: "Openstack object storage auth url"
+  label: Auth URL Of Openstack Object Storage 
+  group: "Storage Secret"
+  show_if: "env.open.STORAGE=openstack"
+- variable: env.secret.OS_TENANT_ID
+  default: ""
+  type: string
+  description: "Openstack object storage tenant id"
+  label: Tenant ID Of Openstack Object Storage 
+  group: "Storage Secret"
+  show_if: "env.open.STORAGE=openstack"
+- variable: env.secret.OS_USERNAME
+  default: ""
+  type: string
+  description: "Openstack object storage username"
+  label: Username Of Openstack Object Storage 
+  group: "Storage Secret"
+  show_if: "env.open.STORAGE=openstack"
+- variable: env.secret.OS_PASSWORD
+  default: ""
+  type: string
+  description: "Openstack object storage password"
+  label: Password Of Openstack Object Storage
+  group: "Storage Secret"
+  show_if: "env.open.STORAGE=openstack"
+# Microsoft azure secret
+- variable: env.secret.AZURE_STORAGE_ACCOUNT
+  default: ""
+  type: string
+  description: "azure storage account"
+  label: Azure Storage Account
+  group: "Storage Secret"
+  show_if: "env.open.STORAGE=microsoft"
+- variable: env.secret.AZURE_STORAGE_ACCESS_KEY
+  default: ""
+  type: string
+  description: "azure storage account access key "
+  label: Azure Storage Account Access Key 
+  group: "Storage Secret"
+  show_if: "env.open.STORAGE=microsoft"
+# Local Storage Settings
+- variable: persistence.enabled
+  default: true
+  type: boolean
+  description: "use a PVC for persistent storage for local storage"
+  label: Enable Persistent Storage For Local Storage
+  group: "Storage Options"
+  show_if: "env.open.STORAGE=local"
+  show_subquestion_if: true
+  subquestions:
+  - variable: persistence.size
+    default: "10Gi"
+    type: string
+    description: "Local Storage Persistent Volume Size"
+    label: Local Storage Volume Size
+    group: "Storage Options"
+    show_if: "env.open.STORAGE=local&&persistence.enabled=true"
+  - variable: persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    group: "Storage Options"
+    label: Default StorageClass for Local Storage
+    show_if: "env.open.STORAGE=local&&persistence.enabled=true"
+  - variable: persistence.existingClaim
+    default: ""
+    description: "If not empty, uses the specified existing PVC instead of creating new one"
+    type: pvc
+    label: Existing Persistent Volume for LocalStorage
+# Service and L7 LoadBalancer
+- variable: ingress.enabled
+  default: true
+  description: "Expose app using Layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose app using Layer 7 Load Balancer
+  show_subquestion_if: true
+  group: "Services and Load Balancing"
+  subquestions:
+  - variable: ingress.hosts[0]
+    default: "xip.io"
+    description: "Hostname to your app installation"
+    type: hostname
+    required: true
+    label: Hostname
+- variable: service.type
+  required: true
+  default: "NodePort"
+  description: "ChartMuseum Service Type"
+  type: enum
+  label: Service Type For ChartMuseum 
+  group: "Services and Load Balancing"
+  show_if: "ingress.enabled=false"
+  options:
+    - "ClusterIP"
+    - "NodePort"
+    - "LoadBalancer"
+# chartmuseum options
+- variable: env.secret.BASIC_AUTH_USER
+  default: ""
+  description: "Username for basic http authentication"
+  type: string
+  label: Username For Basic Http Authentication (Optional)
+  group: "ChartMuseum Settings"
+- variable: env.secret.BASIC_AUTH_PASS
+  default: ""
+  description: "Password for basic http authentication"
+  type: string
+  label: Password For Basic Http Authentication (Optional)
+  group: "ChartMuseum Settings"
+- variable: env.open.CHART_URL
+  default: ""
+  description: "Absolute url for .tgzs in index.yaml"
+  type: string
+  label: Absolute URL For .tgzs In index.yaml
+  group: "ChartMuseum Settings"
+- variable: env.open.SHOW_ADVANCED
+  default: false
+  description: "Show advanced ChartMuseum settings"
+  type: boolean
+  label: Show Advanced ChartMuseum Settings
+  group: "ChartMuseum Settings"
+  show_subquestion_if: true
+  subquestions:
+  - variable: env.open.DEPTH
+    default: "0"
+    description: "Levels of nested repos for multitenancy."
+    type: string
+    label: Levels Of Nested Repos For Multitenancy
+  - variable: env.open.ALLOW_OVERWRITE
+    default: false
+    description: "Allow chart versions to be re-uploaded"
+    type: boolean
+    label: Allow Chart Versions To Be Re-uploaded
+  - variable: env.open.AUTH_ANONYMOUS_GET
+    default: false
+    description: "Allow anonymous GET operations when auth is used"
+    type: boolean
+    label: Allow Anonymous GET Operations When Auth Is Used
+  - variable: env.open.DISABLE_METRICS
+    default: true
+    description: "Disable Prometheus metrics of Chartmuseum"
+    type: boolean
+    label: Disable Prometheus Metrics

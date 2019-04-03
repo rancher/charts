@@ -1,0 +1,399 @@
+categories:
+- repository
+labels:
+  io.rancher.certified: partner
+questions:
+- variable: defaultImage
+  default: "true"
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: initContainerImage
+    default: "alpine:3.6"
+    description: "Init image name"
+    type: string
+    label: Init image name
+  - variable: artifactory.image.repository
+    default: "docker.bintray.io/jfrog/artifactory-pro"
+    description: "Artifactory image name"
+    type: string
+    label: Artifactory Image Name
+  - variable: artifactory.image.version
+    default: "6.5.2"
+    description: "Artifactory image tag"
+    type: string
+    label: Artifactory Image Tag
+  - variable: nginx.image.repository
+    default: "docker.bintray.io/jfrog/nginx-artifactory-pro"
+    description: "Nginx image name"
+    type: string
+    label: Nginx Image Name
+  - variable: nginx.image.version
+    default: "6.5.2"
+    description: "Nginx image tag"
+    type: string
+    label: Nginx Image Tag
+- variable: ingress.enabled
+  default: true
+  description: "Expose app using Layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose app using Layer 7 Load Balancer
+  show_subquestion_if: true
+  group: "Services and Load Balancing"
+  required: true
+  subquestions:
+  - variable: ingress.hosts[0]
+    default: "xip.io"
+    description: "Hostname to your artifactory installation"
+    type: hostname
+    required: true
+    label: Hostname
+- variable: artifactory.persistence.enabled
+  default: false
+  description: "enable persistence storage for Artifactory"
+  type: boolean
+  label: Enable Persistent Storage for Artifactory
+  group: "Artifactory Storage"
+  required: true
+  show_subquestion_if: true
+  subquestions: 
+  - variable: artifactory.persistence.size
+    default: "50Gi"
+    description: "Artifactory persistent volume size"
+    type: string
+    label: Artifactory Persistent Volume Size
+    required: true
+  - variable: artifactory.persistence.type
+    default: "file-system"
+    description: "Artifactory persistent volume size"
+    type: enum
+    label: Artifactory Persistent Storage Type
+    required: true
+    options:
+      - "file-system"
+      - "nfs"
+      - "google-storage"
+      - "aws-s3"
+#Storage Type Settings
+- variable: artifactory.persistence.nfs.ip
+  default: ""
+  type: string
+  group: "Artifactory Storage"
+  label: NFS Server IP
+  description: "NFS server IP"
+  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=nfs"
+- variable: artifactory.persistence.nfs.haDataMount
+  default: "/data"
+  type: string
+  label: NFS Data Directory
+  description: "NFS data directory"
+  group: "Artifactory Storage"
+  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=nfs"
+- variable: artifactory.persistence.nfs.haBackupMount
+  default: "/backup"
+  type: string
+  label: NFS Backup Directory
+  description: "NFS backup directory"
+  group: "Artifactory Storage"
+  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=nfs"
+- variable: artifactory.persistence.nfs.dataDir
+  default: "/var/opt/jfrog/artifactory-ha"
+  type: string
+  label: HA Data Directory
+  description: "HA data directory"
+  group: "Artifactory Storage"
+  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=nfs"
+- variable: artifactory.persistence.nfs.backupDir
+  default: "/var/opt/jfrog/artifactory-backup"
+  type: string
+  label: HA Backup Directory	
+  description: "HA backup directory	"
+  group: "Artifactory Storage"
+  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=nfs"
+- variable: artifactory.persistence.nfs.capacity
+  default: "200Gi"
+  type: string
+  label: NFS PVC Size	
+  description: "NFS PVC size	"
+  group: "Artifactory Storage"
+  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=nfs"
+#Google storage settings
+- variable: artifactory.persistence.googleStorage.bucketName
+  default: "artifactory-ha-gcp"
+  type: string
+  label: Google Storage Bucket Name	
+  description: "Google storage bucket name"
+  group: "Artifactory Storage"
+  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=google-storage"
+- variable: artifactory.persistence.googleStorage.identity
+  default: ""
+  type: string
+  label: Google Storage Service Account ID	
+  description: "Google Storage service account id"
+  group: "Artifactory Storage"
+  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=google-storage"
+- variable: artifactory.persistence.googleStorage.credential
+  default: ""
+  type: string
+  label: Google Storage Service Account Key	
+  description: "Google Storage service account key"
+  group: "Artifactory Storage"
+  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=google-storage"
+- variable: artifactory.persistence.googleStorage.path
+  default: "artifactory-ha/filestore"
+  type: string
+  label: Google Storage Path In Bucket	
+  description: "Google Storage path in bucket"
+  group: "Artifactory Storage"
+  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=google-storage"
+# awsS3 storage settings
+- variable: artifactory.persistence.awsS3.bucketName
+  default: "artifactory-ha-aws"
+  type: string
+  label: AWS S3 Bucket Name	
+  description: "AWS S3 bucket name"
+  group: "Artifactory Storage"
+  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=aws-s3"
+- variable: artifactory.persistence.awsS3.region
+  default: ""
+  type: string
+  label: AWS S3 Bucket Region	
+  description: "AWS S3 bucket region"
+  group: "Artifactory Storage"
+  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=aws-s3"
+- variable: artifactory.persistence.awsS3.identity
+  default: ""
+  type: string
+  label: AWS S3 AWS_ACCESS_KEY_ID
+  description: "AWS S3 AWS_ACCESS_KEY_ID"
+  group: "Artifactory Storage"
+  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=aws-s3"
+- variable: artifactory.persistence.awsS3.credential
+  default: ""
+  type: string
+  label: AWS S3 AWS_SECRET_ACCESS_KEY	
+  description: "AWS S3 AWS_SECRET_ACCESS_KEY"
+  group: "Artifactory Storage"
+  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=aws-s3"
+- variable: artifactory.persistence.awsS3.path
+  default: "artifactory-ha/filestore"
+  type: string
+  label: AWS S3 Path In Bucket	
+  description: "AWS S3 path in bucket"
+  group: "Artifactory Storage"
+  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=aws-s3"
+# Nginx Settings
+- variable: nginx.enabled
+  default: false
+  description: "Enable nginx server"
+  type: boolean
+  label: Enable Nginx Server
+  group: "Services and Load Balancing"
+  required: true
+  show_if: "ingress.enabled=false"
+- variable: nginx.service.type
+  default: "LoadBalancer"
+  description: "Nginx service type"
+  type: enum
+  required: true
+  label: Nginx Service Type
+  show_if: "nginx.enabled=true&&ingress.enabled=false"
+  group: "Services and Load Balancing"
+  options:
+    - "ClusterIP"
+    - "NodePort"
+    - "LoadBalancer"
+- variable: nginx.service.loadBalancerIP
+  default: ""
+  description: "Provide Static IP to configure with Nginx"
+  type: string
+  label: Config Nginx LoadBalancer IP
+  show_if: "nginx.enabled=true&&nginx.service.type=LoadBalancer&&ingress.enabled=false"
+  group: "Services and Load Balancing"
+- variable: nginx.tlsSecretName
+  default: ""
+  description: "Provide SSL Secret name to configure with Nginx"
+  type: string
+  label: Config Nginx SSL Secret
+  show_if: "nginx.enabled=true&&ingress.enabled=false"
+  group: "Services and Load Balancing"
+- variable: nginx.persistence.enabled
+  default: false
+  description: "enable persistence storage for nginx server"
+  type: boolean
+  label: Enable Persistent Storage for Nginx Service
+  group: "Services and Load Balancing"
+  show_if: "nginx.enabled=true&&ingress.enabled=false"
+- variable: nginx.persistence.size
+  default: 5Gi
+  description: "Nginx persistent volume size"
+  type: string
+  label: Nginx Persistent Volume Size
+  group: "Services and Load Balancing"
+  show_if: "nginx.enabled=true&&nginx.persistence.enabled=true&&ingress.enabled=false"
+- variable: nginx.persistence.storageClass
+  default: ""
+  description: "If undefined or null, uses the default StorageClass. Default to null"
+  type: storageclass
+  label: Default StorageClass for Nginx
+  show_if: "nginx.enabled=true&&nginx.persistence.enabled=true&&ingress.enabled=false"
+  group: "Services and Load Balancing"
+# Database Settings
+- variable: postgresql.enabled
+  default: true
+  description: "Enable PostgreSQL"
+  type: boolean
+  required: true
+  label: Enable PostgreSQL
+  group: "Database Settings"
+  show_subquestion_if: "true"
+  subquestions:
+  - variable: postgresql.persistence.enabled
+    default: false
+    description: "enable persistence storage for PostgreSQL"
+    type: boolean
+    label: Enable Persistent Storage for PostgreSQL
+  - variable: postgresql.persistence.size
+    default: 20Gi
+    description: "PostgreSQL persistent volume size"
+    type: string
+    label: PostgreSQL Persistent Volume Size
+    show_if: "postgresql.enabled=true&&postgresql.persistence.enabled=true"
+  - variable: postgresql.persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for PostgreSQL
+    show_if: "postgresql.enabled=true&&postgresql.persistence.enabled=true"
+- variable: database.type
+  default: "postgresql"
+  description: "xternal database type (postgresql, mysql, oracle or mssql)"
+  type: enum
+  required: true
+  label: External Database Type
+  group: "Database Settings"
+  show_if: "postgresql.enabled=false"
+  options:
+    - "postgresql"
+    - "mysql"
+    - "oracle"
+    - "mssql"
+- variable: database.host
+  default: ""
+  description: "External database hostname"
+  type: string
+  label: External Database Hostname
+  group: "Database Settings"
+  show_if: "postgresql.enabled=false"
+- variable: database.port
+  default: ""
+  description: "External database port"
+  type: string
+  label: External Database Port
+  group: "Database Settings"
+  show_if: "postgresql.enabled=false"
+- variable: database.user
+  default: ""
+  description: "External database username"
+  type: string
+  label: External Database Username
+  group: "Database Settings"
+  show_if: "postgresql.enabled=false"
+- variable: database.password
+  default: ""
+  description: "External database password"
+  type: string
+  label: External Database Password
+  group: "Database Settings"
+  show_if: "postgresql.enabled=false"
+- variable: advancedOptions
+  default: false
+  description: "Show advanced configurations"
+  label: Show Advanced Configurations
+  type: boolean
+  show_subquestion_if: true
+  group: "Advanced Options"
+  subquestions:
+  - variable: artifactory.primary.resources.requests.cpu
+    default: "500m"
+    description: "Artifactory primary node initial cpu request"
+    type: string
+    label: Artifactory Primary Node Initial CPU Request
+  - variable: artifactory.primary.resources.requests.memory
+    default: "1Gi"
+    description: "Artifactory primary node initial memory request"
+    type: string
+    label: Artifactory Primary Node Initial Memory Request
+  - variable: artifactory.primary.javaOpts.xms
+    default: "1g"
+    description: "Artifactory primary node java Xms size"
+    type: string
+    label: Artifactory Primary Node Java Xms Size
+  - variable: artifactory.primary.resources.limits.cpu
+    default: "2"
+    description: "Artifactory primary node cpu limit"
+    type: string
+    label: Artifactory Primary Node CPU Limit
+  - variable: artifactory.primary.resources.limits.memory
+    default: "4Gi"
+    description: "Artifactory primary node memory limit"
+    type: string
+    label: Artifactory Primary Node Memory Limit
+  - variable: artifactory.primary.javaOpts.xmx
+    default: "4g"
+    description: "Artifactory primary node java Xmx size"
+    type: string
+    label: Artifactory Primary Node Java Xmx Size
+  - variable: artifactory.node.resources.requests.cpu
+    default: "500m"
+    description: "Artifactory member node initial cpu request"
+    type: string
+    label: Artifactory Member Node Initial CPU Request
+  - variable: artifactory.node.resources.requests.memory
+    default: "2Gi"
+    description: "Artifactory member node initial memory request"
+    type: string
+    label: Artifactory Member Node Initial Memory Request
+  - variable: artifactory.node.javaOpts.xms
+    default: "1g"
+    description: "Artifactory member node java Xms size"
+    type: string
+    label: Artifactory Member Node Java Xms Size
+  - variable: artifactory.node.resources.limits.cpu
+    default: "2"
+    description: "Artifactory member node cpu limit"
+    type: string
+    label: Artifactory Member Node CPU Limit
+  - variable: artifactory.node.resources.limits.memory
+    default: "4Gi"
+    description: "Artifactory member node memory limit"
+    type: string
+    label: Artifactory Member Node Memory Limit
+  - variable: artifactory.node.javaOpts.xmx
+    default: "4g"
+    description: "Artifactory member node java Xmx size"
+    type: string
+    label: Artifactory Member Node Java Xmx Size
+  - variable: postgresql.node.resources.requests.cpu
+    default: "200m"
+    description: "PostgreSQL initial cpu request"
+    type: string
+    label: PostgreSQL Initial CPU Request
+  - variable: postgresql.node.resources.requests.memory
+    default: "500Mi"
+    description: "PostgreSQL initial memory request"
+    type: string
+    label: PostgreSQL Initial Memory Request
+  - variable: postgresql.node.resources.limits.cpu
+    default: "1"
+    description: "PostgreSQL cpu limit"
+    type: string
+    label: PostgreSQL CPU Limit
+  - variable: postgresql.node.resources.limits.memory
+    default: "1Gi"
+    description: "PostgreSQL memory limit"
+    type: string
+    label: PostgreSQL Memory Limit

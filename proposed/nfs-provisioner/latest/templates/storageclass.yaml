@@ -1,0 +1,22 @@
+{{ if .Values.storageClass.create -}}
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: {{ template "nfs-provisioner.fullname" . }}
+  labels:
+    app: {{ template "nfs-provisioner.name" . }}
+    chart: {{ template "nfs-provisioner.chart" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+{{- if .Values.storageClass.defaultClass }}
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+{{- end }}
+allowVolumeExpansion: {{ .Values.storageClass.allowVolumeExpansion }}
+provisioner: {{ template "nfs-provisioner.provisionerName" . }}
+reclaimPolicy: {{ .Values.storageClass.reclaimPolicy }}
+{{ end -}}
+{{- with .Values.storageClass.parameters }}
+parameters:
+{{ toYaml . | indent 2 }}
+{{- end }}

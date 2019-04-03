@@ -58,6 +58,7 @@ ingress:
 ##
 postgresql:
   enabled: true
+  imageTag: "9.6.11"
   postgresDatabase: "artifactory"
   postgresUser: "artifactory"
   postgresPassword:
@@ -77,11 +78,13 @@ postgresql:
   #    cpu: "500m"
 
 ## If NOT using the PostgreSQL in this chart (postgresql.enabled=false),
-## you must specify the following database details
+## you MUST specify custom database details here or Artifactory will NOT start
 database:
   type:
   host:
   port:
+  ## If you set the url, leave host and port empty
+  url:
   ## If you would like this chart to create the secret containing the db
   ## password, use these values
   user:
@@ -95,6 +98,9 @@ database:
   #  password:
   #    name: "rds-artifactory"
   #    key: "db-password"
+  #  url:
+  #    name: "rds-artifactory"
+  #    key: "db-url"
 
 # Artifactory
 artifactory:
@@ -124,8 +130,28 @@ artifactory:
   ## Create configMap with artifactory.config.import.xml and security.import.xml and pass name of configMap in following parameter
   configMapName:
 
-  ## Extra postStart command to install JDBC driver for MySql/MariaDb/Oracle
-  # postStartCommand: "curl -L -o /opt/jfrog/artifactory/tomcat/lib/mysql-connector-java-5.1.41.jar https://jcenter.bintray.com/mysql/mysql-connector-java/5.1.41/mysql-connector-java-5.1.41.jar && chown 1030:1030 /opt/jfrog/artifactory/tomcat/lib/mysql-connector-java-5.1.41.jar"
+  ## Extra pre-start command to install JDBC driver for MySql/MariaDb/Oracle
+  # preStartCommand: "curl -L -o /opt/jfrog/artifactory/tomcat/lib/mysql-connector-java-5.1.41.jar https://jcenter.bintray.com/mysql/mysql-connector-java/5.1.41/mysql-connector-java-5.1.41.jar"
+  ## Extra post-start command to run extra commands after container starts
+  # postStartCommand:
+
+  ## Extra environment variables that can be used to tune Artifactory to your needs.
+  ## Uncomment and set value as needed
+  extraEnvironmentVariables:
+  # - name: SERVER_XML_ARTIFACTORY_PORT
+  #   value: "8081"
+  # - name: SERVER_XML_ARTIFACTORY_MAX_THREADS
+  #   value: "200"
+  # - name: SERVER_XML_ACCESS_MAX_THREADS
+  #   value: "50"
+  # - name: SERVER_XML_ARTIFACTORY_EXTRA_CONFIG
+  #   value: ""
+  # - name: SERVER_XML_ACCESS_EXTRA_CONFIG
+  #   value: ""
+  # - name: DB_POOL_MAX_ACTIVE
+  #   value: "100"
+  # - name: DB_POOL_MAX_IDLE
+  #   value: "10"
 
   membershipPort: 10017
   externalPort: 8081
@@ -200,6 +226,7 @@ artifactory:
       bucketName: "artifactory-ha-aws"
       endpoint:
       region:
+      roleName:
       identity:
       credential:
       path: "artifactory-ha/filestore"
@@ -219,14 +246,14 @@ artifactory:
 
   ## The following Java options are passed to the java process running Artifactory.
   ## This will be passed to all cluster members. Primary and member nodes.
-  javaOpts:
-    other: "-Dartifactory.locking.provider.type=db"
+  javaOpts: {}
+    # other: ""
   ## Artifactory Replicator is available only for Enterprise Plus
   replicator:
     enabled: false
     publicUrl:
-  # Name of ConfigMap for Distribution Cert
-  distributionCerts:
+
+  annotations: {}
 
   annotations: {}
 
@@ -252,12 +279,18 @@ artifactory:
     javaOpts: {}
     #  xms: "1g"
     #  xmx: "2g"
-    #  other:
+    #  other: ""
     nodeSelector: {}
 
     tolerations: []
 
     affinity: {}
+    ## Only used if "affinity" is empty
+    podAntiAffinity:
+      ## Valid values are "soft" or "hard"; any other value indicates no anti-affinity
+      type: ""
+      topologyKey: "kubernetes.io/hostname"
+
   node:
     name: artifactory-ha-member
     persistence:
@@ -279,7 +312,7 @@ artifactory:
     javaOpts: {}
     #  xms: "1g"
     #  xmx: "2g"
-    #  other:
+    #  other: ""
     nodeSelector: {}
 
     tolerations: []
@@ -349,6 +382,8 @@ nginx:
     skipAutoConfigUpdate: false
   ## Custom ConfigMap for nginx.conf
   customConfigMap:
+  ## Custom ConfigMap for artifactory.conf
+  customArtifactoryConfigMap:
   persistence:
     mountPath: "/var/opt/jfrog/nginx"
     enabled: false
