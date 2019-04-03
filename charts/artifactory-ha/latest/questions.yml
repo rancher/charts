@@ -294,7 +294,62 @@ questions:
   description: "AWS S3 path in bucket"
   group: "Artifactory Storage"
   show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=aws-s3"
-
+# Nginx Settings
+- variable: nginx.enabled
+  default: false
+  description: "Enable nginx server"
+  type: boolean
+  label: Enable Nginx Server
+  group: "Services and Load Balancing"
+  required: true
+  show_if: "ingress.enabled=false"
+- variable: nginx.service.type
+  default: "LoadBalancer"
+  description: "Nginx service type"
+  type: enum
+  required: true
+  label: Nginx Service Type
+  show_if: "nginx.enabled=true&&ingress.enabled=false"
+  group: "Services and Load Balancing"
+  options:
+    - "ClusterIP"
+    - "NodePort"
+    - "LoadBalancer"
+- variable: nginx.service.loadBalancerIP
+  default: ""
+  description: "Provide Static IP to configure with Nginx"
+  type: string
+  label: Config Nginx LoadBalancer IP
+  show_if: "nginx.enabled=true&&nginx.service.type=LoadBalancer&&ingress.enabled=false"
+  group: "Services and Load Balancing"
+- variable: nginx.tlsSecretName
+  default: ""
+  description: "Provide SSL Secret name to configure with Nginx"
+  type: string
+  label: Config Nginx SSL Secret
+  show_if: "nginx.enabled=true&&ingress.enabled=false"
+  group: "Services and Load Balancing"
+- variable: nginx.persistence.enabled
+  default: false
+  description: "enable persistence storage for nginx server"
+  type: boolean
+  label: Enable Persistent Storage for Nginx Service
+  group: "Services and Load Balancing"
+  show_if: "nginx.enabled=true&&ingress.enabled=false"
+- variable: nginx.persistence.size
+  default: 5Gi
+  description: "Nginx persistent volume size"
+  type: string
+  label: Nginx Persistent Volume Size
+  group: "Services and Load Balancing"
+  show_if: "nginx.enabled=true&&nginx.persistence.enabled=true&&ingress.enabled=false"
+- variable: nginx.persistence.storageClass
+  default: ""
+  description: "If undefined or null, uses the default StorageClass. Default to null"
+  type: storageclass
+  label: Default StorageClass for Nginx
+  show_if: "nginx.enabled=true&&nginx.persistence.enabled=true&&ingress.enabled=false"
+  group: "Services and Load Balancing"
 # Database Settings
 - variable: postgresql.enabled
   default: true

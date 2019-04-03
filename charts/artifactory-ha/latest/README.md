@@ -88,6 +88,22 @@ helm install --name artifactory-ha \
 
 Get more details on configuring Artifactory in the [official documentation](https://www.jfrog.com/confluence/).
 
+### Create Distribution Certificates for Artifactory Enterprise Plus
+```bash
+# Create private.key and root.crt
+openssl req -newkey rsa:2048 -nodes -keyout private.key -x509 -days 365 -out root.crt
+```
+
+Once Created, Use it to create ConfigMap
+```bash
+# Create ConfigMap distribution-certs
+kubectl create configmap distribution-certs --from-file=private.key=private.key --from-file=root.crt=root.crt
+```
+Pass it to `helm`
+```bash
+helm install --name artifactory --set artifactory.distributionCerts=distribution-certs jfrog/artifactory-ha
+```
+
 ### Artifactory storage
 Artifactory HA support a wide range of storage back ends. You can see more details on [Artifactory HA storage options](https://www.jfrog.com/confluence/display/RTF/HA+Installation+and+Setup#HAInstallationandSetup-SettingUpYourStorageConfiguration)
 
@@ -172,6 +188,7 @@ kubectl create secret generic my-secret --from-literal=master-key=${MASTER_KEY}
 # Pass the created secret to helm
 helm install --name artifactory-ha --set artifactory.masterKeySecretName=my-secret jfrog/artifactory-ha
 ```
+
 **NOTE:** In either case, make sure to pass the same master key on all future calls to `helm install` and `helm upgrade`! In the first case, this means always passing `--set artifactory.masterKey=${MASTER_KEY}`. In the second, this means always passing `--set artifactory.masterKeySecretName=my-secret` and ensuring the contents of the secret remain unchanged.
 
 ### Install Artifactory HA license
