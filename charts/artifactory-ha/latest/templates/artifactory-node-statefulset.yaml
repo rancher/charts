@@ -32,6 +32,7 @@ spec:
       {{- end }}
     spec:
       serviceAccountName: {{ template "artifactory-ha.serviceAccountName" . }}
+      terminationGracePeriodSeconds: {{ .Values.artifactory.terminationGracePeriodSeconds}}
     {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
       - name: {{ .Values.imagePullSecrets }}
@@ -70,6 +71,9 @@ spec:
       {{- end }}
             sleep 2;
           done;
+    {{- if .Values.artifactory.customInitContainers }}
+{{ tpl .Values.artifactory.customInitContainers . | indent 6 }}
+    {{- end }}
       containers:
       - name: {{ .Values.artifactory.name }}
         image: '{{ .Values.artifactory.image.repository }}:{{ default .Chart.AppVersion .Values.artifactory.image.version }}'
@@ -81,6 +85,11 @@ spec:
         - '/bin/sh'
         - '-c'
         - >
+          {{- if .Values.artifactory.userPluginSecrets }}
+          echo "Copying plugins";
+          mkdir -p {{ .Values.artifactory.persistence.mountPath }}/etc/plugins;
+          cp -Lrf /tmp/plugin/*/* {{ .Values.artifactory.persistence.mountPath }}/etc/plugins/;
+          {{- end }}
           echo "Running custom preStartCommand command";
           {{ .Values.artifactory.preStartCommand }};
           /entrypoint-artifactory.sh
@@ -92,10 +101,7 @@ spec:
               - '/bin/sh'
               - '-c'
               - >
-                {{- if .Values.artifactory.replicator.enabled }}
-                mkdir -p /opt/jfrog/artifactory/replicator/etc;
-                cp -fv /tmp/replicator/replicator.yaml /opt/jfrog/artifactory/replicator/etc/replicator.yaml;
-                {{- end }}
+                echo;
                 {{- if .Values.artifactory.postStartCommand }}
                 {{ .Values.artifactory.postStartCommand }}
                 {{- end }}
@@ -158,20 +164,19 @@ spec:
         {{- end }}
         {{- end }}
       {{- end }}
-      {{- end }}
         - name: EXTRA_JAVA_OPTIONS
           value: "
-      {{- if .Values.artifactory.javaOpts.other }}
-          {{ .Values.artifactory.javaOpts.other }}
-      {{- end}}
-      {{- if .Values.artifactory.node.javaOpts.other }}
-          {{ .Values.artifactory.node.javaOpts.other }}
-      {{- end}}
       {{- if .Values.artifactory.node.javaOpts.xms }}
           -Xms{{ .Values.artifactory.node.javaOpts.xms }}
       {{- end}}
       {{- if .Values.artifactory.node.javaOpts.xmx }}
           -Xmx{{ .Values.artifactory.node.javaOpts.xmx }}
+      {{- end}}
+      {{- if .Values.artifactory.javaOpts.other }}
+          {{ .Values.artifactory.javaOpts.other }}
+      {{- end}}
+      {{- if .Values.artifactory.node.javaOpts.other }}
+          {{ .Values.artifactory.node.javaOpts.other }}
       {{- end}}
       {{- if .Values.artifactory.replicator.enabled }}
           -Dartifactory.releasebundle.feature.enabled=true
@@ -209,6 +214,12 @@ spec:
         ports:
         - containerPort: {{ .Values.artifactory.internalPort }}
         volumeMounts:
+      {{- if .Values.artifactory.userPluginSecrets }}
+      {{- range .Values.artifactory.userPluginSecrets }}
+        - name: {{ tpl . $ }}
+          mountPath: "/tmp/plugin/{{ tpl . $ }}"
+      {{- end }}
+      {{- end }}
         - name: volume
           mountPath: "{{ .Values.artifactory.persistence.mountPath }}"
       {{- if eq .Values.artifactory.persistence.type "nfs" }}
@@ -223,15 +234,18 @@ spec:
       {{- end }}
       {{- if .Values.artifactory.replicator.enabled }}
         - name: replicator-config
-          mountPath: "/tmp/replicator/replicator.yaml"
+          mountPath: "/replicator_extra_conf/replicator.yaml"
           subPath: replicator.yaml
       {{- end }}
+        - name: installer-info
+          mountPath: "/artifactory_extra_conf/info/installer-info.json"
+          subPath: installer-info.json
         resources:
 {{ toYaml .Values.artifactory.node.resources | indent 10 }}
         {{- if .Values.artifactory.readinessProbe.enabled }}
         readinessProbe:
           httpGet:
-            path: '/artifactory/webapp/#/login'
+            path: {{ .Values.artifactory.readinessProbe.path }}
             port: 8040
           initialDelaySeconds: {{ .Values.artifactory.readinessProbe.initialDelaySeconds }}
           periodSeconds: {{ .Values.artifactory.readinessProbe.periodSeconds }}
@@ -242,7 +256,7 @@ spec:
         {{- if .Values.artifactory.livenessProbe.enabled }}
         livenessProbe:
           httpGet:
-            path: '/artifactory/webapp/#/login'
+            path: {{ .Values.artifactory.livenessProbe.path }}
             port: 8040
           initialDelaySeconds: {{ .Values.artifactory.livenessProbe.initialDelaySeconds }}
           periodSeconds: {{ .Values.artifactory.livenessProbe.periodSeconds }}
@@ -250,6 +264,42 @@ spec:
           failureThreshold: {{ .Values.artifactory.livenessProbe.failureThreshold }}
           successThreshold: {{ .Values.artifactory.livenessProbe.successThreshold }}
         {{- end }}
+      {{- $image := .Values.logger.image.repository }}
+      {{- $tag := .Values.logger.image.tag }}
+      {{- $mountPath := .Values.artifactory.persistence.mountPath }}
+      {{- range .Values.artifactory.loggers }}
+      - name: {{ . | replace "_" "-" | replace "." "-" }}
+        image: {{ $image }}
+        tag: {{ $tag }}
+        command:
+        - tail
+        args:
+        - "-F"
+        - "{{ $mountPath }}/logs/{{ . }}"
+        volumeMounts:
+        - name: volume
+          mountPath: {{ $mountPath }}
+      {{- end }}
+      {{ if .Values.artifactory.catalinaLoggers }}
+      {{- range .Values.artifactory.catalinaLoggers }}
+      - name: {{ . | replace "_" "-" | replace "." "-" }}
+        image: {{ $image }}
+        tag: {{ $tag }}
+        command:
+        - 'sh'
+        - '-c'
+        - 'sh /scripts/tail-log.sh {{ $mountPath }}/logs/catalina {{ . }}'
+        volumeMounts:
+        - name: volume
+          mountPath: {{ $mountPath }}
+        - name: catalina-logger
+          mountPath: /scripts/tail-log.sh
+          subPath: tail-log.sh
+      {{- end }}
+      {{- end }}
+    {{- if .Values.artifactory.customSidecarContainers }}
+{{ tpl .Values.artifactory.customSidecarContainers . | indent 6 }}
+    {{- end }}
     {{- with .Values.artifactory.node.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}
@@ -294,10 +344,25 @@ spec:
       - name: binarystore-xml
         configMap:
           name: {{ template "artifactory-ha.fullname" . }}-bs
+      - name: installer-info
+        configMap:
+          name: {{ template "artifactory-ha.fullname" . }}-installer-info
+      {{- if .Values.artifactory.userPluginSecrets }}
+      {{- range .Values.artifactory.userPluginSecrets }}
+      - name: {{ tpl . $ }}
+        secret:
+          secretName: {{ tpl . $ }}
+      {{- end }}
+      {{- end }}
       {{- if .Values.artifactory.replicator.enabled }}
       - name: replicator-config
         configMap:
           name: {{ template "artifactory-ha.fullname" . }}-replicator-config
+      {{- end }}
+      {{- if .Values.artifactory.catalinaLoggers }}
+      - name: catalina-logger
+        configMap:
+          name: {{ template "artifactory-ha.fullname" . }}-catalina-logger
       {{- end }}
       {{- if eq .Values.artifactory.persistence.type "nfs" }}
       - name: artifactory-ha-data
@@ -307,6 +372,9 @@ spec:
         persistentVolumeClaim:
           claimName: {{ template "artifactory-ha.fullname" . }}-backup-pvc
       {{- end }}
+      {{- if .Values.artifactory.customVolumes }}
+{{ tpl .Values.artifactory.customVolumes . | indent 6 }}
+      {{- end }}
       {{- if not .Values.artifactory.persistence.enabled }}
       - name: volume
         emptyDir:
@@ -315,12 +383,8 @@ spec:
   volumeClaimTemplates:
   - metadata:
       name: volume
+    {{- if not .Values.artifactory.node.persistence.existingClaim }}
     spec:
-    {{- if .Values.artifactory.node.persistence.existingClaim }}
-      selector:
-        matchLabels:
-          app: artifactory-ha-member
-    {{- else }}
       {{- if .Values.artifactory.persistence.storageClass }}
       {{- if (eq "-" .Values.artifactory.persistence.storageClass) }}
       storageClassName: ""

@@ -1,0 +1,17 @@
+{{- if not (and .Values.artifactory.accessAdmin.secret .Values.artifactory.accessAdmin.dataKey) }}
+kind: Secret
+apiVersion: v1
+metadata:
+  name: {{ template "artifactory-ha.fullname" . }}-bootstrap-creds
+  labels:
+    app: {{ template "artifactory-ha.name" . }}
+    chart: {{ template "artifactory-ha.chart" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+data:
+{{- if .Values.artifactory.accessAdmin.password }}
+  bootstrap.creds: {{ (printf "access-admin@127.0.0.1=%s" .Values.artifactory.accessAdmin.password) | b64enc }}
+{{- else }}
+  bootstrap.creds: {{ (printf "access-admin@127.0.0.1=%s" (randAlphaNum 10)) | b64enc }}
+{{- end }}
+{{- end }}

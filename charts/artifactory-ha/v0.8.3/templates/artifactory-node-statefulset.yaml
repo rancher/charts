@@ -1,7 +1,7 @@
 apiVersion: apps/v1beta2
 kind: StatefulSet
 metadata:
-  name: {{ template "artifactory-ha.primary.name" . }}
+  name: {{ template "artifactory-ha.node.name" . }}
   labels:
     app: {{ template "artifactory-ha.name" . }}
     chart: {{ template "artifactory-ha.chart" . }}
@@ -9,20 +9,20 @@ metadata:
     heritage: {{ .Release.Service }}
     release: {{ .Release.Name }}
 spec:
-  serviceName: {{ template "artifactory-ha.primary.name" . }}
-  replicas: 1
+  serviceName: {{ template "artifactory-ha.node.name" . }}
+  replicas: {{ .Values.artifactory.node.replicaCount }}
   updateStrategy:
     type: RollingUpdate
   selector:
     matchLabels:
       app: {{ template "artifactory-ha.name" . }}
-      role: {{ template "artifactory-ha.primary.name" . }}
+      role: {{ template "artifactory-ha.node.name" . }}
       release: {{ .Release.Name }}
   template:
     metadata:
       labels:
         app: {{ template "artifactory-ha.name" . }}
-        role: {{ template "artifactory-ha.primary.name" . }}
+        role: {{ template "artifactory-ha.node.name" . }}
         component: {{ .Values.artifactory.name }}
         release: {{ .Release.Name }}
       annotations:
@@ -32,7 +32,6 @@ spec:
       {{- end }}
     spec:
       serviceAccountName: {{ template "artifactory-ha.serviceAccountName" . }}
-      terminationGracePeriodSeconds: {{ .Values.artifactory.terminationGracePeriodSeconds }}
     {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
       - name: {{ .Values.imagePullSecrets }}
@@ -41,21 +40,6 @@ spec:
         runAsUser: {{ .Values.artifactory.uid }}
         fsGroup: {{ .Values.artifactory.uid }}
       initContainers:
-    {{- if eq .Values.artifactory.persistence.type "file-system" }}
-      {{- if .Values.artifactory.persistence.fileSystem.existingSharedClaim.enabled }}
-      - name: "create-artifactory-data-dir"
-        image: "{{ .Values.initContainerImage }}"
-        imagePullPolicy: {{ .Values.artifactory.image.pullPolicy }}
-        command:
-        - 'sh'
-        - '-c'
-        - >
-          mkdir {{ .Values.artifactory.persistence.fileSystem.existingSharedClaim.dataDir }}
-        volumeMounts:
-        - mountPath: {{ .Values.artifactory.persistence.mountPath | quote }}
-          name: volume
-      {{- end }}          
-    {{- end }}          
       - name: "remove-lost-found"
         image: "{{ .Values.initContainerImage }}"
         imagePullPolicy: {{ .Values.artifactory.image.pullPolicy }}
@@ -86,40 +70,21 @@ spec:
       {{- end }}
             sleep 2;
           done;
-    {{- if .Values.artifactory.customInitContainers }}
-{{ tpl .Values.artifactory.customInitContainers . | indent 6 }}
-    {{- end }}
       containers:
       - name: {{ .Values.artifactory.name }}
         image: '{{ .Values.artifactory.image.repository }}:{{ default .Chart.AppVersion .Values.artifactory.image.version }}'
         imagePullPolicy: {{ .Values.artifactory.image.pullPolicy }}
         securityContext:
           allowPrivilegeEscalation: false
+      {{- if .Values.artifactory.preStartCommand }}
         command:
         - '/bin/sh'
         - '-c'
         - >
-          {{- if .Values.artifactory.userPluginSecrets }}
-          echo "Copying plugins";
-          mkdir -p {{ .Values.artifactory.persistence.mountPath }}/etc/plugins;
-          cp -Lrf /tmp/plugin/*/* {{ .Values.artifactory.persistence.mountPath }}/etc/plugins/;
-          {{- end }}
-          {{- if .Values.artifactory.configMapName }}
-          echo "Copying bootstrap configs";
-          cp -Lrf /bootstrap/* /artifactory_extra_conf/;
-          {{- end }}
-          {{- range .Values.artifactory.copyOnEveryStartup }}
-          cp -Lrf {{ .source }} {{ $.Values.artifactory.persistence.mountPath }}/{{ .target }};
-          {{- end }}
-          mkdir -p {{ .Values.artifactory.persistence.mountPath }}/access/etc;
-          cp -Lrf /tmp/access/bootstrap.creds {{ .Values.artifactory.persistence.mountPath }}/access/etc/bootstrap.creds;
-          chmod 600 {{ .Values.artifactory.persistence.mountPath }}/access/etc/bootstrap.creds;
-          {{- if .Values.artifactory.preStartCommand }}
           echo "Running custom preStartCommand command";
           {{ .Values.artifactory.preStartCommand }};
-          {{- end }}
           /entrypoint-artifactory.sh
-      {{- if .Values.artifactory.postStartCommand }}
+      {{- end }}
         lifecycle:
           postStart:
             exec:
@@ -127,8 +92,13 @@ spec:
               - '/bin/sh'
               - '-c'
               - >
+                {{- if .Values.artifactory.replicator.enabled }}
+                mkdir -p /opt/jfrog/artifactory/replicator/etc;
+                cp -fv /tmp/replicator/replicator.yaml /opt/jfrog/artifactory/replicator/etc/replicator.yaml;
+                {{- end }}
+                {{- if .Values.artifactory.postStartCommand }}
                 {{ .Values.artifactory.postStartCommand }}
-      {{- end }}
+                {{- end }}
         env:
       {{- if .Values.postgresql.enabled }}
         - name: DB_TYPE
@@ -188,19 +158,20 @@ spec:
         {{- end }}
         {{- end }}
       {{- end }}
+      {{- end }}
         - name: EXTRA_JAVA_OPTIONS
           value: "
-      {{- if .Values.artifactory.primary.javaOpts.xms }}
-          -Xms{{ .Values.artifactory.primary.javaOpts.xms }}
-      {{- end}}
-      {{- if .Values.artifactory.primary.javaOpts.xmx }}
-          -Xmx{{ .Values.artifactory.primary.javaOpts.xmx }}
-      {{- end}}
       {{- if .Values.artifactory.javaOpts.other }}
           {{ .Values.artifactory.javaOpts.other }}
       {{- end}}
-      {{- if .Values.artifactory.primary.javaOpts.other }}
-          {{ .Values.artifactory.primary.javaOpts.other }}
+      {{- if .Values.artifactory.node.javaOpts.other }}
+          {{ .Values.artifactory.node.javaOpts.other }}
+      {{- end}}
+      {{- if .Values.artifactory.node.javaOpts.xms }}
+          -Xms{{ .Values.artifactory.node.javaOpts.xms }}
+      {{- end}}
+      {{- if .Values.artifactory.node.javaOpts.xmx }}
+          -Xmx{{ .Values.artifactory.node.javaOpts.xmx }}
       {{- end}}
       {{- if .Values.artifactory.replicator.enabled }}
           -Dartifactory.releasebundle.feature.enabled=true
@@ -216,21 +187,15 @@ spec:
               name: "{{ .Values.artifactory.masterKeySecretName | default (include "artifactory-ha.fullname" .) }}"
               key: master-key
         - name: HA_IS_PRIMARY
-          value: "true"
+          value: "false"
         - name: HA_MEMBERSHIP_PORT
           value: "{{ .Values.artifactory.membershipPort }}"
         - name: HA_NODE_ID
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
-      {{- if eq .Values.artifactory.persistence.type "file-system" }}
-        {{- if .Values.artifactory.persistence.fileSystem.existingSharedClaim.enabled }}
-        - name: HA_DATA_DIR
-          value: "{{ .Values.artifactory.persistence.fileSystem.existingSharedClaim.dataDir }}"
-        - name: HA_BACKUP_DIR
-          value: "{{ .Values.artifactory.persistence.fileSystem.existingSharedClaim.backupDir }}"
-        {{- end }}
-      {{- end }}
+        - name: ART_PRIMARY_BASE_URL
+          value: 'http://{{ template "artifactory-ha.primary.name" . }}:8081/artifactory'
       {{- if eq .Values.artifactory.persistence.type "nfs" }}
         - name: HA_DATA_DIR
           value: "{{ .Values.artifactory.persistence.nfs.dataDir }}"
@@ -243,28 +208,9 @@ spec:
       {{- end }}
         ports:
         - containerPort: {{ .Values.artifactory.internalPort }}
-        {{- if .Values.artifactory.replicator.enabled }}
-        - containerPort: {{ .Values.artifactory.internalPortReplicator }}
-        {{- end }}
         volumeMounts:
-      {{- if .Values.artifactory.userPluginSecrets }}
-      {{- range .Values.artifactory.userPluginSecrets }}
-        - name: {{ tpl . $ }}
-          mountPath: "/tmp/plugin/{{ tpl . $ }}"
-      {{- end }}
-      {{- end }}
         - name: volume
           mountPath: "{{ .Values.artifactory.persistence.mountPath }}"
-      {{- if eq .Values.artifactory.persistence.type "file-system" }}
-        {{- if .Values.artifactory.persistence.fileSystem.existingSharedClaim.enabled }}
-          {{- range $sharedClaimNumber, $e := until (.Values.artifactory.persistence.fileSystem.existingSharedClaim.numberOfExistingClaims|int) }}
-        - name: artifactory-ha-data-{{ $sharedClaimNumber }}
-          mountPath: "{{ $.Values.artifactory.persistence.fileSystem.existingSharedClaim.dataDir }}/filestore{{ $sharedClaimNumber }}"
-          {{- end }}
-        - name: artifactory-ha-backup
-          mountPath: "{{ $.Values.artifactory.persistence.fileSystem.existingSharedClaim.backupDir }}"
-        {{- end }}
-      {{- end }}
       {{- if eq .Values.artifactory.persistence.type "nfs" }}
         - name: artifactory-ha-data
           mountPath: "{{ .Values.artifactory.persistence.nfs.dataDir }}"
@@ -275,36 +221,17 @@ spec:
           mountPath: "/artifactory_extra_conf/binarystore.xml"
           subPath: binarystore.xml
       {{- end }}
-      {{- if .Values.artifactory.configMapName }}
-        - name: bootstrap-config
-          mountPath: "/bootstrap/"
-      {{- end }}
-      {{- if .Values.artifactory.license.secret }}
-        - name: artifactory-license
-          mountPath: "/artifactory_extra_conf/artifactory.cluster.license"
-          subPath: {{ .Values.artifactory.license.dataKey }}
-      {{- end }}
-        - name: access-bootstrap-creds
-          mountPath: "/tmp/access/bootstrap.creds"
-          {{- if and .Values.artifactory.accessAdmin.secret .Values.artifactory.accessAdmin.dataKey }}
-          subPath: {{ .Values.artifactory.accessAdmin.dataKey  }}
-          {{- else }}
-          subPath: bootstrap.creds
-          {{- end }}
       {{- if .Values.artifactory.replicator.enabled }}
         - name: replicator-config
-          mountPath: "/replicator_extra_conf/replicator.yaml"
+          mountPath: "/tmp/replicator/replicator.yaml"
           subPath: replicator.yaml
       {{- end }}
-        - name: installer-info
-          mountPath: "/artifactory_extra_conf/info/installer-info.json"
-          subPath: installer-info.json
         resources:
-{{ toYaml .Values.artifactory.primary.resources | indent 10 }}
+{{ toYaml .Values.artifactory.node.resources | indent 10 }}
         {{- if .Values.artifactory.readinessProbe.enabled }}
         readinessProbe:
           httpGet:
-            path: {{ .Values.artifactory.readinessProbe.path }}
+            path: '/artifactory/webapp/#/login'
             port: 8040
           initialDelaySeconds: {{ .Values.artifactory.readinessProbe.initialDelaySeconds }}
           periodSeconds: {{ .Values.artifactory.readinessProbe.periodSeconds }}
@@ -315,7 +242,7 @@ spec:
         {{- if .Values.artifactory.livenessProbe.enabled }}
         livenessProbe:
           httpGet:
-            path: {{ .Values.artifactory.livenessProbe.path }}
+            path: '/artifactory/webapp/#/login'
             port: 8040
           initialDelaySeconds: {{ .Values.artifactory.livenessProbe.initialDelaySeconds }}
           periodSeconds: {{ .Values.artifactory.livenessProbe.periodSeconds }}
@@ -323,73 +250,43 @@ spec:
           failureThreshold: {{ .Values.artifactory.livenessProbe.failureThreshold }}
           successThreshold: {{ .Values.artifactory.livenessProbe.successThreshold }}
         {{- end }}
-      {{- $image := .Values.logger.image.repository }}
-      {{- $tag := .Values.logger.image.tag }}
-      {{- $mountPath := .Values.artifactory.persistence.mountPath }}
-      {{- range .Values.artifactory.loggers }}
-      - name: {{ . | replace "_" "-" | replace "." "-" }}
-        image: {{ $image }}
-        tag: {{ $tag }}
-        command:
-        - tail
-        args:
-        - "-F"
-        - "{{ $mountPath }}/logs/{{ . }}"
-        volumeMounts:
-        - name: volume
-          mountPath: {{ $mountPath }}
-      {{- end }}
-      {{ if .Values.artifactory.catalinaLoggers }}
-      {{- range .Values.artifactory.catalinaLoggers }}
-      - name: {{ . | replace "_" "-" | replace "." "-" }}
-        image: {{ $image }}
-        tag: {{ $tag }}
-        command:
-        - 'sh'
-        - '-c'
-        - 'sh /scripts/tail-log.sh {{ $mountPath }}/logs/catalina {{ . }}'
-        volumeMounts:
-        - name: volume
-          mountPath: {{ $mountPath }}
-        - name: catalina-logger
-          mountPath: /scripts/tail-log.sh
-          subPath: tail-log.sh
-      {{- end }}
-      {{- end }}
-    {{- if .Values.artifactory.customSidecarContainers }}
-{{ tpl .Values.artifactory.customSidecarContainers . | indent 6 }}
-    {{- end }}
-    {{- with .Values.artifactory.primary.nodeSelector }}
+    {{- with .Values.artifactory.node.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}
     {{- end }}
-    {{- if .Values.artifactory.primary.affinity }}
-    {{- with .Values.artifactory.primary.affinity }}
+    {{- if .Values.artifactory.node.affinity }}
+    {{- with .Values.artifactory.node.affinity }}
       affinity:
 {{ toYaml . | indent 8 }}
     {{- end }}
-    {{- else if eq .Values.artifactory.primary.podAntiAffinity.type "soft" }}
+    {{- else if eq .Values.artifactory.node.podAntiAffinity.type "soft" }}
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
           - weight: 100
             podAffinityTerm:
-              topologyKey: {{ .Values.artifactory.primary.podAntiAffinity.topologyKey }}
+              topologyKey: {{ .Values.artifactory.node.podAntiAffinity.topologyKey }}
               labelSelector:
                 matchLabels:
                   app: {{ template "artifactory-ha.name" . }}
                   release: {{ .Release.Name }}
-    {{- else if eq .Values.artifactory.primary.podAntiAffinity.type "hard" }}
+                  {{- if eq .Values.artifactory.service.pool "members" }}
+                  role: {{ template "artifactory-ha.node.name" . }}
+                  {{- end }}
+    {{- else if eq .Values.artifactory.node.podAntiAffinity.type "hard" }}
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
-          - topologyKey: {{ .Values.artifactory.primary.podAntiAffinity.topologyKey }}
+          - topologyKey: {{ .Values.artifactory.node.podAntiAffinity.topologyKey }}
             labelSelector:
               matchLabels:
                 app: {{ template "artifactory-ha.name" . }}
                 release: {{ .Release.Name }}
+                {{- if eq .Values.artifactory.service.pool "members" }}
+                role: {{ template "artifactory-ha.node.name" . }}
+                {{- end }}
     {{- end }}
-    {{- with .Values.artifactory.primary.tolerations }}
+    {{- with .Values.artifactory.node.tolerations }}
       tolerations:
 {{ toYaml . | indent 8 }}
     {{- end }}
@@ -397,54 +294,10 @@ spec:
       - name: binarystore-xml
         configMap:
           name: {{ template "artifactory-ha.fullname" . }}-bs
-      - name: installer-info
-        configMap:
-          name: {{ template "artifactory-ha.fullname" . }}-installer-info
-      {{- if .Values.artifactory.userPluginSecrets }}
-      {{- range .Values.artifactory.userPluginSecrets }}
-      - name: {{ tpl . $ }}
-        secret:
-          secretName: {{ tpl . $ }}
-      {{- end }}
-      {{- end }}
       {{- if .Values.artifactory.replicator.enabled }}
       - name: replicator-config
         configMap:
           name: {{ template "artifactory-ha.fullname" . }}-replicator-config
-      {{- end }}
-      {{- if .Values.artifactory.configMapName }}
-      - name: bootstrap-config
-        configMap:
-          name: {{ .Values.artifactory.configMapName }}
-      {{- end}}
-      {{- if .Values.artifactory.catalinaLoggers }}
-      - name: catalina-logger
-        configMap:
-          name: {{ template "artifactory-ha.fullname" . }}-catalina-logger
-      {{- end }}
-      {{- if .Values.artifactory.license.secret }}
-      - name: artifactory-license
-        secret:
-          secretName: {{ .Values.artifactory.license.secret }}
-      {{- end }}
-      - name: access-bootstrap-creds
-        secret:
-          {{- if and .Values.artifactory.accessAdmin.secret .Values.artifactory.accessAdmin.dataKey }}
-          secretName: {{ .Values.artifactory.accessAdmin.secret }}
-          {{- else }}
-          secretName: {{ template "artifactory-ha.fullname" . }}-bootstrap-creds
-          {{- end }}
-      {{- if eq .Values.artifactory.persistence.type "file-system" }}
-        {{- if .Values.artifactory.persistence.fileSystem.existingSharedClaim.enabled }}
-          {{- range $sharedClaimNumber, $e := until (.Values.artifactory.persistence.fileSystem.existingSharedClaim.numberOfExistingClaims|int) }}
-      - name: artifactory-ha-data-{{ $sharedClaimNumber }}
-        persistentVolumeClaim:
-          claimName: {{ template "artifactory-ha.fullname" $ }}-data-pvc-{{ $sharedClaimNumber }}
-          {{- end }}
-      - name: artifactory-ha-backup
-        persistentVolumeClaim:
-          claimName: {{ template "artifactory-ha.fullname" $ }}-backup-pvc
-        {{- end }}
       {{- end }}
       {{- if eq .Values.artifactory.persistence.type "nfs" }}
       - name: artifactory-ha-data
@@ -454,9 +307,6 @@ spec:
         persistentVolumeClaim:
           claimName: {{ template "artifactory-ha.fullname" . }}-backup-pvc
       {{- end }}
-      {{- if .Values.artifactory.customVolumes }}
-{{ tpl .Values.artifactory.customVolumes . | indent 6 }}
-      {{- end }}
       {{- if not .Values.artifactory.persistence.enabled }}
       - name: volume
         emptyDir:
@@ -465,8 +315,12 @@ spec:
   volumeClaimTemplates:
   - metadata:
       name: volume
-    {{- if not .Values.artifactory.primary.persistence.existingClaim }}
     spec:
+    {{- if .Values.artifactory.node.persistence.existingClaim }}
+      selector:
+        matchLabels:
+          app: artifactory-ha-member
+    {{- else }}
       {{- if .Values.artifactory.persistence.storageClass }}
       {{- if (eq "-" .Values.artifactory.persistence.storageClass) }}
       storageClassName: ""

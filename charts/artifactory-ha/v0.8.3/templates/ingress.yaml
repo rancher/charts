@@ -10,9 +10,6 @@ metadata:
     chart: {{ template "artifactory-ha.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
-{{- if .Values.ingress.labels }}
-{{ .Values.ingress.labels | toYaml | trimSuffix "\n"| indent 4 -}}
-{{- end}}
 {{- if .Values.ingress.annotations }}
   annotations:
 {{ .Values.ingress.annotations | toYaml | trimSuffix "\n" | indent 4 -}}
@@ -29,7 +26,7 @@ spec:
   - host: {{ $host | quote }}
     http:
       paths:
-        - path: {{ $.Values.ingress.path }}
+        - path: /
           backend:
             serviceName: {{ $serviceName }}
             servicePort: {{ $servicePort }}
