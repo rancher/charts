@@ -22,6 +22,9 @@ spec:
   loadBalancerIP: "{{ $spec.loadBalancerIP }}"
 {{- end }}
   type: {{ .type }}
+{{- if $spec.externalTrafficPolicy }}
+  externalTrafficPolicy: {{ $spec.externalTrafficPolicy }}
+{{- end }}
   selector:
     {{- range $key, $val := $spec.labels }}
     {{ $key }}: {{ $val }}
@@ -33,6 +36,15 @@ spec:
       {{ $pkey}}: {{ $pval }}
       {{- end }}
     {{- end }}
+    # add expansion ports
+{{ if $.Values.global.meshExpansion }}
+    {{- range $key, $val := $spec.expansionPorts }}
+    -
+      {{- range $pkey, $pval := $val }}
+      {{ $pkey}}: {{ $pval }}
+      {{- end }}
+    {{- end }}
+{{ end }}
 ---
 {{- end }}
 {{- end }}

@@ -22,12 +22,17 @@ The following table lists the configurable parameters of the Fluentd elasticsear
 | `service.ports[].port`             | Service port                               | Not Set                                                    |
 | `service.ports[].nodePort`         | NodePort port(when service.type is NodePort) | Not Set                                                  |
 | `service.ports[].protocol`         | Service protocol(optional, can be TCP/UDP) | Not Set                                                    |
-| `tolerations`                      | Optional daemonset tolerations             | `{}`                                                       |
-| `annotations`                      | Optional daemonset annotations             | `NULL`                                                     |
+| `tolerations`                      | Optional statefulset tolerations           | `{}`                                                       |
+| `annotations`                      | Optional statefulset annotations           | `NULL`                                                     |
 | `persistence.enabled`              | Enable persistence using PVC               | `false`                                                    |
 | `persistence.storageClass`         | PVC Storage Class                          | `nil` (uses alpha storage class annotation)                |
 | `persistence.accessMode`           | PVC Access Mode                            | `ReadWriteOnce`                                            |
 | `persistence.size`                 | PVC Storage Request                        | `10Gi`                                                     |
+| `extraPersistence.enabled`         | Enable extra persistence using PVC         | `false`                                                    |
+| `extraPersistence.storageClass`    | PVC extra Storage Class                    | `nil` (uses alpha storage class annotation)                |
+| `extraPersistence.accessMode`      | PVC extra Access Mode                      | `ReadWriteOnce`                                            |
+| `extraPersistence.size`            | PVC extra Storage Request                  | `10Gi`                                                     |
+| `extraPersistence.mountPath`       | PVC extra Mount Path                       | `/extra`                                                   |
 
 
 Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`. For example,

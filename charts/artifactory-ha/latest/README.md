@@ -88,22 +88,6 @@ helm install --name artifactory-ha \
 
 Get more details on configuring Artifactory in the [official documentation](https://www.jfrog.com/confluence/).
 
-### Create Distribution Certificates for Artifactory Enterprise Plus
-```bash
-# Create private.key and root.crt
-openssl req -newkey rsa:2048 -nodes -keyout private.key -x509 -days 365 -out root.crt
-```
-
-Once Created, Use it to create ConfigMap
-```bash
-# Create ConfigMap distribution-certs
-kubectl create configmap distribution-certs --from-file=private.key=private.key --from-file=root.crt=root.crt
-```
-Pass it to `helm`
-```bash
-helm install --name artifactory --set artifactory.distributionCerts=distribution-certs jfrog/artifactory-ha
-```
-
 ### Artifactory storage
 Artifactory HA support a wide range of storage back ends. You can see more details on [Artifactory HA storage options](https://www.jfrog.com/confluence/display/RTF/HA+Installation+and+Setup#HAInstallationandSetup-SettingUpYourStorageConfiguration)
 
