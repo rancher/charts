@@ -11,34 +11,6 @@ data:
   binarystore.xml: |-
 {{- if eq .Values.artifactory.persistence.type "file-system" }}
     <!-- File system replication -->
-    {{- if .Values.artifactory.persistence.fileSystem.existingSharedClaim.enabled }}
-    <!-- File Storage- Dynamic for Artifactory files, pre-created for DATA and BACKUP -->
-    <config version="4">
-        <chain>
-            <provider id="cache-fs" type="cache-fs">                   <!-- This is a cached filestore -->
-                <provider id="sharding" type="sharding">                   <!-- This is a sharding provider -->
-                    {{- range $sharedClaimNumber, $e := until (.Values.artifactory.persistence.fileSystem.existingSharedClaim.numberOfExistingClaims|int) -}}
-                    <sub-provider id="shard{{ $sharedClaimNumber }}" type="state-aware"/>
-                    {{- end }}
-                </provider>
-            </provider>
-        </chain>
-        
-        // Specify the read and write strategy and redundancy for the sharding binary provider
-        <provider id="sharding" type="sharding">
-            <readBehavior>roundRobin</readBehavior>                     
-            <writeBehavior>percentageFreeSpace</writeBehavior>
-            <redundancy>2</redundancy>
-        </provider>
-        
-        {{- range $sharedClaimNumber, $e := until (.Values.artifactory.persistence.fileSystem.existingSharedClaim.numberOfExistingClaims|int) -}}
-        //For each sub-provider (mount), specify the filestore location
-        <provider id="shard{{ $sharedClaimNumber }}" type="state-aware">
-            <fileStoreDir>filestore{{ $sharedClaimNumber }}</fileStoreDir>
-        </provider>
-        {{- end }}
-    </config>
-    {{- else }}
     <config version="2">
         <chain>
             <provider id="cache-fs" type="cache-fs">
@@ -70,7 +42,6 @@ data:
             <property name="header.remote.block" value="true"/>
         </provider>
     </config>
-    {{- end }}
 {{- end }}
 
 {{- if eq .Values.artifactory.persistence.type "google-storage" }}
@@ -120,7 +91,6 @@ data:
             <identity>{{ .Values.artifactory.persistence.googleStorage.identity }}</identity>
             <credential>{{ .Values.artifactory.persistence.googleStorage.credential }}</credential>
             <path>{{ .Values.artifactory.persistence.googleStorage.path }}</path>
-            <bucketExists>{{ .Values.artifactory.persistence.googleStorage.bucketExists }}</bucketExists>
         </provider>
     </config>
 {{- end }}
@@ -171,7 +141,6 @@ data:
         {{- else }}
             <refreshCredentials>{{ .Values.artifactory.persistence.awsS3.refreshCredentials }}</refreshCredentials>
         {{- end }}
-            <s3AwsVersion>{{ .Values.artifactory.persistence.awsS3.s3AwsVersion }}</s3AwsVersion>
             <testConnection>{{ .Values.artifactory.persistence.awsS3.testConnection }}</testConnection>
             <httpsOnly>true</httpsOnly>
             <region>{{ .Values.artifactory.persistence.awsS3.region }}</region>
@@ -186,50 +155,6 @@ data:
         {{- range $key, $value := .Values.artifactory.persistence.awsS3.properties }}
             <property name="{{ $key }}" value="{{ $value }}"/>
         {{- end }}
-        </provider>
-    </config>
-{{- end }}
-
-{{- if eq .Values.artifactory.persistence.type "azure-blob" }}
-    <!-- Azure Blob Storage -->
-    <config version="2">
-        <chain> <!--template="cluster-azure-blob-storage"-->
-            <provider id="cache-fs" type="cache-fs">
-                <provider id="sharding-cluster" type="sharding-cluster">
-                    <sub-provider id="eventual-cluster" type="eventual-cluster">
-                        <provider id="retry-azure-blob-storage" type="retry">
-                            <provider id="azure-blob-storage" type="azure-blob-storage"/>
-                        </provider>
-                    </sub-provider>
-                    <dynamic-provider id="remote" type="remote"/>
-                </provider>
-            </provider>
-        </chain>
-    
-        <!-- cluster eventual Azure Blob Storage Service default chain -->
-        <provider id="sharding-cluster" type="sharding-cluster">
-            <readBehavior>crossNetworkStrategy</readBehavior>
-            <writeBehavior>crossNetworkStrategy</writeBehavior>
-            <redundancy>2</redundancy>
-            <lenientLimit>1</lenientLimit>
-            <property name="zones" value="local,remote"/>
-        </provider>
-    
-        <provider id="remote" type="remote">
-            <zone>remote</zone>
-        </provider>
-    
-        <provider id="eventual-cluster" type="eventual-cluster">
-            <zone>local</zone>
-        </provider>
-    
-        <!--cluster eventual template-->
-        <provider id="azure-blob-storage" type="azure-blob-storage">
-            <accountName>{{ .Values.artifactory.persistence.azureBlob.accountName }}</accountName>
-            <accountKey>{{ .Values.artifactory.persistence.azureBlob.accountKey }}</accountKey>
-            <endpoint>{{ .Values.artifactory.persistence.azureBlob.endpoint }}</endpoint>
-            <containerName>{{ .Values.artifactory.persistence.azureBlob.containerName }}</containerName>
-            <testConnection>{{ .Values.artifactory.persistence.azureBlob.testConnection }}</testConnection>
         </provider>
     </config>
 {{- end }}
