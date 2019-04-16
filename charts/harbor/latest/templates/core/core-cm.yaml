@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "harbor.core" . }}
+  labels:
+{{ include "harbor.labels" . | indent 4 }}
+data:
+  app.conf: |+
+    appname = Harbor
+    runmode = prod
+    enablegzip = true
+
+    [prod]
+    httpport = 8080
+  _REDIS_URL: "{{ template "harbor.redisForCore" . }}"
+  _REDIS_URL_REG: "{{ template "harbor.redisForGC" . }}"
+  LOG_LEVEL: "{{ .Values.logLevel }}"
+  CONFIG_PATH: "/etc/core/app.conf"
+  SYNC_REGISTRY: "false"
+  ADMINSERVER_URL: "http://{{ template "harbor.adminserver" . }}"
+  CHART_CACHE_DRIVER: "redis"
+  CORE_URL: "http://{{ template "harbor.core" . }}"

@@ -1,0 +1,83 @@
+{{ if .Values.proxy.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "harbor.proxy" . }}
+  labels:
+{{ include "harbor.labels" . | indent 4 }}
+    component: proxy
+data:
+  default.conf: |
+    server {
+        listen       80;
+        server_name  localhost;
+        location / {
+            root   /usr/share/nginx/html;
+            index  index.html index.htm;
+        }
+        location = /registry {
+            return 302 /registry/;
+        }
+        location  /registry/service/ {
+            proxy_pass http://{{ template "harbor.core" . }}/service/; 
+        }
+        location  /registry/api/ {
+            proxy_pass http://{{ template "harbor.core" . }}/api/; 
+        }
+        {{ if .Values.chartmuseum.enabled }}
+        location  /registry/chartrepo/ {
+            proxy_pass http://{{ template "harbor.core" . }}/chartrepo/; 
+        }
+        {{ end }}
+        location  /registry/c/ {
+            proxy_pass http://{{ template "harbor.core" . }}/c/; 
+        }
+        {{ if .Values.notary.enabled }}
+        location  /registry/notary/ {
+            proxy_pass http://{{ template "harbor.notary-server" . }}:4443/; 
+        }
+        {{ end }}
+        location /registry/ {
+            proxy_pass http://{{ template "harbor.portal" . }}/; 
+            include filters.conf;
+        }
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   /usr/share/nginx/html;
+        }
+    }
+  filters.conf: |
+        sub_filter_types text/html application/javascript;
+
+        sub_filter 'src="main' 'src="/registry/main';
+        sub_filter 'src="runtime' 'src="/registry/runtime';
+        sub_filter 'src="scripts' 'src="/registry/scripts';
+
+        sub_filter '"/c/login"' '"/registry/c/login"';
+        sub_filter '"/c/log_out"' '"/registry/c/log_out"';
+        sub_filter '"/c/userExists"' '"/registry/c/userExists"';
+        sub_filter '"/c/reset"' '"/registry/c/reset"';
+        sub_filter '"/c/sendEmail' '"/registry/c/sendEmail';
+        sub_filter '"/c/oidc_login"' '"/registry/c/oidc_login"';
+
+        sub_filter '"/api/' '"/registry/api/';
+        sub_filter '"/service/' '"/registry/service/';
+        sub_filter '"/chartrepo/' '"/registry/chartrepo/';
+
+        sub_filter '<base href="/">' '<base href="/registry">';
+        sub_filter 'href="favicon.ico' 'href="/registry/favicon.ico';
+        sub_filter 'href="styles' 'href="/registry/styles';
+        sub_filter '"images/harbor-logo.svg"' '"/registry/images/harbor-logo.svg"';
+        sub_filter '"/images/helm-gray.svg"' '"/registry/images/helm-gray.svg"';
+        sub_filter '"images/harbor-black-logo.png' '"/registry/images/harbor-black-logo.png';
+        #sub_filter '"static/images' '"registry/static/images';
+        sub_filter '"../../../images' '"/registry/images';
+        sub_filter '"/swagger.json"' '"/registry/swagger.json"';
+        sub_filter '"i18n/lang/"' '"/registry/i18n/lang/"';
+        sub_filter '"/language' '"/registry/language';
+        sub_filter 'http.get("setting.json"' 'http.get("/registry/setting.json"';
+
+
+        sub_filter_once off;
+        proxy_set_header Accept-Encoding "";
+{{ end }}

@@ -1,0 +1,617 @@
+questions:
+- variable: defaultImage
+  default: true
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: nginx.image.repository
+    default: "goharbor/nginx-photon"
+    description: "Docker image repository"
+    type: string
+    label: Nginx Image Repository
+  - variable: nginx.image.tag
+    default: "v1.7.5"
+    description: "Docker image tag"
+    type: string
+    label: Nginx Image Tag
+  - variable: portal.image.repository
+    default: "goharbor/harbor-portal"
+    description: "Docker image repository"
+    type: string
+    label: Harbor UI Image Repository
+  - variable: portal.image.tag
+    default: "v1.7.5"
+    description: "Docker image tag"
+    type: string
+    label: Harbor UI Image Tag
+  - variable: adminserver.image.repository
+    default: "goharbor/harbor-adminserver"
+    description: "Docker image repository"
+    type: string
+    label: AdminServer Image Repository
+  - variable: adminserver.image.tag
+    default: "v1.7.5"
+    description: "Docker image tag"
+    type: string
+    label: AdminServer Image Tag
+  - variable: core.image.repository
+    default: "goharbor/harbor-core"
+    description: "Docker image repository"
+    type: string
+    label: Harbor Core Image Repository
+  - variable: core.image.tag
+    description: "Docker image tag"
+    default: "v1.7.5"
+    type: string
+    label: Harbor Core Image Tag
+  - variable: jobservice.image.repository
+    default: "goharbor/harbor-jobservice"
+    description: "Docker image repository"
+    type: string
+    label: JobService Image Repository
+  - variable: jobservice.image.tag
+    default: "v1.7.5"
+    description: "Docker image tag"
+    type: string
+    label: JobService Image Tag
+  - variable: registry.registry.image.repository
+    default: "goharbor/registry-photon"
+    description: "Registry Docker image repository"
+    type: string
+    label: Registry Image Repository
+  - variable: registry.registry.image.tag
+    default: "v2.6.2-v1.7.5"
+    description: "Registry Docker image tag"
+    type: string
+    label: Image Tag
+  - variable: registry.controller.image.repository
+    default: "goharbor/harbor-registryctl"
+    description: "Registry Controller Docker image repository"
+    type: string
+    label: Image Repository
+  - variable: registry.controller.image.tag
+    default: "v1.7.5"
+    description: "Registry Controller image tag"
+    type: string
+    label: Image Tag
+  - variable: chartmuseum.image.repository
+    default: "goharbor/chartmuseum-photon"
+    description: "Docker image repository"
+    type: string
+    label: Image Repository
+  - variable: chartmuseum.image.tag
+    default: "v0.8.1-v1.7.5"
+    description: "Docker image tag"
+    type: string
+    label: Image Tag
+  - variable: clair.image.repository
+    default: "goharbor/clair-photon"
+    description: "Docker image repository"
+    type: string
+    label: Clair Image Repository
+  - variable: clair.image.tag
+    default: "v2.0.8-v1.7.5"
+    description: "Docker image tag"
+    type: string
+    label: Clair Image Tag
+  - variable: notary.server.image.repository
+    default: "goharbor/notary-server-photon"
+    description: "Docker image repository"
+    type: string
+    label: Notary Server Image Repository
+  - variable: notary.server.image.tag
+    default: "v0.6.1-v1.7.5"
+    description: "Docker image tag"
+    type: string
+    label: Notary Server Image Tag
+  - variable: notary.signer.image.repository
+    default: "goharbor/notary-signer-photon"
+    description: "Docker image repository"
+    type: string
+    label: Notary Signer Image Repository
+  - variable: notary.signer.image.tag
+    default: "v0.6.1-v1.7.5"
+    description: "Docker image tag"
+    type: string
+    label: Notary Signer Image Tag
+  - variable: redis.internal.image.repository
+    default: "goharbor/redis-photon"
+    description: "Redis Docker image repository"
+    type: string
+    label: Redis Image Repository
+  - variable: redis.internal.image.tag
+    default: "v1.7.5"
+    description: "Redis Docker image tag"
+    type: string
+    label: Redis Image Tag
+  - variable: database.internal.image.repository
+    default: "goharbor/harbor-db"
+    description: "DB Docker image repository"
+    type: string
+    label: DB Image Repository
+  - variable: database.internal.image.tag
+    default: "v1.7.5"
+    description: "DB Docker image tag"
+    type: string
+    label: DB Image Tag
+# Global Options
+- variable: harborAdminPassword
+  required: true
+  default: "harbor12345"
+  description: "The initial password of Harbor admin. Change it from portal after launching Harbor"
+  type: password
+  label: The Initial Password of Harbor Admin
+  group: "Global Options"
+- variable: secretKey
+  required: true
+  default: "add-your-secret0"
+  description: "The key used for encryption. Must be a string of 16 chars"
+  type: password
+  label: Encryption Key
+  min_length: 16
+  max_length: 16
+  group: "Global Options"
+- variable: logLevel
+  required: true
+  default: "info"
+  type: enum
+  label: The Log Level	
+  group: "Global Options"
+  options:
+    - "info"
+    - "debug"
+    - "warning"
+    - "error"
+    - "fatal"
+# Harbor Expose Service
+- variable: expose.type
+  required: true
+  default: "ingress"
+  description: "Set the way how to expose the service"
+  type: enum
+  label: Harbor Proxy Service Type
+  group: "Expose Service Options"
+  options:
+    - "ingress"
+    - "nodePort"
+    - "loadBalancer"
+- variable: expose.ingress.host
+  required: true
+  default: "harbor.local"
+  description: "The host of Harbor core service in ingress rule"
+  type: string
+  label: Ingress Hostname of Harbor
+  group: "Expose Service Options"
+  show_if: "expose.type=ingress"
+- variable: externalURL
+  required: true
+  default: "https://harbor.local:30003"
+  description: "Use k8s node IP if the service type is NodePort or proxy URL if the Harbor is deployed behind the proxy (format: protocol://domain:port)"
+  type: string
+  label: The External URL for Harbor Core Service
+  group: "Expose Service Options"
+- variable: expose.tls.type
+  required: true
+  default: "secretName"
+  description: "choose your TLS certificate"
+  type: enum
+  label: Choosing Your TLS Certificate
+  group: "Expose Service Options"
+  options:
+    - "secretName"
+    - "custom CA"
+    - "rancher"
+    - "self-signed x509 certificate"
+- variable: expose.tls.secretName
+  required: true
+  default: ""
+  description: "The secret must contain keys named tls.crt and tls.key that contain the certificate and private key to use for TLS"
+  type: certificate
+  label: Secret Name of Your TLS Certificate
+  group: "Expose Service Options"
+  show_if: "expose.tls.type=secretName"
+- variable: expose.tls.domainKey
+  required: true
+  default: ""
+  description: "Paste in the private key, typically starting with -----BEGIN RSA PRIVATE KEY-----"
+  type: multiline
+  label: TLS Private Key
+  group: "Expose Service Options"
+  show_if: "expose.tls.type=custom CA"
+- variable: expose.tls.domainCert
+  required: true
+  default: ""
+  type: multiline
+  description: "Paste in the certificate and any necessary chain certificates, starting with -----BEGIN CERTIFICATE-----"
+  label: TLS Certificate
+  group: "Expose Service Options"
+  show_if: "expose.tls.type=custom CA"
+- variable: imageChartStorage.type
+  required: true
+  default: "filesystem"
+  description: "Specify the type of storage: filesystem, azure, gcs, s3, swift, oss"
+  type: enum
+  label: Storage Type
+  group: "Storage Settings"
+  options:
+    - "filesystem"
+    - "azure"
+    - "gcs"
+    - "s3"
+    - "oss"
+    - "swift"
+- variable: imageChartStorage.disableredirect
+  default: false
+  description: "Specify whether to disable `redirect` for images and chart storage, for backends which not supported it (such as using minio for `s3` storage type), please disable it"
+  type: boolean
+  label: Disable Redirect
+  group: "Storage Settings"
+# azure storage
+- variable: imageChartStorage.azure.accountname
+  required: true
+  default: ""
+  description: "Azure account name"
+  type: string
+  label: Azure Accounnt Name
+  show_if: "imageChartStorage.type=azure"
+  group: "Storage Settings"
+- variable: imageChartStorage.azure.accountkey
+  required: true
+  default: ""
+  description: "Azure account key"
+  type: string
+  label: Azure Account Key
+  show_if: "imageChartStorage.type=azure"
+  group: "Storage Settings"
+- variable: imageChartStorage.azure.container
+  required: true
+  default: ""
+  description: "Azure container name"
+  type: string
+  label: Azure Container Name
+  show_if: "imageChartStorage.type=azure"
+  group: "Storage Settings"
+# gcs storage
+- variable: imageChartStorage.gcs.bucket
+  required: true
+  default: ""
+  description: "GCS bucket name"
+  type: string
+  label: GCS Bucket Name
+  show_if: "imageChartStorage.type=gcs"
+  group: "Storage Settings"
+- variable: imageChartStorage.gcs.encodedkey
+  required: true
+  default: ""
+  description: "GCS account encoded key"
+  type: multiline
+  label: GCS Account Encoded Key
+  show_if: "imageChartStorage.type=gcs"
+  group: "Storage Settings"
+# s3 storage
+- variable: imageChartStorage.s3.bucket
+  required: true
+  default: ""
+  description: "S3 bucket name"
+  type: string
+  label: s3 Bucket Name
+  show_if: "imageChartStorage.type=s3"
+  group: "Storage Settings"
+- variable: imageChartStorage.s3.region
+  required: true
+  default: "us-west-1"
+  description: "S3 region"
+  type: string
+  label: s3 Bucket Region
+  show_if: "imageChartStorage.type=s3"
+  group: "Storage Settings"
+- variable: imageChartStorage.s3.accesskey
+  required: true
+  default: ""
+  description: "S3 bucket accesskey"
+  type: string
+  label: s3 AccessKey
+  show_if: "imageChartStorage.type=s3"
+  group: "Storage Settings"
+- variable: imageChartStorage.s3.secretkey
+  required: true
+  default: ""
+  description: "S3 bucket secretkey"
+  type: string
+  label: s3 SecretKey
+  show_if: "imageChartStorage.type=s3"
+  group: "Storage Settings"
+- variable: imageChartStorage.s3.regionendpoint
+  default: ""
+  description: "S3 bucket endpoint"
+  type: string
+  label: s3 Bucket Endpoint
+  show_if: "imageChartStorage.type=s3"
+  group: "Storage Settings"
+# oss storage
+- variable: imageChartStorage.oss.bucket
+  required: true
+  default: ""
+  description: "Aliyun oss bucket name"
+  type: string
+  label: Aliyun oss Bucket Name
+  show_if: "imageChartStorage.type=oss"
+  group: "Storage Settings"
+- variable: imageChartStorage.oss.region
+  required: true
+  default: ""
+  description: "Aliyun oss region name"
+  type: string
+  label: Aliyun oss Bucket Region
+  show_if: "imageChartStorage.type=oss"
+  group: "Storage Settings"
+- variable: imageChartStorage.oss.accesskeyid
+  required: true
+  default: ""
+  description: "Aliyun oss accesskey id"
+  type: string
+  label: Aliyun oss AccessKey ID
+  show_if: "imageChartStorage.type=oss"
+  group: "Storage Settings"
+- variable: imageChartStorage.oss.accesskeysecret
+  required: true
+  default: ""
+  description: "Aliyun oss accesskey secret"
+  type: string
+  label: Aliyun oss AccessKey Secret
+  show_if: "imageChartStorage.type=oss"
+  group: "Storage Settings"
+# swift storage
+- variable: imageChartStorage.swift.authurl
+  required: true
+  default: "https://storage.myprovider.com/v3/auth"
+  type: string
+  label: Swift Auth URL
+  show_if: "imageChartStorage.type=swift"
+  group: "Storage Settings"
+- variable: imageChartStorage.swift.username
+  required: true
+  default: ""
+  type: string
+  label: Swift Username
+  show_if: "imageChartStorage.type=swift"
+  group: "Storage Settings"
+- variable: imageChartStorage.swift.password
+  required: true
+  default: ""
+  type: string
+  label: Swift Password
+  show_if: "imageChartStorage.type=swift"
+  group: "Storage Settings"
+- variable: imageChartStorage.swift.container
+  required: true
+  default: ""
+  type: string
+  label: Swift Storage Container Name
+  show_if: "imageChartStorage.type=swift"
+  group: "Storage Settings"
+  # persistence options
+- variable: persistence.type
+  default: "emptyDir"
+  description: "Config the persistent volume type for Harbor services"
+  type: enum
+  required: true
+  label: Harbor Persistent Volume Type
+  group: "Persistence Storage Settings"
+  show_if: "imageChartStorage.type=filesystem"
+  options:
+    - emptyDir
+    - storageClass
+- variable: persistence.persistentVolumeClaim.storageClass
+  default: ""
+  description: "If undefined or null, uses the default StorageClass. Default to null"
+  type: storageclass
+  label: Default StorageClass for Harbor Services(Registry and ChartMuseum)
+  show_if: "persistence.type=storageClass"
+  group: "Persistence Storage Settings"
+- variable: persistence.persistentVolumeClaim.registry.size
+  required: true
+  default: "5Gi"
+  description: "Registry Persistent Volume Size"
+  type: string
+  label: Registry Volume Size
+  group: "Persistence Storage Settings"
+  show_if: "persistence.type=storageClass"
+- variable: persistence.persistentVolumeClaim.registry.existingClaim
+  default: ""
+  description: "If not empty, uses the specified existing PVC instead of creating new one"
+  type: pvc
+  label: Existing Persistent Volume Claim for Registry
+  group: "Persistence Storage Settings"
+  show_if: "persistence.type=storageClass"
+- variable: persistence.persistentVolumeClaim.chartmuseum.size
+  required: true
+  default: "5Gi"
+  description: "Chartmuseum Persistent Volume Size"
+  type: string
+  label: Chartmuseum Volume Size
+  show_if: "chartmuseum.enabled=true&&persistence.type=storageClass"
+  group: "Persistence Storage Settings"
+- variable: persistence.persistentVolumeClaim.chartmuseum.existingClaim
+  default: ""
+  description: "If not empty, uses the specified existing PVC instead of creating new one"
+  type: pvc
+  label: Existing Persistent Volume Claim for Chartmuseum
+  show_if: "chartmuseum.enabled=true&&persistence.type=storageClass"
+  group: "Persistence Storage Settings"
+
+# database
+- variable: database.type
+  required: true
+  default: "internal"
+  description: "Config Database type, set to internal to deploy a database server as part of this deployment."
+  type: enum
+  label: Config Database Type
+  group: "Database Settings"
+  options:
+    - "internal"
+    - "external"
+- variable: persistence.persistentVolumeClaim.database.size
+  required: true
+  default: "5Gi"
+  description: "Database Persistent Volume Size"
+  type: string
+  label: Database Volume Size
+  group: "Database Settings"
+  show_if: "database.type=internal&&persistence.type=storageClass"
+- variable: persistence.persistentVolumeClaim.database.existingClaim
+  default: ""
+  description: "If not empty, uses the specified existing PVC instead of creating new one"
+  type: pvc
+  label: Existing Persistent Volume Claim for Database
+  group: "Database Settings"
+  show_if: "database.type=internal&&persistence.type=storageClass"
+- variable: database.external.host
+  required: true
+  default: ""
+  description: "Host of the external database"
+  type: string
+  label: External Database Host
+  show_if: "database.type=external"
+  group: "Database Settings"
+- variable: database.external.username
+  required: true
+  default: ""
+  description: "Existing username in the external DB"
+  type: string
+  label: External Database username
+  show_if: "database.type=external"
+  group: "Database Settings"
+- variable: database.external.password
+  default: ""
+  required: true
+  description: "External database password"
+  type: password
+  label: External Database password
+  show_if: "database.type=external"
+  group: "Database Settings"
+- variable: database.external.coreDatabase
+  default: "registry"
+  required: true
+  description: "The database used by core service"
+  type: string
+  label: Database Name of Core Service
+  show_if: "database.type=external"
+  group: "Database Settings"
+- variable: database.external.clairDatabase
+  default: "clair"
+  required: true
+  description: "The database used by Clair service"
+  type: string
+  label: Database Name of Clair
+  show_if: "database.type=external"
+  group: "Database Settings"
+- variable: database.external.notaryServerDatabase
+  default: "notary_server"
+  required: true
+  description: "The database used by Notary server"
+  type: string
+  label: Database Name of Notary Server
+  show_if: "database.type=external"
+  group: "Database Settings"
+- variable: database.external.notarySignerDatabase
+  default: "notary_signer"
+  required: true
+  description: "The database used by Notary signer"
+  type: string
+  label: Database Name of Notary Signer
+  show_if: "database.type=external"
+  group: "Database Settings"
+- variable: database.external.sslmode
+  default: "disable"
+  required: true
+  description: "Connection method of external database"
+  type: string
+  label: External Database sslmode
+  show_if: "database.type=external"
+  group: "Database Settings"
+- variable: database.external.port
+  default: "5432"
+  required: true
+  description: "External database port number"
+  type: string
+  label: External Database Port
+  show_if: "database.type=external"
+  group: "Database Settings"
+# redis
+- variable: redis.type
+  required: true
+  default: "internal"
+  description: "Deploy a redis-HA server as part of this deployment, or set to false and configure an external redis service."
+  type: enum
+  label: Config Redis Type
+  group: "Redis Settings"
+  options:
+    - "internal"
+    - "external"
+- variable: persistence.persistentVolumeClaim.redis.size
+  required: true
+  default: "5Gi"
+  description: "Redis Persistent Volume Size"
+  type: string
+  label: Redis Volume Size
+  group: "Redis Settings"
+  show_if: "redis.type=internal&&persistence.type=storageClass"
+- variable: persistence.persistentVolumeClaim.redis.existingClaim
+  default: ""
+  description: "If not empty, uses the specified existing PVC instead of creating new one"
+  type: pvc
+  label: Existing Persistent Volume Claim for Redis
+  group: "Redis Settings"
+  show_if: "redis.type=internal&&persistence.type=storageClass"
+- variable: redis.external.host
+  required: true
+  default: ""
+  description: "Host of the external redis"
+  type: string
+  label: External Reids Host
+  show_if: "redis.type=external"
+  group: "Redis Settings"
+- variable: redis.external.port
+  required: true
+  default: "6379"
+  description: "Existing username in the external DB"
+  type: string
+  label: External Redis username
+  show_if: "redis.type=external"
+  group: "Redis Settings"
+- variable: redis.external.password
+  default: ""
+  description: "External redis server password"
+  type: password
+  label: External Redis password
+  show_if: "redis.type=external"
+  group: "Redis Settings"
+# clair and notary options
+- variable: clair.enabled
+  default: true
+  description: "Enable Clair for vulnerability static analysis of containers images"
+  type: boolean
+  label: Enable Clair
+  group: "Notary, Clair & Cert"
+- variable: notary.enabled
+  default: true
+  description: "Notary is a tool for publishing and managing trusted collections of content like Docker images. Publishers can digitally sign collections and consumers can verify integrity and origin of content"
+  type: boolean
+  label: Enable Notary
+  group: "Notary, Clair & Cert"
+- variable: chartmuseum.enabled
+  default: true
+  description: "Enable Chartmuseum to support Helm chart repository in Harbor"
+  type: boolean
+  label: Enable Helm Chart Repository in Harbor
+  group: "Notary, Clair & Cert"
+- variable: cert.enabled
+  default: true
+  description: "Enable cert to distribute Harbor CA certs to each node under `/etc/docker/certs.d/` path"
+  type: boolean
+  label: Enable Cert DaemonSet
+  group: "Notary, Clair & Cert"
