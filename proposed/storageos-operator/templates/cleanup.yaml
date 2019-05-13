@@ -13,7 +13,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: storageos-cleanup-sa
-  namespace: {{ .Values.cluster.namespace }}
+  namespace: {{ .Release.Namespace }}
   annotations:
     "helm.sh/hook": post-delete
     "helm.sh/hook-delete-policy": "hook-succeeded, hook-failed, before-hook-creation"
@@ -87,7 +87,7 @@ metadata:
 subjects:
 - name: storageos-cleanup-sa
   kind: ServiceAccount
-  namespace: {{ .Values.cluster.namespace }}
+  namespace: {{ .Release.Namespace }}
 roleRef:
   name: storageos-cleanup-cr
   kind: ClusterRole
@@ -104,7 +104,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: "storageos-{{ .name }}-cleanup"
-  namespace: {{ $.Values.cluster.namespace }}
+  namespace: {{ .namespace }}
   annotations:
     "helm.sh/hook": post-delete
     "helm.sh/hook-delete-policy": "hook-succeeded, before-hook-creation"
@@ -118,6 +118,8 @@ spec:
         image: bitnami/kubectl:1.14.1
         command:
           - kubectl
+          - -n
+          - {{ $.Values.cluster.namespace }}
           - delete
           {{- range .command }}
           - {{ . | quote }}

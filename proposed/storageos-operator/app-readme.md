@@ -16,4 +16,5 @@ configurations, disable the default installation of StorageOS and create a
 custom StorageOSCluster resource
 ([documentation](https://docs.storageos.com/docs/reference/cluster-operator/examples)).
 
-`Notes: StorageOS is required to be installed in System Project with Cluster Role`
+`Notes: The StorageOS Operator must be installed in the System Project with
+Cluster Role`
