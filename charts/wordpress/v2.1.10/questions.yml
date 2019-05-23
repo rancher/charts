@@ -1,0 +1,199 @@
+categories:
+- Blog
+- CMS
+questions:
+- variable: defaultImage
+  default: true
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: image.repository
+    default: "bitnami/wordpress"
+    description: "WordPress image name"
+    type: string
+    label: WordPress Image Name
+  - variable: image.tag
+    default: "4.9.8-debian-9"
+    description: "WordPress image tag"
+    type: string
+    label: Image Tag
+  - variable: mariadb.image.repository
+    default: "bitnami/mariadb"
+    description: "MariaDB image name"
+    type: string
+    label: MariaDB Image Name
+  - variable: mariadb.image.tag
+    default: "10.1.35-debian-9"
+    description: "MariaDB image tag"
+    type: string
+    label: MariaDB Image Tag
+- variable: wordpressUsername
+  default: "user"
+  description: "User of the application"
+  type: string
+  required: true
+  label: WordPress Usernname
+  group: "WordPress Settings"
+- variable: wordpressPassword
+  default: ""
+  description: "password will be auto-generated if not specified"
+  type: password
+  label: WordPress Password
+  group: "WordPress Settings"
+- variable: wordpressEmail
+  default: "user@example.com"
+  description: "Admin email"
+  type: string
+  required: true
+  label: WordPress Admin Email
+  group: "WordPress Settings"
+- variable: mariadb.enabled
+  default: true
+  description: "Deploy a database server as part of this deployment, or set to false and configure an external database connection."
+  type: boolean
+  required: true
+  label: Install MariaDB
+  show_subquestion_if: true
+  group: "Database Settings"
+  subquestions:
+  - variable: mariadb.db.name
+    default: "wordpress"
+    description: "Database name to create"
+    type: string
+    label: MariaDB Database
+  - variable: mariadb.db.user
+    default: "wordpress"
+    description: "Database user to create"
+    type: string
+    label: MariaDB User
+  - variable: mariadb.mariadbPassword
+    default: ""
+    description: "password will be auto-generated if not specified"
+    type: password
+    label: MariaDB Password
+- variable: externalDatabase.host
+  default: ""
+  description: "Host of the external database"
+  type: string
+  label: External Database Host
+  show_if: "mariadb.enabled=false"
+  group: "Database Settings"
+- variable: externalDatabase.user
+  default: ""
+  description: "Existing username in the external DB"
+  type: string
+  label: External Database username
+  show_if: "mariadb.enabled=false"
+  group: "Database Settings"
+- variable: externalDatabase.password
+  default: ""
+  description: "External database password"
+  type: password
+  label: External Database password
+  show_if: "mariadb.enabled=false"
+  group: "Database Settings"
+- variable: externalDatabase.database
+  default: ""
+  description: "Name of the existing database"
+  type: string
+  label: External Database
+  show_if: "mariadb.enabled=false"
+  group: "Database Settings"
+- variable: externalDatabase.port
+  default: "3306"
+  description: "External database port number"
+  type: string
+  label: External Database Port
+  show_if: "mariadb.enabled=false"
+  group: "Database Settings"
+- variable: mariadb.master.persistence.enabled
+  default: false
+  description: "Enable persistent volume for MariaDB"
+  type: boolean
+  required: true
+  label: MariaDB Persistent Volume Enabled
+  show_if: "mariadb.enabled=true"
+  show_subquestion_if: true
+  group: "Database Settings"
+  subquestions:
+  - variable: mariadb.master.persistence.size
+    default: "8Gi"
+    description: "MariaDB Persistent Volume Size"
+    type: string
+    label: MariaDB Volume Size
+  - variable: mariadb.master.persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for MariaDB
+  - variable: mariadb.master.persistence.existingClaim
+    default: ""
+    description: "If not empty, uses the specified existing PVC instead of creating new one"
+    type: string
+    label: Existing Persistent Volume Claim for MariaDB
+- variable: persistence.enabled
+  default: false
+  description: "Enable persistent volume for WordPress"
+  type: boolean
+  required: true
+  label: WordPress Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "WordPress Settings"
+  subquestions:
+  - variable: persistence.size
+    default: "10Gi"
+    description: "WordPress Persistent Volume Size"
+    type: string
+    label: WordPress Volume Size
+  - variable: persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for WordPress
+- variable: ingress.enabled
+  default: true
+  description: "Expose app using Layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose app using Layer 7 Load Balancer
+  show_subquestion_if: true
+  group: "Services and Load Balancing"
+  subquestions:
+  - variable: ingress.hosts[0].name
+    default: "xip.io"
+    description: "Hostname to your WordPress installation"
+    type: hostname
+    required: true
+    label: Hostname
+- variable: serviceType
+  default: "NodePort"
+  description: "WordPress Service type"
+  type: enum
+  show_if: "ingress.enabled=false"
+  options:
+    - "ClusterIP"
+    - "NodePort"
+    - "LoadBalancer"
+  required: true
+  label: WordPress Service Type
+  show_subquestion_if: "NodePort"
+  group: "Services and Load Balancing"
+  subquestions:
+  - variable: nodePorts.http
+    default: ""
+    description: "NodePort http port(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    show_if: "ingress.enabled=false&&serviceType=NodePort"
+    label: NodePort Http Port
+  - variable: nodePorts.https
+    default: ""
+    description: "NodePort https port(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    show_if: "ingress.enabled=false&&serviceType=NodePort"
+    label: NodePort Https Port
