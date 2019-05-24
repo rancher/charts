@@ -1,0 +1,195 @@
+categories:
+- storage
+namespace: openebs
+labels:
+  io.rancher.certified: partner
+questions:
+- variable: defaultImage
+  default: "true"
+  description: "Use default OpenEBS images"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: apiserver.image
+    default: "quay.io/openebs/m-apiserver"
+    description: "Default API Server image for OpenEBS"
+    type: string
+    label: API Server Image
+  - variable: apiserver.imageTag
+    default: "0.8.2"
+    description: "The image tag of API Server image"
+    type: string
+    label: Image Tag For OpenEBS API Server Image
+  - variable: provisioner.image
+    default: "quay.io/openebs/openebs-k8s-provisioner"
+    description: "Default K8s Provisioner image for OpenEBS"
+    type: string
+    label: Provisioner Image
+  - variable: provisioner.imageTag
+    default: "0.8.2"
+    description: "The image tag of Provisioner image"
+    type: string
+    label: Image Tag For Provisioner Image
+  - variable: snapshotOperator.controller.image
+    default: "quay.io/openebs/snapshot-controller"
+    description: "Default Snapshot Controller image for OpenEBS"
+    type: string
+    label: Snapshot Controller Image
+  - variable: snapshotOperator.controller.imageTag
+    default: "0.8.2"
+    description: "The image tag of Snapshot Controller image"
+    type: string
+    label: Image Tag For OpenEBS Snapshot Controller Image
+  - variable: snapshotOperator.provisioner.image
+    default: "quay.io/openebs/snapshot-provisioner"
+    description: "Default Snapshot Provisioner image for OpenEBS"
+    type: string
+    label: Snapshot Provisioner Image
+  - variable: snapshotOperator.provisioner.imageTag
+    default: "0.8.2"
+    description: "The image tag of Snapshot Provisioner image"
+    type: string
+    label: Image Tag For OpenEBS Snapshot Provisioner Image
+  - variable: ndm.image
+    default: "quay.io/openebs/node-disk-manager-amd64"
+    description: "Default NDM image"
+    type: string
+    label: Node Disk Manager Image
+  - variable: ndm.imageTag
+    default: "v0.3.5"
+    description: "The image tag of NDM image"
+    type: string
+    label: Image Tag For Node Disk Manager Image
+  - variable: jiva.image
+    default: "quay.io/openebs/jiva"
+    description: "Default Jiva Storage Engine image for OpenEBS"
+    type: string
+    label: Jiva Storage Engine Image
+  - variable: jiva.imageTag
+    default: "0.8.2"
+    description: "The image tag of Jiva image"
+    type: string
+    label: Image Tag For OpenEBS Jiva Storage Engine Image
+  - variable: cstor.pool.image
+    default: "quay.io/openebs/cstor-pool"
+    description: "Default cStor Storage Engine Pool image for OpenEBS"
+    type: string
+    label: cStor Storage Engine Pool Image
+  - variable: cstor.pool.imageTag
+    default: "0.8.2"
+    description: "The image tag of cStor Storage Engine Pool image"
+    type: string
+    label: Image Tag For OpenEBS cStor Storage Engine Pool Image
+  - variable: cstor.poolMgmt.image
+    default: "quay.io/openebs/cstor-pool-mgmt"
+    description: "Default cStor Storage Engine Pool Management image for OpenEBS"
+    type: string
+    label: cStor Storage Engine Pool Management Image
+  - variable: cstor.poolMgmt.imageTag
+    default: "0.8.2"
+    description: "The image tag of cStor Storage Engine Pool Management image"
+    type: string
+    label: Image Tag For OpenEBS cStor Storage Engine Pool Management Image
+  - variable: cstor.target.image
+    default: "quay.io/openebs/cstor-istgt"
+    description: "Default cStor Storage Engine Target image for OpenEBS"
+    type: string
+    label: cStor Storage Engine Target Image
+  - variable: cstor.target.imageTag
+    default: "0.8.2"
+    description: "The image tag of cStor Storage Engine Target image"
+    type: string
+    label: Image Tag For OpenEBS cStor Storage Engine Target Image
+  - variable: cstor.volumeMgmt.image
+    default: "quay.io/openebs/cstor-volume-mgmt"
+    description: "Default cStor Storage Engine Target Management image for OpenEBS"
+    type: string
+    label: cStor Storage Engine Target Management Image
+  - variable: cstor.volumeMgmt.imageTag
+    default: "0.8.2"
+    description: "The image tag of cStor Storage Engine Target Management image"
+    type: string
+    label: Image Tag For OpenEBS cStor Storage Engine Target Management Image
+  - variable: policies.monitoring.image
+    default: "quay.io/openebs/m-exporter"
+    description: "Default OpeneEBS Volume Exporter image"
+    type: string
+    label: Monitoring Exporter Image
+    show_if: "policies.monitoring.enabled=true&&defaultImage=false"
+  - variable: policies.monitoring.imageTag
+    default: "0.8.2"
+    description: "The image tag of OpenEBS Exporter"
+    type: string
+    label: Image Tag For OpenEBS Exporter Image
+    show_if: "policies.monitoring.enabled=true&&defaultImage=false"
+- variable: ndm.filters.excludeVendors
+  default: 'CLOUDBYT\,OpenEBS'
+  type: string
+  description: "Configure NDM to filter disks from following vendors"
+  label: Filter Disks belonging to vendors
+  group: "NDM Disk Filter by Vendor "
+- variable: ndm.filters.excludePaths
+  default: 'loop\,fd0\,sr0\,/dev/ram\,/dev/dm-\,/dev/md'
+  type: string
+  description: "Configure NDM to filter disks from following paths"
+  label: Filter Disks belonging to paths
+  group: "NDM Disk Filter by Path"
+- variable: ndm.sparse.enabled
+  default: "true"
+  description: "Create a cStor Pool on Sparse Disks"
+  label: Create cStor Pool on Sprase Disks
+  type: boolean
+  show_subquestion_if: true
+  group: "NDM Sparse Disk Settings"
+  subquestions:
+  - variable: ndm.sparse.size
+    default: "10737418240"
+    description: "Default Size of Sparse Disk"
+    type: string
+    label: Sparse Disk Size in bytes
+  - variable: ndm.sparse.count
+    default: "1"
+    description: "Number of Sparse Disks"
+    type: string
+    label: Number of Sparse Disks
+  - variable: ndm.sparse.path
+    default: "/var/openebs/sparse"
+    description: "Directory where Sparse Disks should be created"
+    type: string
+    label: Directory for Sparse Disks
+- variable: defaultPorts
+  default: "true"
+  description: "Use default Communication Ports"
+  label: Use Default Ports
+  type: boolean
+  show_subquestion_if: false
+  group: "Communication Ports"
+  subquestions:
+  - variable: apiserver.ports.externalPort
+    default: 5656
+    description: "Default External Port for OpenEBS API Server"
+    type: int
+    min: 0
+    max: 9999
+    label: OpenEBS API Server External Port
+  - variable: apiserver.ports.internalPort
+    default: 5656
+    description: "Default Internal Port for OpenEBS API Server"
+    type: int
+    min: 0
+    max: 9999
+    label: OpenEBS API Server Internal Port
+- variable: policies.monitoring.enabled
+  default: true
+  description: "Enable prometheus monitoring"
+  type: boolean
+  label: Enable Prometheus Monitoring
+  group: "Monitoring Settings"
+- variable: analytics.enabled
+  default: true
+  description: "Enable sending anonymous statistics to OpenEBS Google Analytics"
+  type: boolean
+  label: Enable updating OpenEBS with usage details
+  group: "Anonymous Analytics"
