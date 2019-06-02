@@ -4,7 +4,4 @@
 
 This chart bootstraps a [WordPress](https://github.com/bitnami/bitnami-docker-wordpress) deployment on a [Kubernetes](http://kubernetes.io) cluster using the [Helm](https://helm.sh) package manager. The chart also packages the [Bitnami MariaDB chart](https://github.com/kubernetes/charts/tree/master/stable/mariadb) to provide the backend database for the WordPress application.
 
-## Notes: 
-MariaDB has been configured as a StatefulSet, and it will provision PersistentVolume dynamically using VolumeClaimTemplate. Users can use the existing Persistent Volume by creating PVC with name i.e. `data-wordpress-mariadb-0`
-
-Upgrade from template version 2.1.10 or 2.1.11 to the current version 2.1.12 requires a user to select `Delete and recreate resources if needed during the upgrade` option.
+Notes: MariaDB has been configured as a StatefulSet, and it will provision PersistentVolume dynamically using VolumeClaimTemplate. Users can use the existing Persistent Volume by creating PVC with name i.e. `data-wordpress-mariadb-0`
