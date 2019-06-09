@@ -1,7 +1,7 @@
 {{- if (.Values.stork) and (eq .Values.stork true)}}
-{{- $isCoreOS := .Values.isTargetOSCoreOS | default false }}
-{{- $customRegistryURL := .Values.customRegistryURL | default "none" }}
-{{- $registrySecret := .Values.registrySecret | default "none" }}
+  {{- $isCoreOS := .Values.isTargetOSCoreOS | default false }}
+  {{- $customRegistryURL := .Values.customRegistryURL | default "none" }}
+  {{- $registrySecret := .Values.registrySecret | default "none" }}
 
 apiVersion: v1
 kind: ConfigMap
@@ -61,65 +61,20 @@ metadata:
 kind: ClusterRole
 apiVersion: {{ template "rbac.apiVersion" . }}
 metadata:
-   name: stork-role
+  name: stork-role
 rules:
-  - apiGroups: [""]
-    resources: ["pods", "pods/exec"]
-    verbs: ["get", "list", "delete", "create"]
-  - apiGroups: [""]
-    resources: ["persistentvolumes"]
-    verbs: ["get", "list", "watch", "create", "delete"]
-  - apiGroups: [""]
-    resources: ["persistentvolumeclaims"]
-    verbs: ["get", "list", "watch", "update"]
-  - apiGroups: ["storage.k8s.io"]
-    resources: ["storageclasses"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: [""]
-    resources: ["events"]
-    verbs: ["list", "watch", "create", "update", "patch"]
-  - apiGroups: ["stork.libopenstorage.org"]
-    resources: ["rules"]
-    verbs: ["get", "list"]
-  - apiGroups: ["stork.libopenstorage.org"]
-    resources: ["migrations", "clusterpairs", "groupvolumesnapshots"]
-    verbs: ["get", "list", "watch", "update", "patch"]
-  - apiGroups: ["apiextensions.k8s.io"]
-    resources: ["customresourcedefinitions"]
-    verbs: ["create", "list", "watch", "delete", "get"]
-  - apiGroups: ["volumesnapshot.external-storage.k8s.io"]
-    resources: ["volumesnapshots"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-  - apiGroups: ["volumesnapshot.external-storage.k8s.io"]
-    resources: ["volumesnapshotdatas"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-  - apiGroups: [""]
-    resources: ["configmaps"]
-    verbs: ["get", "create", "update"]
-  - apiGroups: [""]
-    resources: ["services"]
-    verbs: ["get"]
-  - apiGroups: [""]
-    resources: ["nodes"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: ["*"]
-    resources: ["deployments", "deployments/extensions"]
-    verbs: ["list", "get", "watch", "patch", "update", "initialize"]
-  - apiGroups: ["*"]
-    resources: ["statefulsets", "statefulsets/extensions"]
-    verbs: ["list", "get", "watch", "patch", "update", "initialize"]
   - apiGroups: ["*"]
     resources: ["*"]
-    verbs: ["list", "get"]
+    verbs: ["*"]
 ---
 kind: ClusterRoleBinding
 apiVersion: {{ template "rbac.apiVersion" . }}
 metadata:
   name: stork-role-binding
 subjects:
-- kind: ServiceAccount
-  name: stork-account
-  namespace: kube-system
+  - kind: ServiceAccount
+    name: stork-account
+    namespace: kube-system
 roleRef:
   kind: ClusterRole
   name: stork-role
@@ -137,6 +92,28 @@ spec:
     - protocol: TCP
       port: 8099
       targetPort: 8099
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: volumeplacementstrategies.portworx.io
+spec:
+  group: portworx.io
+  versions:
+    - name: v1beta2
+      served: true
+      storage: true
+    - name: v1beta1
+      served: false
+      storage: false
+  scope: Cluster
+  names:
+    plural: volumeplacementstrategies
+    singular: volumeplacementstrategy
+    kind: VolumePlacementStrategy
+    shortNames:
+      - vps
+      - vp
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -167,17 +144,17 @@ spec:
         - name: {{ $registrySecret }}
       {{- end }}
       containers:
-      - command:
-        - /stork
-        - --driver=pxd
-        - --verbose
-        - --leader-elect=true
-        imagePullPolicy: Always
-        image: {{ template "px.getStorkImage" . }}:{{ required "A valid Image tag is required in the SemVer format" .Values.storkVersion }}
-        resources:
-          requests:
-            cpu: '0.1'
-        name: stork
+        - command:
+            - /stork
+            - --driver=pxd
+            - --verbose
+            - --leader-elect=true
+          imagePullPolicy: Always
+          image: {{ template "px.getStorkImage" . }}:{{ required "A valid Image tag is required in the SemVer format" .Values.storkVersion }}
+          resources:
+            requests:
+              cpu: '0.1'
+          name: stork
       hostPID: false
       affinity:
         podAntiAffinity:
@@ -187,7 +164,7 @@ spec:
                   - key: "name"
                     operator: In
                     values:
-                    - stork
+                      - stork
               topologyKey: "kubernetes.io/hostname"
       serviceAccountName: stork-account
 ---
@@ -260,9 +237,9 @@ apiVersion: {{ template "rbac.apiVersion" . }}
 metadata:
   name: stork-scheduler-role-binding
 subjects:
-- kind: ServiceAccount
-  name: stork-scheduler-account
-  namespace: kube-system
+  - kind: ServiceAccount
+    name: stork-scheduler-account
+    namespace: kube-system
 roleRef:
   kind: ClusterRole
   name: stork-scheduler-role
@@ -286,28 +263,28 @@ spec:
       name: stork-scheduler
     spec:
       containers:
-      - command:
-        - /usr/local/bin/kube-scheduler
-        - --address=0.0.0.0
-        - --leader-elect=true
-        - --scheduler-name=stork
-        - --policy-configmap=stork-config
-        - --policy-configmap-namespace=kube-system
-        - --lock-object-name=stork-scheduler
-        image: "{{ template "px.getk8sImages" . }}/kube-scheduler-amd64:{{ template "px.kubernetesVersion" . }}"
-        livenessProbe:
-          httpGet:
-            path: /healthz
-            port: 10251
-          initialDelaySeconds: 15
-        name: stork-scheduler
-        readinessProbe:
-          httpGet:
-            path: /healthz
-            port: 10251
-        resources:
-          requests:
-            cpu: '0.1'
+        - command:
+            - /usr/local/bin/kube-scheduler
+            - --address=0.0.0.0
+            - --leader-elect=true
+            - --scheduler-name=stork
+            - --policy-configmap=stork-config
+            - --policy-configmap-namespace=kube-system
+            - --lock-object-name=stork-scheduler
+          image: "{{ template "px.getk8sImages" . }}/kube-scheduler-amd64:{{ template "px.kubernetesVersion" . }}"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 10251
+            initialDelaySeconds: 15
+          name: stork-scheduler
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 10251
+          resources:
+            requests:
+              cpu: '0.1'
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -316,8 +293,8 @@ spec:
                   - key: "name"
                     operator: In
                     values:
-                    - stork-scheduler
+                      - stork-scheduler
               topologyKey: "kubernetes.io/hostname"
       hostPID: false
       serviceAccountName: stork-scheduler-account
-{{- end }}
+  {{- end }}

@@ -1,10 +1,10 @@
 {{/* Setting defaults if they are omitted. */}}
 {{- $deployEnvironmentIKS := .Capabilities.KubeVersion.GitVersion | regexMatch "IKS" }}
 {{- $usefileSystemDrive := .Values.usefileSystemDrive | default false }}
-{{- $drives := .Values.drives | default "none" }}
 {{- $usedrivesAndPartitions := .Values.usedrivesAndPartitions | default false }}
 {{- $secretType := .Values.secretType | default "k8s" }}
 {{- $journalDevice := .Values.journalDevice | default "none" }}
+{{- $maxStorageNodes := .Values.maxStorageNodes | default "none" }}
 {{- $customRegistryURL := .Values.customRegistryURL | default "none" }}
 {{- $registrySecret := .Values.registrySecret | default "none" }}
 
@@ -15,11 +15,11 @@
 {{- $isCoreOS := .Values.isTargetOSCoreOS | default false }}
 
 {{- $pksInstall := .Values.pksInstall | default false }}
-{{- $internalKVDB := .Values.internalKVDB | default false }}
+{{- $internalKVDB := .Values.etcdType | default "none" }}
 {{- $csi := .Values.csi | default false }}
 
 {{- $etcdCredentials := .Values.etcd.credentials | default "none:none" }}
-{{- $etcdCertPath := .Values.etcd.certPath | default "none" }}
+{{- $etcdCertPath := .Values.etcd.ca | default "none" }}
 {{- $etcdCA := .Values.etcd.ca | default "none" }}
 {{- $etcdCert := .Values.etcd.cert | default "none" }}
 {{- $etcdKey := .Values.etcd.key | default "none" }}
@@ -32,6 +32,8 @@ kind: DaemonSet
 metadata:
   name: portworx
   namespace: kube-system
+  labels:
+    name: portworx
 spec:
   minReadySeconds: 0
   updateStrategy:
@@ -43,7 +45,6 @@ spec:
       labels:
         app: portworx
         name: portworx
-        # {{- include "px.labels" . | indent 8 }}
     spec:
       affinity:
         nodeAffinity:
@@ -74,25 +75,10 @@ spec:
           terminationMessagePath: "/tmp/px-termination-log"
           imagePullPolicy: Always
           args:
-          {{- with .Values }}
             [
-              {{- if eq $drives "none" }}
-                {{- if eq $usedrivesAndPartitions true }}
-              "-A",
-                {{- else }}
-              "-a",
-                {{- end -}}
-                {{- if or $usefileSystemDrive $deployEnvironmentIKS }}
-              "-f",
-                {{- end }}
-              {{- else }}
-                {{- $driveNames := $drives | split ";" }}
-                {{- range $index, $name := $driveNames }}
-              "-s", "{{ $name }}",
-                {{- end -}}
-              {{- end -}}
-
-              {{- if eq $internalKVDB true }}
+              {{ include "px.storage" . | indent 0 }}
+              {{- with .Values -}}
+              {{- if eq "Built-in" $internalKVDB  }}
               "-b",
               {{- end -}}
 
@@ -100,9 +86,15 @@ spec:
               "-j", "{{ $journalDevice }}",
               {{- end -}}
 
-              {{- if empty $etcdEndPoints }}
-                {{- if eq $internalKVDB false }}
-                  "{{ required "A valid kvdb url is required." .kvdb }}"
+              {{- if not $etcdEndPoints }}
+                {{- if ne "Built-in" $internalKVDB }}
+                  {{- if eq "US region" .region }}
+                     "-k", "etcd:http://px-etcd1.portworx.com:2379,etcd:http://px-etcd2.portworx.com:2379,etcd:http://px-etcd3.portworx.com:2379",
+                  {{- else if eq "EU region" .region }}
+                     "-k", "etcd:http://px-eu-etcd1.portworx.com:2379,etcd:http://px-eu-etcd2.portworx.com:2379,etcd:http://px-eu-etcd3.portworx.com:2379",
+                  {{- else }}
+                    "{{ required "A valid kvdb url is required." .kvdb }}"
+                  {{- end -}}
                 {{- end -}}
               {{- else }}
               "-k", "{{ regexReplaceAllLiteral "(;)" .kvdb "," }}",
@@ -118,11 +110,11 @@ spec:
                 {{- end -}}
               {{- end -}}
 
-              {{- if ne $dataInterface "none" }}
+              {{- if and (ne $dataInterface "none") (ne $dataInterface "auto")}}
               "-d", "{{ $dataInterface }}",
               {{- end -}}
 
-              {{- if ne $managementInterface "none" }}
+              {{- if and (ne $managementInterface "none") (ne $managementInterface "auto") }}
               "-m", "{{ $managementInterface }}",
               {{- end -}}
 
@@ -131,15 +123,15 @@ spec:
               {{- end -}}
 
               {{- if ne $etcdCA "none" }}
-              "-ca", "{{ $etcdCA }}",
+              "-ca", "/etc/pwx/etcdcerts/{{ $etcdCA }}",
               {{- end -}}
 
               {{- if ne $etcdCert "none" }}
-              "-cert", "{{ $etcdCert }}",
+              "-cert", "/etc/pwx/etcdcerts/{{ $etcdCert }}",
               {{- end -}}
 
               {{- if ne $etcdKey "none" }}
-              "-key", "{{ $etcdKey }}",
+              "-key", "/etc/pwx/etcdcerts/{{ $etcdKey }}",
               {{- end -}}
 
               {{- if ne $consulToken "none" }}
@@ -153,8 +145,8 @@ spec:
               {{ end -}}
 
               "-x", "kubernetes"
-             ]
-           {{- end }}
+            {{- end -}}
+            ]
           env:
             - name: "PX_TEMPLATE_VERSION"
               value: "v2"
@@ -308,22 +300,18 @@ spec:
       restartPolicy: Always
       serviceAccountName: px-account
       volumes:
-          {{- if not (eq $etcdCertPath "none") }}
+        {{- if ne $etcdCertPath "none" }}
         - name: etcdcerts
           secret:
             secretName: px-etcd-certs
             items:
-            - key: ca.pem
-              path: ca.pem
-            {{- if ne $etcdCert "none" }}
-            - key: client.pem
-              path: client.pem
-            {{- end -}}
-            {{- if ne $etcdKey "none" }}
-            - key: client-key.pem
-              path: client-key.key
-            {{- end -}}
-          {{- end}}
+            - key: "{{ $etcdCA }}"
+              path: "{{ $etcdCA }}"
+            - key: "{{ $etcdCert }}"
+              path: "{{ $etcdCert }}"
+            - key: "{{ $etcdKey }}"
+              path: "{{ $etcdKey }}"
+        {{- end}}
         - name: dockersock
           hostPath:
             path: {{if eq $pksInstall true}}/var/vcap/sys/run/docker/docker.sock{{else}}/var/run/docker.sock{{end}}
