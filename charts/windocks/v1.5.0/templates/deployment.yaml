@@ -1,0 +1,83 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: {{ template "windocks-sql-proxy.fullname" . }}
+  labels:
+    app: {{ template "windocks-sql-proxy.name" . }}
+    chart: {{ template "windocks-sql-proxy.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ template "windocks-sql-proxy.name" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "windocks-sql-proxy.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      {{- if contains "true" .Values.sqlproxy.tls }}
+      volumes:
+      - name: proxy-secret-ssl
+        secret:
+          secretName: {{ .Values.sqlproxy.sslSecretName }}
+      {{- end }} 
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: tcp-proxy
+          containerPort: {{ .Values.sqlproxy.port }}
+          protocol: TCP
+        envFrom:
+        - secretRef:
+            name: {{ .Values.sqlproxy.authSecretName }}
+        env:
+          - name: WINDOCKS_REQUIRED_HOSTNAME
+            value: {{ .Values.sqlproxy.windocksServerHostname | quote }}
+          - name: WINDOCKS_OPTIONAL_PORT
+            value: {{ .Values.sqlproxy.windocksServerPort | quote}}
+          - name: WINDOCKS_REQUIRED_IMAGE_NAME
+            value: {{ .Values.sqlproxy.windocksImageName | quote}}
+          - name: WINDOCKS_SQL_PROXY_OPTIONAL_LISTENING_PORT
+            value: {{ .Values.sqlproxy.port | quote}}
+          - name: WINDOCKS_SQL_PROXY_OPTIONAL_LOCAL_HOSTNAME_FOR_TLS
+            value: {{ .Values.sqlproxy.localHostNameForTls | quote }}
+          - name: WINDOCKS_SQL_PROXY_OPTIONAL_TLS
+            value: {{ .Values.sqlproxy.tls | quote}}
+          # - name: WINDOCKS_OPTIONAL_CONTAINER_NAME
+          #  value: {{ .Values.sqlproxy.windocksContainerName }}
+          # If WINDOCKS_OPTIONAL_PERSISTENT_CONTAINER_PORT is set, then the proxy will not create or delete the Windocks container. 
+          # - name: WINDOCKS_OPTIONAL_PERSISTENT_CONTAINER_PORT
+          #  value: {{ .Values.sqlproxy.windocksPersistentContainerPort }}
+        {{- if contains "true" .Values.sqlproxy.tls }}
+        volumeMounts:
+        - mountPath: "/usr/src/app/ssl"
+          name: proxy-secret-ssl
+          readOnly: true
+        {{- end }}
+        #livenessProbe:
+          #tcpSocket:
+            #port: {{ .Values.sqlproxy.port }}
+        #readinessProbe:
+          #tcpSocket:
+            #port: {{ .Values.sqlproxy.port }}
+        resources:
+{{ toYaml .Values.resources | indent 12 }}
+    {{- with .Values.nodeSelector }}
+      
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}
