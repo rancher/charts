@@ -12,7 +12,7 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: storageos-cleanup-sa
+  name: storageos-cleanup
   namespace: {{ .Release.Namespace }}
   annotations:
     "helm.sh/hook": post-delete
@@ -24,7 +24,7 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: storageos-cleanup-cr
+  name: storageos:cleanup
   annotations:
     "helm.sh/hook": post-delete
     "helm.sh/hook-delete-policy": "hook-succeeded, hook-failed, before-hook-creation"
@@ -34,17 +34,18 @@ rules:
 # that it's in group "extensions". Not sure if it's a Job specific behavior,
 # because the daemonsets deployed by the operator use "apps" apiGroup.
 - apiGroups:
-  - "extensions"
+  - extensions
   resources:
-  - "daemonsets"
+  - daemonsets
+  - deployments
   verbs:
-  - "delete"
+  - delete
 - apiGroups:
-  - "apps"
+  - apps
   resources:
-  - "statefulsets"
+  - statefulsets
   verbs:
-  - "delete"
+  - delete
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:
@@ -79,17 +80,17 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: storageos-cleanup-crb
+  name: storageos:cleanup
   annotations:
     "helm.sh/hook": post-delete
     "helm.sh/hook-delete-policy": "hook-succeeded, hook-failed, before-hook-creation"
     "helm.sh/hook-weight": "2"
 subjects:
-- name: storageos-cleanup-sa
+- name: storageos-cleanup
   kind: ServiceAccount
   namespace: {{ .Release.Namespace }}
 roleRef:
-  name: storageos-cleanup-cr
+  name: storageos:cleanup
   kind: ClusterRole
   apiGroup: rbac.authorization.k8s.io
 
@@ -112,9 +113,9 @@ metadata:
 spec:
   template:
     spec:
-      serviceAccountName: storageos-cleanup-sa
+      serviceAccountName: storageos-cleanup
       containers:
-      - name: "statefulset-{{ .name }}-cleanup"
+      - name: "storageos-{{ .name }}-cleanup"
         image: bitnami/kubectl:1.14.1
         command:
           - kubectl

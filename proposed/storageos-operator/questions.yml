@@ -32,7 +32,7 @@ questions:
     type: string
     label: StorageOS Operator Image Name
   - variable: operator.image.tag
-    default: "1.2.0"
+    default: "1.3.0"
     description: "StorageOS Operator image tag"
     type: string
     label: StorageOS Operator Image Tag
@@ -73,7 +73,7 @@ questions:
     type: string
     label: StorageOS Node Container Image Name
   - variable: cluster.images.node.tag
-    default: "1.2.1"
+    default: "1.3.0"
     description: "StorageOS Node container image tag"
     type: string
     label: StorageOS Node Container Image Tag
@@ -109,20 +109,26 @@ questions:
     type: string
     label: External etcd address(es)
     show_if: "cluster.kvBackend.embedded=false"
+  - variable: cluster.kvBackend.tls
+    default: false
+    type: boolean
+    description: "Enable etcd TLS"
+    label: "TLS should be configured for external etcd to protect configuration data (Optional)."
+    show_if: "cluster.kvBackend.embedded=false"
   - variable: cluster.kvBackend.tlsSecretName
     required: false
     default: ""
     description: "Name of the secret that contains the etcd TLS certs. This secret is typically shared with etcd."
     type: string
     label: External etcd TLS secret name
-    show_if: "cluster.kvBackend.embedded=false"
+    show_if: "cluster.kvBackend.tls=true"
   - variable: cluster.kvBackend.tlsSecretNamespace
     required: false
     default: ""
     description: "Namespace of the secret that contains the etcd TLS certs. This secret is typically shared with etcd."
     type: string
     label: External etcd TLS secret namespace
-    show_if: "cluster.kvBackend.embedded=false"
+    show_if: "cluster.kvBackend.tls=true"
 
   # Node Selector Term.
   - variable: cluster.nodeSelectorTerm.key
@@ -133,7 +139,7 @@ questions:
     label: Node selector term key
   - variable: cluster.nodeSelectorTerm.value
     required: false
-    default: "true"
+    default: ""
     description: "Value of the node selector term match expression used to select the nodes to install StorageOS on."
     type: string
     label: Node selector term value

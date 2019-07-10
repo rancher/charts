@@ -23,6 +23,7 @@ configure a StorageOS cluster on kubernetes.
 
 ## Prerequisites
 
+- Helm 2.10+
 - Kubernetes 1.9+.
 - Privileged mode containers (enabled by default)
 - Kubernetes 1.9 only:
@@ -149,7 +150,7 @@ Operator chart and their default values.
 Parameter | Description | Default
 --------- | ----------- | -------
 `operator.image.repository` | StorageOS Operator container image repository | `storageos/cluster-operator`
-`operator.image.tag` | StorageOS Operator container image tag | `1.2.0`
+`operator.image.tag` | StorageOS Operator container image tag | `1.3.0`
 `operator.image.pullPolicy` | StorageOS Operator container image pull policy | `IfNotPresent`
 `podSecurityPolicy.enabled` | If true, create & use PodSecurityPolicy resources | `false`
 `podSecurityPolicy.annotations` | Specify pod annotations in the pod security policy | `{}`
@@ -171,9 +172,9 @@ Parameter | Description | Default
 `cluster.toleration.value` | Value of the pod toleration parameter |
 `cluster.disableTelemetry` | If true, no telemetry data will be collected from the cluster | `false`
 `cluster.images.node.repository` | StorageOS Node container image repository | `storageos/node`
-`cluster.images.node.tag` | StorageOS Node container image tag | `1.2.1`
+`cluster.images.node.tag` | StorageOS Node container image tag | `1.3.0`
 `cluster.csi.enable` | If true, CSI driver is enabled | `true`
-`cluster.csi.deploymentStrategy` | Whethe CSI helpers should be deployed as a `deployment` or `statefulset` | `deployment`
+`cluster.csi.deploymentStrategy` | Whether CSI helpers should be deployed as a `deployment` or `statefulset` | `deployment`
 
 ## Deleting a StorageOS Cluster
 
