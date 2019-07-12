@@ -1,0 +1,137 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: storageosclusters.storageos.com
+  annotations:
+    "helm.sh/hook": crd-install
+spec:
+  group: storageos.com
+  names:
+    kind: StorageOSCluster
+    listKind: StorageOSClusterList
+    plural: storageosclusters
+    singular: storageoscluster
+    shortNames:
+    - stos
+  scope: Namespaced
+  version: v1
+  additionalPrinterColumns:
+  - name: Ready
+    type: string
+    description: Ready status of the storageos nodes.
+    JSONPath: .status.ready
+  - name: Status
+    type: string
+    description: Status of the whole cluster.
+    JSONPath: .status.phase
+  - name: Age
+    type: date
+    JSONPath: .metadata.creationTimestamp
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata: {}
+        spec:
+          properties:
+            join:
+              type: string
+            namespace:
+              type: string
+            k8sDistro:
+              type: string
+            disableFencing:
+              type: boolean
+            disableTelemetry:
+              type: boolean
+            images:
+              properties:
+                nodeContainer:
+                  type: string
+                initContainer:
+                  type: string
+                csiDriverRegistrarContainer:
+                  type: string
+                csiExternalProvisionerContainer:
+                  type: string
+                csiExternalAttacherContainer:
+                  type: string
+                csiLivenessProbeContainer:
+                  type: string
+            csi:
+              properties:
+                enable:
+                  type: boolean
+                enableProvisionCreds:
+                  type: boolean
+                enableControllerPublishCreds:
+                  type: boolean
+                enableNodePublishCreds:
+                  type: boolean
+                deploymentStrategy:
+                  type: string
+            service:
+              properties:
+                name:
+                  type: string
+                type:
+                  type: string
+                externalPort:
+                  type: integer
+                  format: int32
+                internalPort:
+                  type: integer
+                  format: int32
+            secretRefName:
+              type: string
+            secretRefNamespace:
+              type: string
+            tlsEtcdSecretRefName:
+              type: string
+            tlsEtcdSecretRefNamespace:
+              type: string
+            sharedDir:
+              type: string
+            ingress:
+              properties:
+                enable:
+                  type: boolean
+                hostname:
+                  type: string
+                tls:
+                  type: boolean
+                annotations: {}
+            kvBackend:
+              properties:
+                address:
+                  type: string
+                backend:
+                  type: string
+            pause:
+              type: boolean
+            debug:
+              type: boolean
+            nodeSelectorTerms: {}
+            tolerations: {}
+            resources:
+              properties:
+                limits: {}
+                requests: {}
+        status:
+          properties:
+            phase:
+              type: string
+            nodeHealthStatus: {}
+            nodes:
+              type: array
+              items:
+                type: string
+            ready:
+              type: string
+            members:
+              properties:
+                ready: {}
+                unready: {}
