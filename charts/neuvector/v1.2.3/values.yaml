@@ -1,0 +1,71 @@
+# Default values for neuvector.
+# This is a YAML-formatted file.
+# Declare variables to be passed into the templates.
+
+openshift: false
+
+registry: docker.io
+tag: latest
+imagePullSecrets: {}
+
+controller:
+  # If false, controller will not be installed
+  enabled: true
+  image:
+    repository: neuvector/controller
+  replicas: 3
+  pvc:
+    enabled: false
+    storageClass:
+  azureFileShare:
+    enabled: false
+    secretName: {}
+    shareName: {}
+
+enforcer:
+  # If false, enforcer will not be installed
+  enabled: true
+  image:
+    repository: neuvector/enforcer
+  tolerations:
+    - effect: NoSchedule
+      key: node-role.kubernetes.io/master
+
+manager:
+  # If false, manager will not be installed
+  enabled: true
+  image:
+    repository: neuvector/manager
+  env:
+    ssl: on
+  svc:
+    type: NodePort
+  ingress:
+    enabled: false
+    host: {}
+    # MUST be set, if ingress is enabled
+    path: "/"
+    annotations: {}
+      # kubernetes.io/ingress.class: my-nginx
+      # nginx.ingress.kubernetes.io/whitelist-source-range: "1.1.1.1"
+      # nginx.ingress.kubernetes.io/rewrite-target: /
+      # nginx.ingress.kubernetes.io/enable-rewrite-log: "true"
+    tls: false
+    secretName: {}
+    # my-tls-secret
+
+cve:
+  updater:
+    # If false, cve updater will not be installed
+    enabled: false
+    image:
+      repository: neuvector/updater
+      tag: latest
+    schedule: "0 0 * * *"
+
+containerd:
+  enabled: false
+  path: /var/run/containerd/containerd.sock
+
+admissionwebhook:
+  type: ClusterIP
