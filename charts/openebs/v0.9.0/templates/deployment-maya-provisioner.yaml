@@ -1,14 +1,13 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ template "openebs.fullname" . }}-localpv-provisioner
+  name: {{ template "openebs.fullname" . }}-provisioner
   labels:
     app: {{ template "openebs.name" . }}
     chart: {{ template "openebs.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
-    component: localpv-provisioner
-    openebs.io/component-name: openebs-localpv-provisioner
+    component: provisioner
 spec:
   replicas: {{ .Values.provisioner.replicas }}
   selector:
@@ -20,15 +19,15 @@ spec:
       labels:
         app: {{ template "openebs.name" . }}
         release: {{ .Release.Name }}
-        component: localpv-provisioner
-        name: openebs-localpv-provisioner
-        openebs.io/component-name: openebs-localpv-provisioner
+        component: provisioner
+        name: openebs-provisioner
+        openebs.io/component-name: openebs-provisioner
         openebs.io/version: {{ .Values.release.version }}
     spec:
       serviceAccountName: {{ template "openebs.serviceAccountName" . }}
       containers:
-      - name: {{ template "openebs.name" . }}-localpv-provisioner
-        image: "{{ .Values.localprovisioner.image }}:{{ .Values.localprovisioner.imageTag }}"
+      - name: {{ template "openebs.name" . }}-provisioner
+        image: "{{ .Values.provisioner.image }}:{{ .Values.provisioner.imageTag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         env:
         # OPENEBS_IO_K8S_MASTER enables openebs provisioner to connect to K8s
@@ -49,32 +48,36 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
-        # OPENEBS_IO_BASE_PATH is the environment variable that provides the
-        # default base path on the node where host-path PVs will be provisioned.
-        - name: OPENEBS_IO_ENABLE_ANALYTICS
-          value: "{{ .Values.analytics.enabled }}"
-        - name: OPENEBS_IO_BASE_PATH
-          value: "{{ .Values.localprovisioner.basePath }}"
-        - name: OPENEBS_IO_HELPER_IMAGE
-          value: "{{ .Values.localprovisioner.helperImage }}:{{ .Values.localprovisioner.helperImageTag }}"
-        - name: OPENEBS_IO_INSTALLER_TYPE
-          value: "charts-helm"
+        # OPENEBS_MAYA_SERVICE_NAME provides the maya-apiserver K8s service name,
+        # that provisioner should forward the volume create/delete requests.
+        # If not present, "maya-apiserver-service" will be used for lookup.
+        # This is supported for openebs provisioner version 0.5.3-RC1 onwards
+        - name: OPENEBS_MAYA_SERVICE_NAME
+          value: "{{ template "openebs.fullname" . }}-apiservice"
+        # The following values will be set as annotations to the PV object.
+        # Refer : https://github.com/openebs/external-storage/pull/15
+        #- name: OPENEBS_MONITOR_URL
+        #  value: "{{ .Values.provisioner.monitorUrl }}"
+        #- name: OPENEBS_MONITOR_VOLKEY
+        #  value: "{{ .Values.provisioner.monitorVolumeKey }}"
+        #- name: MAYA_PORTAL_URL
+        #  value: "{{ .Values.provisioner.mayaPortalUrl }}"
         livenessProbe:
           exec:
             command:
             - pgrep
-            - ".*localpv"
-          initialDelaySeconds: {{ .Values.localprovisioner.healthCheck.initialDelaySeconds }}
-          periodSeconds: {{ .Values.localprovisioner.healthCheck.periodSeconds }}
-{{- if .Values.localprovisioner.nodeSelector }}
+            - ".*openebs"
+          initialDelaySeconds: {{ .Values.provisioner.healthCheck.initialDelaySeconds }}
+          periodSeconds: {{ .Values.provisioner.healthCheck.periodSeconds }}
+{{- if .Values.provisioner.nodeSelector }}
       nodeSelector:
-{{ toYaml .Values.localprovisioner.nodeSelector | indent 8 }}
+{{ toYaml .Values.provisioner.nodeSelector | indent 8 }}
 {{- end }}
-{{- if .Values.localprovisioner.tolerations }}
+{{- if .Values.provisioner.tolerations }}
       tolerations:
-{{ toYaml .Values.localprovisioner.tolerations | indent 8 }}
+{{ toYaml .Values.provisioner.tolerations | indent 8 }}
 {{- end }}
-{{- if .Values.localprovisioner.affinity }}
+{{- if .Values.provisioner.affinity }}
       affinity:
-{{ toYaml .Values.localprovisioner.affinity | indent 8 }}
+{{ toYaml .Values.provisioner.affinity | indent 8 }}
 {{- end }}
