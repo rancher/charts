@@ -2,7 +2,6 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ .Values.delegateName }}-configmap
-  namespace: {{ .Values.namespace }}
 data:
   ACCOUNT_ID: {{ required "A valid .Values.accountId entry required!" .Values.accountId }}
   ACCOUNT_SECRET: {{ required "A valid .Values.accountSecret entry required!"  .Values.accountSecret }}
@@ -27,7 +26,6 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: {{ .Values.delegateName }}-secret
-  namespace: {{ .Values.namespace }}
 type: Opaque
 data:
   # Enter base64 encoded username and password, if needed
@@ -41,7 +39,6 @@ metadata:
   labels:
     harness.io/name: {{ .Values.delegateName }}
   name: {{ .Values.delegateName }}-{{ required "A valid .Values.accountIdShort entry required!" .Values.accountIdShort }}
-  namespace: {{ .Values.namespace }}
 spec:
   replicas: 1
   selector:
@@ -53,6 +50,7 @@ spec:
       labels:
         harness.io/name: {{ .Values.delegateName }}
     spec:
+      serviceAccountName: harness-sa-admin
       containers:
       - image: harness/delegate:latest
         imagePullPolicy: Always
@@ -67,4 +65,3 @@ spec:
         - secretRef:
             name: {{ .Values.delegateName }}-secret
       restartPolicy: Always
-
