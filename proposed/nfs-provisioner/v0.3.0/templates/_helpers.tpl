@@ -41,3 +41,14 @@ Create chart name and version as used by the chart label.
 cluster.local/{{ template "nfs-provisioner.fullname" . -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Create chart name and version as used by the chart label.
+*/}}
+{{- define "nfs-provisioner.storageClass" -}}
+{{- if .Values.storageClass.name -}}
+{{- printf .Values.storageClass.name -}}
+{{- else -}}
+{{- template "nfs-provisioner.fullname" . -}}
+{{- end -}}
+{{- end -}}
