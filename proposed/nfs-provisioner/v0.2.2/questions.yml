@@ -1,0 +1,111 @@
+categories:
+- storage
+labels:
+  io.rancher.certified: experimental
+questions:
+- variable: defaultImage
+  default: true
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  group: "Container Images"
+  show_subquestion_if: false
+  subquestions:
+  - variable: image.repository
+    default: "quay.io/kubernetes_incubator/nfs-provisioner"
+    description: "Docker image name"
+    type: string
+    label: NFS Image Name
+  - variable: image.tag
+    default: "v1.0.9"
+    description: "NFS image tag"
+    type: string
+    label: Image Tag
+- variable: storageClass.create
+  default: true
+  description: "Creating the StorageClass"
+  type: boolean
+  required: true
+  label: Creating the StorageClass
+  group: "StorageClass Setting"
+  show_subquestion_if: true
+  subquestions:
+  - variable: storageClass.defaultClass
+    default: true
+    description: "Set StorageClass as the default StorageClass"
+    type: boolean
+    label: Set StorageClass as the default StorageClass
+  - variable: storageClass.reclaimPolicy
+    default: "Delete"
+    description: "ReclaimPolicy of the Created StorageClass"
+    type: enum
+    label: ReclaimPolicy of the Created StorageClass
+    options:
+      - "Delete"
+      - "Retain"
+  - variable: storageClass.allowVolumeExpansion
+    default: true
+    description: "AllowVolumeExpansion shows whether the storage class allow volume expand"
+    type: boolean
+    label: AllowVolumeExpansion Shows Whether The StorageClass Allow Volume Expand
+- variable: service.type
+  default: "ClusterIP"
+  description: "The type of service to create for the nfs-provisioner"
+  type: enum
+  label: nfs-provisioner Service Type
+  group: "Service Settings"
+  required: true
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  show_subquestion_if: "NodePort"
+  subquestions:
+  - variable: service.nfsNodePort
+    default: ""
+    description: "Sepcify the nodePort of the NFS service"
+    type: int
+    label: NodePort of the NFS service
+    min: 30000
+    max: 32767
+  - variable: service.mountdNodePort
+    default: ""
+    description: "Sepcify the nodePort of the mountd  service"
+    type: int
+    label: NodePort of the mountd service
+    min: 30000
+    max: 32767
+  - variable: service.rpcbindNodePort
+    default: ""
+    description: "Sepcify the nodePort of the RPC service"
+    type: int
+    label: NodePort of the RCP service
+    min: 30000
+    max: 32767
+# persistence volume settings
+- variable: persistence.enabled
+  default: false
+  description: "Enable persistent volume for the nfs-server-provisioner"
+  type: boolean
+  required: true
+  label: Persistent Volume Enabled for nfs-server-provisioner
+  show_subquestion_if: true
+  group: "Persistent Storage"
+  subquestions:
+  - variable: persistence.size
+    default: "20Gi"
+    description: "nfs-server-provisionner Persistent Volume Size"
+    type: string
+    label: nfs-server-provisionner Volume Size
+  - variable: persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for nfs-server-provisionner
+- variable: persistence.hostPath
+  default: "/srv"
+  description: "for GKE uses /home/kubernetes/nfs/ instead, custom nfs host path read and write permission are required, default to /srv"
+  type: string
+  label: NFS Host Path
+  required: true
+  show_if: "persistence.enabled=false"
+  group: "Persistent Storage"
