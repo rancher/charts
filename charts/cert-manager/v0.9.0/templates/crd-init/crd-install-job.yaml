@@ -1,0 +1,28 @@
+{{- if .Values.createCustomResource }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ template "cert-manager.fullname" . }}-crd
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-delete-policy": "hook-succeeded, before-hook-creation"
+    "helm.sh/hook-weight": "3"
+spec:
+  template:
+    spec:
+      serviceAccountName: {{ .Release.Name }}-crd-sa
+      containers:
+      - name: cert-manager-init-crds
+        image: {{ .Values.global.kubectl.repository }}:{{ .Values.global.kubectl.tag }}
+        volumeMounts:
+        - name: crd
+          mountPath: /etc/cert-manager
+          readOnly: true
+        command: ["kubectl",  "apply", "-f", "/etc/cert-manager/crds.yaml"]
+      volumes:
+      - name: crd
+        configMap:
+          name: {{ template "cert-manager.fullname" . }}-crd
+      restartPolicy: OnFailure
+{{- end }}
