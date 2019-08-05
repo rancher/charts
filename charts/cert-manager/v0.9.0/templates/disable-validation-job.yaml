@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-disable-cert-validation
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": "pre-install"
+    "helm.sh/hook-delete-policy": "hook-succeeded, before-hook-creation"
+    "helm.sh/hook-weight": "2"
+spec:
+  template:
+    spec:
+      serviceAccountName: {{ .Release.Name }}-pre-install-sa
+      containers:
+      - name: "add-ns-label"
+        image: {{ .Values.global.kubectl.repository }}:{{ .Values.global.kubectl.tag }}
+        command:
+          - kubectl
+          - label
+          - ns
+          - {{ .Release.Namespace }}
+          - certmanager.k8s.io/disable-validation=true
+          - --overwrite=true
+      restartPolicy: Never
+  backoffLimit: 1

@@ -1,29 +1,50 @@
 # Default values for cert-manager.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+global:
+  ## Reference to one or more secrets to be used when pulling images
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+  ##
+  imagePullSecrets: []
+  isOpenshift: false
+  # - name: "image-pull-secret"
+
+  # Optional priority class to be used for the cert-manager pods
+  priorityClassName: ""
+  rbac:
+    create: true
+
+  logLevel: 2
+
+  leaderElection:
+    # Override the namespace used to store the ConfigMap for leader election
+    namespace: ""
+
+  kubectl:
+    repository: ranchercharts/bitnami-kubectl
+    tag: 1.14.1
+
 replicaCount: 1
 
-image:
-  repository: quay.io/jetstack/cert-manager-controller
-  tag: v0.5.2
-  pullPolicy: IfNotPresent
+strategy: {}
+  # type: RollingUpdate
+  # rollingUpdate:
+  #   maxSurge: 0
+  #   maxUnavailable: 1
 
-createCustomResource: true
+
+image:
+  pullPolicy: IfNotPresent
+  repository: ranchercharts/bitnami-cert-manager
+  # Override the image tag to deploy by setting this variable.
+  # If no value is set, the chart's appVersion will be used.
+  tag: 0.9.0
+
 
 # Override the namespace used to store DNS provider credentials etc. for ClusterIssuer
 # resources. By default, the same namespace as cert-manager is deployed within is
 # used. This namespace will not be automatically created by the Helm chart.
 clusterResourceNamespace: ""
-
-leaderElection:
-  # Override the namespace used to store the ConfigMap for leader election
-  namespace: ""
-
-certificateResourceShortNames: ["cert", "certs"]
-
-rbac:
-  # Specifies whether RBAC resources should be created
-  create: true
 
 serviceAccount:
   # Specifies whether a service account should be created
@@ -37,6 +58,8 @@ extraArgs: []
   # Use this flag to set a namespace that cert-manager will use to store
   # supporting resources required for each ClusterIssuer (default is kube-system)
   # - --cluster-resource-namespace=kube-system
+  # When this flag is enabled, secrets will be automatically removed when the certificate resource is deleted
+  # - --enable-certificate-owner-ref=true
 
 extraEnv: []
 # - name: SOME_VAR
@@ -46,6 +69,13 @@ resources: {}
   # requests:
   #   cpu: 10m
   #   memory: 32Mi
+
+# Pod Security Context
+# ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+securityContext:
+  enabled: false
+  fsGroup: 1001
+  runAsUser: 1001
 
 podAnnotations: {}
 
@@ -67,38 +97,29 @@ ingressShim:
   defaultIssuerName: "letsencrypt-staging"
   defaultIssuerKind: "ClusterIssuer"
   defaultACMEChallengeType: "http01"
+  # defaultIssuerName: ""
+  # defaultIssuerKind: ""
+  # defaultACMEChallengeType: ""
   # defaultACMEDNS01ChallengeProvider: ""
 
-webhook:
-  enabled: false
-  replicaCount: 1
-  podAnnotations: {}
-
-  # Optional additional arguments for webhook
-  extraArgs: []
-
-  resources: {}
-    # requests:
-    #   cpu: 10m
-  #   memory: 32Mi
-
-  image:
-    repository: quay.io/jetstack/cert-manager-webhook
-    tag: v0.5.2
-    pullPolicy: IfNotPresent
-
-letsencrypt:
+prometheus:
   enabled: true
-  email: user@example.com
-  # specifies custom letsencrypt server, both staing and prod letsencrypt has default value in clusterissuer.yaml
-  server: "https://https://acme-staging-v02.api.letsencrypt.org/directory"
+  servicemonitor:
+    enabled: false
+    prometheusInstance: default
+    targetPort: 9402
+    path: /metrics
+    interval: 60s
+    scrapeTimeout: 30s
 
-clusterissuerEnabled: true
-
-# This is used by the static manifest generator in order to create a static
-# namespace manifest for the namespace that cert-manager is being installed
-# within. It should **not** be used if you are using Helm for deployment.
-createNamespaceResource: false
+webhook:
+  enabled: true
+  image:
+    repository: ranchercharts/jetstack-cert-manager-webhook
+cainjector:
+  enabled: true
+  image:
+    repository: ranchercharts/jetstack-cert-manager-cainjector
 
 # Use these variables to configure the HTTP_PROXY environment variables
 # http_proxy: "http://proxy:8080"
@@ -126,3 +147,10 @@ affinity: {}
 #     value: master
 #     effect: NoSchedule
 tolerations: []
+
+createCustomResource: true
+clusterissuerEnabled: false
+letsencrypt:
+  email: user@example.com
+  # specifies custom letsencrypt server, both staging and prod letsencrypt has default value in clusterissuer.yaml
+  server: "https://https://acme-staging-v02.api.letsencrypt.org/directory"
