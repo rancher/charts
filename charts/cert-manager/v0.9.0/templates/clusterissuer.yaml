@@ -1,24 +1,88 @@
-{{- if .Values.clusterissuerEnabled -}}
-apiVersion: certmanager.k8s.io/v1alpha1
-kind: ClusterIssuer
+{{- if .Values.clusterissuerEnabled }}
+apiVersion: v1
+kind: ConfigMap
 metadata:
-  name: {{ .Values.ingressShim.defaultIssuerName }}
-  labels:
-    app: {{ template "cert-manager.name" . }}
-    chart: {{ template "cert-manager.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+  name: {{ template "cert-manager.fullname" . }}-issuer
+  namespace: {{ .Release.Namespace }}
+data:
+  issuer.yaml: |-
+    apiVersion: certmanager.k8s.io/v1alpha1
+    kind: ClusterIssuer
+    metadata:
+      name: {{ .Values.ingressShim.defaultIssuerName }}
+      labels:
+        app: {{ template "cert-manager.name" . }}
+        chart: {{ template "cert-manager.chart" . }}
+        release: {{ .Release.Name }}
+        heritage: {{ .Release.Service }}
+    spec:
+      acme:
+        {{- if eq .Values.ingressShim.defaultIssuerName "letsencrypt-prod" }}
+        server: "https://acme-v02.api.letsencrypt.org/directory"
+        {{- else if eq .Values.ingressShim.defaultIssuerName "letsencrypt-staging" }}
+        server: "https://acme-staging-v02.api.letsencrypt.org/directory"
+        {{- else }}
+        server: {{ .Values.letsencrypt.server }}
+        {{- end }}
+        email: {{ .Values.letsencrypt.email }}
+        privateKeySecretRef:
+          name: {{ .Values.ingressShim.defaultIssuerName }}-account-key
+        http01: {}
+
+---
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ template "cert-manager.fullname" . }}-issuer
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-delete-policy": "hook-succeeded, before-hook-creation"
+    "helm.sh/hook-weight": "5"
 spec:
-  acme:
-    {{- if eq .Values.ingressShim.defaultIssuerName "letsencrypt-prod" }}
-    server: "https://acme-v02.api.letsencrypt.org/directory"
-    {{- else if eq .Values.ingressShim.defaultIssuerName "letsencrypt-staging" }}
-    server: "https://acme-staging-v02.api.letsencrypt.org/directory"
-    {{- else }}
-    server: {{ .Values.letsencrypt.server }}
-    {{- end }}
-    email: {{ .Values.letsencrypt.email }}
-    privateKeySecretRef:
-      name: {{ .Values.ingressShim.defaultIssuerName }}-account-key
-    http01: {}
-{{- end -}}
+  template:
+    spec:
+      serviceAccountName: {{ template "cert-manager.serviceAccountName" . }}
+      containers:
+      - name: issuer
+        image: {{ .Values.global.kubectl.repository }}:{{ .Values.global.kubectl.tag }}
+        volumeMounts:
+        - name: issuer
+          mountPath: /etc/issuer
+          readOnly: true
+        command: ["kubectl",  "apply", "-f", "/etc/issuer/issuer.yaml"]
+      volumes:
+      - name: issuer
+        configMap:
+          name: {{ template "cert-manager.fullname" . }}-issuer
+      restartPolicy: OnFailure
+
+---
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ template "cert-manager.fullname" . }}-clean-issuer
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-delete-policy": "hook-succeeded, before-hook-creation, hook-failed"
+spec:
+  template:
+    spec:
+      serviceAccountName: {{ template "cert-manager.serviceAccountName" . }}
+      containers:
+      - name: issuer
+        image: {{ .Values.global.kubectl.repository }}:{{ .Values.global.kubectl.tag }}
+        volumeMounts:
+        - name: issuer
+          mountPath: /etc/issuer
+          readOnly: true
+        command: ["kubectl",  "delete", "-f", "/etc/issuer/issuer.yaml"]
+      volumes:
+      - name: issuer
+        configMap:
+          name: {{ template "cert-manager.fullname" . }}-issuer
+      restartPolicy: OnFailure
+{{- end }}
