@@ -1,4 +1,4 @@
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ template "cert-manager.fullname" . }}
@@ -14,6 +14,10 @@ spec:
     matchLabels:
       app: {{ template "cert-manager.name" . }}
       release: {{ .Release.Name }}
+  {{- with .Values.strategy }}
+  strategy:
+    {{- . | toYaml | nindent 4 }}
+  {{- end }}
   template:
     metadata:
       labels:
@@ -26,20 +30,36 @@ spec:
       {{- if .Values.podAnnotations }}
 {{ toYaml .Values.podAnnotations | indent 8 }}
       {{- end }}
+      {{- if and .Values.prometheus.enabled (not .Values.prometheus.servicemonitor.enabled) }}
+        prometheus.io/path: "/metrics"
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9402'
+      {{- end }}
     spec:
       serviceAccountName: {{ template "cert-manager.serviceAccountName" . }}
+      {{- if .Values.global.priorityClassName }}
+      priorityClassName: {{ .Values.global.priorityClassName | quote }}
+      {{- end }}
+      {{- if .Values.securityContext.enabled }}
+      securityContext:
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
+        {{- if .Values.global.logLevel }}
+          - --v={{ .Values.global.logLevel }}
+        {{- end }}
         {{- if .Values.clusterResourceNamespace }}
           - --cluster-resource-namespace={{ .Values.clusterResourceNamespace }}
         {{- else }}
           - --cluster-resource-namespace=$(POD_NAMESPACE)
         {{- end }}
-        {{- if .Values.leaderElection.namespace }}
-          - --leader-election-namespace={{ .Values.leaderElection.namespace }}
+        {{- if .Values.global.leaderElection.namespace }}
+          - --leader-election-namespace={{ .Values.global.leaderElection.namespace }}
         {{- else }}
           - --leader-election-namespace=$(POD_NAMESPACE)
         {{- end }}
@@ -60,14 +80,8 @@ spec:
           - --default-acme-issuer-dns01-provider-name={{ .defaultACMEDNS01ChallengeProvider }}
           {{- end }}
           {{- end }}
-          {{- if .Values.affinity }}
-          affinity:
-{{ toYaml .Values.affinity | indent 10 }}
-          {{- end }}
-          {{- if .Values.tolerations }}
-          tolerations:
-{{ toYaml .Values.tolerations | indent 10 }}
-          {{- end }}
+          ports:
+          - containerPort: 9402
           env:
           - name: POD_NAMESPACE
             valueFrom:
