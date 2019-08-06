@@ -1,0 +1,24 @@
+{{- if .Values.deployments.etcdOperator }}
+apiVersion: etcd.database.coreos.com/v1beta2
+kind: EtcdCluster
+metadata:
+  name: "{{ .Values.etcdCluster.name }}"
+  labels:
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    app: {{ template "etcd-operator.name" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+  annotations:
+    {{- if .Values.clusterwide.enabled }}
+    "etcd.database.coreos.com/scope": "clusterwide"
+    {{- end }}
+spec:
+  size: {{ .Values.etcdCluster.size }}
+  version: "{{ .Values.etcdCluster.version }}"
+  pod:
+{{ toYaml .Values.etcdCluster.pod | indent 4 }}
+  {{- if .Values.etcdCluster.enableTLS }}
+  TLS:
+{{ toYaml .Values.etcdCluster.tls | indent 4 }}
+  {{- end }}
+{{- end }}
