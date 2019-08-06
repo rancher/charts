@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.delegateName }}-configmap
+data:
+  ACCOUNT_ID: {{ required "A valid .Values.accountId entry required!" .Values.accountId }}
+  ACCOUNT_SECRET: {{ required "A valid .Values.accountSecret entry required!"  .Values.accountSecret }}
+  MANAGER_HOST_AND_PORT : {{ .Values.managerHostAndPort }}
+  WATCHER_STORAGE_URL: {{ .Values.watcherStorageUrl }}
+  WATCHER_CHECK_LOCATION: {{ .Values.watcherCheckLocation }}
+  DELEGATE_STORAGE_URL: {{ .Values.delegateStorageUrl }}
+  DELEGATE_CHECK_LOCATION: {{ .Values.delegateCheckLocation }}
+  DEPLOY_MODE: "KUBERNETES"
+  DELEGATE_NAME: {{ .Values.delegateName | quote }}
+  DELEGATE_PROFILE: {{ .Values.delegateProfile | quote }}
+  PROXY_HOST: {{ .Values.proxyHost | quote }}
+  PROXY_PORT: {{ .Values.proxyPort | quote }}
+  PROXY_SCHEME: {{ .Values.proxyScheme | quote }}
+  NO_PROXY: {{ .Values.noProxy | quote }}
+  PROXY_MANAGER: {{ .Values.proxyManager | quote }}
+  POLL_FOR_TASKS: {{ .Values.pollForTasks | quote }}
+  HELM_DESIRED_VERSION: {{ .Values.helmDesiredVersion | quote }}
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Values.delegateName }}-secret
+type: Opaque
+data:
+  # Enter base64 encoded username and password, if needed
+  PROXY_USER: {{ .Values.proxyUser | quote }}
+  PROXY_PASSWORD: {{ .Values.proxyPassword | quote }}
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    harness.io/name: {{ .Values.delegateName }}
+  name: {{ .Values.delegateName }}-{{ required "A valid .Values.accountIdShort entry required!" .Values.accountIdShort }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      harness.io/name: {{ .Values.delegateName }}
+  serviceName: ""
+  template:
+    metadata:
+      labels:
+        harness.io/name: {{ .Values.delegateName }}
+    spec:
+      serviceAccountName: harness-admin-sa
+      containers:
+      - image: {{ .Values.image }}
+        imagePullPolicy: Always
+        name: harness-delegate-instance
+        resources:
+{{ toYaml .Values.resources | indent 10 }}
+        envFrom:
+        - configMapRef:
+            name: {{ .Values.delegateName }}-configmap
+        - secretRef:
+            name: {{ .Values.delegateName }}-secret
+      restartPolicy: Always
