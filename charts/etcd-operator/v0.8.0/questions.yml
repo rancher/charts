@@ -1,0 +1,162 @@
+categories:
+- etcd
+- keyvalue
+questions:
+- variable: defaultImage
+  default: true
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: etcdCluster.image.repository
+    default: "quay.io/coreos/etcd"
+    description: "Etcd container image"
+    type: string
+    label: Etcd Container Image Name
+  - variable: etcdCluster.image.tag
+    default: "v3.2.13"
+    description: "Etcd container image tag"
+    type: string
+    label: Etcd Container Image Tag
+  - variable: etcdOperator.image.repository
+    default: "quay.io/coreos/etcd-operator"
+    description: "Etcd operator Docker image"
+    type: string
+    label: Etcd Operator Image Name
+  - variable: etcdOperator.image.tag
+    default: "v0.9.2"
+    description: "Etcd operator Docker tag"
+    type: string
+    label: Etcd Operator Image Tag
+  - variable: backupOperator.image.repository
+    default: "quay.io/coreos/etcd-operator"
+    description: "Etcd backup operator Docker image"
+    type: string
+    label: Etcd Backup Operator Docker Image
+  - variable: backupOperator.image.tag
+    default: "v0.9.2"
+    description: "Etcd backup operator Docker tag"
+    type: string
+    label: Etcd Backup Operator Docker Tag
+  - variable: restoreOperator.image.repository
+    default: "quay.io/coreos/etcd-operator"
+    description: "Etcd restore operator Docker image"
+    type: string
+    label: Etcd Restore Image Name
+  - variable: restoreOperator.image.tag
+    default: "v0.9.2"
+    description: "Etcd restore operator Docker tag"
+    type: string
+    label: Etcd Restore Image Tag
+- variable: deployments.etcdOperator
+  default: true
+  description: "Deploy the etcd cluster operator"
+  required: true
+  label: Deploy the etcd Cluster Operator
+  type: boolean
+  show_subquestion_if: true
+  group: "Etcd Operator"
+  subquestions:
+  - variable: etcdOperator.clusterwide.enabled
+    default: true
+    description: "Set etcd operator manage clusters in all namespaces (more details on https://github.com/coreos/etcd-operator/blob/master/doc/user/clusterwide.md)"
+    label: Set EtcdOperator Clusterwide
+    type: boolean
+    required: true
+- variable: etcdCluster.size
+  default: "3"
+  description: "etcd cluster size"
+  label: Etcd Cluster Size
+  type: enum
+  group: "Etcd Cluster"
+  options:
+    - "3"
+    - "5"
+    - "7"
+    - "9"
+    - "11"
+  required: true
+- variable: etcdCluster.version
+  default: "3.2.13"
+  description: "etcd cluster version"
+  label: Etcd Cluster Version
+  type: string
+  required: true
+  group: "Etcd Cluster"
+- variable: etcdCluster.enableTLS
+  default: "false"
+  description: "Enable use of TLS"
+  label: Enable use of TLS
+  type: boolean
+  show_subquestion_if: true
+  required: true
+  group: "Etcd Cluster"
+  subquestions:
+  - variable: etcdCluster.tls.static.member.peerSecret
+    default: ""
+    description: "Kubernetes secret containing TLS peer certs"
+    required: true
+    label: k8s Secret Name of TLS Peer Certs
+    type: string
+  - variable: etcdCluster.tls.static.member.serverSecret
+    default: ""
+    description: "Kubernetes secret containing TLS server certs"
+    required: true
+    label: k8s Secret Name of TLS Server Certs
+    type: string
+  - variable: etcdCluster.tls.static.operatorSecret
+    default: ""
+    description: "Kubernetes secret containing TLS client certs"
+    required: true
+    label: k8s Secret Name of TLS Client Certs
+    type: string
+- variable: deployments.backupOperator
+  default: false
+  description: "Deploy the etcd backup operator, one time deployment, delete once completed"
+  label: Deploy the etcd Backup Operator
+  type: boolean
+  show_subquestion_if: true
+  group: "Backup Operator"
+  subquestions:
+  - variable: backupOperator.spec.storageType
+    default: "S3"
+    description: "Storage to use for backup file, currently only S3 supported"
+    label: Backup Storage Type
+    type: enum
+    required: true
+    options:
+      - "S3"
+  - variable: backupOperator.spec.s3.s3Bucket
+    default: ""
+    description: "Bucket in S3 to store backup file"
+    label: Backup Bucket Name in S3
+    type: string
+    required: true
+  - variable: backupOperator.spec.s3.awsSecret
+    default: ""
+    description: "Name of kubernetes secrete containing aws credentials"
+    label: Kubernetes secrete name of AWS Credentails
+    type: string
+    required: true
+- variable: deployments.restoreOperator
+  default: "false"
+  description: "Deploy the etcd restore operator, one time deployment, delete once completed"
+  label: Deploy the etcd Restore Operator
+  type: boolean
+  group: "Restore Operator"
+  show_subquestion_if: true
+  subquestions:
+  - variable: restoreOperator.spec.s3.path
+    default: ""
+    description: "Path in S3 bucket containing the backup file, The format of path must be: <s3-bucket-name>/<path-to-backup-file> # e.g: etcd-snapshot-bucket/v1/default/example-etcd-cluster/3.2.10_0000000000000001_etcd.backup"
+    label: Restore File Path
+    type: string
+    required: true
+  - variable: restoreOperator.spec.s3.awsSecret
+    default: ""
+    description: "Name of kubernetes secrete containing aws credentials"
+    label: Kubernetes secrete name of AWS Credentails
+    type: string
+    required: true
