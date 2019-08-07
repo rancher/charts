@@ -1,0 +1,77 @@
+categories:
+- security
+questions:
+- variable: defaultImage
+  default: "true"
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: vaultOperator.image.repository
+    default: "quay.io/coreos/vault-operator"
+    description: "Vault image name"
+    type: string
+    label: Vault Operator Image Name
+  - variable: vaultOperator.image.tag
+    default: "latest"
+    description: "Values operator image tag"
+    type: string
+    label: Vault Operator Image Tag
+  - variable: ui.image.repository
+    default: "djenriquez/vault-ui"
+    description: "Vault image name"
+    type: string
+    label: Vault UI Image Name
+  - variable: ui.image.tag
+    default: "latest"
+    description: "Values UI image tag"
+    type: string
+    label: Vault UI Image Tag
+  - variable: etcd.image.repository
+    default: "quay.io/coreos/etcd-operator"
+    description: "etcd image name"
+    type: string
+    label: etcd Image Name
+  - variable: etcd.image.tag
+    default: "v0.8.3"
+    description: "etcd image tag"
+    type: string
+    label: etcd Image Tag
+- variable: ui.ingress.enabled
+  default: true
+  description: "Expose Vault-UI using Layer 7 Load Balancer - ingress"
+  type: boolean
+  group: "Vault UI"
+  label: Expose Vault-UI using Layer 7 Load Balancer
+  show_subquestion_if: true
+  required: true
+  subquestions:
+  - variable: ui.ingress.hosts[0]
+    default: "xip.io"
+    description: "Vault-UI server ingress hostname"
+    type: hostname
+    required: true
+    label: Hostname
+- variable: ui.service.type
+  default: "NodePort"
+  description: "Server service type"
+  group: "Vault UI"
+  type: enum
+  show_if: "ui.ingress.enabled=false"
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: Vault UI Service Type
+  show_subquestion_if: "NodePort"
+  subquestions:
+  - variable: ui.service.nodePort
+    default: ""
+    description: "NodePort http port(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    show_if: "ui.ingress.enabled=false"
+    label: Vault UI NodePort Http Port
