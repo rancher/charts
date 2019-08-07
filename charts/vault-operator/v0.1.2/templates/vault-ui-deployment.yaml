@@ -1,0 +1,50 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: {{ template "vault.ui.fullname" . }}
+  labels:
+    app: {{ template "vault-operator.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    component: {{ .Values.ui.name }}
+spec:
+  replicas: {{ .Values.ui.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "vault-operator.name" . }}
+        release: {{ .Release.Name }}
+        component: {{ .Values.ui.name }}
+    spec:
+      containers:
+        - name: {{ .Values.ui.name }}
+          image: "{{ .Values.ui.image.repository }}:{{ .Values.ui.image.tag }}"
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          env:
+          - name: VAULT_URL_DEFAULT
+          {{- if .Values.ui.vault.url }}
+            value: {{ .Values.ui.vault.url }}
+          {{ else }}
+            value: {{ template "vault.service.url" . }}
+          {{- end }}
+          - name: VAULT_AUTH_DEFAULT
+            value: {{ .Values.ui.vault.auth }}
+          - name: NODE_TLS_REJECT_UNAUTHORIZED
+            value: '0'
+          ports:
+            - containerPort: {{ .Values.ui.service.internalPort }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.ui.service.internalPort }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.ui.service.internalPort }}
+          resources:
+{{ toYaml .Values.ui.resources | indent 12 }}
+    {{- if .Values.ui.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.ui.nodeSelector | indent 8 }}
+    {{- end }}

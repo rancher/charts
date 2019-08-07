@@ -1,0 +1,82 @@
+# Default values for vault-operator.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+
+imagePullPolicy: IfNotPresent
+
+vaultOperator:
+  replicaCount: 1
+  image:
+    repository: quay.io/coreos/vault-operator
+    tag: latest
+
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #  cpu: 100m
+    #  memory: 128Mi
+    # requests:
+    #  cpu: 100m
+    #  memory: 128Mi
+  nodeSelector: {}
+
+vault:
+  node: 2
+  version: "0.9.1-0"
+
+ui:
+  name: "vault-ui"
+  replicaCount: 1
+  image:
+    repository: djenriquez/vault-ui
+    tag: latest
+  service:
+    name: vault-ui
+    type: ClusterIP
+    externalPort: 8000
+    internalPort: 8000
+    # nodePort: 32001
+  ingress:
+    enabled: true
+    # Used to create Ingress record (should used with service.type: ClusterIP).
+    hosts:
+      - xip.io
+    annotations:
+    # AWS --> redirect http to https
+      # kubernetes.io/ingress.class: nginx
+      # ingress.kubernetes.io/force-ssl-redirect: "true"
+    tls:
+      # Secrets must be manually created in the namespace.
+      # - secretName: chart-example-tls
+      #   hosts:
+      #     - chart-example.local
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #  cpu: 100m
+    #  memory: 128Mi
+    # requests:
+    #  cpu: 100m
+    #  memory: 128Mi
+  nodeSelector: {}
+
+  vault:
+    auth: TOKEN
+
+
+etcd:
+  name: etcd
+  image:
+    repository: quay.io/coreos/etcd-operator
+    tag: v0.8.3

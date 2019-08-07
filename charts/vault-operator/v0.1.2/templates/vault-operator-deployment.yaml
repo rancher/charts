@@ -1,0 +1,38 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: {{ template "vault-operator.fullname" . }}
+  labels:
+    app: {{ template "vault-operator.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "vault-operator.name" . }}
+        release: {{ .Release.Name }}
+        name: vault-operator
+    spec:
+      serviceAccountName: {{ template "vault-operator.sa" . }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.vaultOperator.image.repository }}:{{ .Values.vaultOperator.image.tag }}"
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          env:
+          - name: MY_POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          resources:
+{{ toYaml .Values.vaultOperator.resources | indent 12 }}
+    {{- if .Values.vaultOperator.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.vaultOperator.nodeSelector | indent 8 }}
+    {{- end }}

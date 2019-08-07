@@ -1,0 +1,42 @@
+## Configure port forwarding between the local machine and the first sealed Vault node:
+1. kubectl -n {{ .Release.Namespace }} get vault {{ .Release.Name }} -o jsonpath='{.status.vaultStatus.sealed[0]}' | xargs -0 -I {} kubectl -n {{ .Release.Namespace }} port-forward {} 8200
+
+2. Open a new terminal.
+
+3. Export the following environment for Vault CLI environment:
+```
+export VAULT_ADDR='https://127.0.0.1:8200'
+export VAULT_SKIP_VERIFY="true"
+```
+
+4. Verify that the Vault server is accessible using the Vault CLI:
+```
+$vault status
+
+Error checking seal status: Error making API request.
+
+URL: GET https://127.0.0.1:8200/v1/sys/seal-status
+Code: 400. Errors:
+
+* server is not yet initialized
+```
+
+5.Initialize the Vault server to generate the unseal keys and the root token. (https://www.vaultproject.io/intro/getting-started/deploy.html#initializing-the-vault)
+$vault operator init
+
+## Unsealing a sealed node
+https://www.vaultproject.io/intro/getting-started/deploy.html#seal-unseal
+```
+$ vault operator unseal
+Unseal Key (will be hidden):
+Key                Value
+---                -----
+Sealed             true
+Total Shares       5
+Unseal Progress    1/3
+Unseal Nonce       786e7190-d1e2-84d2-520c-022efee5b71e
+Version            (version unknown)
+HA Enabled         true
+HA Mode            sealed
+```
+Continue with vault unseal to complete unsealing the Vault, normally 3 keys out of 5 unseal keys.
