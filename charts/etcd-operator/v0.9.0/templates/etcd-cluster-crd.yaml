@@ -1,20 +1,21 @@
-{{- if .Values.deployments.etcdOperator }}
+{{- if .Values.customResources.createEtcdClusterCRD }}
 apiVersion: etcd.database.coreos.com/v1beta2
 kind: EtcdCluster
 metadata:
-  name: "{{ .Values.etcdCluster.name }}"
+  name: {{ .Values.etcdCluster.name }}
   labels:
     chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
     app: {{ template "etcd-operator.name" . }}
     heritage: {{ .Release.Service }}
     release: {{ .Release.Name }}
+  {{- if .Values.clusterwide.enabled }}
   annotations:
-    {{- if .Values.clusterwide.enabled }}
     "etcd.database.coreos.com/scope": "clusterwide"
-    {{- end }}
+  {{- end }}
 spec:
   size: {{ .Values.etcdCluster.size }}
   version: "{{ .Values.etcdCluster.version }}"
+  repository: "{{ .Values.etcdCluster.repository }}"
   pod:
 {{ toYaml .Values.etcdCluster.pod | indent 4 }}
   {{- if .Values.etcdCluster.enableTLS }}
