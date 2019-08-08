@@ -1,10 +1,17 @@
+{{- if and .Values.enableCRDs .Release.IsInstall -}}
+{{- if not (.Capabilities.APIVersions.Has "vault.security.coreos.com/v1alpha1") }}
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   name: vaultservices.vault.security.coreos.com
   annotations:
     "helm.sh/hook": "crd-install"
-    "helm.sh/hook-delete-policy": "before-hook-creation"
+    "helm.sh/resource-policy": keep
+  labels:
+    app: {{ template "vault-operator.name" . }}
+    chart: {{ template "vault-operator.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
 spec:
   group: vault.security.coreos.com
   names:
@@ -16,3 +23,5 @@ spec:
     singular: vaultservice
   scope: Namespaced
   version: v1alpha1
+{{- end }}
+{{- end -}}

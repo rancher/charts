@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.vault.name }}-access-ui
+  labels:
+    app: {{ template "vault-operator.name" . }}
+    chart: {{ template "vault-operator.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: https
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.port }}
+      protocol: TCP
+    {{- if and .Values.service.nodePort (eq .Values.service.type "NodePort") }}
+      nodePort: {{ .Values.service.nodePort }}
+    {{- end }}
+  selector:
+    app: vault
+    vault_cluster: {{ .Values.vault.name }}
