@@ -1,52 +1,101 @@
-## Overview
-The Vault operator deploys and manages [Vault][vault] clusters on Kubernetes. Vault instances created by the Vault operator are highly available and support automatic failover and upgrade.
+# CoreOS vault-operator
 
+[vault-operator](https://coreos.com/blog/introducing-vault-operator-project) Simplify vault cluster configuration and management.
 
-### Project status: beta
-The basic features have been completed, and while no breaking API changes are currently planned, the API can change in a backwards incompatible way before the project is declared stable.
-
+__DISCLAIMER:__ While this chart has been well-tested, the vault-operator is still currently in beta. Current project status is available [here](https://github.com/coreos/vault-operator).
 
 ## Configuration
-Parameter | Description | Default
---------- | ----------- | -------
-`rbac.create` | If true, create & use RBAC resources | `true`
-`serviceAccounts.create` | If true, create the values-operator service account | `true`
-`imagePullPolicy` | all containers image pull policy | `IfNotPresent`
-`vaultOperator.replicaCount` | desired number of vault operator controller pod | `1`
-`vaultOperator.image.repository` | vault operator container image repository | `quay.io/coreos/vault-operator`
-`vaultOperator.image.tag` | vault operator container image tag | `latest`
-`vaultOperator.resources` | vault operator pod resource requests & limits | `{}`
-`vaultOperator.nodeSelector` | node labels for vault operator pod assignment | `{}`
-`vault.node` | desired number of vault cluster nodes | `2`
-`vault.version` | vault app version | `0.9.1-0`
-`etcd.image.repository` | etcd container image repository | `quay.io/coreos/etcd-operator`
-`etcd.image.tag` | etcd container image tag | `v0.8.3`
-`ui.replicaCount` | desired number of Vault UI pod | `1`
-`ui.image.repository` | Vault UI container image repository | `djenriquez/vault-ui`
-`ui.image.tag` | Vault UI container image tag | `latest`
-`ui.resources` | Vault UI pod resource requests & limits | `{}`
-`ui.nodeSelector` | node labels for Vault UI pod assignment | `{}`
-`ui.ingress.enabled` | If true, Vault UI Ingress will be created | `false`
-`ui.ingress.annotations` | Vault UI Ingress annotations | `{}`
-`ui.ingress.hosts` | Vault UI Ingress hostnames | `[]`
-`ui.ingress.tls` | Vault UI Ingress TLS configuration (YAML) | `[]`
-`ui.vault.auth` | Vault UI login method | `TOKEN`
-`ui.service.name` | Vault UI service name | `vault-ui`
-`ui.service.type` | type of ui service to create | `ClusterIP`
-`ui.service.externalPort` | Vault UI service target port | `8000`
-`ui.service.internalPort` | Vault UI container port | `8000`
-`ui.service.nodePort` | Port to be used as the service NodePort (ignored if `server.service.type` is not `NodePort`) | `0`
 
+The following table lists the configurable parameters of the vault-operator chart and their default values.
 
-## Using the Vault cluster
+| Parameter                                         | Description                                                          | Default                                        |
+| ------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------- |
+| `name`                                            | name of the deployment                                               | `vault-operator`                               |
+| `replicaCount`                                    | Number of operator replicas to create (only 1 is supported)          | `1`                                            |
+| `image.repository`                                | vault-operator container image                                       | `ranchercharts/vault-operator`                |
+| `image.tag`                                       | vault-operator container image tag                                   | `0.1.9`                                        |
+| `image.pullPolicy`                                | vault-operator container image pull policy                           | `Always`                                       |
+| `rbac.create`                                     | install required RBAC service account, roles and rolebindings        | `true`                                         |
+| `rbac.apiVersion`                                 | RBAC api version `v1alpha1|v1beta1`                                  | `v1beta1`                                      |
+| `serviceAccount.create`                           | create a new service account for the vault-operator                  | `true`                                         |
+| `serviceAccount.name`                             | Name of the service account resource when RBAC is enabled            | `vault-operator-sa`                            |
+| `resources.cpu`                                   | CPU limit per vault-operator pod                                     | `100m`                                         |
+| `resources.memory`                                | Memory limit per vault-operator pod                                  | `128mi`                                        |
+| `nodeSelector`                                    | Node labels for vault-operator pod assignment                        | `{}`                                           |
+| `commandArgs`                                     | Additional command arguments                                         | `{}`                                           |
 
-See the [Vault usage guide](https://github.com/coreos/vault-operator/blob/master/doc/user/vault.md) on how to initialize, unseal, and use the deployed Vault cluster.
+Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`. For example:
 
-Consult the [monitoring guide](https://github.com/coreos/vault-operator/blob/master/doc/user/monitoring.md) on how to monitor and alert on a Vault cluster with Prometheus.
+```bash
+$ helm install --name my-release --set image.tag=v0.1.9 stable/vault-operator
+```
 
-See the [recovery guide](https://github.com/coreos/vault-operator/blob/master/doc/user/recovery.md) on how to backup and restore Vault cluster data using the etcd opeartor
+Alternatively, a YAML file that specifies the values for the parameters can be provided while
+installing the chart. For example:
 
-For an overview of the default TLS configuration or how to specify custom TLS assets for a Vault cluster see the [TLS setup guide](https://github.com/coreos/vault-operator/blob/master/doc/user/tls_setup.md).
+```bash
+$ helm install --name my-release --values values.yaml stable/vault-operator
+```
 
-[vault]: https://www.vaultproject.io/
-[etcd-operator]: https://github.com/coreos/etcd-operator/
+## RBAC
+By default the chart will install the recommended RBAC roles and rolebindings.
+
+To determine if your cluster supports this running the following:
+
+```bash
+$ kubectl api-versions | grep rbac
+```
+
+You also need to have the following parameter on the api server. See the following document for how to enable [RBAC](https://kubernetes.io/docs/admin/authorization/rbac/)
+
+```bash
+--authorization-mode=RBAC
+```
+
+If the output contains "beta" or both "alpha" and "beta" you can may install rbac by default, if not, you may turn RBAC off as described below.
+
+### RBAC Role/RoleBinding Creation
+
+RBAC resources are enabled by default. To disable RBAC do the following:
+
+```bash
+$ helm install --name my-release stable/vault-operator --set rbac.create=false
+```
+
+### Changing RBAC Manifest apiVersion
+
+By default the RBAC resources are generated with the "v1beta1" apiVersion. To use "v1alpha1" do the following:
+
+```bash
+$ helm install --name my-release stable/vault-operator --set rbac.install=true,rbac.apiVersion=v1alpha1
+```
+
+## Creating a Vault
+
+### Deploy a CRD
+
+```yaml
+apiVersion: "vault.security.coreos.com/v1alpha1"
+kind: "VaultService"
+metadata:
+  name: "example"
+spec:
+  nodes: 2
+  version: "0.9.1-0"
+```
+
+### Initialize Vault
+
+```bash
+kubectl -n <namespace> get vault example -o jsonpath='{.status.vaultStatus.sealed[0]}' | xargs -0 -I {} kubectl -n <namespace> port-forward {} 8200
+vault init
+```
+
+### Unseal the Vault
+
+Repeat as many times as nodes created. Run the `vault unseal` command three times.
+
+```bash
+kubectl -n <namespace> get vault example -o jsonpath='{.status.vaultStatus.sealed[0]}' | xargs -0 -I {} kubectl -n <namespace> port-forward {} 8200
+vault unseal
+```
