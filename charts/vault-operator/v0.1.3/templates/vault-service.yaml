@@ -1,8 +1,16 @@
+{{- if .Values.vault.create }}
 apiVersion: vault.security.coreos.com/v1alpha1
 kind: VaultService
 metadata:
-  name: {{ .Release.Name }}
+  name: {{ .Values.vault.name }}
   namespace: {{ .Release.Namespace }}
 spec:
   nodes: {{ .Values.vault.node }}
   version: {{ .Values.vault.version }}
+  baseImage: {{ .Values.vault.baseImage }}
+  configMapName: {{ .Values.vault.name }}
+  {{- if .Values.vault.etcdCluster }}
+  etcdCluster:
+{{ toYaml .Values.vault.etcdCluster | nindent 4 }}
+  {{- end }}
+{{- end }}

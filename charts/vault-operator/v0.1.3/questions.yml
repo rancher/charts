@@ -1,77 +1,88 @@
 categories:
 - security
+labels:
+  io.rancher.certified: operator
+  io.cattle.role: project
 questions:
 - variable: defaultImage
-  default: "true"
+  default: true
   description: "Use default Docker image"
   label: Use Default Image
   type: boolean
   show_subquestion_if: false
   group: "Container Images"
   subquestions:
-  - variable: vaultOperator.image.repository
-    default: "quay.io/coreos/vault-operator"
-    description: "Vault image name"
+  - variable: image.repository
+    default: "ranchercharts/vault-operator"
+    description: "Vault operator image name"
     type: string
     label: Vault Operator Image Name
-  - variable: vaultOperator.image.tag
-    default: "latest"
+  - variable: image.tag
+    default: "0.1.9"
     description: "Values operator image tag"
     type: string
     label: Vault Operator Image Tag
-  - variable: ui.image.repository
-    default: "djenriquez/vault-ui"
-    description: "Vault image name"
+  - variable: vault.baseImage
+    default: "ranchercharts/vault"
+    description: "Vault base image name"
     type: string
-    label: Vault UI Image Name
-  - variable: ui.image.tag
-    default: "latest"
-    description: "Values UI image tag"
+    label: Vault Base Image Name
+  - variable: vault.version
+    default: "1.2.2"
+    description: "Values version"
     type: string
-    label: Vault UI Image Tag
-  - variable: etcd.image.repository
-    default: "quay.io/coreos/etcd-operator"
+    label: Vault Base Image Version
+  - variable: etcd-operator.image.repository
+    default: "ranchercharts/coreos-etcd-operator"
     description: "etcd image name"
     type: string
     label: etcd Image Name
   - variable: etcd.image.tag
-    default: "v0.8.3"
+    default: "v0.9.4"
     description: "etcd image tag"
     type: string
     label: etcd Image Tag
-- variable: ui.ingress.enabled
+# config vault service
+- variable: vault.create
   default: true
-  description: "Expose Vault-UI using Layer 7 Load Balancer - ingress"
+  description: "Create a custom vault service"
+  label: Create a New Custom Vault Service
   type: boolean
-  group: "Vault UI"
-  label: Expose Vault-UI using Layer 7 Load Balancer
+  group: "Vault Service"
   show_subquestion_if: true
-  required: true
   subquestions:
-  - variable: ui.ingress.hosts[0]
-    default: "xip.io"
-    description: "Vault-UI server ingress hostname"
-    type: hostname
+  - variable: vault.name
+    default: "my-vault"
+    label: Vault Service Name
+    description: "Set the name of custom vault service"
+    type: string
     required: true
-    label: Hostname
-- variable: ui.service.type
-  default: "NodePort"
-  description: "Server service type"
-  group: "Vault UI"
-  type: enum
-  show_if: "ui.ingress.enabled=false"
-  options:
-    - "ClusterIP"
-    - "NodePort"
-  required: true
-  label: Vault UI Service Type
-  show_subquestion_if: "NodePort"
-  subquestions:
-  - variable: ui.service.nodePort
-    default: ""
-    description: "NodePort http port(to set explicitly, choose port between 30000-32767)"
+  - variable: vault.node
+    default: 3
+    label: Vault Service Nodes
+    description: "Set the number of vault nodes"
+    min: 1
     type: int
-    min: 30000
-    max: 32767
-    show_if: "ui.ingress.enabled=false"
-    label: Vault UI NodePort Http Port
+    required: true
+  - variable: vault.version
+    default: "1.2.2"
+    label: Set Vault Version
+    description: "Set the version of custom vault service"
+    type: enum
+    required: true
+    options:
+      - "1.2.1"
+      - "1.2.2"
+# etcd-operator configs
+- variable: etcd-operator.deployments.backupOperator
+  default: true
+  description: "Deploy the etcd backup operator, one time deployment, delete once completed"
+  label: Deploy the etcd Backup Operator
+  type: boolean
+  group: "etcd-operators"
+- variable: etcd-operator.deployments.restoreOperator
+  default: true
+  description: "Deploy the etcd restore operator, one time deployment, delete once completed"
+  label: Deploy the etcd Restore Operator
+  type: boolean
+  group: "etcd-operators"
