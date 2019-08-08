@@ -1,11 +1,13 @@
-{{- if .Values.serviceAccount.create }}
 apiVersion: v1
-kind: ServiceAccount
+kind: ConfigMap
 metadata:
-  name: {{ template "vault-operator.sa" . }}
+  name: {{ .Values.vault.name }}
   labels:
     app: {{ template "vault-operator.name" . }}
     chart: {{ template "vault-operator.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
-{{- end }}
+data:
+  vault.hcl: |-
+    ui = true
+    disable_mlock = true
