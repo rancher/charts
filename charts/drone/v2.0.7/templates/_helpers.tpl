@@ -25,18 +25,25 @@ Create the name of the service account to use
 {{- end -}}
 {{- end -}}
 
-{{- define "drone.server.provider" -}}
-{{- if eq .Values.server.env.DRONE_PROVIDER "github" -}}
-{{- print "DRONE_GITHUB" -}}
-{{- else if eq .Values.server.env.DRONE_PROVIDER "gitlab" -}}
-{{- print "DRONE_GITLAB" -}}
-{{- else if eq .Values.server.env.DRONE_PROVIDER "gitea" -}}
-{{- print "DRONE_GITEA" -}}
-{{- else if eq .Values.server.env.DRONE_PROVIDER "gogs" -}}
-{{- print "DRONE_GOGS" -}}
-{{- else if eq .Values.server.env.DRONE_PROVIDER "bitbucket" -}}
-{{- print "DRONE_BITBUCKET" -}}
-{{- else if eq .Values.server.env.DRONE_PROVIDER "coding" -}}
-{{- print "DRONE_CODING" -}}
+{{/*
+Create the name of the secret for source control
+*/}}
+{{- define "drone.sourceControlSecret" -}}
+{{- if .Values.sourceControl.secret -}}
+    {{ printf "%s" .Values.sourceControl.secret }}
+{{- else -}}
+    {{ printf "%s-%s" (include "drone.fullname" .) "source-control" | trunc 63 -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Create the name of the service account to use for kubernetes pipelines
+*/}}
+{{- define "drone.pipelineServiceAccount" -}}
+{{- if .Values.serviceAccount.create -}}
+  {{- $psa := printf "%s-%s" (include "drone.serviceAccountName" .) "pipeline" | trunc 63 -}}
+  {{ default $psa .Values.server.kubernetes.pipelineServiceAccount }}
+{{- else -}}
+  {{ default "default" .Values.server.kubernetes.pipelineServiceAccount }}
 {{- end -}}
 {{- end -}}
