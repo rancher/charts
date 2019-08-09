@@ -1,3 +1,5 @@
+labels:
+  io.cattle.role: project # options are cluster/project
 questions:
 - variable: defaultImage
   default: true
@@ -8,15 +10,17 @@ questions:
   group: "Container Images"
   subquestions:
   - variable: image.repository
-    default: "chartmuseum/chartmuseum"
+    default: "ranchercharts/chartmuseum-chartmuseum"
     description: "Docker image repository"
     type: string
     label: Image Repository
+    required: true
   - variable: image.tag
-    default: "v0.7.1"
+    default: "v0.9.0"
     description: "Docker image tag"
     type: string
     label: Image Tag
+    required: true
 # storage settings
 - variable: env.open.STORAGE
   required: true
@@ -27,8 +31,8 @@ questions:
   group: "Storage Options"
   options:
     - "local"
-    - "amazon"
     - "alibaba"
+    - "amazon"
     - "google"
     - "microsoft"
     - "openstack"
@@ -63,6 +67,15 @@ questions:
   label: OSS Bucket Name
   group: "Storage Options"
   show_if: "env.open.STORAGE=alibaba"
+  required: true
+- variable: env.open.STORAGE_ALIBABA_ENDPOINT
+  default: ""
+  type: string
+  description: "OSS endpoint to store charts for alibaba storage backend"
+  label: Alternative OSS Storage Endpoint
+  group: "Storage Options"
+  show_if: "env.open.STORAGE=alibaba"
+  required: true
 - variable: env.open.STORAGE_ALIBABA_PREFIX
   default: ""
   type: string
@@ -70,13 +83,7 @@ questions:
   label: OSS Bucket Prefix
   group: "Storage Options"
   show_if: "env.open.STORAGE=alibaba"
-- variable: env.open.STORAGE_ALIBABA_ENDPOINT
-  default: ""
-  type: string
-  description: "OSS endpoint to store charts for alibaba storage backend"
-  label: Alternative OSS Storage Endpoint	
-  group: "Storage Options"
-  show_if: "env.open.STORAGE=alibaba"
+  required: true
 # Google Storage Options
 - variable: env.open.STORAGE_GOOGLE_BUCKET
   default: ""
@@ -85,6 +92,7 @@ questions:
   label: GCS Bucket Name
   group: "Storage Options"
   show_if: "env.open.STORAGE=google"
+  required: true
 - variable: env.open.STORAGE_GOOGLE_PREFIX
   default: ""
   type: string
@@ -92,6 +100,7 @@ questions:
   label: GCS Bucket Prefix
   group: "Storage Options"
   show_if: "env.open.STORAGE=google"
+  required: true
 # Microsoft Azure Storage Options
 - variable: env.open.STORAGE_MICROSOFT_CONTAINER
   default: ""
@@ -100,6 +109,7 @@ questions:
   label: Microsoft Azure Blob Storage Name
   group: "Storage Options"
   show_if: "env.open.STORAGE=microsoft"
+  required: true
 - variable: env.open.STORAGE_MICROSOFT_PREFIX
   default: ""
   type: string
@@ -107,6 +117,7 @@ questions:
   label: Microsoft Azure Blob Storage Prefix
   group: "Storage Options"
   show_if: "env.open.STORAGE=microsoft"
+  required: true
 # OpenStack Storage Options
 - variable: env.open.STORAGE_OPENSTACK_CONTAINER
   default: ""
@@ -115,6 +126,7 @@ questions:
   label: Openstack Object Storage Container Name
   group: "Storage Options"
   show_if: "env.open.STORAGE=openstack"
+  required: true
 - variable: env.open.STORAGE_OPENSTACK_PREFIX
   default: ""
   type: string
@@ -122,6 +134,7 @@ questions:
   label: Prefix To Openstack Object Storage Container
   group: "Storage Options"
   show_if: "env.open.STORAGE=openstack"
+  required: true
 - variable: env.open.STORAGE_OPENSTACK_REGION
   default: ""
   type: string
@@ -129,98 +142,14 @@ questions:
   label: Region Of Openstack Object Storage Container	
   group: "Storage Options"
   show_if: "env.open.STORAGE=openstack"
+  required: true
 # Storage Secret
-- variable: env.secret.AWS_ACCESS_KEY_ID
+- variable: env.existingSecret
   default: ""
-  type: string
-  description: "AWS access key id value"
-  label: AWS Access Key ID Value
+  type: secret
+  description: "Name of an existing secret to get the secret values from"
+  label: Select the Existing Secret
   group: "Storage Secret"
-  show_if: "env.open.STORAGE=amazon"
-- variable: env.secret.AWS_SECRET_ACCESS_KEY
-  default: ""
-  type: string
-  description: "aws access key secret value "
-  label: AWS Access Key Secret Value 
-  group: "Storage Secret"
-  show_if: "env.open.STORAGE=amazon"
-- variable: env.secret.ALIBABA_CLOUD_ACCESS_KEY_ID
-  default: ""
-  type: string
-  description: "alibaba OSS access key id"
-  label: OSS Access Key ID
-  group: "Storage Secret"
-  show_if: "env.open.STORAGE=alibaba"
-- variable: env.secret.ALIBABA_CLOUD_ACCESS_KEY_SECRET
-  default: ""
-  type: string
-  description: "alibaba OSS access key secret "
-  label: OSS Access Key Secret 
-  group: "Storage Secret"
-  show_if: "env.open.STORAGE=alibaba"
-- variable: gcp.secret.enabled
-  default: false
-  type: boolean
-  description: "Flag for the GCP service account"
-  label: Enable GCP Service Account
-  group: "Storage Secret"
-  show_if: "env.open.STORAGE=google"
-  show_subquestion_if: true
-  subquestions:
-  - variable: gcp.secret.name
-    default: ""
-    type: string
-    description: "secret name for the gcp json file"
-    label: Secret Name For The GCP Json File
-  - variable: gcp.secret.key
-    default: "credentials.json"
-    type: string
-    description: "Secret key for the GCP json file"
-    label: Secret Key For The GCP Json File
-# Openstack Object Storage secret
-- variable: env.secret.OS_AUTH_URL
-  default: ""
-  type: string
-  description: "Openstack object storage auth url"
-  label: Auth URL Of Openstack Object Storage 
-  group: "Storage Secret"
-  show_if: "env.open.STORAGE=openstack"
-- variable: env.secret.OS_TENANT_ID
-  default: ""
-  type: string
-  description: "Openstack object storage tenant id"
-  label: Tenant ID Of Openstack Object Storage 
-  group: "Storage Secret"
-  show_if: "env.open.STORAGE=openstack"
-- variable: env.secret.OS_USERNAME
-  default: ""
-  type: string
-  description: "Openstack object storage username"
-  label: Username Of Openstack Object Storage 
-  group: "Storage Secret"
-  show_if: "env.open.STORAGE=openstack"
-- variable: env.secret.OS_PASSWORD
-  default: ""
-  type: string
-  description: "Openstack object storage password"
-  label: Password Of Openstack Object Storage
-  group: "Storage Secret"
-  show_if: "env.open.STORAGE=openstack"
-# Microsoft azure secret
-- variable: env.secret.AZURE_STORAGE_ACCOUNT
-  default: ""
-  type: string
-  description: "azure storage account"
-  label: Azure Storage Account
-  group: "Storage Secret"
-  show_if: "env.open.STORAGE=microsoft"
-- variable: env.secret.AZURE_STORAGE_ACCESS_KEY
-  default: ""
-  type: string
-  description: "azure storage account access key "
-  label: Azure Storage Account Access Key 
-  group: "Storage Secret"
-  show_if: "env.open.STORAGE=microsoft"
 # Local Storage Settings
 - variable: persistence.enabled
   default: true
@@ -252,14 +181,14 @@ questions:
     label: Uses Existing Persistent Volume Cliam for LocalStorage
 # Service and L7 LoadBalancer
 - variable: ingress.enabled
-  default: true
+  default: false
   description: "Expose app using Layer 7 Load Balancer - ingress"
   type: boolean
   label: Expose app using Layer 7 Load Balancer
   show_subquestion_if: true
   group: "Services and Load Balancing"
   subquestions:
-  - variable: ingress.hosts[0]
+  - variable: ingress.hosts[0].name
     default: "xip.io"
     description: "Hostname to your app installation"
     type: hostname
@@ -276,26 +205,7 @@ questions:
   options:
     - "ClusterIP"
     - "NodePort"
-    - "LoadBalancer"
 # chartmuseum options
-- variable: env.secret.BASIC_AUTH_USER
-  default: ""
-  description: "Username for basic http authentication"
-  type: string
-  label: Username For Basic Http Authentication (Optional)
-  group: "ChartMuseum Settings"
-- variable: env.secret.BASIC_AUTH_PASS
-  default: ""
-  description: "Password for basic http authentication"
-  type: string
-  label: Password For Basic Http Authentication (Optional)
-  group: "ChartMuseum Settings"
-- variable: env.open.CHART_URL
-  default: ""
-  description: "Absolute url for .tgzs in index.yaml"
-  type: string
-  label: Absolute URL For .tgzs In index.yaml
-  group: "ChartMuseum Settings"
 - variable: env.open.SHOW_ADVANCED
   default: false
   description: "Show advanced ChartMuseum settings"
@@ -304,10 +214,15 @@ questions:
   group: "ChartMuseum Settings"
   show_subquestion_if: true
   subquestions:
-  - variable: env.open.DEPTH
-    default: "0"
-    description: "Levels of nested repos for multitenancy."
+  - variable: env.open.CHART_URL
+    default: ""
+    description: "Absolute url for .tgzs in index.yaml"
     type: string
+    label: Absolute URL For .tgzs In index.yaml
+  - variable: env.open.DEPTH
+    default: 0
+    description: "Levels of nested repos for multitenancy."
+    type: int
     label: Levels Of Nested Repos For Multitenancy
   - variable: env.open.ALLOW_OVERWRITE
     default: false
