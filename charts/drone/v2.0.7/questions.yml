@@ -1,3 +1,5 @@
+labels:
+  io.cattle.role: cluster # options are cluster/project
 categories:
 - CI/CD
 questions:
@@ -10,27 +12,27 @@ questions:
   group: "Container Images"
   subquestions:
   - variable: images.server.repository
-    default: "docker.io/drone/drone"
+    default: "ranchercharts/drone-drone"
     description: "Drone Server image name"
     type: string
     label: Drone Server Image Name
   - variable: images.server.tag
-    default: "0.8.6"
+    default: "1.2"
     description: "Drone Server image tag"
     type: string
     label: Drone Server Image Tag
   - variable: images.agent.repository
-    default: "docker.io/drone/agent"
+    default: "ranchercharts/drone-agent"
     description: "Drone Agent image name"
     type: string
     label: Drone Agent Image Name
   - variable: images.agent.tag
-    default: "0.8.6"
+    default: "1.2"
     description: "Drone Agent image tag"
     type: string
     label: Drone Agent Image Tag
   - variable: images.dind.repository
-    default: "docker.io/library/docker"
+    default: "ranchercharts/library-docker"
     description: "Drone Dind image name"
     type: string
     label: Drone Dind Image Name
@@ -39,7 +41,20 @@ questions:
     description: "Drone Dind image tag"
     type: string
     label: Drone Dind Image Tag
-- variable: server.env.DRONE_PROVIDER
+- variable: server.host
+  default: ""
+  type: string
+  description: "Set drone server host e.g drone.domain.io, if not set, it will be autofilled with the cluster host."
+  label: Drone Host Doamin
+  required: true
+  group: "Drone Settings"
+- variable: server.adminUser
+  default: ""
+  type: string
+  description: "Set to a valid oauth user from your git/oauth server."
+  label: Set Drone Admin User
+  group: "Drone Settings"
+- variable: sourceControl.provider
   default: "github"
   description: "Choose your server integrations"
   type: enum
@@ -47,99 +62,111 @@ questions:
   label: Drone Integration Server
   group: "Drone Settings"
   options:
-    - "github"
-    - "gitlab"
-    - "gitea"
-    - "gogs"
-    - "bitbucket"
-    - "coding"
-- variable: server.env.DRONE_GITHUB_CLIENT
+  - "github"
+  - "gitlab"
+  - "gitea"
+  - "gogs"
+  - "bitbucketCloud"
+  - "bitbucketServer"
+- variable: sourceControl.secret
   default: ""
-  description: "Github OAuth2 Client ID"
+  type: secret
+  description: "Name of an existing secret to get the drone provider secret values from."
+  label: Select the Existing Drone Provider Secret
+  group: "Drone Settings"
+# Github config
+- variable: sourceControl.github.clientID
+  default: ""
+  description: "Github oauth client ID"
   type: string
   required: true
-  label: Github OAuth2 Client ID
-  show_if: "server.env.DRONE_PROVIDER=github"
+  label: Github OAuth Client ID
+  show_if: "sourceControl.provider=github"
   group: "Drone Settings"
-- variable: server.env.DRONE_GITHUB_SECRET
+- variable: sourceControl.github.clientSecretValue
   default: ""
-  description: "Github oauth2 client secret"
+  description: "Github oauth client secret"
   type: string
   required: true
-  show_if: "server.env.DRONE_PROVIDER=github"
+  show_if: "sourceControl.provider=github&&sourceControl.secret="
   group: "Drone Settings"
-  label: Github OAuth2 Client Secret
-- variable: server.env.DRONE_GITLAB_CLIENT
+  label: Github OAuth Client Secret
+# Gitlab config
+- variable: sourceControl.gitlab.clientID
   default: ""
   description: "GitLab oauth2 client id"
   type: string
   required: true
   label: GitLab OAuth2 Client ID
-  show_if: "server.env.DRONE_PROVIDER=gitlab"
+  show_if: "sourceControl.provider=gitlab"
   group: "Drone Settings"
-- variable: server.env.DRONE_GITLAB_SECRET
-  default: ""
-  description: "GitLab oauth2 client secret"
-  type: string
-  required: true
-  label: GitLab OAuth2 Client Secret
-  show_if: "server.env.DRONE_PROVIDER=gitlab"
-  group: "Drone Settings"
-- variable: server.env.DRONE_GITLAB_URL
+- variable: sourceControl.gitlab.server
   default: ""
   description: "GitLab Server Address"
   type: string
   required: true
   label: GitLab Server Address
-  show_if: "server.env.DRONE_PROVIDER=gitlab"
+  show_if: "sourceControl.provider=gitlab"
   group: "Drone Settings"
-- variable: server.env.DRONE_GITEA_URL
+- variable: sourceControl.gitlab.clientSecretValue
+  default: ""
+  description: "GitLab client secret"
+  type: string
+  required: true
+  label: GitLab Client Secret
+  show_if: "sourceControl.provider=gitlab&&sourceControl.secret="
+  group: "Drone Settings"
+# Gitea config
+- variable: sourceControl.gitea.server
   default: ""
   description: "Gitea Server Address"
   type: string
   required: true
   label: Gitea Server Address
-  show_if: "server.env.DRONE_PROVIDER=gitea"
+  show_if: "sourceControl.provider=gitea"
   group: "Drone Settings"
-- variable: server.env.DRONE_GOGS_URL
+# Gogs config
+- variable: sourceControl.gogs.server
   default: ""
   description: "Gogs Server Address"
   type: string
   required: true
   label: Gogs Server Address
-  show_if: "server.env.DRONE_PROVIDER=gogs"
+  show_if: "sourceControl.provider=gogs"
   group: "Drone Settings"
-- variable: server.env.DRONE_BITBUCKET_CLIENT
+# BitbucketCloud config
+- variable: sourceControl.bitbucketCloud.clientID
   default: ""
-  description: "Bitbucket oauth2 client id"
+  description: "Bitbucket cloud oauth2 client id"
   type: string
   required: true
-  label: Bitbucket OAuth2 Client ID
-  show_if: "server.env.DRONE_PROVIDER=bitbucket"
+  label: Bitbucket Cloud OAuth2 Client ID
+  show_if: "sourceControl.provider=bitbucketCloud"
   group: "Drone Settings"
-- variable: server.env.DRONE_BITBUCKET_SECRET
+- variable: sourceControl.bitbucketCloud.clientSecretValue
   default: ""
-  description: "Bitbucket oauth2 client secret"
+  description: "Bitbucket cloud client secret"
   type: string
   required: true
-  label: Bitbucket OAuth2 Client Secret
-  show_if: "server.env.DRONE_PROVIDER=bitbucket"
+  label: Bitbucket Cloud Client Secret
+  show_if: "sourceControl.provider=bitbucketCloud&&sourceControl.secret="
   group: "Drone Settings"
-- variable: server.env.DRONE_CODING_CLIENT
+# BitbucketServer config
+- variable: sourceControl.bitbucketServer.server
   default: ""
-  description: "Coding oauth2 client id"
+  description: "Bitbucket Server Address"
   type: string
   required: true
-  label: Coding OAuth2 Client ID
-  show_if: "server.env.DRONE_PROVIDER=coding"
+  label: Bitbucket Server Address
+  show_if: "sourceControl.provider=bitbucketServer"
   group: "Drone Settings"
-- variable: server.env.DRONE_CODING_SECRET
+- variable: sourceControl.bitbucketServer.username
   default: ""
-  description: "Coding oauth2 client secret"
+  description: "Bitbucket server username"
   type: string
   required: true
-  label: Coding OAuth2 Client Secret
-  show_if: "server.env.DRONE_PROVIDER=coding"
+  label: Bitbucket Server Username
+  show_if: "sourceControl.provider=bitbucketCloud"
   group: "Drone Settings"
 # persistent setting
 - variable: persistence.enabled
@@ -166,6 +193,36 @@ questions:
     description: "If not empty, uses the specified existing PVC instead of creating new one"
     type: pvc
     label: Uses Existing Persistent Volume Cliam
+- variable: server.env.DRONE_LOGS_DEBUG
+  default: "false"
+  type: enum
+  description: "The default log level is INFO. You can enable more detailed debug logging with the following configuration parameter."
+  label: Enable Drone Server Debugging Logs
+  group: "Drone Settings"
+  options:
+  - "false"
+  - "true"
+# database setting
+- variable: server.env.DRONE_DATABASE_DRIVER
+  default: "sqlite3"
+  description: "Drone requires the use of a database backend for persistence. Drone uses an embedded sqlite database by default"
+  type: enum
+  required: true
+  label: Select Drone Databse Driver
+  group: "Database Settings"
+  options:
+  - "sqlite3"
+  - "postgres"
+  - "mysql"
+- variable: server.env.DRONE_DATABASE_DATASOURCE
+  default: ""
+  description: "Specify Drone database datasource, e.g., postgres://root:password@1.2.3.4:5432/postgres?sslmode=disable"
+  type: string
+  required: true
+  label: Drone Database Datasource
+  show_if: "server.env.DRONE_DATABASE_DRIVER!=sqlite3"
+  group: "Database Settings"
+# service & LB settings
 - variable: ingress.enabled
   default: false
   description: "Expose app using Layer 7 Load Balancer - ingress"
