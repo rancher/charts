@@ -7,27 +7,39 @@ podDisruptionBudget: {}
   # maxUnavailable: 1
   # minAvailable: 2
 
-## Start and stop pods in Parallel or OrderedReady (one-by-one.)  Note - Can not change after first release.
-## ref: https://kubernetes.io/docs/tutorials/stateful-application/basic-stateful-set/#pod-management-policy
-podManagementPolicy: OrderedReady
-
 auth:
   enabled: false
   # adminUser: username
   # adminPassword: password
+  # metricsUser: metrics
+  # metricsPassword: password
   # key: keycontent
   # existingKeySecret:
   # existingAdminSecret:
+  # existingMetricsSecret:
+
+## Optionally specify an array of imagePullSecrets.
+## Secrets must be manually created in the namespace.
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+##
+imagePullSecrets: []
+#   - myRegistrKeySecretName
 
 # Specs for the Docker image for the init container that establishes the replica set
 installImage:
-  repository: k8s.gcr.io/mongodb-install
-  tag: 0.6
+  repository: ranchercharts/unguiculus-mongodb-install
+  tag: 0.7
+  pullPolicy: IfNotPresent
+
+# Specs for the Docker image for the copyConfig init container
+copyConfigImage:
+  repository: ranchercharts/busybox
+  tag: 1.29.3
   pullPolicy: IfNotPresent
 
 # Specs for the MongoDB image
 image:
-  repository: mongo
+  repository: ranchercharts/mongo
   tag: 3.6
   pullPolicy: IfNotPresent
 
@@ -36,13 +48,32 @@ extraVars: {}
 # - name: TCMALLOC_AGGRESSIVE_DECOMMIT
 #   value: "true"
 
+# Prometheus Metrics Exporter
+metrics:
+  enabled: false
+  image:
+    repository: ranchercharts/ssalaues-mongodb-exporter
+    tag: 0.6.1
+    pullPolicy: IfNotPresent
+  port: 9216
+  path: "/metrics"
+  socketTimeout: 3s
+  syncTimeout: 1m
+  prometheusServiceDiscovery: true
+  resources: {}
+
 # Annotations to be added to MongoDB pods
 podAnnotations: {}
 
 securityContext:
+  enabled: true
   runAsUser: 999
   fsGroup: 999
   runAsNonRoot: true
+
+init:
+  resources: {}
+  timeout: 900
 
 resources: {}
 # limits:
@@ -59,6 +90,10 @@ nodeSelector: {}
 affinity: {}
 
 tolerations: []
+
+extraLabels: {}
+
+# priorityClassName: ""
 
 persistentVolume:
   enabled: true
@@ -78,6 +113,8 @@ persistentVolume:
 # Annotations to be added to the service
 serviceAnnotations: {}
 
+terminationGracePeriodSeconds: 30
+
 tls:
   # Enable or disable MongoDB TLS support
   enabled: false
@@ -90,12 +127,15 @@ tls:
   # cakey:
 
 # Entries for the MongoDB config file
-configmap:
+configmap: {}
 
-## Period to wait for broker graceful shutdown (sigterm) before pod is killed (sigkill)
-## ref: https://kubernetes-v1-4.github.io/docs/user-guide/production-pods/#lifecycle-hooks-and-termination-notice
-## ref: https://kafka.apache.org/10/documentation.html#brokerconfigs controlled.shutdown.*
-terminationGracePeriodSeconds: 30
+# Javascript code to execute on each replica at initContainer time
+# This is the recommended way to create indexes on replicasets.
+# Below is an example that creates indexes in foreground on each replica in standalone mode.
+# ref: https://docs.mongodb.com/manual/tutorial/build-indexes-on-replica-sets/
+# initMongodStandalone: |+
+#   db = db.getSiblingDB("mydb")
+#   db.my_users.createIndex({email: 1})
 
 # Readiness probe
 readinessProbe:
@@ -112,6 +152,3 @@ livenessProbe:
   failureThreshold: 3
   periodSeconds: 10
   successThreshold: 1
-
-# whether run helm test or nnot
-runtest: false

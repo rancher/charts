@@ -1,4 +1,3 @@
-{{- if .Values.runtest }}
 apiVersion: v1
 kind: Pod
 metadata:
@@ -36,6 +35,20 @@ spec:
           value: {{ template "mongodb-replicaset.fullname" . }}
         - name: REPLICAS
           value: "{{ .Values.replicas }}"
+      {{- if .Values.auth.enabled }}
+        - name: AUTH
+          value: "true"
+        - name: ADMIN_USER
+          valueFrom:
+            secretKeyRef:
+              name: "{{ template "mongodb-replicaset.adminSecret" . }}"
+              key: user
+        - name: ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: "{{ template "mongodb-replicaset.adminSecret" . }}"
+              key: password
+      {{- end }}
       volumeMounts:
         - name: tools
           mountPath: /tools
@@ -48,4 +61,3 @@ spec:
       configMap:
         name: {{ template "mongodb-replicaset.fullname" . }}-tests
   restartPolicy: Never
-{{- end }}
