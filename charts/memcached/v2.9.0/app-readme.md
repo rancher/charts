@@ -4,6 +4,5 @@
 
 Based on the [memcached](https://github.com/bitnami/charts/tree/master/bitnami/memcached) chart from the [Bitnami Charts](https://github.com/bitnami/charts) repository.
 
-## Introduction
-
-This chart bootstraps a [Memcached](https://hub.docker.com/_/memcached/) deployment on a [Kubernetes](http://kubernetes.io) cluster using the [Helm](https://helm.sh) package manager.
+### Upgrade Notes:
+Upgrading from version < 2.9.0 requires to select the `delete and recreate` option.

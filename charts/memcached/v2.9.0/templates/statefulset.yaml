@@ -1,5 +1,5 @@
-apiVersion: apps/v1beta1
-kind: StatefulSet
+apiVersion: apps/v1
+kind: {{ .Values.kind }}
 metadata:
   name: {{ template "memcached.fullname" . }}
   labels:
@@ -8,8 +8,14 @@ metadata:
     release: "{{ .Release.Name }}"
     heritage: "{{ .Release.Service }}"
 spec:
+  {{- if eq .Values.kind "StatefulSet" }}
   serviceName: {{ template "memcached.fullname" . }}
+  {{- end }}
   replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ template "memcached.fullname" . }}
+      release: "{{ .Release.Name }}"
   template:
     metadata:
       labels:
@@ -17,7 +23,18 @@ spec:
         chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
         release: "{{ .Release.Name }}"
         heritage: "{{ .Release.Service }}"
+{{- with .Values.podLabels }}
+{{ toYaml . | indent 8 }}
+{{- end}}
+{{- with .Values.podAnnotations }}
+      annotations:
+{{ toYaml . | indent 8 }}
+{{- end }}
     spec:
+      {{- if .Values.securityContext.enabled }}
+      securityContext:
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+      {{- end }}
       affinity:
         podAntiAffinity:
         {{- if eq .Values.AntiAffinity "hard" }}
@@ -39,11 +56,15 @@ spec:
         {{- end }}
       containers:
       - name: {{ template "memcached.fullname" . }}
-        image: {{ .Values.image }}:{{ .Values.imageTag }}
+        image: {{ .Values.image }}
         imagePullPolicy: {{ default "" .Values.imagePullPolicy | quote }}
+        {{- if .Values.securityContext.enabled }}
+        securityContext:
+          runAsUser: {{ .Values.securityContext.runAsUser }}
+        {{- end }}
         command:
         - memcached
-        - -m {{ .Values.memcached.maxItemMemory  }}
+        - -m {{ .Values.memcached.maxItemMemory }}
         {{- if .Values.memcached.extendedOptions }}
         - -o
         - {{ .Values.memcached.extendedOptions }}
@@ -51,6 +72,9 @@ spec:
         {{- if .Values.memcached.verbosity }}
         - -{{ .Values.memcached.verbosity }}
         {{- end }}
+{{- with .Values.memcached.extraArgs }}
+{{ toYaml . | indent 8 }}
+{{- end }}
         ports:
         - name: memcache
           containerPort: 11211
@@ -68,8 +92,12 @@ spec:
 {{ toYaml .Values.resources | indent 10 }}
 {{- if .Values.metrics.enabled }}
       - name: metrics
-        image: {{ .Values.metrics.image }}:{{ .Values.metrics.imageTag }}
+        image: {{ .Values.metrics.image }}
         imagePullPolicy: {{ default "" .Values.metrics.imagePullPolicy | quote }}
+        {{- if .Values.securityContext.enabled }}
+        securityContext:
+          runAsUser: {{ .Values.securityContext.runAsUser }}
+        {{- end }}
         ports:
         - name: metrics
           containerPort: 9150
@@ -85,5 +113,13 @@ spec:
 {{- end }}
 {{- with .Values.nodeSelector }}
       nodeSelector:
+{{ toYaml . | trim | indent 8}}
+{{- end }}
+{{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | trim | indent 8}}
+{{- end }}
+{{- with .Values.affinity }}
+      affinity:
 {{ toYaml . | trim | indent 8}}
 {{- end }}
