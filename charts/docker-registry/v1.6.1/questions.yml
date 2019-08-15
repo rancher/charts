@@ -1,0 +1,183 @@
+questions:
+- variable: secrets.htpasswd
+  default: ""
+  description: "Htpasswd authentication containing your user:pass associations"
+  type: password
+  label: Docker Registry Htpasswd Authentication
+  group: "Secret Settings"
+- variable: storage
+  default: "filesystem"
+  description: "Storage system to use"
+  type: enum
+  label: Storage System
+  required: true
+  options:
+    - "filesystem"
+    - "s3"
+    - "azure"
+    - "swift"
+  group: "Storage System Settings"
+# s3 storage config
+- variable: s3.region
+  default: "us-east-1"
+  description: "S3 region"
+  type: string
+  label: S3 Region
+  required: true
+  group: "Storage System Settings"
+  show_if: "storage=s3"
+- variable: s3.bucket
+  default: ""
+  description: "S3 bucket name"
+  type: string
+  label: S3 Bucket Name
+  required: true
+  group: "Storage System Settings"
+  show_if: "storage=s3"
+- variable: secret.s3.accessKey
+  default: ""
+  description: "Access Key for S3 configuration	"
+  type: string
+  label: AWS S3 AccessKey
+  required: true
+  group: "Storage System Settings"
+  show_if: "storage=s3"
+- variable: secret.s3.secretKey
+  default: ""
+  description: "Secret Key for S3 configuration	"
+  type: password
+  label: AWS S3 SecretKey
+  required: true
+  group: "Storage System Settings"
+  show_if: "storage=s3"
+- variable: s3.encrypt
+  default: false
+  description: "Store images in encrypted format"
+  type: boolean
+  label: S3 Encrypted
+  required: true
+  group: "Storage System Settings"
+  show_if: "storage=s3"
+- variable: s3.secure
+  default: true
+  description: "Use HTTPS"
+  type: boolean
+  label: Use HTTPS
+  required: true
+  group: "Storage System Settings"
+  show_if: "storage=s3"
+# azure configuration
+- variable: secret.azure.accountName
+  default: ""
+  description: "Azure storage account name"
+  type: string
+  label: Azure Storage Account Name
+  required: true
+  group: "Storage System Settings"
+  show_if: "storage=azure"
+- variable: secret.azure.accountKey
+  default: ""
+  description: "Azure storage account key"
+  type: password
+  label: Azure Storage Account Key
+  required: true
+  group: "Storage System Settings"
+  show_if: "storage=azure"
+- variable: secret.azure.container
+  default: ""
+  description: "Azure storage container name"
+  type: string
+  label: Azure Storage Container Name
+  required: true
+  group: "Storage System Settings"
+  show_if: "storage=azure"
+# swift configuration
+- variable: swift.authurl
+  default: "http://swift.example.com/"
+  description: "Openshift swift authurl"
+  type: string
+  label: Swift Authurl
+  required: true
+  group: "Storage System Settings"
+  show_if: "storage=swift"
+- variable: swift.container
+  default: ""
+  description: "Openshift swift container name"
+  type: string
+  label: Swift Container
+  required: true
+  group: "Storage System Settings"
+  show_if: "storage=swift"
+- variable: secret.swift.username
+  default: ""
+  description: "Username for Swift configuration"
+  type: string
+  label: Openshift Swift Username
+  required: true
+  group: "Storage System Settings"
+  show_if: "storage=swift"
+- variable: secret.swift.password
+  default: ""
+  description: "Password for Swift configuration"
+  type: password
+  label: Openshift Swift Password
+  required: true
+  group: "Storage System Settings"
+  show_if: "storage=swift"
+# persistence setting
+- variable: persistence.enabled
+  default: false
+  description: "Enable persistent volume for Docker registry"
+  type: boolean
+  label: Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "Persistent Storage"
+  subquestions:
+  - variable: persistence.size
+    default: "10Gi"
+    description: "Docker registry Registry Persistent Volume Size"
+    type: string
+    label: Docker Registry Volume Size
+  - variable: persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for Docker Registry
+  - variable: persistence.existingClaim
+    default: ""
+    description: "If not empty, uses the specified existing PVC instead of creating new one"
+    type: pvc
+    label: Uses Existing Persistent Volume Cliam
+- variable: ingress.enabled
+  default: false
+  description: "Expose app using Layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose app using Layer 7 Load Balancer
+  show_subquestion_if: true
+  group: "Services and Load Balancing"
+  subquestions:
+  - variable: ingress.hosts[0]
+    default: ""
+    description: "Hostname to your Docker Registry installation"
+    type: hostname
+    required: true
+    label: Hostname
+- variable: service.type
+  default: "NodePort"
+  description: "Docker Registry Service type"
+  type: enum
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: Docker Registry Service Type
+  show_subquestion_if: "NodePort"
+  group: "Services and Load Balancing"
+  subquestions:
+  - variable: service.nodePort
+    default: ""
+    description: "NodePort http port(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    label: NodePort Http Port
