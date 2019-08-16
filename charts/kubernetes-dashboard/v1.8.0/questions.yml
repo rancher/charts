@@ -1,6 +1,8 @@
-rancher_version: v2.0.7
+labels:
+  io.cattle.role: cluster # options are cluster/project
 categories:
-- dashboard
+  - dashboard
+rancher_min_version: v2.0.7
 namespace: kube-system
 questions:
 - variable: defaultImage
@@ -12,7 +14,7 @@ questions:
   group: "Container Images"
   subquestions:
   - variable: image.repository
-    default: "rancher/kubernetes-dashboard-amd64"
+    default: "ranchercharts/kubernetes-dashboard-amd64"
     description: "Docker image repository"
     type: string
     label: Image Repository
@@ -22,7 +24,8 @@ questions:
     type: string
     label: Image Tag
 - variable: enableSkipLogin
-  default: false
+  requred: true
+  default: true
   description: "Enable possibility to skip login"
   type: boolean
   label: "Enable Possibility To Skip Login"
@@ -32,3 +35,11 @@ questions:
   description: "IMPORTANT: Granting admin privileges to Dashboard's Service Account might be a security risk, makeing sure that you know what you are doing before proceeding."
   type: boolean
   label: "Enable Dashboard Cluster Admin Role (NOT RECOMMENDED)"
+  show_subquestion_if: true
+  subquestions:
+  - variable: rbac.clusterReadOnlyRole
+    required: true
+    default: true
+    description: "Same as for clusterAdminRole, it is NOT RECOMMENDED to use this version in production. Instead you should review the role and remove all potentially sensitive parts such as access to persistentvolumes, pods/log etc"
+    type: boolean
+    label: "Set ReadOnly Mode of Cluster Admin Role"
