@@ -1,0 +1,118 @@
+categories:
+- KeyValue
+- Database
+questions:
+- variable: defaultImage
+  default: "true"
+  description: "Use default Docker images"
+  label: Use Default Images
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: image.repository
+    default: "bitnami/redis"
+    description: "Redis image name"
+    type: string
+    label: Redis Image Name
+  - variable: image.tag
+    default: "4.0.9"
+    description: "Redis image tag"
+    type: string
+    label: Redis Image Tag
+  - variable: metrics.image.repository
+    default: "oliver006/redis_exporter"
+    description: "Metrics image name"
+    type: string
+    label: Metrics Image Name
+    show_if: "metrics.enabled=true"
+  - variable: metrics.image.tag
+    default: "v0.11"
+    description: "Metrics image tag"
+    type: string
+    label: Metrics Image Tag
+    show_if: "metrics.enabled=true"
+- variable: cluster.enabled
+  default: "true"
+  description: "Use leader-follower topology"
+  label: Clustered Topology
+  type: boolean
+  show_subquestion_if: true
+  group: "Redis Slave Settings"
+  subquestions:
+  - variable: cluster.slaveCount
+    default: "3"
+    description: "Number of followers"
+    type: string
+    label: Number of Followers
+- variable: usePassword
+  default: "true"
+  description: "Use password authentication"
+  type: boolean
+  required: true
+  label: Enable Redis Password
+  show_subquestion_if: true
+  group: "Redis Master Settings"
+  subquestions:
+  - variable: password
+    default: ""
+    description: "password will be auto-generated if not specified"
+    type: password
+    label: Redis Password
+- variable: master.persistence.enabled
+  default: "false"
+  description: "Use persistent storage"
+  type: boolean
+  required: true
+  label: Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "Redis Master Settings"
+  subquestions:
+  - variable: master.persistence.size
+    default: "8Gi"
+    description: "Persistent volume size"
+    type: string
+    label: Persistent Volume Size
+  - variable: master.persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Defaults to null."
+    type: storageclass
+    label: Default Storage Class
+- variable: slave.service.type
+  default: "ClusterIP"
+  description: "Redis slave service type"
+  type: enum
+  group: "Services and Load Balancing"
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: Redis Slave Service Type
+  show_subquestion_if: "NodePort"
+  subquestions:
+  - variable: slave.service.nodePort
+    default: ""
+    description: "NodePort port number(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    label: Redis Slave Service NodePort number
+- variable: master.service.type
+  default: "ClusterIP"
+  description: "Redis master service type"
+  type: enum
+  group: "Services and Load Balancing"
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: Redis Master Service Type
+  show_subquestion_if: "NodePort"
+  subquestions:
+  - variable: master.service.nodePort
+    default: ""
+    description: "NodePort port number(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    label: Redis Master Service NodePort number
