@@ -1,9 +1,11 @@
+labels:
+  io.cattle.role: project # options are cluster/project
 categories:
 - Database
 - MySQL
 questions:
 - variable: defaultImage
-  default: "true"
+  default: true
   description: "Use default Docker images"
   label: Use Default Images
   type: boolean
@@ -11,15 +13,25 @@ questions:
   group: "Container Images"
   subquestions:
   - variable: image
-    default: "mysql"
-    description: "Docker image name"
+    default: "ranchercharts/mysql"
+    description: "MySQL image name"
     type: string
     label: Image Name
   - variable: imageTag
     default: "5.7.14"
-    description: "Docker image tag"
+    description: "MySQL image tag"
     type: string
     label: Image Tag
+  - variable: busybox.image
+    default: "ranchercharts/busybox"
+    description: "Busybox image name"
+    type: string
+    label: Image Image Name
+  - variable: busybox.tag
+    default: "1.29.3"
+    description: "Busybox image tag"
+    type: string
+    label: Busybox Image Tag
 - variable: mysqlDatabase
   default: "admin"
   description: "Name of database to create"
@@ -60,6 +72,11 @@ questions:
     description: "If undefined or null, uses the default StorageClass. Defaults to null."
     type: storageclass
     label: Default storageClass
+  - variable: persistence.existingClaim
+    default: ""
+    description: "If not empty, uses the specified existing PVC instead of creating new one"
+    type: pvc
+    label: Existing Persistent Volume Claim for mysql
 - variable: service.port
   default: "3306"
   description: "Service port for access to MySQL"
@@ -86,3 +103,16 @@ questions:
     min: 30000
     max: 32767
     label: Service NodePort number
+- variable: metrics.enabled
+  default: false
+  description: "Enable mysql prometheus metrics exporter"
+  label: Enable MySQL Metrics
+  type: boolean
+  show_subquestion_if: true
+  group: "Metrics"
+  subquestions:
+  - variable: metrics.serviceMonitor.enabled
+    default: false
+    description: "Set this to `true` to create ServiceMonitor for Prometheus operator"
+    type: boolean
+    label: Create MySQL ServiceMonitor for Prometheus Operator
