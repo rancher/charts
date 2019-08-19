@@ -1,0 +1,122 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "fluentd.fullname" . }}
+  labels:
+    app: {{ template "fluentd.name" . }}
+    chart: {{ template "fluentd.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+{{- range $key, $value := .Values.configMaps }}
+{{- if $value }}
+  {{ $key }}: |-
+{{ $value | indent 4 }}
+{{- end }}
+{{- end }}
+
+  output.conf: |-
+    {{- if eq .Values.output.type "custom" }}
+{{ .Values.output.customConf | indent 4 }}
+    {{- else }}
+    <match **>
+    {{- if eq .Values.output.type "elasticsearch" }}
+      @type elasticsearch
+      @log_level info
+      include_tag_key true
+
+      hosts "#{ENV['OUTPUT_ES_HOSTS']}"
+
+      logstash_format true
+      logstash_prefix "#{ENV['OUTPUT_ES_PREFIX']}"
+      logstash_dateformat "#{ENV['OUTPUT_ES_DATEFORMAT']}"
+      type_name "#{ENV['RELEASENAME']}"
+
+    {{- else if eq .Values.output.type "kafka" }}
+      @type kafka_buffered
+
+      {{- if eq .Values.env.OUTPUT_KAFKA_HOST_TYPE "brokers" }}
+      brokers "#{ENV['OUTPUT_KAFKA_BROKER_HOSTS']}" #<broker1_host>:<broker1_port>,<broker2_host>:<broker2_port>,..
+      {{- else if eq .Values.env.OUTPUT_KAFKA_HOST_TYPE "zookeeper" }}
+      zookeeper "#{ENV['OUTPUT_KAFKA_ZK_HOSTS']}" #<broker1_host>:<broker1_port>,<broker2_host>:<broker2_port>,..
+      {{- end }}
+
+      topic_key             (string) :default => "#{ENV['OUTPUT_KAFKA_TOPIC_KEY']}"
+      partition_key         (string) :default => "#{ENV['OUTPUT_KAFKA_PARTITION']}"
+      partition_key_key     (string) :default => "#{ENV['OUTPUT_KAFKA_PARTITION_KEY']}"
+      message_key_key       (string) :default => "#{ENV['OUTPUT_KAFKA_MESSAGE_KEY']}"
+      default_topic         (string) :default => nil
+      default_partition_key (string) :default => nil
+      default_message_key   (string) :default => nil
+      exclude_topic_key     (bool) :default => false
+      exclude_partition_key (bool) :default => false
+      get_kafka_client_log  (bool) :default => false
+
+      # ruby-kafka producer options
+      max_send_retries             (integer)     :default => 1
+      required_acks                (integer)     :default => -1
+      ack_timeout                  (integer)     :default => nil (Use default of ruby-kafka)
+      compression_codec            (gzip|snappy) :default => nil (No compression)
+
+    {{- else if eq .Values.output.type "syslog" }}
+      @type remote_syslog
+      host_with_port "#{ENV['OUTPUT_SYSLOG_HOST']}"
+      severity "#{ENV['OUTPUT_SYSLOG_SEVERITY']}"
+      program "#{ENV['OUTPUT_SYSLOG_PROGRAM']}"
+      hostname ${tag[1]}
+
+      {{- if eq .Values.env.OUTPUT_SYSLOG_PROTOCOL "udp" }}
+      protocol udp
+      {{- else if eq .Values.env.OUTPUT_SYSLOG_PROTOCOL "tcp" }}
+      protocol tcp
+      tls true
+      ca_file /fluentd/etc/ssl/ca.pem
+      {{- end }}
+
+      {{- if .Values.env.OUTPUT_SYSLOG_TOKEN }}
+      <filter **>
+        @type record_transformer
+        <record>
+          tag ${tag} "#{ENV['OUTPUT_SYSLOG_TOKEN']}"
+        </record>
+      </filter>
+      {{- end }}
+
+    {{- else if eq .Values.output.type "splunk_hec" }}
+      @type splunk_hec
+      host "#{ENV['OUTPUT_SPLUNK_HOST']}"
+      port "#{ENV['OUTPUT_SPLUNK_PORT']}"
+      token "#{ENV['OUTPUT_SPLUNK_TOKEN']}"
+
+      # metadata parameter
+      # default_source fluentd
+      sourcetype "#{ENV['OUTPUT_SPLUNK_SOURCE_TYPE']}"
+      index_key "#{ENV['OUTPUT_SPLUNK_INDEX']}"
+
+      {{- if and .Values.env.OUTPUT_SPLUNK_ACK .Values.env.OUTPUT_SPLUNK_CHANNEL }}
+      # ack parameter
+      use_ack true
+      channel "#{ENV['OUTPUT_SPLUNK_CHANNEL']}"
+      ack_retry 8
+      {{- end }}
+
+      # ssl parameter
+      # use_ssl true
+      # ca_file /path/to/ca.pem
+    {{- end }}
+      # fluentd file buffer config
+      <buffer>
+        @type file
+        path /var/log/fluentd-buffers/*.buffer
+        flush_mode interval
+        retry_type exponential_backoff
+        flush_thread_count 2
+        flush_interval "#{ENV['OUTPUT_BUFFER_FLUSH_INTERVAL']}"
+        retry_forever
+        retry_max_interval 30
+        chunk_limit_size "#{ENV['OUTPUT_BUFFER_CHUNK_LIMIT']}"
+        queue_limit_length "#{ENV['OUTPUT_BUFFER_QUEUE_LIMIT']}"
+        overflow_action block
+      </buffer>
+    </match>
+    {{- end }}
