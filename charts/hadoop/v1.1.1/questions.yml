@@ -1,0 +1,173 @@
+categories:
+- hadoop
+questions:
+- variable: defaultImage
+  default: "true"
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: image.repository
+    default: "danisla/hadoop"
+    description: "Hadoop image name"
+    type: string
+    label: Hadoop Image Name
+  - variable: image.tag
+    default: "2.7.3"
+    description: "Hadoop image tag"
+    type: string
+    label: Hadoop Image Tag
+  - variable: zeppelin.zeppelin.image.repository
+    default: "dylanmei/zeppelin"
+    description: "Zeppelin image name"
+    type: string
+    label: Zeppelin Image Name
+  - variable: zeppelin.zeppelin.image.tag
+    default: "0.7.2"
+    description: "Zeppelin image tag"
+    type: string
+    label: Zeppelin Image Tag
+- variable: yarn.nodeManager.replicas
+  default: 2
+  description: "The number of YARN NodeManager instances"
+  type: int
+  min: 2
+  max: 100
+  group: "YARN Node Manager"
+- variable: yarn.nodeManager.resources.requests.cpu
+  default: "1000m"
+  description: "The CPU resources allocated to each node manager pod, 1cpu=1000m"
+  label: "The CPU resources allocated to each node manager pod"
+  group: "YARN Node Manager"
+  type: string
+  required: true
+- variable: yarn.nodeManager.resources.requests.memory
+  default: "2048Mi"
+  description: "The memory resources allocated to each node manager pod, 1Gi=1024Mi"
+  label: "The memory resources allocated to each node manager pod"
+  type: string
+  group: "YARN Node Manager"
+  required: true
+- variable: persistence.nameNode.enabled
+  default: "false"
+  description: "Enable persistent volume for name node"
+  type: boolean
+  required: true
+  label: NameNode Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "YARN NameNode"
+  subquestions:
+  - variable: persistence.nameNode.size
+    default: "50Gi"
+    description: "NameNode Persistent Volume Size"
+    type: string
+    label: NameNode Volume Size
+    required: true
+  - variable: persistence.nameNode.storageClass
+    default: ""
+    description: "If undefined or set to null, using the default storageClass. Defaults to null."
+    type: storageclass
+    label: Storage Class for NameNode
+- variable: persistence.dataNode.enabled
+  default: "false"
+  description: "Enable persistent volume for DataNode"
+  type: boolean
+  required: true
+  label: DataNode Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "YARN DataNode"
+  subquestions:
+  - variable: persistence.dataNode.size
+    default: "50Gi"
+    description: "DataNode Persistent Volume Size"
+    type: string
+    label: DataNode Volume Size
+    required: true
+  - variable: persistence.dataNode.storageClass
+    default: ""
+    description: "If undefined or set to null, using the default storageClass. Defaults to null."
+    type: storageclass
+    label: Storage Class for DataNode
+- variable: yarn.ingress.enabled
+  default: "true"
+  description: "Expose YARN UI using Layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose YARN UI using Layer 7 Load Balancer
+  show_subquestion_if: true
+  group: "YARN UI"
+  required: true
+  subquestions:
+  - variable: yarn.ingress.hosts[0]
+    default: "xip.io"
+    description: "Hostname to your YARN UI installation"
+    type: hostname
+    required: true
+    label: Hostname
+- variable: yarn.service.type
+  default: "NodePort"
+  description: "yarn ui service type"
+  type: enum
+  group: "YARN UI"
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: YARN UI Service Type
+  show_subquestion_if: "NodePort"
+  show_if: "yarn.ingress.enabled=false"
+  subquestions:
+  - variable: yarn.service.nodePort
+    default: ""
+    description: "NodePort http port(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    show_if: "yarn.ingress.enabled=false"
+    label: YARN UI NodePort Number
+# zeppelin configurations
+- variable: zeppelin.enabled
+  default: true
+  description: "Enabled zeppelin chart"
+  type: boolean
+  label: Enabled Zeppelin Chart
+  group: "Zeppelin"
+- variable: zeppelin.ingress.enabled
+  default: "true"
+  description: "Expose Zeppelin using Layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose Zeppelin using Layer 7 Load Balancer
+  show_subquestion_if: true
+  group: "Zeppelin"
+  required: true
+  show_if: "zeppelin.enabled=true"
+  subquestions:
+  - variable: zeppelin.ingress.hosts[0]
+    default: "xip.io"
+    description: "Hostname to your Zeppelin installation"
+    type: hostname
+    required: true
+    label: Hostname
+    show_if: "zeppelin.enabled=true"
+- variable: zeppelin.service.type
+  default: "NodePort"
+  description: "yarn ui service type"
+  type: enum
+  group: "Zeppelin"
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: Zeppelin Service Type
+  show_subquestion_if: "NodePort"
+  show_if: "ingress.enabled=false&&zeppelin.enabled=true"
+  subquestions:
+  - variable: zeppelin.service.nodePort
+    default: ""
+    description: "NodePort http port(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    show_if: "ingress.enabled=false"
+    label: Zeppelin NodePort Number
