@@ -1,0 +1,159 @@
+labels:
+  io.cattle.role: project # options are cluster/project
+  io.rancher.app_min_version: 6.0.1
+questions:
+- variable: defaultImage
+  default: true
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: image.repository
+    default: "ranchercharts/bitnami-phpbb"
+    description: "phpBB image name"
+    type: string
+    label: phpBB Image Name
+  - variable: image.tag
+    default: "3.2.7-debian-9-r94"
+    description: "phpBB image tag"
+    type: string
+    label: Image Tag
+  - variable: mariadb.image.repository
+    default: "ranchercharts/bitnami-mariadb"
+    description: "phpBB image name"
+    type: string
+    label: phpBB Image Name
+  - variable: mariadb.image.tag
+    default: "10.3.17-debian-9-r0"
+    description: "phpBB image tag"
+    type: string
+    label: Image Tag
+- variable: phpbbUser
+  default: "admin"
+  description: "Username of the phpBB"
+  type: string
+  required: true
+  label: phpUser Usernname
+  group: "phpBB Settings"
+- variable: phpbbPassword
+  default: ""
+  description: "password will be auto-generated if not specified"
+  type: password
+  label: phpBB Password
+  group: "phpBB Settings"
+- variable: phpbbEmail
+  default: "user@example.com"
+  description: "phpBB email"
+  type: string
+  required: true
+  label: phpBB Admin Email
+  group: "phpBB Settings"
+- variable: service.type
+  default: "NodePort"
+  description: "phpBB Service type"
+  type: enum
+  options:
+    - "ClusterIP"
+    - "NodePort"
+    - "LoadBalancer"
+  required: true
+  label: phpBB Service Type
+  group: "phpBB Settings"
+- variable: service.loadBalancerIP
+  default: ""
+  description: "LoadBalancer IP of PhpBB Service"
+  type: string
+  required: true
+  label: phpBB LoadBalancer IP
+  show_if: "service.type=LoadBalancer"
+  group: "phpBB Settings"
+- variable: persistence.enabled
+  default: "false"
+  description: "Enable persistent volume for phpBB & Apache"
+  type: boolean
+  required: true
+  label: phpBB Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "phpBB Settings"
+  subquestions:
+  - variable: persistence.phpbb.size
+    default: "5Gi"
+    description: "phpBB Persistent Volume Size"
+    type: string
+    label: phpBB Volume Size
+  - variable: persistence.phpbb.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for phpBB
+# mariaDB configs
+- variable: mariadb.enabled
+  default: true
+  description: "Deploy a database server as part of this deployment, or set to false and configure an external database connection."
+  type: boolean
+  required: true
+  label: Install MariaDB
+  show_subquestion_if: true
+  group: "Database Settings"
+- variable: externalDatabase.host
+  default: ""
+  description: "Host of the external database"
+  type: string
+  label: External Database Host
+  show_if: "mariadb.enabled=false"
+  group: "Database Settings"
+- variable: externalDatabase.user
+  default: "bn_phpbb"
+  description: "Existing username in the external DB"
+  type: string
+  label: External Database username
+  show_if: "mariadb.enabled=false"
+  group: "Database Settings"
+- variable: externalDatabase.password
+  default: ""
+  description: "External database password"
+  type: password
+  label: External Database password
+  show_if: "mariadb.enabled=false"
+  group: "Database Settings"
+- variable: externalDatabase.database
+  default: "bitnami_phpbb"
+  description: "Name of the existing database"
+  type: string
+  label: External Database
+  show_if: "mariadb.enabled=false"
+  group: "Database Settings"
+- variable: externalDatabase.port
+  default: "3306"
+  description: "External database port number"
+  type: string
+  label: External Database Port
+  show_if: "mariadb.enabled=false"
+  group: "Database Settings"
+- variable: mariadb.master.persistence.enabled
+  default: false
+  description: "Enable persistent volume for MariaDB"
+  type: boolean
+  required: true
+  label: MariaDB Persistent Volume Enabled
+  show_if: "mariadb.enabled=true"
+  show_subquestion_if: true
+  group: "Database Settings"
+  subquestions:
+  - variable: mariadb.master.persistence.size
+    default: "10Gi"
+    description: "MariaDB Persistent Volume Size"
+    type: string
+    label: MariaDB Volume Size
+  - variable: mariadb.master.persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for MariaDB
+  - variable: mariadb.master.persistence.existingClaim
+    default: ""
+    description: "If not empty, uses the specified existing PVC instead of creating new one"
+    type: pvc
+    label: Existing Persistent Volume Claim for MariaDB Master
