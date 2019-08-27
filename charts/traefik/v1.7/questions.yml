@@ -1,0 +1,120 @@
+categories:
+- Proxy
+- Loadbalancer
+labels:
+- io.cattle.role: project
+questions:
+- variable: defaultImage
+  default: true
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  group: "General Settings"
+  show_subquestion_if: false
+  subquestions:
+  - variable: imageTag
+    default: "1.7.14"
+    description: "Traefik Image Tag"
+    type: string
+    label: Traefik Image Tag
+- variable: serviceType
+  type: enum
+  options:
+    - "LoadBalancer"
+    - "NodePort"
+    - "ClusterIP"
+  default: "Loadbalancer"
+  description: "Service Type for Traefik"
+  label: Service Type
+  group: "General Settings"
+- variable: debug.enabled
+  type: boolean
+  default: false
+  description: "Enable Debug Mode"
+  label: Debug
+  group: "General Settings"
+- variable: rbac.enabled
+  default: true
+  description: "Enable RBAC Settings"
+  label: RBAC
+  type: boolean
+  group: "General Settings"
+- variable: ssl.enabled
+  type: boolean
+  default: false
+  description: "Enable SSL"
+  label: SSL
+  show_subquestion_if: true
+  group: "SSL"
+  subquestions:
+  - variable: ssl.enforced
+    type: boolean
+    default: false
+    description: "Force HTTP to HTTPS"
+    label: Http to HTTPS
+  - variable: ssl.permanentRedirect
+    type: boolean
+    default: false
+    description: "Permanentely Redirect HTTP to HTTPS"
+    label: Permanent Redirects
+- variable: acme.enabled
+  type: boolean
+  default: false
+  description: "Enable Lets Encrypt"
+  label: Lets Encrypt
+  show_subquestion_if: true
+  group: "Lets Encrypt (ACME Protocol)"
+  show_if: "ssl.enabled=true"
+  subquestions:
+  - variable: ssl.email
+    type: string
+    default: "admin@example.com"
+    description: "E-Mail Adress to use"
+    label: E-Mail
+  - variable: ssl.onHostRule
+    type: boolean
+    default: true
+    description: "Generate Lets Encrypt Certificates on the Fly"
+    label: On Host
+  - variable: ssl.staging
+    type: boolean
+    default: true
+    description: "Generate Test Lets Encrypt Certificates to not use the Rate Limit"
+    label: Test Certificates (Staging)
+  - variable: ssl.logging
+    type: boolean
+    default: true
+    description: "Activate Lets Encrypt Logging"
+    label: Logging
+  - variable: ssl.challengeType
+    type: enum
+    options:
+      - "tls-alpn-01"
+      - "http-01"
+      - "dns-01"
+    default: "tls-alpn-01"
+    description: "Challengetype to use for Lets Encrypt Certificates"
+    label: Challengetype
+  - variable: persistence.enabled
+    type: boolean
+    default: true
+    description: "Enable Persistence for Lets Encrypt Certificates"
+    label: Persistence
+- variable: dashboard.enabled
+  default: false
+  description: "Enable Dashboard"
+  label: Enable
+  type: boolean
+  group: "Dashboard"
+  show_subquestion_if: true
+  subquestions:
+  - variable: dashboard.domain
+    type: string
+    default: "traefik.example.com"
+    description: "E-Mail Adress to use"
+    label: Domain
+  - variable: dashboard.auth.basic
+    type: string
+    default: ""
+    description: "Basic-Aut Protection for Dashboard"
+    label: Basic Auth
