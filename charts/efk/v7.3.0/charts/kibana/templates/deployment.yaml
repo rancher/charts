@@ -1,0 +1,151 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "fullname" . }}
+  labels:
+    app: {{ .Chart.Name }}
+    release: {{ .Release.Name | quote }}
+    {{- range $key, $value := .Values.labels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+spec:
+  replicas: {{ .Values.replicas }}
+  strategy:
+{{ toYaml .Values.updateStrategy | indent 4 }}
+  selector:
+    matchLabels:
+      app: kibana
+      release: {{ .Release.Name | quote }}
+  template:
+    metadata:
+      labels:
+        app: kibana
+        release: {{ .Release.Name | quote }}
+      annotations:
+        {{- range $key, $value := .Values.podAnnotations }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
+        {{/* This forces a restart if the configmap has changed */}}
+        {{- if .Values.kibanaConfig }}
+        configchecksum: {{ include (print .Template.BasePath "/configmap.yaml") . | sha256sum | trunc 63 }}
+        {{- end }}
+    spec:
+{{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName }}
+{{- end }}
+      securityContext:
+{{ toYaml .Values.podSecurityContext | indent 8 }}
+      {{- if .Values.serviceAccount }}
+      serviceAccount: {{ .Values.serviceAccount }}
+      {{- end }}
+      volumes:
+        {{- range .Values.secretMounts }}
+        - name: {{ .name }}
+          secret:
+            secretName: {{ .secretName }}
+        {{- end }}
+        {{- if .Values.kibanaConfig }}
+        - name: kibanaconfig
+          configMap:
+            name: {{ template "fullname" . }}-config
+        {{- end }}
+        - name: kibana-nginx
+          configMap:
+            name: {{ template "fullname" . }}-nginx
+            items:
+            - key: nginx.conf
+              mode: 438
+              path: nginx.conf
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.imagePullSecrets | indent 8 }}
+    {{- end }}
+      containers:
+      - name: kibana-proxy
+        image: {{ .Values.global.nginxProxy.repository }}:{{ .Values.global.nginxProxy.tag }}
+        args:
+        - nginx
+        - -g
+        - daemon off;
+        - -c
+        - /nginx/nginx.conf
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+        volumeMounts:
+        - name: kibana-nginx
+          mountPath: /nginx/
+        {{- if and .Values.resources .Values.resources.proxy }}
+        resources:
+{{ toYaml .Values.resources.proxy | indent 10 }}
+        {{- end }}
+      - name: kibana
+        securityContext:
+{{ toYaml .Values.securityContext | indent 10 }}
+        image: "{{ .Values.image }}:{{ .Values.imageTag }}"
+        imagePullPolicy: "{{ .Values.imagePullPolicy }}"
+        env:
+          {{- if .Values.elasticsearchURL }}
+          - name: ELASTICSEARCH_URL
+            value: "{{ .Values.elasticsearchURL }}"
+          {{- else if .Values.elasticsearchHosts }}
+          - name: ELASTICSEARCH_HOSTS
+            value: "{{ .Values.elasticsearchHosts }}"
+          {{- end }}
+          - name: I18N_LOCALE
+            value: "{{ .Values.language }}"
+          - name: SERVER_HOST
+            value: "{{ .Values.serverHost }}"
+{{- if .Values.extraEnvs }}
+{{ toYaml .Values.extraEnvs | indent 10 }}
+{{- end }}
+        readinessProbe:
+{{ toYaml .Values.readinessProbe | indent 10 }}
+          exec:
+            command:
+              - sh
+              - -c
+              - |
+                #!/usr/bin/env bash -e
+                http () {
+                    local path="${1}"
+                    set -- -XGET -s --fail
+
+                    if [ -n "${ELASTIC_USERNAME}" ] && [ -n "${ELASTIC_PASSWORD}" ]; then
+                      set -- "$@" -u "${ELASTIC_USERNAME}:${ELASTIC_PASSWORD}"
+                    fi
+
+                    curl -k "$@" "{{ .Values.protocol }}://localhost:{{ .Values.httpPort }}${path}"
+                }
+
+                http "{{ .Values.healthCheckPath }}"
+        ports:
+        - containerPort: {{ .Values.httpPort }}
+        resources:
+{{ toYaml .Values.resources | indent 10 }}
+        volumeMounts:
+          {{- range .Values.secretMounts }}
+          - name: {{ .name }}
+            mountPath: {{ .path }}
+            {{- if .subPath }}
+            subPath: {{ .subPath }}
+            {{- end }}
+          {{- end }}
+          {{- range $path, $config := .Values.kibanaConfig }}
+          - name: kibanaconfig
+            mountPath: /usr/share/kibana/config/{{ $path }}
+            subPath: {{ $path }}
+          {{- end -}}
