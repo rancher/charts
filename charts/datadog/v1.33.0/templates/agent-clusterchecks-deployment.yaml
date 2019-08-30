@@ -1,5 +1,5 @@
 {{- if and .Values.clusterAgent.enabled .Values.clusterAgent.clusterChecks.enabled .Values.clusterchecksDeployment.enabled -}}
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ template "datadog.fullname" . }}-clusterchecks
@@ -9,6 +9,9 @@ metadata:
     release: {{ .Release.Name | quote }}
     heritage: {{ .Release.Service | quote }}
 spec:
+  selector:
+    matchLabels:
+      app: {{ template "datadog.fullname" . }}-clusterchecks
   replicas: {{ .Values.clusterchecksDeployment.replicas }}
   template:
     metadata:

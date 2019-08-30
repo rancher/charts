@@ -1,6 +1,6 @@
 {{- if .Values.deployment.enabled }}
 {{- if (or (.Values.datadog.apiKeyExistingSecret) (.Values.datadog.apiKey)) }}
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ template "datadog.fullname" . }}
@@ -10,6 +10,10 @@ metadata:
     release: {{ .Release.Name | quote }}
     heritage: {{ .Release.Service | quote }}
 spec:
+  selector:
+    matchLabels:
+      app: {{ template "datadog.fullname" . }}
+      type: deployment
   replicas: {{ .Values.deployment.replicas }}
   template:
     metadata:

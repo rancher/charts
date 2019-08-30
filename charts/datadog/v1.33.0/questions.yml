@@ -1,5 +1,6 @@
 labels:
   io.cattle.role: cluster # options are cluster/project
+rancher_min_version: 2.3.0
 questions:
 #image configurations
 - variable: defaultImage
@@ -63,7 +64,14 @@ questions:
   required: true
   label: Datadog Metrics App Key
   group: "Cluster Agent"
-  show_if: "clusterAgent.enabled=true&&clusterAgent.metricsProvider.enabled=true"
+  show_if: "clusterAgent.enabled=true&&clusterAgent.metricsProvider.enabled=true&&datadog.appKeyExistingSecret="
+- variable: datadog.appKeyExistingSecret
+  default: ""
+  description: "If set, use the secret with a provided name instead of creating a new appKey secret."
+  type: secret
+  label: Select Existing Datadog App Key(Secret)
+  group: "Cluster Agent"
+  show_if: "clusterAgent.enabled=true&&clusterAgent.metricsProvider.enabled=true&&datadog.appKey="
 #datadog agent configurations
 - variable: datadog.apiKey
   default: ""
@@ -72,6 +80,14 @@ questions:
   label: Datadog API Key
   group: "Agent Configuration"
   required: true
+  show_if: "datadog.apiKeyExistingSecret="
+- variable: datadog.apiKeyExistingSecret
+  default: ""
+  description: "If set, use the secret with a provided name instead of creating a new apiKey secret."
+  type: secret
+  label: Select Existing Datadog API Key(Secret)
+  group: "Agent Configuration"
+  show_if: "datadog.apiKey="
 - variable: datadog.site
   default: "datadoghq.com"
   description: "The site of the Datadog intake to send Agent data to"

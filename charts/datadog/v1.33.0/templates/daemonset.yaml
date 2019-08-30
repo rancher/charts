@@ -1,6 +1,6 @@
 {{- if .Values.daemonset.enabled }}
 {{- if (or (.Values.datadog.apiKeyExistingSecret) (.Values.datadog.apiKey)) }}
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: {{ template "datadog.fullname" . }}
@@ -10,6 +10,9 @@ metadata:
     release: {{ .Release.Name | quote }}
     heritage: {{ .Release.Service | quote }}
 spec:
+  selector:
+    matchLabels:
+      app: {{ template "datadog.fullname" . }}
   template:
     metadata:
       labels:
@@ -119,6 +122,12 @@ spec:
 {{- end }}
       {{- if .Values.daemonset.tolerations }}
       tolerations:
+      {{- if .Values.daemonset.rkeETCDControlPlane }}
+      - key: "node-role.kubernetes.io/etcd"
+        value: "true"
+      - key: "node-role.kubernetes.io/controlplane"
+        value: "true"
+      {{- end }}
 {{ toYaml .Values.daemonset.tolerations | indent 8 }}
       {{- end }}
       {{- if .Values.daemonset.affinity }}
