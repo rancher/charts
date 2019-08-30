@@ -44,13 +44,13 @@ Create an application key at https://app.datadoghq.com/account/settings#api
     {{- end }}
   {{- end }}
 
-  {{- if not .Values.clusterAgent.token }}
+  {{- if and (not .Values.clusterAgent.token) (not .Values.clusterAgent.tokenExistingSecret) }}
 
 ##############################################################################
 ####               INFO: You did not set a clusterAgent.token            ####
 ##############################################################################
 
-Because you enabled the Cluster Agent but did not provide a token, a random token was generated.
+Because you enabled the Cluster Agent but did not either provide a token or a reference to an existing token via '{{ .Values.clusterAgent.tokenExistingSecret }}', a random token was generated.
 This token is used to secure the communication between the Agents and the Cluster Agent.
 
 Make sure to recreate all pods on upgrade (with the --recreate-pods flag) to ensure all
@@ -64,6 +64,23 @@ agents use the same shared token.
 The datadog agent is listening on port 8126.
 {{- end }}
 
+{{- if (and (.Values.daemonset.enabled) (.Values.deployment.enabled)) }}
+
+#################################################################
+####               WARNING: Deprecation notice               ####
+#################################################################
+
+Simultaneous DaemonSet + Deployment installation within a single
+release will be deprecated in a future version. You will still be
+able to run both as separate releases with separate value files.
+
+Running as a Deployment is not necessary for event collection
+anymore, thanks to the leader election feature.
+
+We encourage you to migrate to a single DaemonSet, or split your
+chart if your use case still requires a separate Deployment.
+{{- end }}
+
 {{- if .Values.datadog.autoconf }}
 
 #################################################################
@@ -72,7 +89,7 @@ The datadog agent is listening on port 8126.
 
 The autoconf value is deprecated, Autodiscovery templates can now
 be safely moved to the confd value. As a temporary measure, both
-values were merged into the {{ template "datadog.confd.fullname" . }} configmap,
+values were merged into the {{ template "datadog.fullname" . }}-confd configmap,
 but this will be removed in a future chart release.
 Please note that duplicate file names may have conflicted during
 the merge. In that case, the confd entry will take precedence.
