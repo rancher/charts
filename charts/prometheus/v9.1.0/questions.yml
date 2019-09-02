@@ -1,0 +1,357 @@
+categories:
+- Monitoring
+labels:
+  io.cattle.role: cluster # options are cluster/project
+questions:
+# Docker image configurations
+- variable: defaultImage
+  default: true
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: server.image.repository
+    default: "ranchercharts/prom-prometheus"
+    description: "Prometheus image name"
+    type: string
+    label: Prometheus Image Name
+  - variable: server.image.tag
+    default: "v2.11.1"
+    description: "Prometheus image tag"
+    type: string
+    label: Prometheus Image Tag
+  - variable: alertmanager.image.repository
+    default: "ranchercharts/prom-alertmanager"
+    description: "Alertmanager image name"
+    type: string
+    label: Alertmanager Image Name
+    show_if: "alertmanager.enabled=true"
+  - variable: alertmanager.image.tag
+    default: "v0.18.0"
+    description: "Alertmanager image tag"
+    type: string
+    label: Alertmanager Image Tag
+    show_if: "alertmanager.enabled=true"
+  - variable: nodeExporter.image.repository
+    default: "ranchercharts/prom-node-exporter"
+    description: "Node exporter image name"
+    type: string
+    label: NodeExporter Image Name
+  - variable: nodeExporter.image.tag
+    default: "v0.18.0"
+    description: "Node exporter image tag"
+    type: string
+    label: NodeExporter Image Tag
+  - variable: pushgateway.image.repository
+    default: "ranchercharts/prom-pushgateway"
+    description: "Pushgateway image name"
+    type: string
+    label: Pushgateway Image Name
+  - variable: pushgateway.image.tag
+    default: "v0.8.0"
+    description: "Pushgateway image tag"
+    type: string
+    label: Pushgateway Image Tag
+  - variable: kubeStateMetrics.image.repository
+    default: "ranchercharts/coreos-kube-state-metrics"
+    description: "Kube-state-metrics image name"
+    type: string
+    label: KubeStateMetrics Image Name
+  - variable: kubeStateMetrics.image.tag
+    default: "v1.7.2"
+    description: "Kube-state-metrics image tag"
+    type: string
+    label: KubeStateMetrics Image Tag
+  - variable: grafana.image.repository
+    default: "ranchercharts/grafana-grafana"
+    description: "Grafana image name"
+    type: string
+    label: Grafana Image Name
+  - variable: grafana.image.tag
+    default: "6.3.4"
+    description: "Grafana image tag"
+    type: string
+    label: Grafana Image Tag
+  - variable: grafana.sidecar.image
+    default: "ranchercharts/kiwigrid-k8s-sidecar:0.1.20"
+    description: "Sidecar image name"
+    type: string
+    label: Sidecar Image Name
+  - variable: grafana.downloadDashboardsImage.repository
+    default: "ranchercharts/appropriate-curl"
+    description: "Grafana Download Dashboard image name"
+    type: string
+    label: Grafana Download Dashboard Image Name
+  - variable: grafana.downloadDashboardsImage.tag
+    default: "latest"
+    description: "Grafana Download Dashboard image tag"
+    type: string
+    label: Grafana Download Dashboard Image Tag
+# server configurations
+- variable: server.ingress.enabled
+  default: false
+  description: "Expose prometheus using Layer 7 Load Balancer - ingress"
+  type: boolean
+  group: "Prometheus Server"
+  label: Expose Prometheus using Layer 7 Load Balancer
+  show_subquestion_if: true
+  required: true
+  subquestions:
+  - variable: server.ingress.hosts[0]
+    default: "xip.io"
+    description: "Prometheus server ingress hostname"
+    type: hostname
+    required: true
+    label: Hostname
+- variable: server.service.type
+  default: "NodePort"
+  description: "Server service type"
+  group: "Prometheus Server"
+  type: enum
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: Prometheus Service Type
+  show_subquestion_if: "NodePort"
+  subquestions:
+  - variable: server.service.nodePort
+    default: ""
+    description: "NodePort http port(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    label: Prometheus NodePort Http Port
+    show_if: "server.ingress.enabled=false&&server.service.type=NodePort"
+- variable: server.persistentVolume.enabled
+  default: false
+  description: "If true, prometheus will create a persistent volume claim"
+  type: boolean
+  group: "Prometheus Server"
+  required: true
+  label: Create Persistent Volume for Prometheus
+  show_subquestion_if: true
+  subquestions:
+  - variable: server.persistentVolume.size
+    default: "8Gi"
+    description: "Prometheus data persistent volume size"
+    type: string
+    label: Prometheus Persistent Volume Size
+  - variable: server.persistentVolume.storageClass
+    default: ""
+    description: "Prometheus data persistent volume storageClass, if not set use default StorageClass"
+    type: storageclass
+    label: Prometheus Persistent Volume StorageClass
+  - variable: server.persistentVolume.existingClaim
+    default: ""
+    description: "If not empty, uses the specified existing PVC instead of creating new one"
+    type: pvc
+    label: Existing Persistent Volume Claim for Prometheus
+# alertmanager configurations
+- variable: alertmanager.enabled
+  default: true
+  description: "Select to create alertmanager"
+  type: boolean
+  group: "Alertmanager"
+  label: Enable Alertmanager
+- variable: alertmanager.ingress.enabled
+  default: false
+  description: "Expose alertmanager using Layer 7 Load Balancer - ingress"
+  type: boolean
+  group: "Alertmanager"
+  label: Expose Alertmanager using Layer 7 Load Balancer
+  show_if: "alertmanager.enabled=true"
+  show_subquestion_if: true
+  required: true
+  subquestions:
+  - variable: alertmanager.ingress.hosts[0]
+    default: "xip.io"
+    description: "Hostname to your alertmanager installation"
+    type: hostname
+    required: true
+    label: Hostname
+    show_if: "alertmanager.enabled=true"
+- variable: alertmanager.service.type
+  default: "NodePort"
+  description: "Alertmanager service type"
+  type: enum
+  show_if: "alertmanager.ingress.enabled=false&&alertmanager.enabled=true"
+  group: "Alertmanager"
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: Alertmanager Service Type
+  show_subquestion_if: "NodePort"
+  subquestions:
+  - variable: alertmanager.service.nodePort
+    default: ""
+    description: "NodePort http port(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    label: Alertmanager NodePort Http Port
+    show_if: "alertmanager.enabled=true&&alertmanager.ingress.enabled=false"
+- variable: alertmanager.persistentVolume.enabled
+  default: false
+  description: "If true, alertmanager will create a persistent volume claim"
+  type: boolean
+  required: true
+  group: "Alertmanager"
+  label: Create Persistent Volume for Alertmanager
+  show_if: "alertmanager.enabled=true"
+  show_subquestion_if: true
+  subquestions:
+  - variable: alertmanager.persistentVolume.size
+    default: "2Gi"
+    description: "Alertmanager data persistent volume size"
+    type: string
+    label: Alertmanager Persistent Volume Size
+    show_if: "alertmanager.enabled=true"
+  - variable: alertmanager.persistentVolume.storageClass
+    default: ""
+    description: "Alertmanager data persistent volume storageClass, if not set use default StorageClass"
+    type: storageclass
+    label: Alertmanager Persistent Volume StorageClass
+    show_if: "alertmanager.enabled=true"
+  - variable: alertmanager.persistentVolume.existingClaim
+    default: ""
+    description: "If not empty, uses the specified existing PVC instead of creating new one"
+    type: pvc
+    label: Existing Persistent Volume Claim for AlertManager
+# Grafana configurations
+- variable: grafana.enabled
+  default: false
+  description: "Create Grafana Dashboard"
+  type: boolean
+  group: "Grafana Settings"
+  label: Enable Grafana Dashboard
+  show_subquestion_if: "true"
+  subquestions:
+  - variable: grafana.admin.existingSecret
+    default: ""
+    description: "The name of an existing secret containing the admin credentials."
+    type: secret
+    group: "Grafana Settings"
+    label: Select Existing Admin Secret
+  - variable: grafana.adminUser
+    default: "admin"
+    description: "Grafana admin username"
+    type: string
+    group: "Grafana Settings"
+    label: Grafana Admin Username
+    required: true
+    show_if: "grafana.admin.existingSecret="
+  - variable: grafana.adminPassword
+    default: ""
+    description: "Grafana admin password"
+    type: password
+    group: "Grafana Settings"
+    label: Grafana Admin Password
+    show_if: "grafana.admin.existingSecret="
+  - variable: rbac.namespaced
+    default: true
+    description: "Creates Role and Rolebinding instead of the default ClusterRole and ClusteRoleBindings for the grafana instance."
+    type: boolean
+    group: "Grafana Settings"
+    label: Set Grafana RBAC to Namespaced
+    show_if: "grafana.admin.existingSecret="
+- variable: grafana.persistence.enabled
+  default: false
+  description: "Enable persistent volume for Grafana"
+  type: boolean
+  required: true
+  label: Grafana Persistent Volume Enabled
+  show_if: "grafana.enabled=true"
+  show_subquestion_if: true
+  group: "Grafana Settings"
+  subquestions:
+  - variable: grafana.persistence.size
+    default: "8Gi"
+    description: "Grafana Persistent Volume Size"
+    type: string
+    label: Grafana Volume Size
+    required: true
+  - variable: grafana.persistence.storageClass
+    default: ""
+    description: "If undefined or set to null, using the default storageClass. Defaults to null."
+    type: storageclass
+    label: Storage Class for Grafana
+  - variable: grafana.persistence.existingClaim
+    default: ""
+    description: "If not empty, uses the specified existing PVC instead of creating new one"
+    type: pvc
+    label: Existing Persistent Volume Claim for Grafana
+- variable: grafana.ingress.enabled
+  default: false
+  description: "Expose grafana using Layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose Grafana using Layer 7 Load Balancer
+  show_if: "grafana.enabled=true"
+  show_subquestion_if: true
+  group: "Grafana Settings"
+  required: true
+  subquestions:
+  - variable: grafana.ingress.hosts[0]
+    default: "xip.io"
+    description: "Hostname to your grafana installation"
+    type: hostname
+    required: true
+    label: Hostname
+- variable: grafana.service.type
+  default: "NodePort"
+  description: "Grafana service type"
+  type: enum
+  show_if: "grafana.enabled=true"
+  group: "Grafana Settings"
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: Grafana Service Type
+  show_subquestion_if: "NodePort"
+  subquestions:
+  - variable: grafana.service.nodePort
+    default: ""
+    description: "NodePort http port(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    show_if: "grafana.ingress.enabled=false&&grafana.enabled=true"
+    label: Grafana NodePort Number
+# push-gateway configs
+- variable: pushgateway.enabled
+  default: true
+  description: "Select whether to create pushgateway"
+  type: boolean
+  group: "Pushgateway"
+  label: Enable Pushgateway
+- variable: pushgateway.persistentVolume.enabled
+  default: false
+  description: "If true, pushgateway will create a persistent volume claim"
+  type: boolean
+  required: true
+  group: "Pushgateway"
+  label: Create Persistent Volume for Pushgateway
+  show_if: "pushgateway.enabled=true"
+  show_subquestion_if: true
+  subquestions:
+  - variable: pushgateway.persistentVolume.size
+    default: "2Gi"
+    description: "Pushgateway data persistent volume size"
+    type: string
+    label: Pushgateway Persistent Volume Size
+    show_if: "pushgateway.enabled=true"
+  - variable: pushgateway.persistentVolume.storageClass
+    default: ""
+    description: "Pushgateway data persistent volume storageClass, if not set use default StorageClass"
+    type: storageclass
+    label: Pushgateway Persistent Volume StorageClass
+    show_if: "pushgateway.enabled=true"
+  - variable: pushgateway.persistentVolume.existingClaim
+    default: ""
+    description: "If not empty, uses the specified existing PVC instead of creating new one"
+    type: pvc
+    label: Existing Persistent Volume Claim for AlertManager
