@@ -1,0 +1,140 @@
+categories:
+- Database
+- NoSQL
+questions:
+- variable: defaultImage
+  default: "true"
+  description: "Use default Docker images"
+  label: Use Default Images
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: image.repository
+    default: "bitnami/mongodb"
+    description: "MongoDB image name"
+    type: string
+    label: MongoDB Image Name
+  - variable: image.tag
+    default: "4.0.3"
+    description: "MongoDB image tag"
+    type: string
+    label: Image Tag
+  - variable: metrics.image.repository
+    default: "forekshub/percona-mongodb-exporter"
+    description: "MongoDB metrics image name"
+    type: string
+    label: MongoDB Metrics Image Name
+    show_if: "defaultImage=false&&metrics.enabled=true"
+  - variable: metrics.image.tag
+    default: "latest"
+    description: "MongoDB metrics image tag"
+    type: string
+    label: Image Metrics Tag
+    show_if: "defaultImage=false&&metrics.enabled=true"
+- variable: usePassword
+  default: true
+  description: "Enable Password Authentication"
+  type: boolean
+  label: Enable Password Authentication
+  required: true
+  show_subquestion_if: true
+  group: "MongoDB Settings"
+  subquestions:
+  - variable: mongodbUsername
+    default: "username"
+    description: "MongoDB username"
+    type: string
+    label: MongoDB Username
+    required: true
+  - variable: mongodbPassword
+    default: "password"
+    description: "MongoDB Password"
+    type: password
+    label: MongoDB Password
+  - variable: mongodbDatabase
+    default: "database"
+    description: "MongoDB Database"
+    type: string
+    label: MongoDB Database
+    required: true
+- variable: replicaSet.enabled
+  default: true
+  description: "Switch to standalone or replicaSet mongodb instance"
+  type: boolean
+  label: Enable MongoDB ReplicaSet
+  required: true
+  group: "ReplicaSet Configuration"
+  show_subquestion_if: true
+  subquestions:
+  - variable: replicaSet.name
+    default: "rs0"
+    description: "Name of the replica set"
+    type: string
+    label: ReplicaSet Name
+    required: true
+  - variable: replicaSet.key
+    default: ""
+    description: "Key used for replica set authentication, will be auto-generated if not set"
+    type: string
+    label: ReplicaSet Auth Key
+- variable: persistence.enabled
+  default: "false"
+  description: "Enable persistent volume for MongoDB"
+  type: boolean
+  required: true
+  label: MongoDB Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "Persistent Volume"
+  subquestions:
+  - variable: persistence.size
+    default: "8Gi"
+    description: "MongoDB Persistent Volume Size"
+    type: string
+    label: MongoDB Volume Size
+    required: true
+  - variable: persistence.storageClass
+    default: ""
+    description: "If undefined or set to null, using the default storageClass. Defaults to null."
+    type: storageclass
+    label: Storage Class for MongoDB
+  - variable: persistence.existingClaim
+    default: ""
+    description: "If not empty, uses the specified existing PVC instead of creating new one"
+    type: pvc
+    label: Uses Existing Persistent Volume Claim for LocalStorage
+    show_if: "persistence.enabled=true&&replicaSet.enabled=false"
+- variable: service.type
+  default: "ClusterIP"
+  description: "MongoDB Kubernetes Service type"
+  type: enum
+  group: "Service Settings"
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: MongoDB Service Type
+  show_subquestion_if: "NodePort"
+  subquestions:
+  - variable: service.nodePort
+    default: ""
+    description: "NodePort port number(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    label: Service NodePort number
+- variable: metrics.enabled
+  default: true
+  description: "Start a side-car prometheus exporter"
+  type: boolean
+  required: true
+  label: Enable MongoDB Metrics
+  show_subquestion_if: true
+  group: "Metrics Settings"
+  subquestions:
+  - variable: metrics.serviceMonitor.enabled
+    default: false
+    description: "If the operator is installed in your cluster, set to true to create a Service Monitor Entry"
+    type: boolean
+    label: Create ServiceMonitor Resource for Scraping Metrics Using PrometheusOperator
+    required: true
