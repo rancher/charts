@@ -1,0 +1,138 @@
+{{- if .Values.cluster.create }}
+
+# ClusterRole, ClusterRoleBinding and ServiceAccounts have hook-failed in
+# hook-delete-policy to make it easy to rerun the whole setup even after a
+# failure, else the rerun fails with existing resource error.
+# Hook delete policy before-hook-creation ensures any other leftover resources
+# from previous run gets deleted when run again.
+# The Job resources will not be deleted to help investigage the failure.
+# Since the resources created by the operator are not managed by the chart, each
+# of them must be individually deleted in separate jobs.
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: storageos-cleanup
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-delete-policy": "hook-succeeded, hook-failed, before-hook-creation"
+    "helm.sh/hook-weight": "1"
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: storageos:cleanup
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-delete-policy": "hook-succeeded, hook-failed, before-hook-creation"
+    "helm.sh/hook-weight": "1"
+rules:
+# Using apiGroup "apps" for daemonsets fails and the permission error indicates
+# that it's in group "extensions". Not sure if it's a Job specific behavior,
+# because the daemonsets deployed by the operator use "apps" apiGroup.
+- apiGroups:
+  - extensions
+  resources:
+  - daemonsets
+  - deployments
+  verbs:
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  verbs:
+  - delete
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  - rolebindings
+  - clusterroles
+  - clusterrolebindings
+  verbs:
+  - delete
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - storageclasses
+  verbs:
+  - delete
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
+  - secrets
+  - services
+  - configmaps
+  verbs:
+  - delete
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: storageos:cleanup
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-delete-policy": "hook-succeeded, hook-failed, before-hook-creation"
+    "helm.sh/hook-weight": "2"
+subjects:
+- name: storageos-cleanup
+  kind: ServiceAccount
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  name: storageos:cleanup
+  kind: ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+# Iterate through the Values.cleanup list and create jobs to delete all the
+# unmanaged resources of the cluster.
+
+{{- range .Values.cleanup }}
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "storageos-{{ .name }}-cleanup"
+  namespace: {{ .namespace }}
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-delete-policy": "hook-succeeded, before-hook-creation"
+    "helm.sh/hook-weight": "3"
+spec:
+  template:
+    spec:
+      serviceAccountName: storageos-cleanup
+      containers:
+      - name: "storageos-{{ .name }}-cleanup"
+        image: bitnami/kubectl:1.14.1
+        command:
+          - kubectl
+          - -n
+          - {{ $.Values.cluster.namespace }}
+          - delete
+          {{- range .command }}
+          - {{ . | quote }}
+          {{- end }}
+          - --ignore-not-found=true
+      restartPolicy: Never
+  backoffLimit: 4
+
+---
+
+{{- end }}
+
+
+{{- end }}
