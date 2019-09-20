@@ -5,6 +5,7 @@ The [HPE FlexVolume Driver for Kubernetes](https://github.com/hpe-storage/flexvo
 
 - Upstream Kubernetes version > 1.10
 - Other Kubernetes distributions supported
+- Rancher 2.x
 - OpenShift 3.10, 3.11 (4.x will not be supported, see [CSI Driver Helm chart](https://github.com/hpe-storage/co-deployments/tree/master/helm/charts/hpe-csi-driver)
 - More distributions will be listed as tests are ongoing
 - Recent Ubuntu, CentOS or RHEL compute nodes connected to their respective official package repositories
@@ -28,7 +29,7 @@ The following table lists the configurable parameters of the HPE FlexVolume Driv
 | protocol           | Data plane protocol (`fc`, `iscsi`).                                                                 | iscsi       |
 | fsType             | Type of file to format volumes with (ext4, ext3, xfs, btrfs).                                        | xfs         |
 | mountConflictDelay | Wait this long (in seconds) before forcefully taking over a volume from an isolated or crashed node. | 150         |
-| flavor             | Kubernetes distribution specific tweaks. Currently only needed for `openshift`.                      | kubernetes           |
+| flavor             | Kubernetes distribution specific tweaks. Supported flavors include `rancher` and `openshift`.                      | kubernetes           |
 | podsMountDir       | This is the directory where the kubelet bind mounts the volume for pods. May differ between Kubernetes distributions.          | /var/lib/kubelet/pods     |
 | flexVolumeExec     | This is the path where the FlexVolume binary gets installed on the host.                             | default     |
 | storageClass.name  | The name to assign the created StorageClass.                                          | hpe-standard |
@@ -49,6 +50,14 @@ Applicable to Red Hat OpenShift 3.10 and 3.11. 4.x is not supported.
 | Key        | Value                     | Description                                                                        |
 |------------|---------------------------|------------------------------------------------------------------------------------|
 | podsMountDir | /var/lib/origin/openshift.local.volumes       | This is the directory where the kubelet bind mounts the volume for pods.            |
+
+#### Rancher
+Applicable to installing the Helm Chart via the Rancher catalog system.
+
+| Key        | Value                     | Description                                                                        |
+|------------|---------------------------|------------------------------------------------------------------------------------|
+| flavor     | rancher                   | Required and prepopulated by default.                                              |
+| podsMountDir | /var/lib/kubelet/volumeplugins       | This is the directory where the kubelet bind mounts the volume for pods. Required and prepopulated by default.|
 
 ## Installing the Chart
 To install the chart with the name `hpe-flexvolume`:
