@@ -1,0 +1,53 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: hpe-config
+  namespace: kube-system
+data:
+  volume-driver.json: |-
+    {{- if eq .Values.pluginType "nimble"}}
+    {
+      "global":   {},
+      "defaults": {
+                 "sizeInGiB": 10,
+                 "limitIOPS": -1,
+                 "limitMBPS": -1,
+                 "perfPolicy": "DockerDefault",
+                 "mountConflictDelay": 120
+                },
+      "overrides":{}
+    }
+    {{- else if eq .Values.pluginType "cv"}}
+    {
+      "global": {
+                "nameSuffix": ".docker",
+                "snapPrefix": "BaseFor",
+                "automatedConnection": true
+                },
+      "defaults": {
+                "sizeInGiB": 10,
+                "limitIOPS": 1000,
+                "description": "persistent volume for container",
+                "perfPolicy": "Other",
+                "destroyOnRm": true,
+                "mountConflictDelay": 120
+                  },
+      "overrides": {}
+    }
+    {{- else }}
+    {
+      "global":   {},
+      "defaults": {
+                 "sizeInGiB": 10
+                },
+      "overrides":{}
+    }
+    {{- end }}
+
+  {{- if eq .Values.flavor "rancher"}}
+  {{ .Values.pluginType }}.json: |-
+    {
+      "dockerVolumePluginSocketPath": "/host/etc/hpe-storage/{{ .Values.pluginType }}.sock"
+    }
+  {{- end }}
