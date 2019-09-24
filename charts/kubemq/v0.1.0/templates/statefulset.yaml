@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kubemq-cluster-{{ .Release.Name }}-state
+spec:
+  selector:
+    matchLabels:
+      app: kubemq-cluster-{{ .Release.Name }}
+  replicas: {{ .Values.replicaCount }}
+  serviceName: kubemq-cluster-{{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: kubemq-cluster-{{ .Release.Name }}
+    spec:
+      containers:
+        - env:
+            - name: KUBEMQ_TOKEN
+              value: {{ required "A Valid token value must be set" .Values.token }}
+            - name: CLUSTER_ROUTES
+              value: "kubemq-cluster-{{ .Release.Name }}-service:{{ .Values.clusterPort }}"
+            - name: CLUSTER_PORT
+              value: {{ .Values.clusterPort | quote }}
+            - name: CLUSTER_ENABLE
+              value: 'true'
+            - name: GRPC_PORT
+              value: {{ .Values.grpcPort | quote }}
+            - name: REST_PORT
+              value: {{ .Values.restPort | quote }}
+            - name: KUBEMQ_PORT
+              value: {{ .Values.kubeMQPort | quote  }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          name: kubemq-cluster-{{ .Release.Name }}
+          ports:
+            - containerPort: {{ .Values.grpcPort }}
+              name: grpc-port
+              protocol: TCP
+            - containerPort: {{ .Values.kubeMQPort }}
+              name: metrics-port
+              protocol: TCP
+            - containerPort: {{ .Values.restPort }}
+              name: rest-port
+              protocol: TCP
+            - containerPort: {{ .Values.clusterPort }}
+              name: cluster-port
+              protocol: TCP
+{{- if .Values.volume.enabled }}
+          volumeMounts:
+          - mountPath: {{ .Values.volume.mountPath | quote }}
+            name: {{ .Values.volume.name  }}-{{ .Release.Name }}
+  volumeClaimTemplates:
+  - metadata:
+      name: {{ .Values.volume.name  }}-{{ .Release.Name }}
+    spec:
+      accessModes:
+        - {{ .Values.volume.accessMode | quote }}
+    {{- if .Values.volume.storageClass }}
+    {{- if (eq "-" .Values.volume.storageClass) }}
+      storageClassName: ""
+    {{- else }}
+      storageClassName: "{{ .Values.volume.storageClass }}"
+    {{- end }}
+    {{- end }}
+      resources:
+        requests:
+          storage: "{{ .Values.volume.size }}"              
+{{ end }}              
+      restartPolicy: Always

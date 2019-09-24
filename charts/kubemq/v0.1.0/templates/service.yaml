@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubemq-cluster-{{ .Release.Name }}-service
+spec:
+  ports:
+    - name: metrics-port
+      port: {{ .Values.kubeMQPort }}
+      protocol: TCP
+      targetPort: {{ .Values.kubeMQPort }}
+    - name: grpc-port
+      port: {{ .Values.grpcPort }}
+      protocol: TCP
+      targetPort: {{ .Values.grpcPort }}
+    - name: cluster-port
+      port: {{ .Values.clusterPort }}
+      protocol: TCP
+      targetPort: {{ .Values.clusterPort }}
+    - name: rest-port
+      port: {{ .Values.restPort }}
+      protocol: TCP
+      targetPort: {{ .Values.restPort }}
+  sessionAffinity: None
+  type: {{ .Values.service.type }}
+  selector:
+    app: kubemq-cluster-{{ .Release.Name }}
