@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tidb-controller-manager
+  labels:
+    app.kubernetes.io/name: {{ template "chart.name" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: controller-manager
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+"  "_" }}
+spec:
+  replicas: {{ .Values.controllerManager.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ template "chart.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: controller-manager
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ template "chart.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: controller-manager
+    spec:
+    {{- if .Values.controllerManager.serviceAccount }}
+      serviceAccountName: {{ .Values.controllerManager.serviceAccount }}
+    {{- end }}
+      containers:
+      - name: tidb-operator
+        image: {{ .Values.operatorImage }}
+        imagePullPolicy: {{ .Values.imagePullPolicy | default "IfNotPresent" }}
+        resources:
+{{ toYaml .Values.controllerManager.resources | indent 12 }}
+        command:
+          - /usr/local/bin/tidb-controller-manager
+          - -default-storage-class-name={{ .Values.defaultStorageClassName }}
+          {{- if .Values.tidbBackupManagerImage }}
+          - -tidb-backup-manager-image={{ .Values.tidbBackupManagerImage }}
+          {{- end }}
+          {{- if .Values.defaultBackupStorageClassName }}
+          - -default-backup-storage-class-name={{ .Values.defaultBackupStorageClassName }}
+          {{- end }}
+          - -cluster-scoped={{ .Values.clusterScoped }}
+          - -auto-failover={{ .Values.controllerManager.autoFailover | default true }}
+          - -pd-failover-period={{ .Values.controllerManager.pdFailoverPeriod | default "5m" }}
+          - -tikv-failover-period={{ .Values.controllerManager.tikvFailoverPeriod | default "5m" }}
+          - -tidb-failover-period={{ .Values.controllerManager.tidbFailoverPeriod | default "5m" }}
+          - -v={{ .Values.controllerManager.logLevel }}
+          {{- if .Values.testMode }}
+          - -test-mode={{ .Values.testMode }}
+          {{- end}}
+        env:
+          - name: NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: TZ
+            value: {{ .Values.timezone | default "UTC" }}
+    {{- with .Values.controllerManager.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.controllerManager.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.controllerManager.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}
