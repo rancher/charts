@@ -1,12 +1,11 @@
-# HPE FlexVolume Driver for Kubernetes Helm chart
-The [HPE FlexVolume Driver for Kubernetes](https://github.com/hpe-storage/flexvolume-driver) leverages HPE storage platforms to provide scalable and persistent storage for stateful applications. This chart also deploys the [HPE Dynamic Provisioner for Kubernetes](https://github.com/hpe-storage/k8s-dynamic-provisioner).
+# HPE Volume Driver for Kubernetes FlexVolume Plugin Helm chart
+The [HPE Volume Driver for Kubernetes FlexVolume Plugin](https://github.com/hpe-storage/flexvolume-driver) leverages HPE storage platforms to provide scalable and persistent storage for stateful applications. This chart also deploys the [HPE Dynamic Provisioner for Kubernetes](https://github.com/hpe-storage/k8s-dynamic-provisioner).
 
 ## Prerequisites
 
 - Upstream Kubernetes version > 1.10
 - Other Kubernetes distributions supported
 - Rancher 2.x
-- OpenShift 3.10, 3.11 (4.x will not be supported, see [CSI Driver Helm chart](https://github.com/hpe-storage/co-deployments/tree/master/helm/charts/hpe-csi-driver)
 - More distributions will be listed as tests are ongoing
 - Recent Ubuntu, CentOS or RHEL compute nodes connected to their respective official package repositories
 
@@ -18,7 +17,7 @@ Depending on which `pluginType` is being used, other prerequisites and requireme
 - NimbleOS 5.1.3 or later
 
 ## Configuration & Installation
-The following table lists the configurable parameters of the HPE FlexVolume Driver chart and their default values.
+The following table lists the configurable parameters of the HPE Volume Driver for Kubernetes FlexVolume Plugin chart and their default values.
 
 |  Parameter                |  Description                                                                                       |  Default    |
 |---------------------------|----------------------------------------------------------------------------------------------------|------------ |
@@ -42,14 +41,7 @@ It's recommended to create a [values.yaml](https://github.com/hpe-storage/co-dep
 Certain distributions demand certain tweaks to the variables for the driver and dynamic provisioner to operate correctly. See each platform for details.
 
 #### Upstream Kubernetes
-This is the default operating mode, no tweaks are needed.
-
-#### Red Hat OpenShift and OKD
-Applicable to Red Hat OpenShift 3.10 and 3.11. 4.x is not supported.
-
-| Key        | Value                     | Description                                                                        |
-|------------|---------------------------|------------------------------------------------------------------------------------|
-| podsMountDir | /var/lib/origin/openshift.local.volumes       | This is the directory where the kubelet bind mounts the volume for pods.            |
+This is the default operating mode, no tweaks are needed.           |
 
 #### Rancher
 Applicable to installing the Helm Chart via the Rancher catalog system.
@@ -92,11 +84,11 @@ helm install --name hpe-flexvolume hpe/hpe-flexvolume-driver \
 --set protocol=iscsi --set fsType=xfs --set mountConflictDelay=120
 ```
 
-## Using the HPE FlexVolume Driver for Kubernetes
-To enable dynamic provisioning of `PersistentVolume` through the use of `PersistentVolumeClaim` API objects, a `StorageClass` needs to be declared on the cluster. Please see the [HPE FlexVolume Driver for Kubernetes](https://github.com/hpe-storage/flexvolume-driver) repository for the official documentation for this Helm chart. Also, it's helpful to be familar with [persistent storage concepts](https://kubernetes.io/docs/concepts/storage/volumes/) in Kubernetes prior to deploying stateful workloads.
+## Using the HPE Volume Driver for Kubernetes FlexVolume Plugin
+To enable dynamic provisioning of `PersistentVolume` through the use of `PersistentVolumeClaim` API objects, a `StorageClass` needs to be declared on the cluster. Please see the [HPE Volume Driver for Kubernetes FlexVolume Plugin](https://github.com/hpe-storage/flexvolume-driver) repository for the official documentation for this Helm chart. Also, it's helpful to be familar with [persistent storage concepts](https://kubernetes.io/docs/concepts/storage/volumes/) in Kubernetes prior to deploying stateful workloads.
 
 ## Support
-The HPE FlexVolume Driver for Kubernetes Helm chart is supported by the respective platform team. Currently supported platforms:
+The HPE Volume Driver for Kubernetes FlexVolume Plugin Helm chart is supported by the respective platform team. Currently supported platforms:
 
 - HPE Nimble Storage
 
