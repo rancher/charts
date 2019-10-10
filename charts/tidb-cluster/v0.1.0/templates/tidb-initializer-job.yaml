@@ -1,0 +1,73 @@
+{{- if or .Values.tidb.passwordSecretName .Values.tidb.permitHost .Values.tidb.initSql .Values.tidb.initSqlConfigMapName }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ template "cluster.name" . }}-tidb-initializer
+  labels:
+    app.kubernetes.io/name: {{ template "chart.name" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ template "cluster.name" . }}
+    app.kubernetes.io/component: tidb-initializer
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+"  "_" }}
+spec:
+  backoffLimit: 1000
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ template "chart.name" . }}
+        app.kubernetes.io/instance: {{ template "cluster.name" . }}
+        app.kubernetes.io/component: tidb-initializer
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: mysql-client
+        image: {{ .Values.mysqlClient.image }}
+        imagePullPolicy: {{ .Values.mysqlClient.imagePullPolicy | default "IfNotPresent" }}
+        command:
+        - python
+        - -c
+        - |
+{{ tuple "scripts/_initialize_tidb_users.py.tpl" . | include "helm-toolkit.utils.template" | indent 10 }}
+        {{- if or .Values.tidb.passwordSecretName .Values.tidb.initSql .Values.tidb.initSqlConfigMapName }}
+        volumeMounts:
+          {{- if .Values.tidb.passwordSecretName }}
+          - name: password
+            mountPath: /etc/tidb/password
+            readOnly: true
+          {{- end }}
+          {{- if .Values.tidb.initSqlConfigMapName }}
+          - name: init-sql
+            mountPath: /data
+            readOnly: true
+          {{- else if .Values.tidb.initSql }}
+          - name: init-sql
+            mountPath: /data
+            readOnly: true
+          {{- end }}
+        {{- end }}
+        resources:
+{{ toYaml .Values.tidb.initializer.resources | indent 10 }}
+      {{- if or .Values.tidb.passwordSecretName .Values.tidb.initSql .Values.tidb.initSqlConfigMapName }}
+      volumes:
+        {{- if .Values.tidb.passwordSecretName }}
+        - name: password
+          secret:
+            secretName: {{ .Values.tidb.passwordSecretName }}
+        {{- end }}
+        {{- if .Values.tidb.initSqlConfigMapName }}
+        - name: init-sql
+          configMap:
+            name: {{ .Values.tidb.initSqlConfigMapName }}
+            items:
+              - key: init-sql
+                path: init.sql
+        {{- else if .Values.tidb.initSql }}
+        - name: init-sql
+          configMap:
+            name: {{ template "cluster.name" . }}-tidb
+            items:
+            - key: init-sql
+              path: init.sql
+        {{- end }}
+      {{- end }}
+{{- end }}
