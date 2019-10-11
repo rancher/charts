@@ -1,0 +1,160 @@
+rancher_min_version: 2.3.0-rc1
+labels:
+  io.cattle.role: project # options are cluster/project
+questions:
+- variable: service.type
+  default: "ClusterIP"
+  description: "RocketChat Service type"
+  type: enum
+  options:
+  - "ClusterIP"
+  - "NodePort"
+  required: true
+  label: RocketChat Service Type
+  group: "RocketChat Service & Ingress"
+- variable: ingress.enabled
+  default: false
+  description: "Expose app using Layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose app using Layer 7 Load Balancer
+  show_subquestion_if: true
+  group: "RocketChat Service & Ingress"
+  subquestions:
+  - variable: ingress.tls[0].secretName
+    default: ""
+    description: "Ingress TLS Secret Name"
+    type: secret
+    label: Ingress TLS Secret Name
+  - variable: ingress.tls[0].hosts[0]
+    default: "xip.io"
+    description: "Hostname to your host installation"
+    type: hostname
+    required: true
+    label: Hostname
+- variable: replicaCount
+  required: true
+  default: 1
+  description: "Number of replicas to run."
+  type: int
+  label: Replicas of the RocketChat
+  min: 1
+  group: "RocketChat Settings"
+- variable: smtp.enabled
+  default: false
+  description: "Enable SMTP for sending mails."
+  type: boolean
+  required: true
+  label: Enable SMTP for Sending Mails
+  group: "RocketChat Settings"
+  show_subquestion_if: true
+  subquestions:
+  - variable: smtp.username
+    default: ""
+    description: "Username of the SMTP account."
+    type: string
+    required: true
+    label: Username of the SMTP account
+  - variable: smtp.password
+    default: ""
+    description: "Password of the SMTP account."
+    type: string
+    required: true
+    label: Password of the SMTP account
+  - variable: smtp.host
+    default: ""
+    description: "Hostname of the SMTP server."
+    type: string
+    required: true
+    label: Hostname of the SMTP server
+  - variable: smtp.port
+    default: ""
+    description: "Port of the SMTP server."
+    type: string
+    required: true
+    label: Port of the SMTP server
+- variable: persistence.enabled
+  default: false
+  description: "Enable persistent volume for RocketChat"
+  type: boolean
+  required: true
+  label: RocketChat Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "RocketChat Settings"
+  subquestions:
+  - variable: persistence.size
+    default: "8Gi"
+    description: "RocketChat Persistent Volume Size"
+    type: string
+    label: RocketChat Volume Size
+  - variable: persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for RocketChat
+  - variable: persistence.existingClaim
+    default: ""
+    description: "If not empty, uses the specified existing PVC instead of creating new one"
+    type: pvc
+    label: Existing Persistent Volume Claim for RocketChat
+- variable: mongodb.enabled
+  default: true
+  description: "Deploy a mongodb as the backend database of RocketChat."
+  type: boolean
+  required: true
+  label: Deploy MongoDB Database
+  group: "MongoDB Settings"
+  show_subquestion_if: true
+  subquestions:
+  - variable: mongodb.mongodbPassword
+    required: true
+    default: ""
+    description: "Config mongoDB password"
+    type: password
+    label: Config MongoDB Password
+  - variable: mongodb.mongodbRootPassword
+    required: true
+    default: ""
+    description: "Config mongoDB root password"
+    type: password
+    label: Config MongoDB Root Password
+- variable: mongodb.persistence.enabled
+  default: false
+  description: "Enable persistent volume for mongoDB"
+  type: boolean
+  required: true
+  label: mongoDB Persistent Volume Enabled
+  show_if: "mongodb.enabled=true"
+  show_subquestion_if: true
+  group: "MongoDB Settings"
+  subquestions:
+  - variable: mongodb.persistence.size
+    default: "10Gi"
+    description: "mongoDB Persistent Volume Size"
+    type: string
+    label: mongoDB Volume Size
+  - variable: mongodb.persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for mongoDB
+  - variable: persistence.existingClaim
+    default: ""
+    description: "If not empty, uses the specified existing PVC instead of creating new one"
+    type: pvc
+    label: Existing Persistent Volume Claim for RocketChat
+- variable: externalMongodbUrl
+  default: ""
+  description: "MongoDB URL if using an externally provisioned MongoDB, e.g, mongodb://user:password@localhost:27017/rocketchat"
+  type: string
+  required: true
+  label: MongoDB URL if using an externally provisioned MongoDB
+  show_if: "mongodb.enabled=false"
+  group: "MongoDB Settings"
+- variable: externalMongodbOplogUrl
+  default: ""
+  description: "MongoDB OpLog URL if using an externally provisioned MongoDB, e.g, mongodb://user:password@localhost:27017/local?replicaSet=rs0&authSource=admin"
+  type: string
+  required: true
+  label: MongoDB OpLog URL if using an externally provisioned MongoDB
+  show_if: "mongodb.enabled=false"
+  group: "MongoDB Settings"
