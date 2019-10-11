@@ -1,0 +1,97 @@
+categories:
+- operator
+rancher_min_version: 2.3.0-rc1
+labels:
+  io.cattle.role: cluster # options are cluster/project
+  io.rancher.certified: operator
+questions:
+- variable: replicaCount
+  required: true
+  default: 1
+  description: "Config replicas of Kong"
+  type: int
+  label: Replicas of Kong
+  min: 1
+  group: "Kong Configuration"
+- variable: env.database
+  default: "postgres"
+  description: "Kong has a choice of either Postgres or Cassandra as a backend datatstore, Postgres is chosen by default."
+  type: enum
+  required: true
+  label: Specify Kong Database Type
+  group: "Kong Configuration"
+  options:
+    - "postgres"
+    - "cassandra"
+- variable: postgresql.enabled
+  default: true
+  description: "Deploy PostgreSQL as a backend database of Kong service."
+  type: boolean
+  required: true
+  label: Deploy Postgresql Database
+  group: "Kong Configuration"
+  show_if: "env.database=postgres"
+- variable: postgresql.persistence.enabled
+  default: false
+  description: "Enable persistent volume for PostgreSQL"
+  type: boolean
+  required: true
+  label: PostgreSQL Persistent Volume Enabled
+  show_if: "env.database=postgres&&postgresql.enabled=true"
+  show_subquestion_if: true
+  group: "Kong Configuration"
+  subquestions:
+  - variable: postgresql.persistence.size
+    default: "8Gi"
+    description: "PostgreSQL Persistent Volume Size"
+    type: string
+    label: PostgreSQL Volume Size
+  - variable: postgresql.persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for PostgreSQL
+- variable: cassandra.enabled
+  default: true
+  description: "Deploy Cassandra as a backend database of Kong service."
+  type: boolean
+  required: true
+  label: Deploy Cassandra Database
+  group: "Kong Configuration"
+  show_if: "env.database=cassandra"
+- variable: cassandra.persistence.enabled
+  default: false
+  description: "Enable persistent volume for Cassandra"
+  type: boolean
+  required: true
+  label: Cassandra Persistent Volume Enabled
+  show_if: "env.database=cassandra&&cassandra.enabled=true"
+  show_subquestion_if: true
+  group: "Kong Configuration"
+  subquestions:
+  - variable: cassandra.persistence.size
+    default: "10Gi"
+    description: "Cassandra Persistent Volume Size"
+    type: string
+    label: Cassandra Volume Size
+  - variable: cassandra.persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for Cassandra
+- variable: ingressController.enabled
+  default: false
+  description: "Kong Ingress Controller's primary purpose is to satisfy Ingress resources created in k8s."
+  type: boolean
+  required: true
+  label: Enable Kong Ingress Controller
+  group: "Ingress Controller"
+  show_subquestion_if: true
+  subquestions:
+  - variable: ingressController.replicaCount
+    required: true
+    default: 1
+    description: "Replicas of the Kong Ingress Controller."
+    type: int
+    label: Replicas of the Kong Ingress Controller
+    min: 1
