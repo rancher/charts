@@ -1,0 +1,94 @@
+labels:
+  io.cattle.role: project # options are cluster/project
+questions:
+- variable: mode
+  default: "standalone"
+  description: "Minio Server Mode"
+  type: enum
+  options:
+  - "standalone"
+  - "distributed"
+  required: true
+  label: Minio Server Mode
+  group: "Minio Settings"
+- variable: existingSecret
+  default: ""
+  description: "Name of existing secret with access and secret key."
+  type: secret
+  label: Choose Existing Secret
+  show_if: "mode=distributed"
+  group: "Minio Distributed Settings"
+- variable: accessKey
+  default: "AKIAIOSFODNN7EXAMPLE"
+  description: "Default access key (5 to 20 characters)"
+  type: string
+  label:  Minio AccessKey
+  show_if: "mode=distributed&&existingSecret="
+  group: "Minio Distributed Settings"
+- variable: secretKey
+  default: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+  description: "Default secret key (8 to 40 characters)."
+  type: string
+  label:  Minio SecretKey
+  show_if: "mode=distributed&&existingSecret="
+  group: "Minio Distributed Settings"
+- variable: mountPath
+  default: "/export"
+  description: "Default mount location for persistent drive."
+  type: string
+  label:  Default Mount Location of Persistent Driver
+  required: true
+  show_if: "mode=distributed"
+  group: "Minio Distributed Settings"
+# TLS config
+- variable: tls.enabled
+  default: false
+  description: "Enable TLS for MinIO server."
+  type: boolean
+  required: true
+  label: Enable TLS for MinIO Server
+  group: "TLS Settings"
+  show_subquestion_if: true
+  subquestions:
+  - variable: tls.certSecret
+    default: ""
+    description: "Kubernetes Secret with public.crt and private.key files."
+    type: secret
+    required: true
+    label: Choose TLS Cert Secret If Exist
+# Persistence config
+- variable: persistence.enabled
+  default: false
+  description: "Enable persistent volume for MinIO."
+  type: boolean
+  required: true
+  label: MinIO Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "Minio Settings"
+  subquestions:
+  - variable: persistence.size
+    default: "8Gi"
+    description: "MinIO Persistent Volume Size"
+    type: string
+    required: true
+    label: MinIO Volume Size
+  - variable: persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for MinIO
+  - variable: persistence.existingClaim
+    default: ""
+    description: "If not empty, uses the specified existing PVC instead of creating new one"
+    type: pvc
+    label: Existing Persistent Volume Claim for MinIO
+    show_if: "mode=standalone&&persistence.enabled=true"
+- variable: serivce.type
+  default: "ClusterIP"
+  description: "Config Minio service type."
+  type: enum
+  label: Config Minio Service Type
+  required: true
+  options:
+  - ClusterIP
+  - NodePort
