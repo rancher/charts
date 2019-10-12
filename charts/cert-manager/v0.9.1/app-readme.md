@@ -1,5 +1,11 @@
-# cert-manager
+### Upgrade Notes:
+Upgrading to cert-manager from any version < v0.9.1 is only supported if the previous cert-manager app was deployed in the `kube-system` namespace.
 
+If your previous cert-manager application is deployed in a different namespace, you can create a new cert-manager application in the `kube-system` namespace and delete the previous version.
+
+---
+
+# cert-manager
 cert-manager is a Kubernetes addon to automate the management and issuance of TLS certificates from various issuing sources.  
 It will ensure certificates are valid and up to date periodically, and attempt to renew certificates at an appropriate time before expiry.
 
