@@ -1,0 +1,147 @@
+labels:
+  io.cattle.role: cluster # options are cluster/project
+  io.rancher.app_min_version: 7.3.0
+categories:
+- elasticsearch
+questions:
+- variable: defaultImage
+  default: true
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  group: "Container Images"
+  show_subquestion_if: false
+  subquestions:
+  - variable: elasticsearch.image
+    default: "ranchercharts/elasticsearch-elasticsearch"
+    description: "Elasticsearch image name"
+    type: string
+    label: ElasticSearch Image Name
+  - variable: elasticsearch.imageTag
+    default: "7.3.0"
+    description: "Elasticsearch image tag"
+    type: string
+    label: Elasticsearch Image Tag
+  - variable: kibana.image
+    default: "ranchercharts/kibana-kibana"
+    description: "Kibana image name"
+    type: string
+    label: Kibana Image Name
+  - variable: kibana.imageTag
+    default: "7.3.0"
+    description: "Kibana image tag"
+    type: string
+    label: Kibana Image Tag
+  - variable: filebeat.image
+    default: "ranchercharts/beats-filebeat"
+    description: "File-beat image name"
+    type: string
+    label: Filebeat Image Name
+  - variable: filebeat.imageTag
+    default: "7.3.0"
+    description: "File-beat image tag"
+    type: string
+    label: Filebeat Image Tag
+  - variable: metricbeat.image
+    default: "ranchercharts/beats-metricbeat"
+    description: "Metric-beat image name"
+    type: string
+    label: Metricbeat Image Name
+  - variable: metricbeat.imageTag
+    default: "7.3.0"
+    description: "Metric-beat image tag"
+    type: string
+    label: Metricbeat Image Tag
+  - variable: metricbeat.kube-state-metrics.image.repository
+    default: "ranchercharts/coreos-kube-state-metrics"
+    description: "Metric-beat image name"
+    type: string
+    label: Metricbeat Image Name
+  - variable: metricbeat.kube-state-metrics.image.tag
+    default: "v1.7.2"
+    description: "Metric-beat image tag"
+    type: string
+    label: Metricbeat Image Tag
+# kibana configs
+- variable: kibana.language
+  default: "en"
+  description: "Config Kiabana Language"
+  type: enum
+  label: Config Kiabana Language
+  required: true
+  group: "Kibana Config"
+  options:
+  - "en"
+  - "zh-CN"
+  - "ja-JP"
+- variable: kibana.service.type
+  default: "NodePort"
+  description: "Kibana service type"
+  type: enum
+  label: Kibana Service Type
+  required: true
+  group: "Kibana Config"
+  options:
+  - "ClusterIP"
+  - "NodePort"
+- variable: kibana.enableProxy
+  default: true
+  description: "Expose kibana using nginx proxy"
+  type: boolean
+  label: Expose Kibana using Nginx Proxy
+  group: "Kibana Config"
+# elasticSearch configs
+- variable: elasticsearch.replicas
+  default: 3
+  description: "config elasticSearch replicas"
+  type: int
+  label: Config ElasticSearch Replicas
+  required: true
+  group: "Elasticsearch Config"
+  min: 3
+  max: 99
+- variable: elasticsearch.antiAffinity
+  default: "hard"
+  description: "Config elasticsearch pod antiAffinity type"
+  type: enum
+  label: Config Elasticsearch Pod AntiAffinity Type
+  required: true
+  group: "Elasticsearch Config"
+  options:
+  - "hard"
+  - "soft"
+- variable: elasticsearch.persistence.enabled
+  default: false
+  description: "Enable persistent volume for elasticsearch"
+  type: boolean
+  required: true
+  label: Enable Elasticsearch Persistent Volume
+  show_subquestion_if: true
+  group: "Elasticsearch Config"
+  subquestions:
+  - variable: elasticsearch.persistence.storageClass
+    default: ""
+    description: "If undefined or set to null, using the default StorageClass. Defaults to null."
+    type: storageclass
+    label: Storage Class for Elasticsearch Node
+  - variable: elasticsearch.persistence.size
+    default: "30Gi"
+    description: "Elasticsearch persistent volume size"
+    required: true
+    type: string
+    label: Elasticsearch Persistent Volume Size of Node
+# file-beats configs
+- variable: filebeat.enabled
+  default: true
+  description: "Enable filebeat, lightweight shipper for logs"
+  type: boolean
+  label: Enable Filebeat
+  required: true
+  group: "Filebeat Config"
+- variable: metricbeat.enabled
+  default: true
+  description: "Enable metric-beat, lightweight shipper for metrics"
+  type: boolean
+  label: Enable Metricbeat
+  required: true
+  group: "Metricbeat Config"
