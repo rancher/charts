@@ -1,0 +1,92 @@
+labels:
+  io.cattle.role: project # options are cluster/project
+  io.rancher.app_min_version: 0.8.0
+questions:
+- variable: global.enterprise
+  default: false
+  description: "Enable Confluent enterprise platform, free 30 days trail https://www.confluent.io/download/"
+  type: boolean
+  label: Enable Confluent Enterprise Platform
+  group: "Global Settings"
+- variable: cp-kafka.replicas
+  default: 3
+  description: "Replicas of Kafka Brokers"
+  type: int
+  min: 3
+  max: 30
+  required: true
+  label: Kafka Brokers
+  group: "Kafka Settings"
+- variable: cp-kafka.persistence.enabled
+  default: false
+  description: "Enable persistent volume for Kafka"
+  type: boolean
+  required: true
+  label: Kafka Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "Kafka Settings"
+  subquestions:
+  - variable: cp-kafka.persistence.size
+    default: "5Gi"
+    description: "Kafka Persistent Volume Size"
+    type: string
+    label: Kafka Volume Size
+  - variable: cp-kafka.persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for Kafka
+# Zookeeper Configurations
+- variable: cp-zookeeper.persistence.enabled
+  default: false
+  description: "Enable persistent volume for Zookeeper"
+  type: boolean
+  required: true
+  label: Zookeeper Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "Zookeeper Settings"
+  subquestions:
+  - variable: cp-zookeeper.persistence.dataDirSize
+    default: "10Gi"
+    description: "Zookeeper Persistent Volume Size"
+    type: string
+    label: Zookeeper Data Directory Volume Size
+  - variable: cp-zookeeper.persistence.dataDirStorageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for Zookeeper Data Directory
+  - variable: cp-zookeeper.persistence.dataLogDirSize
+    default: "10Gi"
+    description: "Zookeeper Persistent Volume Size"
+    type: string
+    label: Zookeeper Data Log Volume Size
+  - variable: cp-zookeeper.persistence.dataLogDirStorageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for Zookeeper Data Log
+# kafka-Topics-UI Configurations
+- variable: kafka-topics-ui.enabled
+  default: true
+  description: "Enable kafka topics ui dashboard"
+  type: boolean
+  label: Enable Kafka Topics UI Dashboard
+  group: "Kafka Topics UI"
+  show_if: "global.enterprise=false"
+- variable: kafka-topics-ui.ingress.enabled
+  default: true
+  description: "Expose kafka topics UI using Layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose Kafka Topics UI using Layer 7 Load Balancer
+  show_if: "kafka-topics-ui.enabled=true&&global.enterprise=false"
+  show_subquestion_if: true
+  group: "Kafka Topics UI"
+  subquestions:
+  - variable: kafka-topics-ui.ingress.hosts[0]
+    default: "xip.io"
+    description: "layer 7 Load Balancer hostname"
+    type: hostname
+    show_if: "kafka-topics-ui.enabled=true&&kafka-topics-ui.ingress.enabled=true&&global.enterprise=false"
+    required: true
+    label: Layer 7 Load Balancer Hostname
