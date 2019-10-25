@@ -1,0 +1,21 @@
+{{- if semverCompare ">=1.13" .Capabilities.KubeVersion.GitVersion -}}
+kind: Service
+apiVersion: v1
+metadata:
+  name: csi-sidecar-iscsi-provisioner
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ include "xsky.name" . }}
+    chart: {{ include "xsky.chart" . }}
+    component: {{ .Values.provisioner.name }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  selector:
+    app: {{ include "xsky.name" . }}
+    component: {{ .Values.provisioner.name }}
+    release: {{ .Release.Name }}
+  ports:
+    - name: dummy
+      port: 12345
+{{- end -}}

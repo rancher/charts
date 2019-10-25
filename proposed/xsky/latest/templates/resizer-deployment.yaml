@@ -1,0 +1,54 @@
+{{- if semverCompare ">=1.14" .Capabilities.KubeVersion.GitVersion -}}
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: csi-sidecar-iscsi-resizer
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ include "xsky.name" . }}
+    chart: {{ include "xsky.chart" . }}
+    component: {{ .Values.resizer.name }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.resizer.replicaCount }}
+  selector:
+    matchLabels:
+      external-resizer: csi-sidecar-iscsi-resizer
+      app: {{ include "xsky.name" . }}
+      component: {{ .Values.resizer.name }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        external-resizer: csi-sidecar-iscsi-resizer
+        app: {{ include "xsky.name" . }}
+        chart: {{ include "xsky.chart" . }}
+        component: {{ .Values.resizer.name }}
+        release: {{ .Release.Name }}
+        heritage: {{ .Release.Service }}
+    spec:
+      serviceAccount: csi-resizer
+      containers:
+        - name: csi-resizer
+          image: "{{ .Values.resizer.resizer.image.repository }}:{{ .Values.resizer.resizer.image.tag }}"
+          args:
+            - "--v=5"
+            - "--csi-address=$(ADDRESS)"
+            - "--leader-election"
+          env:
+            - name: ADDRESS
+              value: {{ .Values.socketDir }}/{{ .Values.socketFile }}
+          imagePullPolicy: {{ .Values.resizer.resizer.image.pullPolicy }}
+          volumeMounts:
+            - name: socket-dir
+              mountPath: {{ .Values.socketDir}}
+            - name: timezone
+              mountPath: /etc/localtime
+      volumes:
+        - name: socket-dir
+          emptyDir:
+        - name: timezone
+          hostPath:
+            path: /etc/localtime
+{{- end -}}

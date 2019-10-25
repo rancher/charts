@@ -1,0 +1,56 @@
+{{- if semverCompare ">=1.13" .Capabilities.KubeVersion.GitVersion -}}
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: csi-sidecar-iscsi-snapshotter
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ include "xsky.name" . }}
+    chart: {{ include "xsky.chart" . }}
+    component: {{ .Values.snapshotter.name }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.snapshotter.replicaCount }}
+  selector:
+    matchLabels:
+      external-attacher: csi-sidecar-iscsi-snapshotter
+      app: {{ include "xsky.name" . }}
+      component: {{ .Values.snapshotter.name }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        external-attacher: csi-sidecar-iscsi-snapshotter
+        app: {{ include "xsky.name" . }}
+        chart: {{ include "xsky.chart" . }}
+        component: {{ .Values.snapshotter.name }}
+        release: {{ .Release.Name }}
+        heritage: {{ .Release.Service }}
+    spec:
+      serviceAccount: csi-snapshotter
+      containers:
+        - name: csi-snapshotter
+          image: "{{ .Values.snapshotter.snapshotter.image.repository }}:{{ .Values.snapshotter.snapshotter.image.tag }}"
+          args:
+            - "--csi-address=$(ADDRESS)"
+            - "--connection-timeout={{ .Values.snapshotter.timeout }}"
+            - "--create-snapshotcontent-retrycount={{ .Values.snapshotter.retryCount }}"
+          env:
+            - name: ADDRESS
+              value: {{ .Values.socketDir }}/{{ .Values.socketFile }}
+          imagePullPolicy: {{ .Values.snapshotter.snapshotter.image.pullPolicy }}
+          volumeMounts:
+            - name: socket-dir
+              mountPath: {{ .Values.socketDir}}
+            - name: timezone
+              mountPath: /etc/localtime
+      volumes:
+        - name: socket-dir
+          hostPath:
+            path: {{ .Values.socketDir}}
+            type: DirectoryOrCreate
+        - name: timezone
+          hostPath:
+            path: /etc/localtime
+{{- end -}}

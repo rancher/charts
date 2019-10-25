@@ -1,0 +1,152 @@
+{{- if semverCompare ">=1.13" .Capabilities.KubeVersion.GitVersion -}}
+kind: DaemonSet
+apiVersion: apps/v1beta2
+metadata:
+  name: csi-xsky-iscsi-driver
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ include "xsky.name" . }}
+    chart: {{ include "xsky.chart" . }}
+    component: {{ .Values.nodeplugin.name }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ include "xsky.name" . }}
+      component: {{ .Values.nodeplugin.name }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "xsky.name" . }}
+        chart: {{ include "xsky.chart" . }}
+        component: {{ .Values.nodeplugin.name }}
+        release: {{ .Release.Name }}
+        heritage: {{ .Release.Service }}
+    spec:
+      serviceAccount: csi-nodeplugin
+      hostNetwork: true
+      hostPID: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: driver-registrar
+          image: "{{ .Values.nodeplugin.registrar.image.repository }}:{{ .Values.nodeplugin.registrar.image.tag }}"
+          imagePullPolicy: {{ .Values.nodeplugin.registrar.image.pullPolicy }}
+          args:
+            - "--v=5"
+            - "--csi-address=$(ADDRESS)"
+            - "--kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)"
+          lifecycle:
+            preStop:
+              exec:
+                {{- /*
+                    NOTE(wilmardo): The replace functions ensures there are no spaces in the string.
+                    To avoid `rm -rf /registration/driver name`*/}}
+                command: [
+                  "/bin/sh", "-c",
+                  "rm -rf /registration/{{ .Values.driverName | replace " " "" }} \
+                  /registration/{{ .Values.driverName | replace " " "" }}-reg.sock"
+                ]
+          env:
+            - name: ADDRESS
+              value: "{{ .Values.socketDir }}/{{ .Values.socketFile }}"
+            - name: DRIVER_REG_SOCK_PATH
+              value: "{{ .Values.socketDir }}/{{ .Values.socketFile }}"
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: socket-dir
+              mountPath: {{ .Values.socketDir }}
+            - name: registration-dir
+              mountPath: /registration
+            - name: timezone
+              mountPath: /etc/localtime
+        - name: csi-xsky-iscsiplugin
+          securityContext:
+            privileged: true
+            capabilities:
+              add: ["SYS_ADMIN"]
+            allowPrivilegeEscalation: true
+          image: "{{ .Values.nodeplugin.plugin.image.repository }}:{{ .Values.nodeplugin.plugin.image.tag }}"
+          args :
+            - "--nodeid=$(NODE_ID)"
+            - "--endpoint=$(CSI_ENDPOINT)"
+            - "--drivername={{ .Values.driverName }}"
+            - "--metadatastorage={{ .Values.metadataStorage }}"
+            - "--logrotate={{ .Values.logrotate }}"
+          env:
+            - name: LOG_LEVEL
+              value: "info"
+            - name: NODE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: CSI_ENDPOINT
+              value: "unix:/{{ .Values.socketDir }}/{{ .Values.socketFile }}"
+          imagePullPolicy: {{ .Values.nodeplugin.plugin.image.pullPolicy }}
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: {{ .Values.socketDir }}
+            - name: pods-mount-dir
+              mountPath: /var/lib/kubelet/pods
+              mountPropagation: "Bidirectional"
+            - mountPath: /dev
+              name: host-dev
+            - name: log-dir
+              mountPath: /var/log/csi/
+            - mountPath: /usr
+              name: host-usr
+              readOnly: true
+            - name: host-iscsi
+              mountPath: /etc/iscsi
+              readOnly: true
+            - name: timezone
+              mountPath: /etc/localtime
+              readOnly: true
+            - name: logrotate
+              mountPath: /etc/logrotate.d
+      volumes:
+        - name: plugin-dir
+          hostPath:
+            path: {{ .Values.socketDir }}
+            type: DirectoryOrCreate
+        - name: registration-dir
+          hostPath:
+            path: {{ .Values.registrationDir }}
+            type: Directory
+        - name: pods-mount-dir
+          hostPath:
+            path: /var/lib/kubelet/pods
+            type: Directory
+        - name: socket-dir
+          hostPath:
+            path: {{ .Values.socketDir }}
+            type: DirectoryOrCreate
+        - name: log-dir
+          hostPath:
+            path: /var/log/csi/
+            type: DirectoryOrCreate
+        - name: host-dev
+          hostPath:
+            path: /dev
+        - name: host-usr
+          hostPath:
+            path: /usr
+        - name: host-iscsi
+          hostPath:
+            path: /etc/iscsi/
+            type: DirectoryOrCreate
+        - name: timezone
+          hostPath:
+            path: /etc/localtime
+        - name: logrotate
+          hostPath:
+            path: /etc/logrotate.d
+{{- end -}}

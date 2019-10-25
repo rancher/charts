@@ -1,0 +1,68 @@
+{{- if semverCompare ">=1.13" .Capabilities.KubeVersion.GitVersion -}}
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: csi-sidecar-iscsi-attacher
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ include "xsky.name" . }}
+    chart: {{ include "xsky.chart" . }}
+    component: {{ .Values.attacher.name }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.attacher.replicaCount }}
+  selector:
+    matchLabels:
+      external-attacher: csi-sidecar-iscsi-attacher
+      app: {{ include "xsky.name" . }}
+      component: {{ .Values.attacher.name }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        external-attacher: csi-sidecar-iscsi-attacher
+        app: {{ include "xsky.name" . }}
+        chart: {{ include "xsky.chart" . }}
+        component: {{ .Values.attacher.name }}
+        release: {{ .Release.Name }}
+        heritage: {{ .Release.Service }}
+    spec:
+      serviceAccount: csi-attacher
+      containers:
+        - name: csi-attacher
+          image: "{{ .Values.attacher.attacher.image.repository }}:{{ .Values.attacher.attacher.image.tag }}"
+          args:
+            - "--v=5"
+            - "--csi-address=$(ADDRESS)"
+            - "--leader-election-namespace=$(MY_NAMESPACE)"
+            - "--leader-election-identity=$(MY_NAME)"
+            - "--leader-election-type= {{ .Values.leaderElection.type }}"
+          env:
+            - name: MY_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: MY_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: ADDRESS
+              value: {{ .Values.socketDir }}/{{ .Values.socketFile }}
+          imagePullPolicy: {{ .Values.provisioner.provisioner.image.pullPolicy }}
+          volumeMounts:
+            - name: socket-dir
+              mountPath: {{ .Values.socketDir }}
+            - name: timezone
+              mountPath: /etc/localtime
+      volumes:
+        - name: socket-dir
+          hostPath:
+            path: {{ .Values.socketDir }}
+            type: DirectoryOrCreate
+        - name: timezone
+          hostPath:
+            path: /etc/localtime
+{{- end -}}

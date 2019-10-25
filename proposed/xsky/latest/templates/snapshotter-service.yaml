@@ -1,0 +1,21 @@
+{{- if semverCompare ">=1.13" .Capabilities.KubeVersion.GitVersion -}}
+kind: Service
+apiVersion: v1
+metadata:
+  name: csi-sidecar-iscsi-snapshotter
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: csi-sidecar-iscsi-snapshotter
+    chart: {{ include "xsky.chart" . }}
+    component: {{ .Values.snapshotter.name }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  selector:
+    app: csi-sidecar-iscsi-snapshotter
+    component: {{ .Values.snapshotter.name }}
+    release: {{ .Release.Name }}
+  ports:
+    - name: dummy
+      port: 12345
+{{- end -}}

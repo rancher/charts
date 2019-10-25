@@ -1,0 +1,139 @@
+---
+rbac:
+  # Specifies whether RBAC resources should be created
+  create: true
+
+serviceAccounts:
+  nodeplugin:
+    # Specifies whether a ServiceAccount should be created
+    create: true
+    # The name of the ServiceAccount to use.
+    # If not set and create is true, a name is generated using the fullname
+    name: csi-nodeplugin
+  provisioner:
+    # Specifies whether a ServiceAccount should be created
+    create: true
+    # The name of the ServiceAccount to use.
+    # If not set and create is true, a name is generated using the fullname
+    name: csi-provisioner
+  attacher:
+    # Specifies whether a ServiceAccount should be created
+    create: true
+    # The name of the ServiceAccount to use.
+    # If not set and create is true, a name is generated using the fullname
+    name: csi-attacher
+  snapshotter:
+    # Specifies whether a ServiceAccount should be created
+    create: true
+    # The name of the ServiceAccount to use.
+    # If not set and create is true, a name is generated using the fullname
+    name: csi-snapshotter
+  resizer:
+    # Specifies whether a ServiceAccount should be created
+    create: true
+    # The name of the ServiceAccount to use.
+    # If not set and create is true, a name is generated using the fullname
+    name: csi-resizer
+
+
+nodeplugin:
+  name: nodeplugin
+
+  registrar:
+    image:
+      repository: quay.io/k8scsi/csi-node-driver-registrar
+      tag: v1.1.0
+      pullPolicy: IfNotPresent
+    resources: {}
+
+  plugin:
+    image:
+      repository: xskydriver/csi-iscsi
+      tag: 2.2.0.191024.6
+      pullPolicy: IfNotPresent
+    resources: {}
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
+
+leaderElection:
+  enable: true
+  type: configmaps
+
+provisioner:
+  name: provisioner
+  # When using Kubernetes <1.14 this value is ignored
+  # The statefulset is deployed with replicas: 1
+  replicaCount: 2
+  # Timeout for waiting for creation or deletion of a volume
+  timeout: 60s
+
+  retryIntervalStart: 500ms
+
+  # default worker threads for provisioner
+  workerThreads: 10
+
+  provisioner:
+    image:
+      repository: quay.io/k8scsi/csi-provisioner
+      tag: v1.4.0
+      pullPolicy: IfNotPresent
+    resources: {}
+
+attacher:
+  name: attacher
+  replicaCount: 2
+
+  attacher:
+    name: attacher
+    enabled: true
+    image:
+      repository: quay.io/k8scsi/csi-attacher
+      tag: v1.1.0
+      pullPolicy: IfNotPresent
+    resources: {}
+
+snapshotter:
+  name: snapshotter
+  replicaCount: 1
+
+  timeout: 60s
+
+  retryCount: 5
+
+  snapshotter:
+    image:
+      repository: quay.io/k8scsi/csi-snapshotter
+      tag: v1.2.1
+      pullPolicy: IfNotPresent
+    resources: {}
+
+resizer:
+  name: resizer
+  replicaCount: 2
+
+  resizer:
+    image:
+      repository: quay.io/k8scsi/csi-resizer
+      tag: v0.2.0
+      pullPolicy: IfNotPresent
+    resources: {}
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
+
+# The socket dir
+socketDir: /var/lib/kubelet/plugins_registry/block.csi.xsky.com
+# The socket file
+socketFile: csi.sock
+# Name of the csi-driver
+driverName: iscsi.csi.xsky.com
+registrationDir: /var/lib/kubelet/plugins_registry/
+logrotate: true
+metadataStorage: true

@@ -1,0 +1,21 @@
+{{- if .Values.rbac.create -}}
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: csi-resizer-role-cfg
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ include "xsky.name" . }}
+    chart: {{ include "xsky.chart" . }}
+    component: {{ .Values.resizer.name }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+subjects:
+  - kind: ServiceAccount
+    name: csi-resizer
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: Role
+  name: csi-resizer-cfg
+  apiGroup: rbac.authorization.k8s.io
+{{- end -}}

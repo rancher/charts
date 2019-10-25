@@ -1,0 +1,58 @@
+{{- if semverCompare ">=1.13" .Capabilities.KubeVersion.GitVersion -}}
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: csi-sidecar-iscsi-provisioner
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ include "xsky.name" . }}
+    chart: {{ include "xsky.chart" . }}
+    component: {{ .Values.provisioner.name }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.provisioner.replicaCount }}
+  selector:
+    matchLabels:
+      external-attacher: csi-sidecar-iscsi-provisioner
+      app: {{ include "xsky.name" . }}
+      component: {{ .Values.provisioner.name }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        external-attacher: csi-sidecar-iscsi-provisioner
+        app: {{ include "xsky.name" . }}
+        chart: {{ include "xsky.chart" . }}
+        component: {{ .Values.provisioner.name }}
+        release: {{ .Release.Name }}
+        heritage: {{ .Release.Service }}
+    spec:
+      serviceAccount: csi-provisioner
+      containers:
+        - name: csi-provisioner
+          image: "{{ .Values.provisioner.provisioner.image.repository }}:{{ .Values.provisioner.provisioner.image.tag }}"
+          args:
+            - "--csi-address=$(ADDRESS)"
+            - "--enable-leader-election={{ .Values.leaderElection.enable }}"
+            - "--worker-threads={{ .Values.provisioner.workerThreads }}"
+            - "--retry-interval-start={{ .Values.provisioner.retryIntervalStart }}"
+            - "--timeout={{ .Values.provisioner.timeout }}"
+          env:
+            - name: ADDRESS
+              value: {{ .Values.socketDir }}/{{ .Values.socketFile }}
+          imagePullPolicy: {{ .Values.provisioner.provisioner.image.pullPolicy }}
+          volumeMounts:
+            - name: socket-dir
+              mountPath: {{ .Values.socketDir }}
+            - name: timezone
+              mountPath: /etc/localtime
+      volumes:
+        - name: socket-dir
+          hostPath:
+            path: {{ .Values.socketDir }}
+            type: DirectoryOrCreate
+        - name: timezone
+          hostPath:
+            path: /etc/localtime
+{{- end -}}
