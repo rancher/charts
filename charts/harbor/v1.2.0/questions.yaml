@@ -1,0 +1,520 @@
+labels:
+  io.cattle.role: project # options are cluster/project
+questions:
+# Global Options
+- variable: harborAdminPassword
+  required: true
+  default: "Harbor12345"
+  description: "The initial password of Harbor admin. Change it from portal after launching Harbor"
+  type: password
+  label: The Initial Password of Harbor Admin
+  group: "Global Options"
+- variable: secretKey
+  required: true
+  default: "add-your-secret0"
+  description: "The key used for encryption. Must be a string of 16 chars"
+  type: string
+  label: Encryption Key
+  min_length: 16
+  max_length: 16
+  group: "Global Options"
+- variable: logLevel
+  required: true
+  default: "info"
+  type: enum
+  label: The Log Level
+  group: "Global Options"
+  options:
+  - "debug"
+  - "info"
+  - "warning"
+  - "error"
+  - "fatal"
+# Harbor Expose Service
+- variable: expose.type
+  required: true
+  default: "ingress"
+  description: "Set the way how to expose the service"
+  type: enum
+  label: Harbor Proxy Service Type
+  group: "Expose Service Options"
+  options:
+  - "ingress"
+  - "nodePort"
+  - "loadBalancer"
+- variable: expose.ingress.hosts.core
+  required: true
+  default: ""
+  description: "The host of Harbor core service in ingress rule, e.g, core.harbor.domain"
+  type: string
+  label: Ingress Hostname of Harbor
+  group: "Expose Service Options"
+  show_if: "expose.type=ingress||expose.type=loadBalancer"
+- variable: expose.ingress.hosts.notary
+  required: true
+  default: ""
+  description: "The host of Harbor notary service in ingress rule, e.g, notary.harbor.domain"
+  type: string
+  label: Ingress Hostname of Harbor Notary
+  group: "Expose Service Options"
+  show_if: "expose.type=ingress||expose.type=loadBalancer"
+- variable: externalURL
+  default: "https://harbor.local:30003"
+  description: "Set external URL if the Harbor is deployed behind the proxy (format: protocol://domain:port)"
+  type: string
+  label: The External URL for Harbor Service
+  group: "Expose Service Options"
+  show_if: "expose.type=nodePort||expose.type=loadBalancer"
+- variable: expose.loadBalancer.IP
+  default: ""
+  required: true
+  description: "Set the IP if the LoadBalancer supports assigning IP"
+  type: string
+  label: Set LoadBalancer IP
+  show_if: "expose.type=loadBalancer"
+  group: "Expose Service Options"
+- variable: expose.tls.secretName
+  default: ""
+  description: "The secret must contain keys named tls.crt and tls.key that contain the certificate and private key to use for TLS"
+  type: certificate
+  label: Select Your Harbor TLS Certificate
+  group: "Expose Service Options"
+# config imageChartStorage type
+- variable: persistence.imageChartStorage.type
+  default: "filesystem"
+  description: "Specify the type of storage: filesystem, azure, gcs, s3, swift, oss"
+  type: enum
+  label: Registry Storage Type
+  group: "Storage Settings"
+  required: true
+  options:
+  - "filesystem"
+  - "azure"
+  - "gcs"
+  - "s3"
+  - "oss"
+  - "swift"
+- variable: persistence.imageChartStorage.disableredirect
+  default: false
+  description: "Specify whether to disable `redirect` for images and chart storage, for backends which not supported it (such as using minio for `s3` storage type), please disable it"
+  type: boolean
+  label: Disable Redirect
+  group: "Storage Settings"
+# azure storage
+- variable: persistence.imageChartStorage.azure.accountname
+  required: true
+  default: ""
+  description: "Azure account name"
+  type: string
+  label: Azure Accounnt Name
+  show_if: "persistence.imageChartStorage.type=azure"
+  group: "Storage Settings"
+- variable: persistence.imageChartStorage.azure.accountkey
+  required: true
+  default: ""
+  description: "Azure account key"
+  type: string
+  label: Azure Account Key
+  show_if: "persistence.imageChartStorage.type=azure"
+  group: "Storage Settings"
+- variable: persistence.imageChartStorage.azure.container
+  required: true
+  default: ""
+  description: "Azure container name"
+  type: string
+  label: Azure Container Name
+  show_if: "persistence.imageChartStorage.type=azure"
+  group: "Storage Settings"
+# gcs storage
+- variable: persistence.imageChartStorage.gcs.bucket
+  required: true
+  default: ""
+  description: "GCS bucket name"
+  type: string
+  label: GCS Bucket Name
+  show_if: "persistence.imageChartStorage.type=gcs"
+  group: "Storage Settings"
+- variable: persistence.imageChartStorage.gcs.encodedkey
+  required: true
+  default: ""
+  description: "GCS account encoded key"
+  type: multiline
+  label: GCS Account Encoded Key
+  show_if: "persistence.imageChartStorage.type=gcs"
+  group: "Storage Settings"
+# s3 storage
+- variable: persistence.imageChartStorage.s3.bucket
+  required: true
+  default: ""
+  description: "S3 bucket name"
+  type: string
+  label: s3 Bucket Name
+  show_if: "persistence.imageChartStorage.type=s3"
+  group: "Storage Settings"
+- variable: persistence.imageChartStorage.s3.region
+  required: true
+  default: "us-west-1"
+  description: "S3 region"
+  type: string
+  label: s3 Bucket Region
+  show_if: "persistence.imageChartStorage.type=s3"
+  group: "Storage Settings"
+- variable: persistence.imageChartStorage.s3.accesskey
+  required: true
+  default: ""
+  description: "S3 bucket accesskey"
+  type: string
+  label: s3 AccessKey
+  show_if: "persistence.imageChartStorage.type=s3"
+  group: "Storage Settings"
+- variable: persistence.imageChartStorage.s3.secretkey
+  required: true
+  default: ""
+  description: "S3 bucket secretkey"
+  type: string
+  label: s3 SecretKey
+  show_if: "persistence.imageChartStorage.type=s3"
+  group: "Storage Settings"
+- variable: persistence.imageChartStorage.s3.regionendpoint
+  default: ""
+  description: "S3 bucket endpoint"
+  type: string
+  label: s3 Bucket Endpoint
+  show_if: "persistence.imageChartStorage.type=s3"
+  group: "Storage Settings"
+# oss storage
+- variable: persistence.imageChartStorage.oss.bucket
+  required: true
+  default: ""
+  description: "Aliyun oss bucket name"
+  type: string
+  label: Aliyun oss Bucket Name
+  show_if: "persistence.imageChartStorage.type=oss"
+  group: "Storage Settings"
+- variable: persistence.imageChartStorage.oss.region
+  required: true
+  default: ""
+  description: "Aliyun oss region name"
+  type: string
+  label: Aliyun oss Bucket Region
+  show_if: "persistence.imageChartStorage.type=oss"
+  group: "Storage Settings"
+- variable: persistence.imageChartStorage.oss.accesskeyid
+  required: true
+  default: ""
+  description: "Aliyun oss accesskey id"
+  type: string
+  label: Aliyun oss AccessKey ID
+  show_if: "persistence.imageChartStorage.type=oss"
+  group: "Storage Settings"
+- variable: persistence.imageChartStorage.oss.accesskeysecret
+  required: true
+  default: ""
+  description: "Aliyun oss accesskey secret"
+  type: string
+  label: Aliyun oss AccessKey Secret
+  show_if: "persistence.imageChartStorage.type=oss"
+  group: "Storage Settings"
+# swift storage
+- variable: persistence.imageChartStorage.swift.authurl
+  required: true
+  default: "https://storage.myprovider.com/v3/auth"
+  type: string
+  label: Swift Auth URL
+  show_if: "persistence.imageChartStorage.type=swift"
+  group: "Storage Settings"
+- variable: persistence.imageChartStorage.swift.username
+  required: true
+  default: ""
+  type: string
+  label: Swift Username
+  show_if: "persistence.imageChartStorage.type=swift"
+  group: "Storage Settings"
+- variable: persistence.imageChartStorage.swift.password
+  required: true
+  default: ""
+  type: string
+  label: Swift Password
+  show_if: "persistence.imageChartStorage.type=swift"
+  group: "Storage Settings"
+- variable: persistence.imageChartStorage.swift.container
+  required: true
+  default: ""
+  type: string
+  label: Swift Storage Container Name
+  show_if: "persistence.imageChartStorage.type=swift"
+  group: "Storage Settings"
+# persistence options
+- variable: persistence.enabled
+  default: false
+  description: "Enable persistent volume type for Harbor services"
+  type: boolean
+  required: true
+  label: Enable Harbor Persistent Volume
+  group: "Persistence Storage Settings"
+# registry persistence config
+- variable: persistence.persistentVolumeClaim.registry.storageClass
+  default: ""
+  description: "If undefined or null, uses the default StorageClass. Default to null"
+  type: storageclass
+  label: Default StorageClass for Registry
+  show_if: "persistence.enabled=true&&persistence.imageChartStorage.type=filesystem"
+  group: "Persistence Storage Settings"
+- variable: persistence.persistentVolumeClaim.registry.size
+  required: true
+  default: "5Gi"
+  description: "Registry Persistent Volume Size"
+  type: string
+  label: Registry Volume Size
+  group: "Persistence Storage Settings"
+  show_if: "persistence.enabled=true&&persistence.imageChartStorage.type=filesystem"
+- variable: persistence.persistentVolumeClaim.registry.existingClaim
+  default: ""
+  description: "If not empty, uses the specified existing PVC instead of creating new one"
+  type: pvc
+  label: Existing Persistent Volume Claim for Registry
+  group: "Persistence Storage Settings"
+  show_if: "persistence.enabled=true&&persistence.imageChartStorage.type=filesystem"
+# chartmuseum persistence config
+- variable: persistence.persistentVolumeClaim.chartmuseum.storageClass
+  default: ""
+  description: "If undefined or null, uses the default StorageClass. Default to null"
+  type: storageclass
+  label: Default StorageClass for ChartMuseum
+  show_if: "persistence.enabled=true&&persistence.imageChartStorage.type=filesystem"
+  group: "Persistence Storage Settings"
+- variable: persistence.persistentVolumeClaim.chartmuseum.size
+  required: true
+  default: "5Gi"
+  description: "Chartmuseum Persistent Volume Size"
+  type: string
+  label: Chartmuseum Volume Size
+  show_if: "persistence.enabled=true&&persistence.imageChartStorage.type=filesystem"
+  group: "Persistence Storage Settings"
+- variable: persistence.persistentVolumeClaim.chartmuseum.existingClaim
+  default: ""
+  description: "If not empty, uses the specified existing PVC instead of creating new one"
+  type: pvc
+  label: Existing Persistent Volume Claim for Chartmuseum
+  show_if: "persistence.enabled=true&&persistence.imageChartStorage.type=filesystem"
+  group: "Persistence Storage Settings"
+# jobservice config
+- variable: jobservice.jobLogger
+  default: "database"
+  required: true
+  description: "Config JobService JobLogger type."
+  type: enum
+  label: Config JobService JobLogger Type
+  group: "Jobservice Settings"
+  options:
+  - "file"
+  - "database"
+  - "stdout"
+- variable: persistence.persistentVolumeClaim.jobservice.storageClass
+  default: ""
+  description: "If undefined or null, uses the default StorageClass. Default to null"
+  type: storageclass
+  label: Default StorageClass for Jobservice
+  show_if: "persistence.enabled=true&&jobservice.jobLogger=file"
+  group: "Jobservice Settings"
+- variable: persistence.persistentVolumeClaim.jobservice.size
+  required: true
+  default: "1Gi"
+  description: "Jobservice Persistent Volume Size"
+  type: string
+  label: Jobservice Volume Size
+  show_if: "persistence.enabled=true&&jobservice.jobLogger=file"
+  group: "Jobservice Settings"
+- variable: persistence.persistentVolumeClaim.jobservice.existingClaim
+  default: ""
+  description: "If not empty, uses the specified existing PVC instead of creating new one"
+  type: pvc
+  label: Existing Persistent Volume Claim for Jobservice
+  show_if: "persistence.enabled=true&&jobservice.jobLogger=file"
+  group: "Jobservice Settings"
+# database
+- variable: database.type
+  required: true
+  default: "internal"
+  description: "Config Database type, set to internal to deploy a database server as part of this deployment."
+  type: enum
+  label: Config Database Type
+  group: "Database Settings"
+  options:
+  - "internal"
+  - "external"
+- variable: persistence.persistentVolumeClaim.database.storageClass
+  default: ""
+  description: "If undefined or null, uses the default StorageClass. Default to null"
+  type: storageclass
+  label: Default StorageClass for Database
+  show_if: "database.type=internal&&persistence.enabled=true"
+  group: "Database Settings"
+- variable: persistence.persistentVolumeClaim.database.size
+  required: true
+  default: "5Gi"
+  description: "Database Persistent Volume Size"
+  type: string
+  label: Database Volume Size
+  group: "Database Settings"
+  show_if: "database.type=internal&&persistence.enabled=true"
+- variable: persistence.persistentVolumeClaim.database.existingClaim
+  default: ""
+  description: "If not empty, uses the specified existing PVC instead of creating new one"
+  type: pvc
+  label: Existing Persistent Volume Claim for Database
+  group: "Database Settings"
+  show_if: "database.type=internal&&persistence.enabled=true"
+- variable: database.external.host
+  required: true
+  default: ""
+  description: "Host of the external database"
+  type: string
+  label: External Database Host
+  show_if: "database.type=external"
+  group: "Database Settings"
+- variable: database.external.username
+  required: true
+  default: ""
+  description: "Existing username in the external DB"
+  type: string
+  label: External Database username
+  show_if: "database.type=external"
+  group: "Database Settings"
+- variable: database.external.password
+  default: ""
+  required: true
+  description: "External database password"
+  type: password
+  label: External Database password
+  show_if: "database.type=external"
+  group: "Database Settings"
+- variable: database.external.coreDatabase
+  default: "registry"
+  required: true
+  description: "The database used by core service"
+  type: string
+  label: Database Name of Core Service
+  show_if: "database.type=external"
+  group: "Database Settings"
+- variable: database.external.clairDatabase
+  default: "clair"
+  required: true
+  description: "The database used by Clair service"
+  type: string
+  label: Database Name of Clair
+  show_if: "database.type=external"
+  group: "Database Settings"
+- variable: database.external.notaryServerDatabase
+  default: "notary_server"
+  required: true
+  description: "The database used by Notary server"
+  type: string
+  label: Database Name of Notary Server
+  show_if: "database.type=external"
+  group: "Database Settings"
+- variable: database.external.notarySignerDatabase
+  default: "notary_signer"
+  required: true
+  description: "The database used by Notary signer"
+  type: string
+  label: Database Name of Notary Signer
+  show_if: "database.type=external"
+  group: "Database Settings"
+- variable: database.external.sslmode
+  default: "disable"
+  required: true
+  description: "Connection method of external database"
+  type: string
+  label: External Database sslmode
+  show_if: "database.type=external"
+  group: "Database Settings"
+- variable: database.external.port
+  default: "5432"
+  required: true
+  description: "External database port number"
+  type: string
+  label: External Database Port
+  show_if: "database.type=external"
+  group: "Database Settings"
+# redis
+- variable: redis.type
+  required: true
+  default: "internal"
+  description: "Deploy a redis-HA server as part of this deployment, or set to false and configure an external redis service."
+  type: enum
+  label: Config Redis Type
+  group: "Redis Settings"
+  options:
+  - "internal"
+  - "external"
+- variable: persistence.persistentVolumeClaim.redis.storageClass
+  default: ""
+  description: "If undefined or null, uses the default StorageClass. Default to null"
+  type: storageclass
+  label: Default StorageClass for Redis
+  show_if: "redis.type=internal&&persistence.enabled=true"
+  group: "Redis Settings"
+- variable: persistence.persistentVolumeClaim.redis.size
+  required: true
+  default: "5Gi"
+  description: "Redis Persistent Volume Size"
+  type: string
+  label: Redis Volume Size
+  group: "Redis Settings"
+  show_if: "redis.type=internal&&persistence.enabled=true"
+- variable: persistence.persistentVolumeClaim.redis.existingClaim
+  default: ""
+  description: "If not empty, uses the specified existing PVC instead of creating new one"
+  type: pvc
+  label: Existing Persistent Volume Claim for Redis
+  group: "Redis Settings"
+  show_if: "redis.type=internal&&persistence.enabled=true"
+- variable: redis.external.host
+  required: true
+  default: ""
+  description: "Host of the external redis"
+  type: string
+  label: External Reids Host
+  show_if: "redis.type=external"
+  group: "Redis Settings"
+- variable: redis.external.port
+  required: true
+  default: "6379"
+  description: "Existing username in the external DB"
+  type: string
+  label: External Redis username
+  show_if: "redis.type=external"
+  group: "Redis Settings"
+- variable: redis.external.password
+  default: ""
+  description: "External redis server password"
+  type: password
+  label: External Redis password
+  show_if: "redis.type=external"
+  group: "Redis Settings"
+# clair and notary options
+- variable: clair.enabled
+  default: true
+  description: "Enable Clair for vulnerability static analysis of containers images"
+  type: boolean
+  label: Enable Clair
+  group: "Notary, Clair & Cert"
+- variable: notary.enabled
+  default: true
+  description: "Notary is a tool for publishing and managing trusted collections of content like Docker images. Publishers can digitally sign collections and consumers can verify integrity and origin of content"
+  type: boolean
+  label: Enable Notary
+  group: "Notary, Clair & Cert"
+- variable: chartmuseum.enabled
+  default: true
+  description: "Enable Chartmuseum to support Helm chart repository in Harbor"
+  type: boolean
+  label: Enable Helm Chart Repository in Harbor
+  group: "Notary, Clair & Cert"
+- variable: cert.enabled
+  default: true
+  description: "Enable cert to distribute Harbor CA certs to each node under `/etc/docker/certs.d/` path"
+  type: boolean
+  label: Enable Cert DaemonSet
+  group: "Notary, Clair & Cert"

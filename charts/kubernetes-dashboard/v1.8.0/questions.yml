@@ -1,0 +1,44 @@
+labels:
+  io.cattle.role: cluster # options are cluster/project
+categories:
+  - dashboard
+namespace: kube-system
+questions:
+- variable: defaultImage
+  default: true
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: image.repository
+    default: "ranchercharts/kubernetes-dashboard-amd64"
+    description: "Docker image repository"
+    type: string
+    label: Image Repository
+  - variable: image.tag
+    default: "v1.10.1"
+    description: "Docker image tag"
+    type: string
+    label: Image Tag
+- variable: enableSkipLogin
+  requred: true
+  default: true
+  description: "Enable possibility to skip login"
+  type: boolean
+  label: "Enable Possibility To Skip Login"
+- variable: rbac.clusterAdminRole
+  required: true
+  default: false
+  description: "IMPORTANT: Granting admin privileges to Dashboard's Service Account might be a security risk, makeing sure that you know what you are doing before proceeding."
+  type: boolean
+  label: "Enable Dashboard Cluster Admin Role (NOT RECOMMENDED)"
+  show_subquestion_if: true
+  subquestions:
+  - variable: rbac.clusterReadOnlyRole
+    required: true
+    default: true
+    description: "Same as for clusterAdminRole, it is NOT RECOMMENDED to use this version in production. Instead you should review the role and remove all potentially sensitive parts such as access to persistentvolumes, pods/log etc"
+    type: boolean
+    label: "Set ReadOnly Mode of Cluster Admin Role"

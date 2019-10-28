@@ -1,0 +1,125 @@
+labels:
+  io.cattle.role: cluster # options are cluster/project
+questions:
+- variable: defaultImage
+  default: true
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: image.repository
+    default: "ranchercharts/grafana-grafana"
+    description: "Grafana image name"
+    type: string
+    label: Grafana Image Name
+  - variable: image.tag
+    default: "6.3.4"
+    description: "Grafana image tag"
+    type: string
+    label: Grafana Image Tag
+  - variable: sidecar.image
+    default: "ranchercharts/kiwigrid-k8s-sidecar:0.1.20"
+    description: "Sidecar image name"
+    type: string
+    label: Sidecar Image Name
+  - variable: downloadDashboardsImage.repository
+    default: "ranchercharts/appropriate-curl"
+    description: "Grafana Download Dashboard image name"
+    type: string
+    label: Grafana Download Dashboard Image Name
+  - variable: downloadDashboardsImage.tag
+    default: "latest"
+    description: "Grafana Download Dashboard image tag"
+    type: string
+    label: Grafana Download Dashboard Image Tag
+# grafana configurations
+- variable: admin.existingSecret
+  default: ""
+  description: "The name of an existing secret containing the admin credentials."
+  type: secret
+  group: "Grafana Settings"
+  label: Select Existing Admin Secret
+- variable: adminUser
+  default: "admin"
+  description: "Grafana admin username"
+  type: string
+  group: "Grafana Settings"
+  label: Grafana Admin Username
+  required: true
+  show_if: "admin.existingSecret="
+- variable: adminPassword
+  default: ""
+  description: "Grafana admin password"
+  type: password
+  group: "Grafana Settings"
+  label: Grafana Admin Password
+  show_if: "admin.existingSecret="
+- variable: rbac.namespaced
+  default: true
+  description: "Creates Role and Rolebinding instead of the default ClusterRole and ClusteRoleBindings for the grafana instance."
+  type: boolean
+  group: "Grafana Settings"
+  label: Set Grafana RBAC to Namespaced
+  show_if: "admin.existingSecret="
+- variable: persistence.enabled
+  default: false
+  description: "Enable persistent volume for Grafana"
+  type: boolean
+  required: true
+  label: Grafana Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "Grafana Settings"
+  subquestions:
+  - variable: persistence.size
+    default: "8Gi"
+    description: "Grafana Persistent Volume Size"
+    type: string
+    label: Grafana Volume Size
+    required: true
+  - variable: persistence.storageClass
+    default: ""
+    description: "If undefined or set to null, using the default storageClass. Defaults to null."
+    type: storageclass
+    label: Storage Class for Grafana
+  - variable: persistence.existingClaim
+    default: ""
+    description: "If not empty, uses the specified existing PVC instead of creating new one"
+    type: pvc
+    label: Existing Persistent Volume Claim for Grafana
+- variable: ingress.enabled
+  default: true
+  description: "Expose grafana using Layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose Grafana using Layer 7 Load Balancer
+  show_subquestion_if: true
+  group: "Service and Load Balancing"
+  required: true
+  subquestions:
+  - variable: ingress.hosts[0]
+    default: "xip.io"
+    description: "Hostname to your grafana installation"
+    type: hostname
+    required: true
+    label: Hostname
+- variable: service.type
+  default: "NodePort"
+  description: "Grafana service type"
+  type: enum
+  group: "Service and Load Balancing"
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: Grafana Service Type
+  show_subquestion_if: "NodePort"
+  subquestions:
+  - variable: service.nodePort
+    default: ""
+    description: "NodePort http port(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    show_if: "ingress.enabled=false"
+    label: Grafana NodePort Number

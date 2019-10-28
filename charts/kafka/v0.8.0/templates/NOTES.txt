@@ -1,0 +1,84 @@
+{{- if (index .Values "cp-zookeeper" "enabled") -}}
+## ------------------------------------------------------
+## Zookeeper
+## ------------------------------------------------------
+Connection string for Confluent Kafka:
+  {{ .Release.Name }}-cp-zookeeper-0.{{ .Release.Name }}-cp-zookeeper-headless:{{ default 2181 .Values.clientPort }},{{ .Release.Name }}-cp-zookeeper-1.{{ .Release.Name }}-cp-zookeeper-headless:{{ default 2181 .Values.clientPort }},...
+
+To connect from a client pod:
+
+1. Deploy a zookeeper client pod with configuration:
+
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: zookeeper-client
+      namespace: {{ .Release.Namespace }}
+    spec:
+      containers:
+      - name: zookeeper-client
+        image: {{index .Values "cp-zookeeper" "image" }}:{{index .Values "cp-zookeeper" "imageTag" }}
+        command:
+          - sh
+          - -c
+          - "exec tail -f /dev/null"
+
+2. Log into the Pod
+
+  kubectl exec -it zookeeper-client -- /bin/bash
+
+3. Use zookeeper-shell to connect in the zookeeper-client Pod:
+
+  zookeeper-shell {{ .Release.Name }}-cp-zookeeper:{{ default 2181 .Values.clientPort }}
+
+4. Explore with zookeeper commands, for example:
+
+  # Gives the list of active brokers
+  ls /brokers/ids
+
+  # Gives the list of topics
+  ls /brokers/topics
+
+  # Gives more detailed information of the broker id '0'
+  get /brokers/ids/0
+{{- end -}}
+{{- if (index .Values "cp-kafka" "enabled") -}}
+## ------------------------------------------------------
+## Kafka
+## ------------------------------------------------------
+To connect from a client pod:
+
+1. Deploy a kafka client pod with configuration:
+
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: kafka-client
+      namespace: {{ .Release.Namespace }}
+    spec:
+      containers:
+      - name: kafka-client
+        image: {{ index .Values "cp-kafka" "image" }}:{{ index .Values "cp-kafka" "imageTag" }}
+        command:
+          - sh
+          - -c
+          - "exec tail -f /dev/null"
+
+2. Log into the Pod
+
+  kubectl exec -it kafka-client -- /bin/bash
+
+3. Explore with kafka commands:
+
+  # Create the topic
+  kafka-topics --zookeeper {{ .Release.Name }}-cp-zookeeper-headless:{{ default 2181 .Values.clientPort }} --topic {{ .Release.Name }}-topic --create --partitions 1 --replication-factor 1 --if-not-exists
+
+  # Create a message
+  MESSAGE="`date -u`"
+
+  # Produce a test message to the topic
+  echo "$MESSAGE" | kafka-console-producer --broker-list {{ .Release.Name }}-cp-kafka-headless:9092 --topic {{ .Release.Name }}-topic
+
+  # Consume a test message from the topic
+  kafka-console-consumer --bootstrap-server {{ .Release.Name }}-cp-kafka-headless:9092 --topic {{ .Release.Name }}-topic --from-beginning --timeout-ms 2000 --max-messages 1 | grep "$MESSAGE"
+{{- end -}}

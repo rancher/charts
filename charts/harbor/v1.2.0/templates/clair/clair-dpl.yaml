@@ -1,0 +1,82 @@
+{{ if .Values.clair.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "harbor.clair" . }}
+  labels:
+{{ include "harbor.labels" . | indent 4 }}
+    component: clair
+spec:
+  replicas: {{ .Values.clair.replicas }}
+  selector:
+    matchLabels:
+{{ include "harbor.matchLabels" . | indent 6 }}
+      component: clair
+  template:
+    metadata:
+      labels:
+{{ include "harbor.labels" . | indent 8 }}
+        component: clair
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/clair/clair-secret.yaml") . | sha256sum }}
+{{- if .Values.clair.podAnnotations }}
+{{ toYaml .Values.clair.podAnnotations | indent 8 }}
+{{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: clair
+        image: {{ .Values.clair.image.repository }}:{{ .Values.clair.image.tag }}
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 6061
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 6061
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        args: ["-log-level", "{{ .Values.logLevel }}"]
+        env:
+        {{- if has "clair" .Values.proxy.components }}
+        - name: HTTP_PROXY
+          value: "{{ .Values.proxy.httpProxy }}"
+        - name: HTTPS_PROXY
+          value: "{{ .Values.proxy.httpsProxy }}"
+        - name: NO_PROXY
+          value: "{{ template "harbor.noProxy" . }}"
+        {{- end }}
+{{- if .Values.clair.resources }}
+        resources:
+{{ toYaml .Values.clair.resources | indent 10 }}
+{{- end }}
+        ports:
+        - containerPort: 6060
+        volumeMounts:
+        - name: config
+          mountPath: /etc/clair/config.yaml
+          subPath: config.yaml
+      volumes:
+      - name: config
+        secret:
+          secretName: "{{ template "harbor.clair" . }}"
+    {{- with .Values.clair.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.clair.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.clair.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+{{ end }}
