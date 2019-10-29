@@ -1,0 +1,1005 @@
+# Default values for artifactory-ha.
+# This is a YAML-formatted file.
+# Beware when changing values here. You should know what you are doing!
+# Access the values with {{ .Values.key.subkey }}
+
+# Common
+initContainerImage: "alpine:3.10"
+
+installer:
+  type:
+  platform:
+
+# For supporting pulling from private registries
+imagePullSecrets:
+
+## Role Based Access Control
+## Ref: https://kubernetes.io/docs/admin/authorization/rbac/
+rbac:
+  create: true
+  role:
+    ## Rules to create. It follows the role specification
+    rules:
+    - apiGroups:
+      - ''
+      resources:
+      - services
+      - endpoints
+      - pods
+      verbs:
+      - get
+      - watch
+      - list
+
+## Service Account
+## Ref: https://kubernetes.io/docs/admin/service-accounts-admin/
+##
+serviceAccount:
+  create: true
+  ## The name of the ServiceAccount to use.
+  ## If not set and create is true, a name is generated using the fullname template
+  name:
+
+ingress:
+  enabled: false
+  defaultBackend:
+    enabled: true
+  # Used to create an Ingress record.
+  hosts: []
+  path: /
+  annotations:
+  # kubernetes.io/ingress.class: nginx
+  # kubernetes.io/tls-acme: "true"
+  labels:
+  # traffic-type: external
+  # traffic-type: internal
+  tls:
+  # Secrets must be manually created in the namespace.
+  # - secretName: chart-example-tls
+  #   hosts:
+  #     - artifactory.domain.example
+
+  # Additional ingress rules
+  additionalRules: []
+
+
+networkpolicy:
+  # Allows all ingress and egress
+  - name: artifactory
+    podSelector:
+      matchLabels:
+        app: artifactory-ha
+    egress:
+    - {}
+    ingress:
+    - {}
+  # Uncomment to allow only artifactory pods to communicate with postgresql (if postgresql.enabled is true)
+  # - name: postgresql
+  #   podSelector:
+  #     matchLabels:
+  #       app: postgresql
+  #   ingress:
+  #   - from:
+  #     - podSelector:
+  #         matchLabels:
+  #           app: artifactory-ha
+
+
+## Database configurations
+## Use the wait-for-db init container. Set to false to skip
+waitForDatabase: true
+
+## Configuration values for the postgresql dependency
+## ref: https://github.com/kubernetes/charts/blob/master/stable/postgresql/README.md
+##
+postgresql:
+  enabled: true
+  image:
+    registry: docker.bintray.io
+    repository: bitnami/postgresql
+    tag: 9.6.15-debian-9-r77
+  postgresqlUsername: artifactory
+  postgresqlPassword:
+  postgresqlDatabase: artifactory
+  postgresqlConfiguration:
+    listen_addresses: "'*'"
+    max_connections: "1500"
+  persistence:
+    enabled: true
+    size: 50Gi
+  service:
+    port: 5432
+  resources: {}
+  #  requests:
+  #    memory: "512Mi"
+  #    cpu: "100m"
+  #  limits:
+  #    memory: "1Gi"
+  #    cpu: "500m"
+
+## If NOT using the PostgreSQL in this chart (postgresql.enabled=false),
+## you MUST specify custom database details here or Artifactory will NOT start
+database:
+  type:
+  host:
+  port:
+  ## If you set the url, leave host and port empty
+  url:
+  ## If you would like this chart to create the secret containing the db
+  ## password, use these values
+  user:
+  password:
+  ## If you have existing Kubernetes secrets containing db credentials, use
+  ## these values
+  secrets: {}
+  #  user:
+  #    name: "rds-artifactory"
+  #    key: "db-user"
+  #  password:
+  #    name: "rds-artifactory"
+  #    key: "db-password"
+  #  url:
+  #    name: "rds-artifactory"
+  #    key: "db-url"
+
+logger:
+  image:
+    repository: 'busybox'
+    tag: '1.30'
+
+# Artifactory
+artifactory:
+  name: artifactory-ha
+  image:
+    repository: "docker.bintray.io/jfrog/artifactory-pro"
+    # Note that by default we use appVersion to get image tag
+    # version:
+    pullPolicy: IfNotPresent
+
+  # Delete the db.properties file in ARTIFACTORY_HOME/etc/db.properties
+  deleteDBPropertiesOnStartup: true
+
+  # Files to copy to ARTIFACTORY_HOME/ on each Artifactory startup
+  copyOnEveryStartup:
+  #     # absolute path
+  #    - source: /artifactory_extra_conf/binarystore.xml
+  #     # relative to ARTIFACTORY_HOME/
+  #      target: etc/
+  #     # absolute path
+  #    - source: /artifactory_extra_conf/artifactory.lic
+  #     # relative to ARTIFACTORY_HOME/
+  #      target: etc/
+
+  # Sidecar containers for tailing Artifactory logs
+  loggers: []
+  # - request.log
+  # - event.log
+  # - binarystore.log
+  # - request_trace.log
+  # - access.log
+  # - artifactory.log
+  # - build_info_migration.log
+
+  # Sidecar containers for tailing Tomcat (catalina) logs
+  catalinaLoggers: []
+  # - catalina.log
+  # - host-manager.log
+  # - localhost.log
+  # - manager.log
+
+  ## Add custom init containers execution before predefined init containers
+  customInitContainersBegin: |
+  #  - name: "custom-setup"
+  #    image: "{{ .Values.initContainerImage }}"
+  #    imagePullPolicy: "{{ .Values.artifactory.image.pullPolicy }}"
+  #    command:
+  #      - 'sh'
+  #      - '-c'
+  #      - 'touch {{ .Values.artifactory.persistence.mountPath }}/example-custom-setup'
+  #    volumeMounts:
+  #      - mountPath: "{{ .Values.artifactory.persistence.mountPath }}"
+  #        name: volume
+    ## Add custom init containers
+
+  ## Add custom init containers execution after predefined init containers
+  customInitContainers: |
+  #  - name: "custom-setup"
+  #    image: "{{ .Values.initContainerImage }}"
+  #    imagePullPolicy: "{{ .Values.artifactory.image.pullPolicy }}"
+  #    command:
+  #      - 'sh'
+  #      - '-c'
+  #      - 'touch {{ .Values.artifactory.persistence.mountPath }}/example-custom-setup'
+  #    volumeMounts:
+  #      - mountPath: "{{ .Values.artifactory.persistence.mountPath }}"
+  #        name: volume
+
+  ## Add custom sidecar containers
+  # - The provided example uses a custom volume (customVolumes)
+  # - The provided example shows running container as root (id 0)
+  customSidecarContainers: |
+  #  - name: "sidecar-list-etc"
+  #    image: "{{ .Values.initContainerImage }}"
+  #    imagePullPolicy: "{{ .Values.artifactory.image.pullPolicy }}"
+  #    securityContext:
+  #      runAsUser: 0
+  #      fsGroup: 0
+  #    command:
+  #      - 'sh'
+  #      - '-c'
+  #      - 'sh /scripts/script.sh'
+  #    volumeMounts:
+  #      - mountPath: "{{ .Values.artifactory.persistence.mountPath }}"
+  #        name: volume
+  #      - mountPath: "/scripts/script.sh"
+  #        name: custom-script
+  #        subPath: script.sh
+  #    resources:
+  #      requests:
+  #        memory: "32Mi"
+  #        cpu: "50m"
+  #      limits:
+  #        memory: "128Mi"
+  #        cpu: "100m"
+
+  ## Add custom volumes
+  customVolumes: |
+  #  - name: custom-script
+  #    configMap:
+  #      name: custom-script
+
+  ## Add custom volumesMounts
+  customVolumeMounts: |
+  #  - name: custom-script
+  #    mountPath: "/scripts/script.sh"
+  #    subPath: script.sh
+
+  ## Artifactory requires a unique master key
+  ## You can generate one with the command:
+  ## 'openssl rand -hex 32'
+  ## Pass it to helm with '--set artifactory.masterKey=${MASTER_KEY}'
+  ## Alternatively, you can use a pre-existing secret with a key called master-key by specifying masterKeySecretName
+  ## IMPORTANT: You should NOT use the example masterKey for a production deployment!
+  masterKey: FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+  # masterKeySecretName:
+
+  accessAdmin:
+    ip: "127.0.0.1"
+    password:
+    secret:
+    dataKey:
+
+  ## Artifactory license.
+  license:
+    ## licenseKey is the license key in plain text. Use either this or the license.secret setting
+    licenseKey:
+    ## If artifactory.license.secret is passed, it will be mounted as
+    ## ARTIFACTORY_HOME/etc/artifactory.lic and loaded at run time.
+    secret:
+    ## The dataKey should be the name of the secret data key created.
+    dataKey:
+
+  ## Create configMap with artifactory.config.import.xml and security.import.xml and pass name of configMap in following parameter
+  configMapName:
+
+  ## List of secrets for Artifactory user plugins.
+  ## One Secret per plugin's files.
+  userPluginSecrets:
+  #  - archive-old-artifacts
+  #  - build-cleanup
+  #  - webhook
+  #  - '{{ template "my-chart.fullname" . }}'
+
+  ## Extra pre-start command to install JDBC driver for MySql/MariaDb/Oracle
+  # preStartCommand: "wget -O /opt/jfrog/artifactory/tomcat/lib/mysql-connector-java-5.1.41.jar https://jcenter.bintray.com/mysql/mysql-connector-java/5.1.41/mysql-connector-java-5.1.41.jar"
+  ## Extra post-start command to run extra commands after container starts
+  # postStartCommand:
+
+  ## Extra environment variables that can be used to tune Artifactory to your needs.
+  ## Uncomment and set value as needed
+  extraEnvironmentVariables:
+  # - name: SERVER_XML_ARTIFACTORY_PORT
+  #   value: "8081"
+  # - name: SERVER_XML_ARTIFACTORY_MAX_THREADS
+  #   value: "200"
+  # - name: SERVER_XML_ACCESS_MAX_THREADS
+  #   value: "50"
+  # - name: SERVER_XML_ARTIFACTORY_EXTRA_CONFIG
+  #   value: ""
+  # - name: SERVER_XML_ACCESS_EXTRA_CONFIG
+  #   value: ""
+  # - name: SERVER_XML_EXTRA_CONNECTOR
+  #   value: ""
+  # - name: DB_POOL_MAX_ACTIVE
+  #   value: "100"
+  # - name: DB_POOL_MAX_IDLE
+  #   value: "10"
+
+  membershipPort: 10017
+  externalPort: 8081
+  internalPort: 8081
+  internalPortReplicator: 6061
+  externalPortReplicator: 6061
+  uid: 1030
+  terminationGracePeriodSeconds: 30
+  ## The following settings are to configure the frequency of the liveness and readiness probes
+  livenessProbe:
+    enabled: true
+    path: '/artifactory/webapp/#/login'
+    initialDelaySeconds: 180
+    failureThreshold: 10
+    timeoutSeconds: 10
+    periodSeconds: 10
+    successThreshold: 1
+
+  readinessProbe:
+    enabled: true
+    path: '/artifactory/webapp/#/login'
+    initialDelaySeconds: 60
+    failureThreshold: 10
+    timeoutSeconds: 10
+    periodSeconds: 10
+    successThreshold: 1
+
+  persistence:
+    enabled: true
+    local: false
+    redundancy: 3
+    mountPath: "/var/opt/jfrog/artifactory"
+    accessMode: ReadWriteOnce
+    size: 200Gi
+
+    ## Use a custom Secret to be mounted as your binarystore.xml
+    ## NOTE: This will ignore all settings below that make up binarystore.xml
+    customBinarystoreXmlSecret:
+
+    maxCacheSize: 50000000000
+    cacheProviderDir: cache
+    eventual:
+      numberOfThreads: 10
+    ## artifactory data Persistent Volume Storage Class
+    ## If defined, storageClassName: <storageClass>
+    ## If set to "-", storageClassName: "", which disables dynamic provisioning
+    ## If undefined (the default) or set to null, no storageClassName spec is
+    ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+    ##   GKE, AWS & OpenStack)
+    ##
+    # storageClass: "-"
+
+    ## Set the persistence storage type. This will apply the matching binarystore.xml to Artifactory config
+    ## Supported types are:
+    ## file-system (default)
+    ## nfs
+    ## google-storage
+    ## aws-s3
+    ## azure-blob
+    type: file-system
+
+    ## Use binarystoreXml to provide a custom binarystore.xml
+    ## This can be a template or hardcoded.
+    binarystoreXml: |
+      {{- if eq .Values.artifactory.persistence.type "file-system" }}
+      <!-- File system replication -->
+      {{- if .Values.artifactory.persistence.fileSystem.existingSharedClaim.enabled }}
+      <!-- File Storage - Dynamic for Artifactory files, pre-created for DATA and BACKUP -->
+      <config version="4">
+          <chain>
+              <provider id="cache-fs" type="cache-fs">                   <!-- This is a cached filestore -->
+                  <provider id="sharding" type="sharding">                   <!-- This is a sharding provider -->
+                      {{- range $sharedClaimNumber, $e := until (.Values.artifactory.persistence.fileSystem.existingSharedClaim.numberOfExistingClaims|int) -}}
+                      <sub-provider id="shard{{ $sharedClaimNumber }}" type="state-aware"/>
+                      {{- end }}
+                  </provider>
+              </provider>
+          </chain>
+
+          <provider id="cache-fs" type="cache-fs">
+              <maxCacheSize>{{ .Values.artifactory.persistence.maxCacheSize }}</maxCacheSize>
+              <cacheProviderDir>{{ .Values.artifactory.persistence.cacheProviderDir }}</cacheProviderDir>
+          </provider>
+
+          // Specify the read and write strategy and redundancy for the sharding binary provider
+          <provider id="sharding" type="sharding">
+              <readBehavior>roundRobin</readBehavior>
+              <writeBehavior>percentageFreeSpace</writeBehavior>
+              <redundancy>2</redundancy>
+          </provider>
+
+          {{- range $sharedClaimNumber, $e := until (.Values.artifactory.persistence.fileSystem.existingSharedClaim.numberOfExistingClaims|int) -}}
+          //For each sub-provider (mount), specify the filestore location
+          <provider id="shard{{ $sharedClaimNumber }}" type="state-aware">
+              <fileStoreDir>filestore{{ $sharedClaimNumber }}</fileStoreDir>
+          </provider>
+          {{- end }}
+      </config>
+      {{- else }}
+      <config version="2">
+          <chain>
+              <provider id="cache-fs" type="cache-fs">
+                  <provider id="sharding-cluster" type="sharding-cluster">
+                      <readBehavior>crossNetworkStrategy</readBehavior>
+                      <writeBehavior>crossNetworkStrategy</writeBehavior>
+                      <redundancy>{{ .Values.artifactory.persistence.redundancy }}</redundancy>
+                      <lenientLimit>2</lenientLimit>
+                      <minSpareUploaderExecutor>2</minSpareUploaderExecutor>
+                      <sub-provider id="state-aware" type="state-aware"/>
+                      <dynamic-provider id="remote" type="remote"/>
+                      <property name="zones" value="local,remote"/>
+                  </provider>
+              </provider>
+          </chain>
+
+          <provider id="cache-fs" type="cache-fs">
+              <maxCacheSize>{{ .Values.artifactory.persistence.maxCacheSize }}</maxCacheSize>
+              <cacheProviderDir>{{ .Values.artifactory.persistence.cacheProviderDir }}</cacheProviderDir>
+          </provider>
+
+          <!-- Shards add local file-system provider configuration -->
+          <provider id="state-aware" type="state-aware">
+              <fileStoreDir>shard-fs-1</fileStoreDir>
+              <zone>local</zone>
+          </provider>
+
+          <!-- Shards dynamic remote provider configuration -->
+          <provider id="remote" type="remote">
+              <checkPeriod>30</checkPeriod>
+              <serviceId>tester-remote1</serviceId>
+              <timeout>10000</timeout>
+              <zone>remote</zone>
+              <property name="header.remote.block" value="true"/>
+          </provider>
+      </config>
+      {{- end }}
+      {{- end }}
+      {{- if eq .Values.artifactory.persistence.type "google-storage" }}
+      <!-- Google storage -->
+      <config version="2">
+          <chain>
+              <provider id="sharding-cluster" type="sharding-cluster">
+                  <readBehavior>crossNetworkStrategy</readBehavior>
+                  <writeBehavior>crossNetworkStrategy</writeBehavior>
+                  <redundancy>{{ .Values.artifactory.persistence.redundancy }}</redundancy>
+                  <minSpareUploaderExecutor>2</minSpareUploaderExecutor>
+                  <sub-provider id="eventual-cluster" type="eventual-cluster">
+                      <provider id="retry" type="retry">
+                          <provider id="google-storage" type="google-storage"/>
+                      </provider>
+                  </sub-provider>
+                  <dynamic-provider id="remote" type="remote"/>
+                  <property name="zones" value="local,remote"/>
+              </provider>
+          </chain>
+
+          <!-- Set max cache-fs size -->
+          <provider id="cache-fs" type="cache-fs">
+              <maxCacheSize>{{ .Values.artifactory.persistence.maxCacheSize }}</maxCacheSize>
+              <cacheProviderDir>{{ .Values.artifactory.persistence.cacheProviderDir }}</cacheProviderDir>
+          </provider>
+
+          <provider id="eventual-cluster" type="eventual-cluster">
+              <zone>local</zone>
+          </provider>
+
+          <provider id="remote" type="remote">
+              <checkPeriod>30</checkPeriod>
+              <timeout>10000</timeout>
+              <zone>remote</zone>
+          </provider>
+
+          <provider id="file-system" type="file-system">
+              <fileStoreDir>{{ .Values.artifactory.persistence.mountPath }}/data/filestore</fileStoreDir>
+              <tempDir>/tmp</tempDir>
+          </provider>
+
+          <provider id="google-storage" type="google-storage">
+              <providerId>google-cloud-storage</providerId>
+              <endpoint>{{ .Values.artifactory.persistence.googleStorage.endpoint }}</endpoint>
+              <httpsOnly>{{ .Values.artifactory.persistence.googleStorage.httpsOnly }}</httpsOnly>
+              <bucketName>{{ .Values.artifactory.persistence.googleStorage.bucketName }}</bucketName>
+              <identity>{{ .Values.artifactory.persistence.googleStorage.identity }}</identity>
+              <credential>{{ .Values.artifactory.persistence.googleStorage.credential }}</credential>
+              <path>{{ .Values.artifactory.persistence.googleStorage.path }}</path>
+              <bucketExists>{{ .Values.artifactory.persistence.googleStorage.bucketExists }}</bucketExists>
+          </provider>
+      </config>
+      {{- end }}
+      {{- if eq .Values.artifactory.persistence.type "aws-s3" }}
+      <!-- AWS S3 -->
+      <config version="2">
+          <chain> <!--template="cluster-s3"-->
+              <provider id="cache-fs" type="cache-fs">
+                  <provider id="sharding-cluster" type="sharding-cluster">
+                      <sub-provider id="eventual-cluster" type="eventual-cluster">
+                          <provider id="retry-s3" type="retry">
+                              <provider id="s3" type="s3"/>
+                          </provider>
+                      </sub-provider>
+                      <dynamic-provider id="remote" type="remote"/>
+                  </provider>
+              </provider>
+          </chain>
+
+          <!-- Set max cache-fs size -->
+          <provider id="cache-fs" type="cache-fs">
+              <maxCacheSize>{{ .Values.artifactory.persistence.maxCacheSize }}</maxCacheSize>
+              <cacheProviderDir>{{ .Values.artifactory.persistence.cacheProviderDir }}</cacheProviderDir>
+          </provider>
+
+          <provider id="eventual-cluster" type="eventual-cluster">
+              <zone>local</zone>
+          </provider>
+
+          <provider id="remote" type="remote">
+              <checkPeriod>30</checkPeriod>
+              <timeout>10000</timeout>
+              <zone>remote</zone>
+          </provider>
+
+          <provider id="sharding-cluster" type="sharding-cluster">
+              <readBehavior>crossNetworkStrategy</readBehavior>
+              <writeBehavior>crossNetworkStrategy</writeBehavior>
+              <redundancy>{{ .Values.artifactory.persistence.redundancy }}</redundancy>
+              <property name="zones" value="local,remote"/>
+          </provider>
+
+          <provider id="s3" type="s3">
+              <endpoint>{{ .Values.artifactory.persistence.awsS3.endpoint }}</endpoint>
+          {{- if .Values.artifactory.persistence.awsS3.roleName }}
+              <roleName>{{ .Values.artifactory.persistence.awsS3.roleName }}</roleName>
+              <refreshCredentials>true</refreshCredentials>
+          {{- else }}
+              <refreshCredentials>{{ .Values.artifactory.persistence.awsS3.refreshCredentials }}</refreshCredentials>
+          {{- end }}
+              <s3AwsVersion>{{ .Values.artifactory.persistence.awsS3.s3AwsVersion }}</s3AwsVersion>
+              <testConnection>{{ .Values.artifactory.persistence.awsS3.testConnection }}</testConnection>
+              <httpsOnly>true</httpsOnly>
+              <region>{{ .Values.artifactory.persistence.awsS3.region }}</region>
+              <bucketName>{{ .Values.artifactory.persistence.awsS3.bucketName }}</bucketName>
+          {{- if .Values.artifactory.persistence.awsS3.identity }}
+              <identity>{{ .Values.artifactory.persistence.awsS3.identity }}</identity>
+          {{- end }}
+          {{- if .Values.artifactory.persistence.awsS3.credential }}
+              <credential>{{ .Values.artifactory.persistence.awsS3.credential }}</credential>
+          {{- end }}
+              <path>{{ .Values.artifactory.persistence.awsS3.path }}</path>
+          {{- range $key, $value := .Values.artifactory.persistence.awsS3.properties }}
+              <property name="{{ $key }}" value="{{ $value }}"/>
+          {{- end }}
+          </provider>
+      </config>
+      {{- end }}
+      {{- if eq .Values.artifactory.persistence.type "azure-blob" }}
+      <!-- Azure Blob Storage -->
+      <config version="2">
+          <chain> <!--template="cluster-azure-blob-storage"-->
+              <provider id="cache-fs" type="cache-fs">
+                  <provider id="sharding-cluster" type="sharding-cluster">
+                      <sub-provider id="eventual-cluster" type="eventual-cluster">
+                          <provider id="retry-azure-blob-storage" type="retry">
+                              <provider id="azure-blob-storage" type="azure-blob-storage"/>
+                          </provider>
+                      </sub-provider>
+                      <dynamic-provider id="remote" type="remote"/>
+                  </provider>
+              </provider>
+          </chain>
+
+          <!-- Set max cache-fs size -->
+          <provider id="cache-fs" type="cache-fs">
+              <maxCacheSize>{{ .Values.artifactory.persistence.maxCacheSize }}</maxCacheSize>
+              <cacheProviderDir>{{ .Values.artifactory.persistence.cacheProviderDir }}</cacheProviderDir>
+          </provider>
+
+          <!-- cluster eventual Azure Blob Storage Service default chain -->
+          <provider id="sharding-cluster" type="sharding-cluster">
+              <readBehavior>crossNetworkStrategy</readBehavior>
+              <writeBehavior>crossNetworkStrategy</writeBehavior>
+              <redundancy>2</redundancy>
+              <lenientLimit>1</lenientLimit>
+              <property name="zones" value="local,remote"/>
+          </provider>
+
+          <provider id="remote" type="remote">
+              <zone>remote</zone>
+          </provider>
+
+          <provider id="eventual-cluster" type="eventual-cluster">
+              <zone>local</zone>
+          </provider>
+
+          <!--cluster eventual template-->
+          <provider id="azure-blob-storage" type="azure-blob-storage">
+              <accountName>{{ .Values.artifactory.persistence.azureBlob.accountName }}</accountName>
+              <accountKey>{{ .Values.artifactory.persistence.azureBlob.accountKey }}</accountKey>
+              <endpoint>{{ .Values.artifactory.persistence.azureBlob.endpoint }}</endpoint>
+              <containerName>{{ .Values.artifactory.persistence.azureBlob.containerName }}</containerName>
+              <testConnection>{{ .Values.artifactory.persistence.azureBlob.testConnection }}</testConnection>
+          </provider>
+      </config>
+      {{- end }}
+
+    ## For artifactory.persistence.type file-system
+    fileSystem:
+      ## You may also use existing shared claims for the data and backup storage. This allows storage (NAS for example) to be used for Data and Backup dirs which are safe to share across multiple artifactory nodes.
+      ## You may specify numberOfExistingClaims to indicate how many of these existing shared claims to mount. (Default = 1)
+      ## Create PVCs with ReadWriteMany that match the naming convetions:
+      ##   {{ template "artifactory-ha.fullname" . }}-data-pvc-<claim-ordinal>
+      ##   {{ template "artifactory-ha.fullname" . }}-backup-pvc
+      ## Example (using numberOfExistingClaims: 2)
+      ##   myexample-data-pvc-0
+      ##   myexample-data-pvc-1
+      ##   myexample-backup-pvc
+      ## Note: While you need two PVC fronting two PVs, multiple PVs can be attached to the same storage in many cases allowing you to share an underlying drive.
+
+      ## Need to have the following set
+      existingSharedClaim:
+        enabled: false
+        numberOfExistingClaims: 1
+        ## Should be a child directory of {{ .Values.artifactory.persistence.mountPath }}
+        dataDir: "{{ .Values.artifactory.persistence.mountPath }}/artifactory-data"
+        backupDir: "/var/opt/jfrog/artifactory-backup"
+
+
+    ## For artifactory.persistence.type nfs
+    ## If using NFS as the shared storage, you must have a running NFS server that is accessible by your Kubernetes
+    ## cluster nodes.
+    ## Need to have the following set
+    nfs:
+      # Must pass actual IP of NFS server with '--set For artifactory.persistence.nfs.ip=${NFS_IP}'
+      ip:
+      haDataMount: "/data"
+      haBackupMount: "/backup"
+      dataDir: "/var/opt/jfrog/artifactory-ha"
+      backupDir: "/var/opt/jfrog/artifactory-backup"
+      capacity: 200Gi
+    ## For artifactory.persistence.type google-storage
+    googleStorage:
+      endpoint: storage.googleapis.com
+      httpsOnly: false
+      # Set a unique bucket name
+      bucketName: "artifactory-ha-gcp"
+      identity:
+      credential:
+      path: "artifactory-ha/filestore"
+      bucketExists: false
+    ## For artifactory.persistence.type aws-s3
+    ## IMPORTANT: Make sure S3 `endpoint` and `region` match! See https://docs.aws.amazon.com/general/latest/gr/rande.html
+    awsS3:
+      # Set a unique bucket name
+      bucketName: "artifactory-ha-aws"
+      endpoint:
+      region:
+      roleName:
+      identity:
+      credential:
+      path: "artifactory-ha/filestore"
+      refreshCredentials: true
+      testConnection: false
+      s3AwsVersion: "AWS4-HMAC-SHA256"
+
+      ## Additional properties to set on the s3 provider
+      properties: {}
+      #  httpclient.max-connections: 100
+    ## For artifactory.persistence.type azure-blob
+    azureBlob:
+      accountName:
+      accountKey:
+      endpoint:
+      containerName:
+      testConnection: false
+  service:
+    name: artifactory
+    type: ClusterIP
+    ## Which nodes in the cluster should be in the external load balancer pool (have external traffic routed to them)
+    ## Supported pool values
+    ## members
+    ## all
+    pool: members
+
+  ## The following Java options are passed to the java process running Artifactory.
+  ## This will be passed to all cluster members. Primary and member nodes.
+  javaOpts: {}
+    # other: ""
+  ## Artifactory Replicator is available only for Enterprise Plus
+  replicator:
+    enabled: false
+    publicUrl:
+
+  annotations: {}
+
+  ## Type specific configurations.
+  ## There is a difference between the primary and the member nodes.
+  ## Customising their resources and java parameters is done here.
+  primary:
+    name: artifactory-ha-primary
+    labels: {}
+    persistence:
+      ## Set existingClaim to true or false
+      ## If true, you must prepare a PVC with the name e.g `volume-myrelease-artifactory-ha-primary-0`
+      existingClaim: false
+    ## Resources for the primary node
+    resources: {}
+    #  requests:
+    #    memory: "1Gi"
+    #    cpu: "500m"
+    #  limits:
+    #    memory: "2Gi"
+    #    cpu: "1"
+    ## The following Java options are passed to the java process running Artifactory primary node.
+    ## You should set them according to the resources set above
+    javaOpts:
+      # xms: "1g"
+      # xmx: "2g"
+      corePoolSize: 16
+      jmx:
+        enabled: false
+        port: 9010
+        host:
+        ssl: false
+      # other: ""
+    nodeSelector: {}
+
+    tolerations: []
+
+    affinity: {}
+    ## Only used if "affinity" is empty
+    podAntiAffinity:
+      ## Valid values are "soft" or "hard"; any other value indicates no anti-affinity
+      type: ""
+      topologyKey: "kubernetes.io/hostname"
+
+  node:
+    name: artifactory-ha-member
+    labels: {}
+    persistence:
+      ## Set existingClaim to true or false
+      ## If true, you must prepare a PVC with the name e.g `volume-myrelease-artifactory-ha-member-0`
+      existingClaim: false
+    replicaCount: 2
+    minAvailable: 1
+    ## Resources for the member nodes
+    resources: {}
+    #  requests:
+    #    memory: "1Gi"
+    #    cpu: "500m"
+    #  limits:
+    #    memory: "2Gi"
+    #    cpu: "1"
+    ## The following Java options are passed to the java process running Artifactory member nodes.
+    ## You should set them according to the resources set above
+    javaOpts:
+      # xms: "1g"
+      # xmx: "2g"
+      corePoolSize: 16
+      jmx:
+        enabled: false
+        port: 9010
+        host:
+        ssl: false
+      # other: ""
+    #  xms: "1g"
+    #  xmx: "2g"
+    #  other: ""
+    nodeSelector: {}
+
+    tolerations: []
+
+    ## Complete specification of the "affinity" of the member nodes; if this is non-empty,
+    ## "podAntiAffinity" values are not used.
+    affinity: {}
+
+    ## Only used if "affinity" is empty
+    podAntiAffinity:
+      ## Valid values are "soft" or "hard"; any other value indicates no anti-affinity
+      type: ""
+      topologyKey: "kubernetes.io/hostname"
+
+# Init containers
+initContainers:
+  resources: {}
+#    requests:
+#      memory: "64Mi"
+#      cpu: "10m"
+#    limits:
+#      memory: "128Mi"
+#      cpu: "250m"
+
+
+# Nginx
+nginx:
+  enabled: true
+  name: nginx
+  labels: {}
+  replicaCount: 1
+  uid: 104
+  gid: 107
+  image:
+    repository: "docker.bintray.io/jfrog/nginx-artifactory-pro"
+    # Note that by default we use appVersion to get image tag
+    # version:
+    pullPolicy: IfNotPresent
+
+
+  # Sidecar containers for tailing Nginx logs
+  loggers: []
+  # - access.log
+  # - error.log
+
+  mainConf: |
+    # Main Nginx configuration file
+    worker_processes  4;
+    error_log  {{ .Values.nginx.persistence.mountPath }}/logs//error.log warn;
+    pid        /tmp/nginx.pid;
+    events {
+      worker_connections  1024;
+    }
+    http {
+      include       /etc/nginx/mime.types;
+      default_type  application/octet-stream;
+      variables_hash_max_size 1024;
+      variables_hash_bucket_size 64;
+      server_names_hash_max_size 4096;
+      server_names_hash_bucket_size 128;
+      types_hash_max_size 2048;
+      types_hash_bucket_size 64;
+      proxy_read_timeout 2400s;
+      client_header_timeout 2400s;
+      client_body_timeout 2400s;
+      proxy_connect_timeout 75s;
+      proxy_send_timeout 2400s;
+      proxy_buffer_size 32k;
+      proxy_buffers 40 32k;
+      proxy_busy_buffers_size 64k;
+      proxy_temp_file_write_size 250m;
+      proxy_http_version 1.1;
+      client_body_buffer_size 128k;
+      log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+      '$status $body_bytes_sent "$http_referer" '
+      '"$http_user_agent" "$http_x_forwarded_for"';
+      log_format timing 'ip = $remote_addr '
+      'user = \"$remote_user\" '
+      'local_time = \"$time_local\" '
+      'host = $host '
+      'request = \"$request\" '
+      'status = $status '
+      'bytes = $body_bytes_sent '
+      'upstream = \"$upstream_addr\" '
+      'upstream_time = $upstream_response_time '
+      'request_time = $request_time '
+      'referer = \"$http_referer\" '
+      'UA = \"$http_user_agent\"';
+      access_log  {{ .Values.nginx.persistence.mountPath }}/logs/access.log  timing;
+      sendfile        on;
+      #tcp_nopush     on;
+      keepalive_timeout  65;
+      #gzip  on;
+      include /etc/nginx/conf.d/*.conf;
+    {{- if .Values.artifactory.replicator.enabled }}
+      include /etc/nginx/conf.d/replicator/*.conf;
+    {{- end }}
+    }
+
+  artifactoryConf: |
+    ssl_protocols TLSv1 TLSv1.1 TLSv1.2 TLSv1.3;
+    ssl_certificate  {{ .Values.nginx.persistence.mountPath }}/ssl/tls.crt;
+    ssl_certificate_key  {{ .Values.nginx.persistence.mountPath }}/ssl/tls.key;
+    ssl_session_cache shared:SSL:1m;
+    ssl_prefer_server_ciphers   on;
+    ## server configuration
+    server {
+      listen {{ .Values.nginx.internalPortHttps }} ssl;
+      listen {{ .Values.nginx.internalPortHttp }} ;
+      server_name ~(?<repo>.+)\.{{ include "artifactory-ha.fullname" . }} {{ include "artifactory-ha.fullname" . }}
+      {{- range .Values.ingress.hosts -}}
+        {{- if contains "." . -}}
+          {{ "" | indent 0 }} ~(?<repo>.+)\.{{ . }}
+        {{- end -}}
+      {{- end -}};
+      if ($http_x_forwarded_proto = '') {
+        set $http_x_forwarded_proto  $scheme;
+      }
+      ## Application specific logs
+      ## access_log /var/log/nginx/artifactory-access.log timing;
+      ## error_log /var/log/nginx/artifactory-error.log;
+      rewrite ^/$ /artifactory/webapp/ redirect;
+      rewrite ^/artifactory/?(/webapp)?$ /artifactory/webapp/ redirect;
+      if ( $repo != "" ) {
+        rewrite ^/(v1|v2)/(.*) /artifactory/api/docker/$repo/$1/$2 break;
+      }
+      rewrite ^/(v1|v2)/([^/]+)(.*)$ /artifactory/api/docker/$2/$1/$3;
+      rewrite ^/(v1|v2)/ /artifactory/api/docker/$1/;
+
+      chunked_transfer_encoding on;
+      client_max_body_size 0;
+      location /artifactory/ {
+        proxy_read_timeout  900;
+        proxy_pass_header   Server;
+        proxy_cookie_path   ~*^/.* /;
+        if ( $request_uri ~ ^/artifactory/(.*)$ ) {
+          proxy_pass       http://{{ include "artifactory-ha.fullname" . }}:{{ .Values.artifactory.externalPort }}/artifactory/$1;
+        }
+        proxy_pass          http://{{ include "artifactory-ha.fullname" . }}:{{ .Values.artifactory.externalPort }}/artifactory/;
+        proxy_set_header    X-Artifactory-Override-Base-Url $http_x_forwarded_proto://$host:$server_port/artifactory;
+        proxy_set_header    X-Forwarded-Port  $server_port;
+        proxy_set_header    X-Forwarded-Proto $http_x_forwarded_proto;
+        proxy_set_header    Host              $http_host;
+        proxy_set_header    X-Forwarded-For   $proxy_add_x_forwarded_for;
+      }
+    }
+
+  service:
+    ## For minikube, set this to NodePort, elsewhere use LoadBalancer
+    type: LoadBalancer
+    ## For supporting whitelist on the Nginx LoadBalancer service
+    ## Set this to a list of IP CIDR ranges
+    ## Example: loadBalancerSourceRanges: ['10.10.10.5/32', '10.11.10.5/32']
+    ## or pass from helm command line
+    ## Example: helm install ... --set nginx.service.loadBalancerSourceRanges='{10.10.10.5/32,10.11.10.5/32}'
+    loadBalancerSourceRanges: []
+    ## Provide static ip address
+    loadBalancerIP:
+    ## There are two available options: “Cluster” (default) and “Local”.
+    externalTrafficPolicy: Cluster
+    labels: {}
+    #  label-key: label-value
+  externalPortHttp: 80
+  internalPortHttp: 80
+  externalPortHttps: 443
+  internalPortHttps: 443
+  internalPortReplicator: 6061
+  externalPortReplicator: 6061
+  ## The following settings are to configure the frequency of the liveness and readiness probes
+  livenessProbe:
+    enabled: true
+    path: '/artifactory/webapp/#/login'
+    initialDelaySeconds: 60
+    failureThreshold: 10
+    timeoutSeconds: 10
+    periodSeconds: 10
+    successThreshold: 1
+
+  readinessProbe:
+    enabled: true
+    path: '/artifactory/webapp/#/login'
+    initialDelaySeconds: 60
+    failureThreshold: 10
+    timeoutSeconds: 10
+    periodSeconds: 10
+    successThreshold: 1
+  ## The SSL secret that will be used by the Nginx pod
+  # tlsSecretName: chart-example-tls
+  ## Custom ConfigMap for nginx.conf
+  customConfigMap:
+  ## Custom ConfigMap for artifactory.conf
+  customArtifactoryConfigMap:
+  persistence:
+    mountPath: "/var/opt/jfrog/nginx"
+    enabled: false
+    ## A manually managed Persistent Volume and Claim
+    ## Requires persistence.enabled: true
+    ## If defined, PVC must be created manually before volume will be bound
+    # existingClaim:
+
+    accessMode: ReadWriteOnce
+    size: 5Gi
+    ## nginx data Persistent Volume Storage Class
+    ## If defined, storageClassName: <storageClass>
+    ## If set to "-", storageClassName: "", which disables dynamic provisioning
+    ## If undefined (the default) or set to null, no storageClassName spec is
+    ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+    ##   GKE, AWS & OpenStack)
+    ##
+    # storageClass: "-"
+  resources: {}
+  #  requests:
+  #    memory: "250Mi"
+  #    cpu: "100m"
+  #  limits:
+  #    memory: "250Mi"
+  #    cpu: "500m"
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
