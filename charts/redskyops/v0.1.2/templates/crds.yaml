@@ -1,19 +1,20 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  creationTimestamp: null
   labels:
     app.kubernetes.io/name: redskyops
-    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
-    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
-    app.kubernetes.io/instance: {{ .Release.Name | quote }}
     app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
   name: experiments.redskyops.dev
 spec:
   group: redskyops.dev
   names:
     kind: Experiment
+    listKind: ExperimentList
     plural: experiments
+    singular: experiment
   scope: ""
   validation:
     openAPIV3Schema:
@@ -30,16 +31,31 @@ spec:
             submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
+          description: Standard object metadata
           type: object
         spec:
-          description: ExperimentSpec defines the desired state of Experiment
+          description: Specification of the desired behavior for an experiment
           properties:
+            budget:
+              description: Budget is the maximum number of trials to run for an experiment
+                across all clusters
+              format: int32
+              type: integer
+            burnIn:
+              description: Burn-in is the number of trials using random suggestions
+                at the start of an experiment
+              format: int32
+              type: integer
             metrics:
               description: Metrics defines the outcomes for the experiment
               items:
                 description: Metric represents an observable outcome from a trial
                   run
                 properties:
+                  errorQuery:
+                    description: Collection type specific query for the error associated
+                      with collected metric value
+                    type: string
                   minimize:
                     description: Indicator that the goal of the experiment is to minimize
                       the value of this metric
@@ -58,8 +74,12 @@ spec:
                     description: The port number or name on the matched service to
                       collect the metric value from
                   query:
-                    description: Collection type specific query, e.g. PromQL or a
-                      JSON pointer expression
+                    description: Collection type specific query, e.g. Go template
+                      for "local", PromQL for "prometheus" or a JSON pointer expression
+                      (with curly braces) for "jsonpath"
+                    type: string
+                  scheme:
+                    description: The scheme to use when collecting metrics
                     type: string
                   selector:
                     description: Selector matching services to collect this metric
@@ -107,7 +127,8 @@ spec:
                         type: object
                     type: object
                   type:
-                    description: The metric collection type, e.g. "prometheus"
+                    description: 'The metric collection type, one of: local|prometheus|jsonpath,
+                      default: local'
                     type: string
                 required:
                 - name
@@ -197,56 +218,9 @@ spec:
                   patch:
                     description: A Go Template that evaluates to valid patch.
                     type: string
-                  selector:
-                    description: A selector matching multiple labeled objects the
-                      patch should be applied to. Used only if the target reference
-                      name is empty, the target reference API version and kind are
-                      used to determine what type of object should be matched.
-                    properties:
-                      matchExpressions:
-                        description: matchExpressions is a list of label selector
-                          requirements. The requirements are ANDed.
-                        items:
-                          description: A label selector requirement is a selector
-                            that contains values, a key, and an operator that relates
-                            the key and values.
-                          properties:
-                            key:
-                              description: key is the label key that the selector
-                                applies to.
-                              type: string
-                            operator:
-                              description: operator represents a key's relationship
-                                to a set of values. Valid operators are In, NotIn,
-                                Exists and DoesNotExist.
-                              type: string
-                            values:
-                              description: values is an array of string values. If
-                                the operator is In or NotIn, the values array must
-                                be non-empty. If the operator is Exists or DoesNotExist,
-                                the values array must be empty. This array is replaced
-                                during a strategic merge patch.
-                              items:
-                                type: string
-                              type: array
-                          required:
-                          - key
-                          - operator
-                          type: object
-                        type: array
-                      matchLabels:
-                        additionalProperties:
-                          type: string
-                        description: matchLabels is a map of {key,value} pairs. A
-                          single {key,value} in the matchLabels map is equivalent
-                          to an element of matchExpressions, whose key field is "key",
-                          the operator is "In", and the values array contains only
-                          "value". The requirements are ANDed.
-                        type: object
-                    type: object
                   targetRef:
                     description: Direct reference to the object the patch should be
-                      applied to. The name can be omitted to match by label selector.
+                      applied to.
                     properties:
                       apiVersion:
                         description: API version of the referent.
@@ -287,7 +261,6 @@ spec:
                     type: string
                 required:
                 - patch
-                - targetRef
                 type: object
               type: array
             replicas:
@@ -346,9 +319,10 @@ spec:
                 if the effective replica count is more then one
               properties:
                 metadata:
+                  description: Standard object metadata
                   type: object
                 spec:
-                  description: TrialSpec defines the desired state of Trial
+                  description: Specification of the desired behavior for the trial
                   properties:
                     approximateRuntime:
                       description: The approximate amount of time the trial run should
@@ -363,8 +337,10 @@ spec:
                           on the associated experiment.
                         properties:
                           name:
+                            description: Parameter name being assigned
                             type: string
                           value:
+                            description: The value of the assignment
                             format: int64
                             type: integer
                         required:
@@ -543,6 +519,10 @@ spec:
                             description: The Helm chart reference to release as part
                               of this task
                             type: string
+                          helmChartVersion:
+                            description: The Helm chart version, empty means use the
+                              latest
+                            type: string
                           helmValues:
                             description: The Helm values to set, ignored unless helmChart
                               is also set
@@ -592,10 +572,7 @@ spec:
                                 of a values mapping
                               properties:
                                 configMap:
-                                  description: ConfigMapHelmValuesFromSource is a
-                                    reference to a ConfigMap that contains "*values.yaml"
-                                    keys TODO How do document the side effect of things
-                                    like patches in the ConfigMap also being applied?
+                                  description: The ConfigMap to select from
                                   properties:
                                     name:
                                       description: 'Name of the referent. More info:
@@ -604,8 +581,6 @@ spec:
                                         kind, uid?'
                                       type: string
                                   type: object
-                              required:
-                              - configMap
                               type: object
                             type: array
                           image:
@@ -7162,6 +7137,11 @@ spec:
                           - template
                           type: object
                       type: object
+                    ttlSecondsAfterFinished:
+                      description: The minimum number of seconds before an attempt
+                        should be made to clean up the trial
+                      format: int32
+                      type: integer
                     values:
                       description: Values are the collected metrics at the end of
                         the trial run
@@ -7199,7 +7179,14 @@ spec:
           - template
           type: object
         status:
-          description: ExperimentStatus defines the observed state of Experiment
+          description: Current status of an experiment
+          properties:
+            activeTrials:
+              description: ActiveTrials is the observed number of running trials
+              format: int32
+              type: integer
+          required:
+          - activeTrials
           type: object
       type: object
   version: v1alpha1
@@ -7217,13 +7204,12 @@ status:
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  creationTimestamp: null
   labels:
     app.kubernetes.io/name: redskyops
-    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
-    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
-    app.kubernetes.io/instance: {{ .Release.Name | quote }}
     app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
   name: trials.redskyops.dev
 spec:
   additionalPrinterColumns:
@@ -7238,7 +7224,9 @@ spec:
   group: redskyops.dev
   names:
     kind: Trial
+    listKind: TrialList
     plural: trials
+    singular: trial
   scope: ""
   subresources: {}
   validation:
@@ -7256,9 +7244,10 @@ spec:
             submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
+          description: Standard object metadata
           type: object
         spec:
-          description: TrialSpec defines the desired state of Trial
+          description: Specification of the desired behavior for a trial
           properties:
             approximateRuntime:
               description: The approximate amount of time the trial run should execute
@@ -7273,8 +7262,10 @@ spec:
                   experiment.
                 properties:
                   name:
+                    description: Parameter name being assigned
                     type: string
                   value:
+                    description: The value of the assignment
                     format: int64
                     type: integer
                 required:
@@ -7446,6 +7437,9 @@ spec:
                     description: The Helm chart reference to release as part of this
                       task
                     type: string
+                  helmChartVersion:
+                    description: The Helm chart version, empty means use the latest
+                    type: string
                   helmValues:
                     description: The Helm values to set, ignored unless helmChart
                       is also set
@@ -7492,18 +7486,13 @@ spec:
                         mapping
                       properties:
                         configMap:
-                          description: ConfigMapHelmValuesFromSource is a reference
-                            to a ConfigMap that contains "*values.yaml" keys TODO
-                            How do document the side effect of things like patches
-                            in the ConfigMap also being applied?
+                          description: The ConfigMap to select from
                           properties:
                             name:
                               description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                                 TODO: Add other useful fields. apiVersion, kind, uid?'
                               type: string
                           type: object
-                      required:
-                      - configMap
                       type: object
                     type: array
                   image:
@@ -13371,6 +13360,11 @@ spec:
                   - template
                   type: object
               type: object
+            ttlSecondsAfterFinished:
+              description: The minimum number of seconds before an attempt should
+                be made to clean up the trial
+              format: int32
+              type: integer
             values:
               description: Values are the collected metrics at the end of the trial
                 run
@@ -13401,7 +13395,7 @@ spec:
               type: array
           type: object
         status:
-          description: TrialStatus defines the observed state of Trial
+          description: Current status of a trial
           properties:
             assignments:
               description: Assignments is a string representation of the trial assignments
@@ -13437,7 +13431,7 @@ spec:
                       or "Unknown
                     type: string
                   type:
-                    description: The condition type, e.g. "Complete"
+                    description: The condition type, e.g. "redskyops.dev/trial-complete"
                     type: string
                 required:
                 - lastProbeTime
