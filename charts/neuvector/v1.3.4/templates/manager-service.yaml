@@ -1,0 +1,19 @@
+{{- if .Values.manager.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: neuvector-service-webui
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: {{ .Values.manager.svc.type }}
+  ports:
+    - port: 8443
+      name: manager
+      protocol: TCP
+  selector:
+    app: neuvector-manager-pod
+{{- end }}
