@@ -1,0 +1,179 @@
+categories:
+- storage
+namespace: kube-system
+rancher_min_version: 2.2.0
+labels:
+  io.cattle.role: cluster
+  io.rancher.certified: partner
+questions:
+- variable: flavor
+  label: "Kubernetes flavor"
+  type: enum
+  default: "rke"
+  required: true
+  options:
+    - "rke"
+    - "eks"
+    - "ocp"
+    - "aks"
+    - "gke"
+    - "gkeop"
+    - "k8s"
+  description: "Tweak Helm chart behavior."
+  group: "Rancher specific settings"
+- variable: pluginType
+  label: "HPE platform"
+  type: enum
+  options:
+    - "nimble"
+    - "cv"
+    - "simplivity"
+  default: "nimble"
+  description: "HPE platform type for the deployment."
+  group: "HPE backend settings"
+- variable: backend
+  label: "IP address"
+  type: string
+  required: true
+  description: "Please specify HPE backend IP address."
+  group: "HPE backend settings"
+- variable: username
+  label: "Username"
+  type: string
+  required: true
+  description: "Specify username with backend storage admin permissions."
+  group: "HPE backend settings"
+- variable: password
+  label: "Password"
+  type: password
+  required: true
+  description: "Specify password for the backend user."
+  group: "HPE backend settings"
+- variable: fsType
+  label: "Filesystem"
+  default: "xfs"
+  type: enum
+  options:
+    - "xfs"
+    - "ext4"
+    - "ext3"
+    - "btrfs"
+  description: "Select the filesystem for Persistent Volumes, defaults to xfs."
+  group: "HPE StorageClass and volume settings"
+- variable: protocol
+  label: "HPE storage protocol"
+  type: enum
+  default: "iscsi"
+  options:
+    - "iscsi"
+    - "fc"
+  description: "Specify storage protocol for HPE backend connectivity."
+  group: "HPE StorageClass and volume settings"
+- variable: storageClass.create
+  label: "Create a StorageClass"
+  type: boolean
+  default: true
+  required: true
+  description: "If specified as 'true', a StorageClass named 'hpe-standard' will be created with the HPE Volume Driver for Kubernetes FlexVolume Plugin as provisioner."
+  group: "HPE StorageClass and volume settings"
+- variable: storageClass.defaultClass
+  label: "Mark StorageClass 'hpe-standard' as 'default'."
+  type: boolean
+  default: false
+  description: "If specified as 'true', the 'hpe-standard' StorageClass will be annotated as 'default'. This option is ignored if 'Create a StorageClass' is set to 'false'."
+  group: "HPE StorageClass and volume settings"
+- variable: cv.config.existingCloudSubnet
+  show_if: "pluginType=cv"
+  label: "Cloud subnet"
+  type: string
+  default: ""
+  required: true
+  description: "Cloud subnet of the cluster for connection provisioning"
+  group: "Cloud instance settings"
+- variable: cv.config.privateCloud
+  show_if: "pluginType=cv"
+  label: "Virtual private cloud"
+  type: string
+  required: true
+  description: "Virtual private cloud of the cluster"
+  group: "Cloud instance settings"
+- variable: cv.config.region
+  show_if: "pluginType=cv"
+  label: "Public cloud region"
+  type: string
+  required: true
+  description: "Public cloud provider region in which cluster resides"
+  group: "Cloud instance settings"
+- variable: cv.config.cloudComputeProvider
+  show_if: "pluginType=cv"
+  label: "Public cloud provider"
+  type: enum
+  default: "Amazon AWS"
+  options:
+    - "Amazon AWS"
+    - "Microsoft Azure"
+  description: "Public cloud provider name"
+  group: "Cloud instance settings"
+- variable: cv.config.privateCloudResourceGroup
+  show_if: "cv.config.cloudComputeProvider=Microsoft Azure"
+  label: "Azure Resource Group"
+  type: string
+  required: true
+  description: "Azure resource group for the cluster"
+  group: "Cloud instance settings"
+- variable: cv.config.volumeType
+  show_if: "pluginType=cv"
+  label: "Volume type"
+  type: enum
+  default: "PF"
+  options:
+    - "PF"
+    - "GPF"
+  description: "HPE Cloud Volume type"
+  group: "HPE Cloud Volumes settings"
+- variable: cv.config.encryption
+  show_if: "pluginType=cv"
+  label: "Volume Encryption"
+  type: boolean
+  default: true
+  required: true
+  description: "Encryption for HPE Cloud Volume"
+  group: "HPE Cloud Volumes settings"
+- variable: cv.config.protectionTemplate
+  show_if: "pluginType=cv"
+  label: "Protection template"
+  type: enum
+  default: "twicedaily:4"
+  options:
+    - "daily:3"
+    - "daily:7"
+    - "daily:14"
+    - "hourly:6"
+    - "hourly:12"
+    - "hourly:24"
+    - "twicedaily:4"
+    - "twicedaily:8"
+    - "twicedaily:14"
+    - "weekly:2"
+    - "weekly:4"
+    - "weekly:8"
+    - "monthly:3"
+    - "monthly:6"
+    - "monthly:12"
+    - "none"
+  description: "Protection Template"
+  group: "HPE Cloud Volumes settings"
+- variable: cv.config.perfPolicy
+  show_if: "pluginType=cv"
+  label: "Performance policy"
+  type: enum
+  default: "Other"
+  options:
+    - "Other"
+    - "Exchange"
+    - "Oracle"
+    - "SharePoint"
+    - "SQL"
+    - "Windows File Server"
+  description: "Performance policy"
+  group: "HPE Cloud Volumes settings"
