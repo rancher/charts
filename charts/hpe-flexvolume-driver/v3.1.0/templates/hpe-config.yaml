@@ -1,0 +1,58 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: hpe-config
+  namespace: kube-system
+data:
+  volume-driver.json: |-
+    {{- if eq .Values.pluginType "nimble"}}
+    {
+      "global": {},
+      "defaults": {
+          "limitIOPS": {{ .Values.nimble.config.limitIOPS | quote }},
+          "limitMBPS": {{ .Values.nimble.config.limitMBPS | quote }},
+          "perfPolicy": {{ .Values.nimble.config.perfPolicy | quote }}
+      },
+      "overrides": {}
+    }
+    {{- else if eq .Values.pluginType "cv"}}
+    {
+      "global": {
+          "snapPrefix": {{ .Values.cv.config.snapPrefix | quote }},
+          "automatedConnection": {{ .Values.cv.config.automatedConnection }},
+          "initiators": [{{- join "," .Values.cv.config.initiators }}],
+          "automatedConnection": {{ .Values.cv.config.automatedConnection }},
+          "existingCloudSubnet": {{ .Values.cv.config.existingCloudSubnet | quote }},
+          "region": {{ .Values.cv.config.region | quote }},
+          "privateCloud": {{ .Values.cv.config.privateCloud | quote }},
+          {{- if and .Values.cv.config.privateCloudResourceGroup (ne .Values.cv.config.privateCloudResourceGroup "") }}
+          "privateCloudResourceGroup": {{ .Values.cv.config.privateCloudResourceGroup | quote }},
+          {{- end }}
+          "cloudComputeProvider": {{ .Values.cv.config.cloudComputeProvider | quote }}
+      },
+      "defaults": {
+          "perfPolicy": {{ .Values.cv.config.perfPolicy | quote }},
+          "limitIOPS": {{ .Values.cv.config.limitIOPS | quote }},
+          "volumeType": {{ .Values.cv.config.volumeType | quote }},
+          "encryption": {{ .Values.cv.config.encryption }},
+          "protectionTemplate": {{ .Values.cv.config.protectionTemplate | quote }},
+          "destroyOnRm": {{ .Values.cv.config.destroyOnRm }}
+      },
+      "overrides": {}
+    }
+    {{- else }}
+    {
+      "global":   {},
+      "defaults": {},
+      "overrides": {}
+    }
+    {{- end }}
+
+  {{- if eq .Values.flavor "rke"}}
+  {{ .Values.pluginType }}.json: |-
+    {
+      "dockerVolumePluginSocketPath": "/host/etc/hpe-storage/{{ .Values.pluginType }}.sock"
+    }
+  {{- end }}
+
