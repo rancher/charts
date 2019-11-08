@@ -1,0 +1,97 @@
+# Default values for hpe-flexvolume-driver
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# doryd image
+dynamicProvisionerTag: v3.1.0
+dynamicProvisionerImage: store/hpestorage/k8s-dynamic-provisioner
+
+# flexvolume plugin image
+flexVolumeDriverTag: v3.1.0
+flexVolumeDriverImage: store/hpestorage/flexvolume-driver
+
+# container-provider image
+containerProviderTag: v3.1.0
+containerProviderImage: store/hpestorage/cv-cp
+
+# parameters
+backend: 192.168.1.1
+username: admin
+password: admin
+protocol: iscsi
+servicePort: "8080"
+serviceName: cv-cp-svc
+
+# storage class parameters
+fsType: xfs
+volumeDescription: "Volume created by HPE Volume Driver for Kubernetes FlexVolume Plugin"
+
+# service parameters
+# wait seconds for doryd/flexvolume node plugins to start
+serviceWaitTime: "10"
+
+# flavor
+flavor: k8s
+
+# platform for which plugin is being deployed.i.e nimble or cv
+pluginType: nimble
+
+# bindMountPath where kubelet bindmounts volume to pod namespace
+podsMountDir: /var/lib/kubelet/pods
+
+# volumePluginDir volume plugin directory where kubelet watches for flexvolume plugin
+flexVolumeExec:
+  - name: eks
+    value: /usr/libexec/kubernetes/kubelet-plugins/volume/exec
+  - name: k8s
+    value: /usr/libexec/kubernetes/kubelet-plugins/volume/exec
+  - name: ocp
+    value: /etc/kubernetes/kubelet-plugins/volume/exec
+  - name: gkeop
+    value: /usr/libexec/kubernetes/kubelet-plugins/volume/exec
+  - name: gke
+    value: /home/kubernetes/flexvolume
+  - name: aks
+    value: /etc/kubernetes/volumeplugins
+  - name: rke
+    value: /var/lib/kubelet/volumeplugins
+
+# log level for flexvolume driver and dynamic provisioner
+logLevel: info
+
+## For creating the StorageClass automatically:
+storageClass:
+  create: true
+
+  ## Set StorageClass as the default StorageClass
+  ## Ignored if storageClass.create is false
+  defaultClass: false
+
+  ## Set a StorageClass name
+  ## Ignored if storageClass.create is false
+  name: hpe-standard
+
+nimble:
+  config:
+    limitIOPS: "-1"
+    limitMBPS: "-1"
+    perfPolicy: DockerDefault
+
+cv:
+  config:
+    snapPrefix: BaseFor
+    automatedConnection: true
+    existingCloudSubnet: 10.1.0.0/24
+    region: us-east-1
+    privateCloud: vpc-data
+    cloudComputeProvider: "Amazon AWS"
+    perfPolicy: Other
+    volumeType: PF
+    encryption: true
+    protectionTemplate: twicedaily:4
+    destroyOnRm: true
+    limitIOPS: "1000"
+    # In case of multiple initiators, add one per line and escape double quotes as below
+    initiators:
+      - '"eth0"'
+    privateCloudResourceGroup: ""
