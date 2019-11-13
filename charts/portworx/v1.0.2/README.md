@@ -1,126 +1,76 @@
 # Portworx
 
-## Pre-requisites
+## **Pre-requisites**
 
-This helm chart deploys [Portworx](https://portworx.com/) and [Stork](https://docs.portworx.com/scheduler/kubernetes/stork.html) on your Kubernetes cluster. The minimum requirements for deploying the helm chart are as follows:
+Use this Helm chart to deploy [Portworx](https://portworx.com/) and [Stork](https://docs.portworx.com/scheduler/kubernetes/stork.html) to your Kubernetes cluster.
 
-- All [Pre-requisites](https://docs.portworx.com/scheduler/kubernetes/install.html#prerequisites) for Portworx must be fulfilled.
+Prerequisites
 
-## Limitations
+Refer to the [Install Portworx on Kubernetes via Helm](https://docs.portworx.com/portworx-install-with-kubernetes/install-px-helm/#pre-requisites) page for the list of prerequisites.
+
+## **Limitations**
 * The portworx helm chart can only be deployed in the kube-system namespace. Hence use "kube-system" in the "Target namespace" during configuration.
-* You can only deploy one portworx helm chart per Kubernetes cluster.
 
-## Uninstalling the Chart
+## **Uninstalling the Chart**
 
-To uninstall/delete the `my-release` deployment:
+#### You can uninstall Portworx using one of the following methods:
 
-> **Tip** > The Portworx configuration files under `/etc/pwx/` directory are preserved, and will not be deleted.
+#### **1. Delete all the Kubernetes components associated with the chart and the release.**
 
-```
-helm delete my-release
-```
-The command removes all the Kubernetes components associated with the chart and deletes the release.
+> **Note** > The Portworx configuration files under `/etc/pwx/` directory are preserved, and will not be deleted.
 
+To perform this operation simply delete the application from the Apps page
 
-## Documentation
-* [Portworx docs site](https://docs.portworx.com/scheduler/kubernetes/)
+#### **2. Wipe your Portworx installation**
+> **Note** > The commands in this section are disruptive and will lead to data loss. Please use caution..
+
+See more details [here](https://2.1.docs.portworx.com/portworx-install-with-kubernetes/install-px-helm/#uninstall)
+
+## **Documentation**
+* [Portworx docs site](https://docs.portworx.com/install-with-other/rancher/rancher-2.x/#step-1-install-rancher)
 * [Portworx interactive tutorials](https://docs.portworx.com/scheduler/kubernetes/px-k8s-interactive.html)
 
-## Installing the Chart using the CLI
+## **Installing the Chart using the CLI**
 
-To install the chart with the release name `my-release` run the following commands substituting relevant values for your setup:
+See the installation details [here](https://2.1.docs.portworx.com/portworx-install-with-kubernetes/install-px-helm/)
 
-##### NOTE:
-`kvdb` is a required field. The chart installation would not proceed unless this option is provided.
-If the etcdcluster being used is a secured ETCD (SSL/TLS) then please follow instructions to create a kubernetes secret with the certs. https://docs.portworx.com/scheduler/kubernetes/etcd-certs-using-secrets.html#create-kubernetes-secret
+## **Installing Portworx on AWS**
+ 
+See the installation details [here](https://2.1.docs.portworx.com/cloud-references/auto-disk-provisioning/aws)
 
+## ** Giving your etcd certificates to Portworx using Kubernetes Secrets.**
+This is the recommended way of providing etcd certificates, as the certificates will be automatically available to the new nodes joining the cluster
 
-`clusterName` should be a unique name identifying your Portworx cluster. The default value is `mycluster`, but it is suggested to update it with your naming scheme.
-
-Example of using the helm CLI to install the chart:
-```
-helm install --debug --name my-release --set kvdb=etcd:http://192.168.70.90:2379,clusterName=$(uuid) ./helm/charts/portworx/
-```
-
-## Basic troubleshooting
-
-#### Helm install errors with "no available release name found"
+* Create Kubernetes secret
+* Copy all your etcd certificates and key in a directory etcd-secrets/ to create a Kubernetes secret from it. Make sure the file names are the same as you gave above.
 
 ```
-helm install --dry-run --debug --set kvdb=etcd:http://192.168.70.90:2379,clusterName=$(uuid) ./helm/charts/px/
-[debug] Created tunnel using local port: '37304'
-[debug] SERVER: "127.0.0.1:37304"
-[debug] Original chart version: ""
-[debug] CHART PATH: /root/helm/charts/px
-
-Error: no available release name found
-```
-This most likely indicates that Tiller doesn't have the right RBAC permissions.
-You can verify the tiller logs
-```
-[storage/driver] 2018/02/07 06:00:13 get: failed to get "singing-bison.v1": configmaps "singing-bison.v1" is forbidden: User "system:serviceaccount:kube-system:default" cannot get configmaps in the namespace "kube-system"
-[tiller] 2018/02/07 06:00:13 info: generated name singing-bison is taken. Searching again.
-[tiller] 2018/02/07 06:00:13 warning: No available release names found after 5 tries
-[tiller] 2018/02/07 06:00:13 failed install prepare step: no available release name found
+# ls -1 etcd-secrets/
+etcd-ca.crt
+etcd.crt
+etcd.key
 ```
 
-#### Helm install errors with  "Job failed: BackoffLimitExceeded"
-
+* Use kubectl to create the secret named px-etcd-certs from the above files:
 ```
-helm install --debug --set dataInterface=eth1,managementInterface=eth1,kvdb=etcd:http://192.168.70.179:2379,clusterName=$(uuid) ./helm/charts/px/
-[debug] Created tunnel using local port: '36389'
-
-[debug] SERVER: "127.0.0.1:36389"
-
-[debug] Original chart version: ""
-[debug] CHART PATH: /root/helm/charts/px
-
-Error: Job failed: BackoffLimitExceeded
-```
-This most likely indicates that the pre-install hook for the helm chart has failed due to a misconfigured or inaccessible ETCD url.
-Follow the below steps to check the reason for failure.
-
-```
-kubectl get pods -nkube-system -a | grep preinstall
-px-etcd-preinstall-hook-hxvmb   0/1       Error     0          57s
-
-kubectl logs po/px-etcd-preinstall-hook-hxvmb -nkube-system
-Initializing...
-Verifying if the provided etcd url is accessible: http://192.168.70.179:2379
-Response Code: 000
-Incorrect ETCD URL provided. It is either not reachable or is incorrect...
-
+# kubectl -n kube-system create secret generic px-etcd-certs --from-file=etcd-secrets/
 ```
 
-Ensure the correct etcd URL is set as a parameter to the `helm install` command.
-
-#### Helm install errors with "Job failed: Deadline exceeded"
+* Notice that the secret has 3 keys etcd-ca.crt, etcd.crt and etcd.key, corresponding to file names in the etcd-secrets folder. We will use these keys in the Portworx spec file to reference the certificates.
 
 ```
-helm install --debug --set dataInterface=eth1,managementInterface=eth1,kvdb=etcd:http://192.168.20.290:2379,clusterName=$(uuid) ./charts/px/
-[debug] Created tunnel using local port: '39771'
+# kubectl -n kube-system describe secret px-etcd-certs
+Name:         px-etcd-certs
+Namespace:    kube-system
+Labels:       <none>
+Annotations:  <none>
 
-[debug] SERVER: "127.0.0.1:39771"
+Type:  Opaque
 
-[debug] Original chart version: ""
-[debug] CHART PATH: /root/helm/charts/px
-
-Error: Job failed: DeadlineExceeded
+Data
+====
+etcd-ca.crt:      1679 bytes
+etcd.crt:  1680 bytes
+etcd.key:  414  bytes
 ```
-This error indicates that the pre-install hook for the helm chart has failed to run to completion correctly. Verify that the etcd URL is accessible. This error occurs on kubernetes cluster(s) with version below 1.8
-Follow the below steps to check the reason for failure.
-
-```
-kubectl get pods -nkube-system -a | grep preinstall
-px-hook-etcd-preinstall-dzmkl    0/1       Error     0          6m
-px-hook-etcd-preinstall-nlqwl    0/1       Error     0          6m
-px-hook-etcd-preinstall-nsjrj    0/1       Error     0          5m
-px-hook-etcd-preinstall-r9gmz    0/1       Error     0          6m
-
-kubectl logs po/px-hook-etcd-preinstall-dzmkl -nkube-system
-Initializing...
-Verifying if the provided etcd url is accessible: http://192.168.20.290:2379
-Response Code: 000
-Incorrect ETCD URL provided. It is either not reachable or is incorrect...
-```
-Ensure the correct etcd URL is set as a parameter to the `helm install` command.
+Once above secret is created, proceed to the next steps.
