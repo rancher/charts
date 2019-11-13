@@ -1,0 +1,307 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: storageosclusters.storageos.com
+  annotations:
+    "helm.sh/hook": crd-install
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .status.ready
+    description: Ready status of the storageos nodes.
+    name: ready
+    type: string
+  - JSONPath: .status.phase
+    description: Status of the whole cluster.
+    name: status
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: age
+    type: date
+  group: storageos.com
+  names:
+    kind: StorageOSCluster
+    listKind: StorageOSClusterList
+    plural: storageosclusters
+    shortNames:
+    - stos
+    singular: storageoscluster
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            csi:
+              description: CSI defines the configurations for CSI.
+              properties:
+                deploymentStrategy:
+                  type: string
+                deviceDir:
+                  type: string
+                driverRegisterationMode:
+                  type: string
+                driverRequiresAttachment:
+                  type: string
+                enable:
+                  type: boolean
+                enableControllerPublishCreds:
+                  type: boolean
+                enableNodePublishCreds:
+                  type: boolean
+                enableProvisionCreds:
+                  type: boolean
+                endpoint:
+                  type: string
+                kubeletDir:
+                  type: string
+                kubeletRegistrationPath:
+                  type: string
+                pluginDir:
+                  type: string
+                registrarSocketDir:
+                  type: string
+                registrationDir:
+                  type: string
+                version:
+                  type: string
+              type: object
+            debug:
+              description: Debug is to set debug mode of the cluster.
+              type: boolean
+            disableFencing:
+              description: 'Disable Pod Fencing.  With StatefulSets, Pods are only
+                re-scheduled if the Pod has been marked as killed.  In practice this
+                means that failover of a StatefulSet pod is a manual operation.  By
+                enabling Pod Fencing and setting the `storageos.com/fenced=true` label
+                on a Pod, StorageOS will enable automated Pod failover (by killing
+                the application Pod on the failed node) if the following conditions
+                exist:  - Pod fencing has not been explicitly disabled. - StorageOS
+                has determined that the node the Pod is running on is   offline.  StorageOS
+                uses Gossip and TCP checks and will retry for 30   seconds.  At this
+                point all volumes on the failed node are marked   offline (irrespective
+                of whether fencing is enabled) and volume   failover starts. - The
+                Pod has the label `storageos.com/fenced=true` set. - The Pod has at
+                least one StorageOS volume attached. - Each StorageOS volume has at
+                least 1 healthy replica.  When Pod Fencing is disabled, StorageOS
+                will not perform any interaction with Kubernetes when it detects that
+                a node has gone offline. Additionally, the Kubernetes permissions
+                required for Fencing will not be added to the StorageOS role.'
+              type: boolean
+            disableScheduler:
+              description: Disable StorageOS scheduler extender.
+              type: boolean
+            disableTCMU:
+              description: Disable TCMU can be set to true to disable the TCMU storage
+                driver.  This is required when there are multiple storage systems
+                running on the same node and you wish to avoid conflicts.  Only one
+                TCMU-based storage system can run on a node at a time.  Disabling
+                TCMU will degrade performance.
+              type: boolean
+            disableTelemetry:
+              description: Disable Telemetry.
+              type: boolean
+            forceTCMU:
+              description: Force TCMU can be set to true to ensure that TCMU is enabled
+                or cause StorageOS to abort startup.  At startup, StorageOS will automatically
+                fallback to non-TCMU mode if another TCMU-based storage system is
+                running on the node.  Since non-TCMU will degrade performance, this
+                may not always be desired.
+              type: boolean
+            images:
+              description: Images defines the various container images used in the
+                cluster.
+              properties:
+                csiClusterDriverRegistrarContainer:
+                  type: string
+                csiExternalAttacherContainer:
+                  type: string
+                csiExternalProvisionerContainer:
+                  type: string
+                csiLivenessProbeContainer:
+                  type: string
+                csiNodeDriverRegistrarContainer:
+                  type: string
+                hyperkubeContainer:
+                  type: string
+                initContainer:
+                  type: string
+                nfsContainer:
+                  type: string
+                nodeContainer:
+                  type: string
+              type: object
+            ingress:
+              description: Ingress defines the ingress configurations used in the
+                cluster.
+              properties:
+                annotations:
+                  additionalProperties:
+                    type: string
+                  type: object
+                enable:
+                  type: boolean
+                hostname:
+                  type: string
+                tls:
+                  type: boolean
+              type: object
+            join:
+              description: Join is the join token used for service discovery.
+              type: string
+            k8sDistro:
+              description: 'K8sDistro is the name of the Kubernetes distribution where
+                the operator is being deployed.  It should be in the format: `name[-1.0]`,
+                where the version is optional and should only be appended if known.  Suitable
+                names include: `openshift`, `rancher`, `aks`, `gke`, `eks`, or the
+                deployment method if using upstream directly, e.g `minishift` or `kubeadm`.  Setting
+                k8sDistro is optional, and will be used to simplify cluster configuration
+                by setting appropriate defaults for the distribution.  The distribution
+                information will also be included in the product telemetry (if enabled),
+                to help focus development efforts.'
+              type: string
+            kvBackend:
+              description: KVBackend defines the key-value store backend used in the
+                cluster.
+              properties:
+                address:
+                  type: string
+                backend:
+                  type: string
+              type: object
+            namespace:
+              description: Namespace is the kubernetes Namespace where storageos resources
+                are provisioned.
+              type: string
+            nodeSelectorTerms:
+              description: NodeSelectorTerms is to set the placement of storageos
+                pods using node affinity requiredDuringSchedulingIgnoredDuringExecution.
+              items:
+                type: object
+              type: array
+            pause:
+              description: Pause is to pause the operator for the cluster.
+              type: boolean
+            resources:
+              description: Resources is to set the resource requirements of the storageos
+                containers.
+              type: object
+            secretRefName:
+              description: SecretRefName is the name of the secret object that contains
+                all the sensitive cluster configurations.
+              type: string
+            secretRefNamespace:
+              description: SecretRefNamespace is the namespace of the secret reference.
+              type: string
+            service:
+              description: Service is the Service configuration for the cluster nodes.
+              properties:
+                annotations:
+                  additionalProperties:
+                    type: string
+                  type: object
+                externalPort:
+                  format: int64
+                  type: integer
+                internalPort:
+                  format: int64
+                  type: integer
+                name:
+                  type: string
+                type:
+                  type: string
+              required:
+              - name
+              - type
+              type: object
+            sharedDir:
+              description: 'SharedDir is the shared directory to be used when the
+                kubelet is running in a container. Typically: "/var/lib/kubelet/plugins/kubernetes.io~storageos".
+                If not set, defaults will be used.'
+              type: string
+            storageClassName:
+              description: StorageClassName is the name of default StorageClass created
+                for StorageOS volumes.
+              type: string
+            tlsEtcdSecretRefName:
+              description: TLSEtcdSecretRefName is the name of the secret object that
+                contains the etcd TLS certs. This secret is shared with etcd, therefore
+                it's not part of the main storageos secret.
+              type: string
+            tlsEtcdSecretRefNamespace:
+              description: TLSEtcdSecretRefNamespace is the namespace of the etcd
+                TLS secret object.
+              type: string
+            tolerations:
+              description: Tolerations is to set the placement of storageos pods using
+                pod toleration.
+              items:
+                type: object
+              type: array
+          required:
+          - secretRefName
+          - secretRefNamespace
+          type: object
+        status:
+          properties:
+            members:
+              properties:
+                ready:
+                  description: Ready are the storageos cluster members that are ready
+                    to serve requests. The member names are the same as the node IPs.
+                  items:
+                    type: string
+                  type: array
+                unready:
+                  description: Unready are the storageos cluster nodes not ready to
+                    serve requests.
+                  items:
+                    type: string
+                  type: array
+              type: object
+            nodeHealthStatus:
+              additionalProperties:
+                properties:
+                  directfsInitiator:
+                    type: string
+                  director:
+                    type: string
+                  kv:
+                    type: string
+                  kvWrite:
+                    type: string
+                  nats:
+                    type: string
+                  presentation:
+                    type: string
+                  rdb:
+                    type: string
+                type: object
+              type: object
+            nodes:
+              items:
+                type: string
+              type: array
+            phase:
+              type: string
+            ready:
+              type: string
+          type: object
+  version: v1
+  versions:
+  - name: v1
+    served: true
+    storage: true
