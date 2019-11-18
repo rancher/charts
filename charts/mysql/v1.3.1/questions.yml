@@ -1,0 +1,118 @@
+labels:
+  io.cattle.role: project # options are cluster/project
+categories:
+- Database
+- MySQL
+questions:
+- variable: defaultImage
+  default: true
+  description: "Use default Docker images"
+  label: Use Default Images
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: image
+    default: "ranchercharts/mysql"
+    description: "MySQL image name"
+    type: string
+    label: Image Name
+  - variable: imageTag
+    default: "5.7.14"
+    description: "MySQL image tag"
+    type: string
+    label: Image Tag
+  - variable: busybox.image
+    default: "ranchercharts/busybox"
+    description: "Busybox image name"
+    type: string
+    label: Image Image Name
+  - variable: busybox.tag
+    default: "1.29.3"
+    description: "Busybox image tag"
+    type: string
+    label: Busybox Image Tag
+- variable: mysqlDatabase
+  default: "admin"
+  description: "Name of database to create"
+  type: string
+  required: true
+  label: MySQL Database
+  group: "MySQL Settings"
+- variable: mysqlUser
+  default: "admin"
+  description: "Username of user to create"
+  type: string
+  required: true
+  label: MySQL Username
+  group: "MySQL Settings"
+- variable: mysqlPassword
+  default: ""
+  description: "MySQL Password for the new user, defaults to a random 10-character alphanumeric string if not set"
+  type: password
+  label: MySQL Password
+  group: "MySQL Settings"
+- variable: persistence.enabled
+  default: "false"
+  description: "Enable persistence using PVC"
+  type: boolean
+  required: true
+  label: Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "Persistent Volume"
+  subquestions:
+  - variable: persistence.size
+    default: "8Gi"
+    description: "Volume Size"
+    type: string
+    label: Volume Size
+    required: true
+  - variable: persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Defaults to null."
+    type: storageclass
+    label: Default storageClass
+  - variable: persistence.existingClaim
+    default: ""
+    description: "If not empty, uses the specified existing PVC instead of creating new one"
+    type: pvc
+    label: Existing Persistent Volume Claim for mysql
+- variable: service.port
+  default: "3306"
+  description: "Service port for access to MySQL"
+  type: string
+  label: MySQL NodePort number
+  required: true
+  group: "MySQL Settings"
+- variable: service.type
+  default: "ClusterIP"
+  description: "MySQL K8s Service type"
+  type: enum
+  group: "Services and Load Balancing"
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: MySQL Service Type
+  show_subquestion_if: "NodePort"
+  subquestions:
+  - variable: service.nodePort
+    default: ""
+    description: "NodePort port number(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    label: Service NodePort number
+- variable: metrics.enabled
+  default: false
+  description: "Enable mysql prometheus metrics exporter"
+  label: Enable MySQL Metrics
+  type: boolean
+  show_subquestion_if: true
+  group: "Metrics"
+  subquestions:
+  - variable: metrics.serviceMonitor.enabled
+    default: false
+    description: "Set this to `true` to create ServiceMonitor for Prometheus operator"
+    type: boolean
+    label: Create MySQL ServiceMonitor for Prometheus Operator

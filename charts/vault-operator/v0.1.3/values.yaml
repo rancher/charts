@@ -1,0 +1,85 @@
+## Default values for the image
+name: vault-operator
+replicaCount: 1
+image:
+  # repository: quay.io/coreos/vault-operator
+  # https://github.com/guangbochen/vault-operator/commit/59c51300f6692bdd2e6957c7837da288596b7d56:
+  repository: ranchercharts/vault-operator
+  tag: 0.1.9
+  pullPolicy: IfNotPresent
+
+## Install Default RBAC roles and bindings
+rbac:
+  create: true
+
+## Service account names and whether to create them
+serviceAccount:
+  create: true
+
+enableCRDs: true
+
+service:
+  type: NodePort
+  port: 8200
+
+resources: {}
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+## additional command arguments go here; will be translated to `--key=value` form
+## e.g., analytics: true
+commandArgs: {}
+
+## Configurable health checks against the /readyz endpoint that vault-operator exposes
+readinessProbe:
+  enabled: false
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 1
+  successThreshold: 1
+  failureThreshold: 3
+livenessProbe:
+  enabled: false
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 1
+  successThreshold: 1
+  failureThreshold: 3
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+vault:
+  create: true
+  name: my-vault
+  node: 1
+  version: "1.2.2"
+  baseImage: "ranchercharts/vault"
+  etcdCluster:
+    size: 3
+    version: 3.2.25
+    repository: ranchercharts/coreos-etcd
+
+
+etcd-operator:
+  enabled: true
+  deployments:
+    etcdOperator: true
+    # one time deployment, delete once completed,
+    # Ref: https://github.com/coreos/etcd-operator/blob/master/doc/user/walkthrough/backup-operator.md
+    backupOperator: true
+    # one time deployment, delete once completed
+    # Ref: https://github.com/coreos/etcd-operator/blob/master/doc/user/walkthrough/restore-operator.md
+    restoreOperator: true
+
+    image:
+      repository: ranchercharts/coreos-etcd-operator
+      tag: v0.9.4
+      pullPolicy: Always

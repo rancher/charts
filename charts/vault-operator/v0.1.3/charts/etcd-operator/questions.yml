@@ -1,0 +1,121 @@
+categories:
+- database
+- keyvalue
+labels:
+  io.rancher.certified: operator
+  io.cattle.role: cluster
+questions:
+- variable: defaultImage
+  default: true
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: deployments.image.repository
+    default: "ranchercharts/coreos-etcd-operator"
+    description: "Etcd operator Docker image"
+    type: string
+    label: Etcd Operator Image Name
+  - variable: deployments.image.tag
+    default: "v0.9.4"
+    description: "Etcd operator Docker tag"
+    type: string
+    label: Etcd Operator Image Tag
+  - variable: etcdCluster.image.repository
+    default: "ranchercharts/coreos-etcd"
+    description: "Etcd container image"
+    type: string
+    label: Etcd Container Image Name
+  - variable: etcdCluster.image.tag
+    default: "v3.2.25"
+    description: "Etcd container image tag"
+    type: string
+    label: Etcd Container Image Tag
+- variable: deployments.etcdOperator
+  default: true
+  description: "Deploy the etcd-operator controller"
+  required: true
+  label: Deploy the etcd Operator
+  type: boolean
+  show_subquestion_if: true
+  group: "etcd-operators"
+  subquestions:
+  - variable: clusterwide.enabled
+    default: false
+    description: "Set etcd operator manage clusters in all namespaces (more details on https://github.com/coreos/etcd-operator/blob/master/doc/user/clusterwide.md)"
+    label: Enable Clusterwide of etcd Operator
+    type: boolean
+    required: true
+- variable: deployments.backupOperator
+  default: true
+  description: "Deploy the etcd backup operator, one time deployment, delete once completed"
+  label: Deploy the etcd Backup Operator
+  type: boolean
+  group: "etcd-operators"
+- variable: deployments.restoreOperator
+  default: true
+  description: "Deploy the etcd restore operator, one time deployment, delete once completed"
+  label: Deploy the etcd Restore Operator
+  type: boolean
+  group: "etcd-operators"
+# enable etcd cluster configs
+- variable: customResources.createEtcdClusterCRD
+  default: false
+  description: "Create a new custom etcd cluster"
+  label: Create a New Custom Etcd Cluster
+  type: boolean
+  group: "Etcd Cluster"
+  show_subquestion_if: true
+  subquestions:
+  - variable: etcdCluster.size
+    default: "3"
+    description: "set etcd cluster size"
+    label: Etcd Cluster Size
+    type: enum
+    options:
+    - "3"
+    - "5"
+    - "7"
+    - "9"
+    - "11"
+    required: true
+  - variable: etcdCluster.version
+    default: "3.2.25"
+    description: "set etcd cluster version"
+    label: Etcd Cluster Version
+    type: string
+    required: true
+- variable: etcdCluster.enableTLS
+  default: false
+  description: "Enable use of TLS"
+  label: Enable use of TLS
+  type: boolean
+  required: true
+  group: "Etcd Cluster"
+  show_if: "customResources.createEtcdClusterCRD=true"
+- variable: etcdCluster.tls.static.member.peerSecret
+  default: ""
+  description: "Kubernetes secret containing TLS peer certs"
+  required: true
+  label: k8s Secret Name of TLS Peer Certs
+  type: secret
+  show_if: "customResources.createEtcdClusterCRD=true&&etcdCluster.enableTLS=true"
+  group: "Etcd Cluster"
+- variable: etcdCluster.tls.static.member.serverSecret
+  default: ""
+  description: "Kubernetes secret containing TLS server certs"
+  required: true
+  label: k8s Secret Name of TLS Server Certs
+  type: secret
+  show_if: "customResources.createEtcdClusterCRD=true&&etcdCluster.enableTLS=true"
+  group: "Etcd Cluster"
+- variable: etcdCluster.tls.static.operatorSecret
+  default: ""
+  description: "Kubernetes secret containing TLS client certs"
+  required: true
+  label: k8s Secret Name of TLS Client Certs
+  type: secret
+  show_if: "customResources.createEtcdClusterCRD=true&&etcdCluster.enableTLS=true"
+  group: "Etcd Cluster"

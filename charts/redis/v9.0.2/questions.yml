@@ -1,0 +1,146 @@
+labels:
+  io.cattle.role: project # options are cluster/project
+  io.rancher.app_min_version: 9.0.2
+categories:
+- KeyValue
+- Database
+questions:
+- variable: cluster.enabled
+  default: true
+  description: "Enable master-slave topology"
+  label: Enable Master-Slave Topology
+  type: boolean
+  show_subquestion_if: true
+  group: "Redis Master Settings"
+  subquestions:
+  - variable: cluster.slaveCount
+    default: 2
+    required: true
+    description: "Set the Number of Redis followers"
+    type: int
+    label: Number of Redis Followers
+- variable: usePassword
+  default: "true"
+  description: "Use password authentication"
+  type: boolean
+  required: true
+  label: Enable Redis Password
+  show_subquestion_if: true
+  group: "Redis Master Settings"
+  subquestions:
+  - variable: password
+    default: ""
+    required: true
+    description: "password will be auto-generated if not specified"
+    type: password
+    label: Redis Password
+- variable: master.persistence.enabled
+  default: false
+  description: "Use persistent storage"
+  type: boolean
+  required: true
+  label: Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "Redis Master Settings"
+  subquestions:
+  - variable: master.persistence.size
+    default: "8Gi"
+    description: "Persistent volume size"
+    type: string
+    label: Persistent Volume Size
+  - variable: master.persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Defaults to null."
+    type: storageclass
+    label: Default Storage Class
+  - variable: persistence.existingClaim
+    default: ""
+    description: "If not empty, uses the specified existing PVC instead of creating new one"
+    type: pvc
+    label: Existing Persistent Volume Claim for Redis Master
+- variable: metrics.enabled
+  default: false
+  description: "Start a side-car prometheus exporter"
+  label: Enable Redis Metrics Exporter
+  type: boolean
+  group: "Redis Master Settings"
+- variable: master.service.type
+  default: "ClusterIP"
+  description: "Redis master service type"
+  type: enum
+  group: "Redis Master Settings"
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: Redis Master Service Type
+  show_subquestion_if: "NodePort"
+  subquestions:
+  - variable: master.service.nodePort
+    default: ""
+    description: "NodePort port number(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    label: Redis Master Service NodePort number
+# slave config
+- variable: slave.persistence.enabled
+  default: false
+  description: "Use persistent storage of slave mode"
+  type: boolean
+  required: true
+  label: Slave Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "Redis Slave Settings"
+  subquestions:
+  - variable: slave.persistence.size
+    default: "8Gi"
+    description: "Persistent volume size"
+    type: string
+    label: Slave Persistent Volume Size
+  - variable: slave.persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Defaults to null."
+    type: storageclass
+    label: Slave Default Storage Class
+- variable: slave.service.type
+  default: "ClusterIP"
+  description: "Redis slave service type"
+  type: enum
+  group: "Redis Slave Settings"
+  options:
+  - "ClusterIP"
+  - "NodePort"
+  required: true
+  label: Redis Slave Service Type
+  show_subquestion_if: "NodePort"
+  subquestions:
+  - variable: slave.service.nodePort
+    default: ""
+    description: "NodePort port number(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    label: Redis Slave Service NodePort number
+# sentinel config
+- variable: sentinel.enabled
+  default: false
+  description: "Enable redis sentinel mode"
+  type: boolean
+  required: true
+  label: Enable Sentinel Containers
+  show_subquestion_if: true
+  group: "Redis Sentinel Settings"
+  subquestions:
+  - variable: sentinel.masterSet
+    default: "mymaster"
+    description: "Name of the sentinel master set"
+    type: string
+    label: MasterSet Name
+    required: true
+  - variable: sentinel.quorum
+    default: 2
+    description: "Quorum for electing a new master"
+    type: int
+    label: Master Electing Quorum
+    required: true

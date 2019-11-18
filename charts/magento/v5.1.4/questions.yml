@@ -1,0 +1,211 @@
+categories:
+- E-commerce
+questions:
+- variable: defaultImage
+  default: true
+  description: "Use default Docker images"
+  label: Use Default Images
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: image.repository
+    default: "ranchercharts/bitnami-magento"
+    description: "Magento image name"
+    type: string
+    label: Magento Image Name
+  - variable: image.tag
+    default: "2.3.1-debian-9-r56"
+    description: "Magento image tag"
+    type: string
+    label: Magento Image Tag
+  - variable: metrics.image.repository
+    default: "ranchercharts/lusotycoon-apache-exporter"
+    description: "Metrics image name"
+    type: string
+    label: Metrics Image Name
+  - variable: metrics.image.tag
+    default: "v0.5.0"
+    description: "Metrics image tag"
+    type: string
+    label: Metrics Image Tag
+- variable: magentoHost
+  default: ""
+  description: "Magento host to create application URLs, ref: https://github.com/bitnami/bitnami-docker-magento#configuration"
+  type: string
+  label: Magento Host URL
+  required: true
+  group: "Magento Settings"
+- variable: magentoUsername
+  default: "user"
+  description: "Username for the application"
+  type: string
+  label: Magento Username
+  required: true
+  group: "Magento Settings"
+- variable: magentoPassword
+  default: "passwordi1"
+  description: "Set application password, default to passwordi1"
+  type: password
+  label: Magento User Password
+  group: "Magento Settings"
+- variable: magentoEmail
+  default: "user@example.com"
+  description: "Admin email"
+  label: Magento Email
+  type: string
+  required: true
+  group: "Magento Settings"
+- variable: persistence.enabled
+  default: false
+  description: "Enable persistent volume for Magento and Apache"
+  type: boolean
+  required: true
+  label: Magento Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "Magento Settings"
+  subquestions:
+  - variable: persistence.magento.size
+    default: "8Gi"
+    description: "Persistent volume size"
+    type: string
+    required: true
+    label: Magento Persistent Volume Size
+  - variable: persistence.magento.storageClass
+    default: ""
+    description: "If undefined or set to null, using the default StorageClass. Defaults to null."
+    type: storageclass
+    label: Storage Class for Magento
+# mariadb config
+- variable: mariadb.enabled
+  default: true
+  description: "Whether to deploy a mariadb server to satisfy the applications database requirements. To use an external database set this to false and configure the externalDatabase parameters"
+  type: boolean
+  required: true
+  label: Install MariaDB
+  group: "Database Settings"
+  subquestions:
+  - variable: mariadb.mariadbDatabase
+    default: "magento"
+    description: "Database name to create"
+    type: string
+    label: MariaDB Database
+  - variable: mariadb.mariadbUser
+    default: "magento"
+    description: "Database user to create"
+    type: string
+    label: MariaDB User
+  - variable: mariadb.mariadbPassword
+    default: ""
+    description: "Password for the database(defualt random 10 character long alphanumeric string)"
+    label: MariaDB Password
+    type: string
+- variable: externalDatabase.host
+  default: ""
+  description: "Host of the external database"
+  type: string
+  label: External Database Host
+  show_if: "mariadb.enabled=false"
+  subquestions:
+  group: "Database Settings"
+- variable: externalDatabase.user
+  default: ""
+  description: "Existing username in the external DB"
+  type: string
+  label: External Database Username
+  show_if: "mariadb.enabled=false"
+  group: "Database Settings"
+- variable: externalDatabase.password
+  default: ""
+  description: "External database password"
+  type: password
+  label: External Database Password
+  show_if: "mariadb.enabled=false"
+  group: "Database Settings"
+- variable: externalDatabase.database
+  default: ""
+  description: "Name of the existing database"
+  type: string
+  label: External Database
+  show_if: "mariadb.enabled=false"
+  group: "Database Settings"
+- variable: externalDatabase.port
+  default: "3306"
+  description: "External database port number	"
+  type: string
+  label: External Database Port
+  show_if: "mariadb.enabled=false"
+  group: "Database Settings"
+- variable: mariadb.persistence.enabled
+  default: false
+  description: "Enable persistence using PVC of MariaDB"
+  type: boolean
+  required: true
+  label: MariaDB Persistent Volume Enabled
+  show_if: "mariadb.enabled=true"
+  show_subquestion_if: true
+  group: "Database Settings"
+  subquestions:
+  - variable: mariadb.persistence.size
+    default: "8Gi"
+    description: "MariaDB Persistent Volume Size"
+    type: string
+    label: MariaDB Volume Size
+    required: true
+  - variable: mariadb.persistence.storageClass
+    default: ""
+    description: "If unndefined or set to null, using the default StorageClass."
+    type: storageclass
+    label: Storage Class for MariaDB
+- variable: service.type
+  default: "ClusterIP"
+  description: "Magento Service type"
+  group: "Services and Load Balancing"
+  type: enum
+  options:
+    - "ClusterIP"
+    - "NodePort"
+    - "LoadBalancer"
+  required: true
+  label: Magento Service Type
+  show_subquestion_if: "NodePort"
+  subquestions:
+  - variable: service.nodePorts.http
+    default: ""
+    description: "NodePort http port(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    show_if: "service.type=NodePort"
+    label: NodePort Http Port
+- variable: service.loadBalancerIP
+  default: ""
+  description: "Load Balancer IP for the Magento Service"
+  type: string
+  show_if: "service.type=LoadBalancer"
+  label: LoadBalancer IP of Magento Service
+  group: "Services and Load Balancing"
+- variable: magentoMode
+  default: "default"
+  description: "Magento mode options: default, production, developer."
+  type: enum
+  group: "Magento Settings"
+  options:
+    - "default"
+    - "production"
+    - "developer"
+  label: Magento Mode
+- variable: ingress.enabled
+  default: true
+  description: "Expose app using Layer 7 Load Balancer - ingress"
+  type: boolean
+  label: Expose app using Layer 7 Load Balancer
+  show_subquestion_if: true
+  group: "Services and Load Balancing"
+  subquestions:
+  - variable: ingress.hosts[0].name
+    default: "xip.io"
+    description: "Hostname to your WordPress installation"
+    type: hostname
+    required: true
+    label: Hostname
