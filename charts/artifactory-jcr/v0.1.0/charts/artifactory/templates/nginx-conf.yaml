@@ -1,0 +1,14 @@
+{{- if and (not .Values.nginx.customConfigMap) .Values.nginx.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "artifactory.fullname" . }}-nginx-conf
+  labels:
+    app: {{ template "artifactory.name" . }}
+    chart: {{ template "artifactory.chart" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+data:
+  nginx.conf: |
+{{ tpl .Values.nginx.mainConf . | indent 4 }}
+{{- end }}
