@@ -1,0 +1,50 @@
+{{- if .Values.ingress.enabled -}}
+{{- $serviceName := include "artifactory.fullname" . -}}
+{{- $servicePort := .Values.artifactory.externalPort -}}
+{{- if semverCompare ">=v1.14.0" .Capabilities.KubeVersion.GitVersion }}
+apiVersion: networking.k8s.io/v1beta1
+{{- else }}
+apiVersion: extensions/v1beta1
+{{- end }}
+kind: Ingress
+metadata:
+  name: {{ template "artifactory.fullname" . }}
+  labels:
+    app: {{ template "artifactory.name" . }}
+    chart: {{ template "artifactory.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+{{- if .Values.ingress.labels }}
+{{ .Values.ingress.labels | toYaml | trimSuffix "\n"| indent 4 -}}
+{{- end}}
+{{- if .Values.ingress.annotations }}
+  annotations:
+{{ .Values.ingress.annotations | toYaml | trimSuffix "\n" | indent 4 -}}
+{{- end }}
+spec:
+  {{- if .Values.ingress.defaultBackend.enabled }}
+  backend:
+    serviceName: {{ $serviceName }}
+    servicePort: {{ $servicePort }}
+  {{- end }}
+  rules:
+{{- if .Values.ingress.hosts }}
+  {{- range $host := .Values.ingress.hosts }}
+  - host: {{ $host | quote }}
+    http:
+      paths:
+        - path: {{ $.Values.ingress.path }}
+          backend:
+            serviceName: {{ $serviceName }}
+            servicePort: {{ $servicePort }}
+  {{- end -}}
+{{- end -}}
+  {{- with .Values.ingress.additionalRules }}
+{{ tpl . $ | indent 2 }}
+  {{- end }}
+
+  {{- if .Values.ingress.tls }}
+  tls:
+{{ toYaml .Values.ingress.tls | indent 4 }}
+  {{- end -}}
+{{- end -}}
