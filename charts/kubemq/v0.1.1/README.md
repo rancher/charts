@@ -2,4 +2,4 @@
 
 For more information on KubeMQ configuration head to:
 
- * https://docs.kubemq.io/installation/configuration.html
+ * https://docs.kubemq.io/introduction/introduction.html
