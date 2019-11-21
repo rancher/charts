@@ -1,0 +1,60 @@
+{{- if .Values.cluster.create }}
+
+apiVersion: storageos.com/v1
+kind: StorageOSCluster
+metadata:
+  name: {{ .Values.cluster.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  namespace: {{ .Values.cluster.namespace }}
+  secretRefName: {{ .Values.cluster.secretRefName }}
+  secretRefNamespace: {{ .Release.Namespace }}
+  disableTelemetry: {{ .Values.cluster.disableTelemetry }}
+
+  {{- if .Values.k8sDistro }}
+  k8sDistro: {{ .Values.k8sDistro }}
+  {{- end }}
+
+  {{- if .Values.cluster.images.node.repository }}
+  images:
+    nodeContainer: "{{ .Values.cluster.images.node.repository }}:{{ .Values.cluster.images.node.tag }}"
+  {{- end }}
+
+  csi:
+    enable: {{ .Values.cluster.csi.enable }}
+    deploymentStrategy: {{ .Values.cluster.csi.deploymentStrategy }}
+
+  {{- if .Values.cluster.sharedDir }}
+  sharedDir: {{ .Values.cluster.sharedDir }}
+  {{- end }}
+
+  {{- if eq .Values.cluster.kvBackend.embedded false }}
+  kvBackend:
+    address: {{ .Values.cluster.kvBackend.address }}
+    backend: {{ .Values.cluster.kvBackend.backend }}
+  {{- end }}
+  {{- if .Values.cluster.kvBackend.tlsSecretName }}
+  tlsEtcdSecretRefName: {{ .Values.cluster.kvBackend.tlsSecretName }}
+  {{- end }}
+  {{- if .Values.cluster.kvBackend.tlsSecretNamespace }}
+  tlsEtcdSecretRefNamespace: {{ .Values.cluster.kvBackend.tlsSecretNamespace }}
+  {{- end }}
+
+  {{- if .Values.cluster.nodeSelectorTerm.key }}
+  nodeSelectorTerms:
+    - matchExpressions:
+        - key: {{ .Values.cluster.nodeSelectorTerm.key }}
+          operator: In
+          values:
+          - "{{ .Values.cluster.nodeSelectorTerm.value }}"
+  {{- end }}
+
+  {{- if .Values.cluster.toleration.key }}
+  tolerations:
+    - key: {{ .Values.cluster.toleration.key }}
+      operator: "Equal"
+      value: {{ .Values.cluster.toleration.value }}
+      effect: "NoSchedule"
+  {{- end }}
+
+{{- end }}
