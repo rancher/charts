@@ -26,8 +26,12 @@ spec:
           image: "{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag }}"
           imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
           ports:
-          - containerPort: 60000
+          - containerPort: 8383
             name: metrics
+          - containerPort: 8686
+            name: operatormetrics
+          - containerPort: 5720
+            name: podschedwebhook
           command:
           - cluster-operator
           env:
@@ -35,5 +39,15 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
             - name: OPERATOR_NAME
-              value: "cluster-operator"
+              value: "storageos-cluster-operator"
+            - name: DISABLE_SCHEDULER_WEBHOOK
+              value: "false"
