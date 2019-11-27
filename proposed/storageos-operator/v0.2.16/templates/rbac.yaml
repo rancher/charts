@@ -62,6 +62,7 @@ rules:
   - serviceaccounts
   - secrets
   - services
+  - services/finalizers
   - persistentvolumeclaims
   - persistentvolumes
   - configmaps
@@ -92,6 +93,7 @@ rules:
   - storageclasses
   - volumeattachments
   - csinodeinfos
+  - csinodes
   verbs:
   - create
   - delete
@@ -132,6 +134,32 @@ rules:
   - update
   - get
   - use
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - mutatingwebhookconfigurations
+  verbs:
+  - "*"
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - servicemonitors
+  verbs:
+  - "*"
+- apiGroups:
+  - apps
+  resources:
+  - deployments/finalizers
+  resourceNames:
+  - storageos-cluster-operator
+  verbs:
+  - update
+- apiGroups:
+  - events.k8s.io
+  resources:
+  - events
+  verbs:
+  - create
 
 ---
 
