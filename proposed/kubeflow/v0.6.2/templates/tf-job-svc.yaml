@@ -1,0 +1,25 @@
+{{- if .Values.tfJobOperator.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    getambassador.io/config: |-
+      ---
+      apiVersion: ambassador/v0
+      kind:  Mapping
+      name: tfjobs-ui-mapping
+      prefix: /tfjobs/
+      rewrite: /tfjobs/
+      service: tf-job-dashboard.kubeflow
+  labels:
+    ksonnet.io/component: tf-job-operator
+  name: tf-job-dashboard
+  namespace: kubeflow
+spec:
+  ports:
+  - port: 80
+    targetPort: 8080
+  selector:
+    name: tf-job-dashboard
+  type: ClusterIP
+{{- end }}

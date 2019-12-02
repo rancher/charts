@@ -1,0 +1,218 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: studyjob-controller
+    ksonnet.io/component: katib
+  name: studyjob-controller
+  namespace: kubeflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: studyjob-controller
+  template:
+    metadata:
+      labels:
+        app: studyjob-controller
+    spec:
+      containers:
+      - image: "{{ .Values.katib.studyJobControllerImage.repository }}:{{ .Values.katib.studyJobControllerImage.tag }}"
+        imagePullPolicy: Always
+        name: studyjob-controller
+        volumeMounts:
+        - mountPath: /worker-template
+          name: worker-template
+        - mountPath: /metricscollector-template
+          name: metricscollector-template
+      serviceAccountName: studyjob-controller
+      volumes:
+      - configMap:
+          name: worker-template
+        name: worker-template
+      - configMap:
+          name: metricscollector-template
+        name: metricscollector-template
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: vizier
+    component: core
+    ksonnet.io/component: katib
+  name: vizier-core
+  namespace: kubeflow
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: vizier
+        component: core
+      name: vizier-core
+    spec:
+      containers:
+      - args:
+        - ./vizier-manager
+        - -w
+        - kubernetes
+        - -i
+        - k-cluster.example.net
+        image: "{{ .Values.katib.vizierCoreImage.repository }}:{{ .Values.katib.vizierCoreImage.tag }}"
+        # image: gcr.io/kubeflow-images-public/katib/vizier-core:v0.1.2-alpha-45-g3dce496
+        name: vizier-core
+        ports:
+        - containerPort: 6789
+          name: api
+      serviceAccountName: vizier-core
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: vizier
+    component: db
+    ksonnet.io/component: katib
+  name: vizier-db
+  namespace: kubeflow
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: vizier
+        component: db
+      name: vizier-db
+    spec:
+      containers:
+      - args:
+        - --datadir
+        - /var/lib/mysql/datadir
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: test
+        - name: MYSQL_ALLOW_EMPTY_PASSWORD
+          value: "true"
+        - name: MYSQL_DATABASE
+          value: vizier
+        image: "{{ .Values.katib.vizierDbImage.repository }}:{{ .Values.katib.vizierDbImage.tag }}"
+        name: vizier-db
+        ports:
+        - containerPort: 3306
+          name: dbapi
+        volumeMounts:
+        - mountPath: /var/lib/mysql
+          name: vizier-db
+      volumes:
+      - name: vizier-db
+      {{- if .Values.katib.vizierdb.persistence.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ .Values.katib.vizierdb.persistence.existingClaim | default ("vizier-db") }}
+      {{- else }}
+        emptyDir: {}
+      {{- end }}
+
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: vizier
+    component: suggestion-bayesianoptimization
+    ksonnet.io/component: katib
+  name: vizier-suggestion-bayesianoptimization
+  namespace: kubeflow
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: vizier
+        component: suggestion-bayesianoptimization
+      name: vizier-suggestion-bayesianoptimization
+    spec:
+      containers:
+      - image: "{{ .Values.katib.suggestionBayesianOptimizationImage.repository }}:{{ .Values.katib.suggestionBayesianOptimizationImage.tag }}"
+        name: vizier-suggestion-bayesianoptimization
+        ports:
+        - containerPort: 6789
+          name: api
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: vizier
+    component: suggestion-grid
+    ksonnet.io/component: katib
+  name: vizier-suggestion-grid
+  namespace: kubeflow
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: vizier
+        component: suggestion-grid
+      name: vizier-suggestion-grid
+    spec:
+      containers:
+      - image: "{{ .Values.katib.suggestionGridImage.repository }}:{{ .Values.katib.suggestionGridImage.tag }}"
+      # - image: gcr.io/kubeflow-images-public/katib/suggestion-grid:v0.1.2-alpha-45-g3dce496
+        name: vizier-suggestion-grid
+        ports:
+        - containerPort: 6789
+          name: api
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: vizier
+    component: suggestion-hyperband
+    ksonnet.io/component: katib
+  name: vizier-suggestion-hyperband
+  namespace: kubeflow
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: vizier
+        component: suggestion-hyperband
+      name: vizier-suggestion-hyperband
+    spec:
+      containers:
+      - image: "{{ .Values.katib.suggestionHyperbandImage.repository }}:{{ .Values.katib.suggestionHyperbandImage.tag }}"
+      # - image: gcr.io/kubeflow-images-public/katib/suggestion-hyperband:v0.1.2-alpha-45-g3dce496
+        name: vizier-suggestion-hyperband
+        ports:
+        - containerPort: 6789
+          name: api
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: vizier
+    component: suggestion-random
+    ksonnet.io/component: katib
+  name: vizier-suggestion-random
+  namespace: kubeflow
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: vizier
+        component: suggestion-random
+      name: vizier-suggestion-random
+    spec:
+      containers:
+      - image: "{{ .Values.katib.suggestionRandomImage.repository }}:{{ .Values.katib.suggestionRandomImage.tag }}"
+      # - image: gcr.io/kubeflow-images-public/katib/suggestion-random:v0.1.2-alpha-45-g3dce496
+        name: vizier-suggestion-random
+        ports:
+        - containerPort: 6789
+          name: api
