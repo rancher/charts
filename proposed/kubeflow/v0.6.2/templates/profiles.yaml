@@ -1,0 +1,208 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  labels:
+    controller-tools.k8s.io: "1.0"
+    kustomize.component: profiles
+  name: profiles.kubeflow.org
+spec:
+  group: kubeflow.org
+  names:
+    kind: Profile
+    plural: profiles
+  scope: Cluster
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            owner:
+              description: The profile owner
+              type: object
+          type: object
+        status:
+          properties:
+            message:
+              type: string
+            status:
+              description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
+                of cluster Important: Run "make" to regenerate code after modifying
+                this file'
+              type: string
+          type: object
+  version: v1alpha1
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    kustomize.component: profiles
+  name: profiles-controller-service-account
+  namespace: kubeflow
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    kustomize.component: profiles
+  name: profiles-default-service-account
+  namespace: kubeflow
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    kustomize.component: profiles
+  name: profiles-default-role
+  namespace: kubeflow
+rules:
+- apiGroups:
+  - kubeflow.org
+  resources:
+  - profiles
+  verbs:
+  - create
+  - watch
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    kustomize.component: profiles
+  name: profiles-default-role-binding
+  namespace: kubeflow
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: profiles-default-role
+subjects:
+- kind: ServiceAccount
+  name: profiles-default-service-account
+  namespace: kubeflow
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    kustomize.component: profiles
+  name: profiles-cluster-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: profiles-controller-service-account
+  namespace: kubeflow
+---
+apiVersion: v1
+data:
+  admin: {{ .Values.profiles.admin | quote }}
+  userid-header: {{ .Values.profiles.useridHeader | quote }}
+  userid-prefix: {{ .Values.profiles.useridPrefix | quote }}
+kind: ConfigMap
+metadata:
+  labels:
+    kustomize.component: profiles
+  name: profiles-profiles-parameters-m59gt2c45h
+  namespace: kubeflow
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    kustomize.component: profiles
+  name: profiles-kfam
+  namespace: kubeflow
+spec:
+  ports:
+  - port: 8081
+  selector:
+    kustomize.component: profiles
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    kustomize.component: profiles
+  name: profiles-deployment
+  namespace: kubeflow
+spec:
+  selector:
+    matchLabels:
+      kustomize.component: profiles
+  template:
+    metadata:
+      labels:
+        kustomize.component: profiles
+    spec:
+      containers:
+      - args:
+        - -userid-header
+        - {{ .Values.profiles.useridHeader | quote }}
+        - -userid-prefix
+        - {{ .Values.profiles.useridPrefix | quote }}
+        command:
+        - /manager
+        image: gcr.io/kubeflow-images-public/profile-controller:v20190619-v0-219-gbd3daa8c-dirty-1ced0e
+        imagePullPolicy: Always
+        name: manager
+      - args:
+        - -cluster-admin
+        - {{ .Values.profiles.admin | quote }}
+        - -userid-header
+        - {{ .Values.profiles.useridHeader | quote }}
+        - -userid-prefix
+        - {{ .Values.profiles.useridPrefix | quote }}
+        command:
+        - /opt/kubeflow/access-management
+        image: gcr.io/kubeflow-images-public/kfam:v20190612-v0-170-ga06cdb79-dirty-a33ee4
+        imagePullPolicy: Always
+        name: kfam
+      serviceAccountName: profiles-controller-service-account
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: kfam
+  namespace: kubeflow
+spec:
+  gateways:
+  - kubeflow-gateway
+  hosts:
+  - '*'
+  http:
+  - headers:
+      request:
+        add:
+          x-forwarded-prefix: /kfam
+    match:
+    - uri:
+        prefix: /kfam/
+    rewrite:
+      uri: /kfam/
+    route:
+    - destination:
+        host: profiles-kfam.kubeflow.svc.cluster.local
+        port:
+          number: 8081

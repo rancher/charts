@@ -1,0 +1,115 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: katib
+    component: manager
+  name: katib-manager
+  namespace: kubeflow
+spec:
+  ports:
+  - name: api
+    port: 6789
+    protocol: TCP
+  selector:
+    app: katib
+    component: manager
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: katib
+    component: manager-rest
+  name: katib-manager-rest
+  namespace: kubeflow
+spec:
+  ports:
+  - name: api
+    port: 80
+    protocol: TCP
+  selector:
+    app: katib
+    component: manager-rest
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: katib
+    component: manager
+  name: katib-manager
+  namespace: kubeflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: katib
+      component: manager
+  template:
+    metadata:
+      labels:
+        app: katib
+        component: manager
+      name: katib-manager
+    spec:
+      containers:
+      - command:
+        - ./katib-manager
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: MYSQL_ROOT_PASSWORD
+              name: katib-db-secrets
+        image: gcr.io/kubeflow-images-public/katib/v1alpha2/katib-manager:v0.6.0-rc.0
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - /bin/grpc_health_probe
+            - -addr=:6789
+          initialDelaySeconds: 10
+        name: katib-manager
+        ports:
+        - containerPort: 6789
+          name: api
+        readinessProbe:
+          exec:
+            command:
+            - /bin/grpc_health_probe
+            - -addr=:6789
+          initialDelaySeconds: 5
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: katib
+    component: manager-rest
+  name: katib-manager-rest
+  namespace: kubeflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: katib
+      component: manager-rest
+  template:
+    metadata:
+      labels:
+        app: katib
+        component: manager-rest
+      name: katib-manager-rest
+    spec:
+      containers:
+      - command:
+        - ./katib-manager-rest
+        image: gcr.io/kubeflow-images-public/katib/v1alpha2/katib-manager-rest:v0.6.0-rc.0
+        imagePullPolicy: IfNotPresent
+        name: katib-manager-rest
+        ports:
+        - containerPort: 80
+          name: api

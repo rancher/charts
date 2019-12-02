@@ -1,0 +1,126 @@
+apiVersion: v1
+data:
+  clusterRbacConfig: {{ .Values.istio.clusterRbacConfig | quote }}
+kind: ConfigMap
+kind: ConfigMap
+metadata:
+  name: istio-parameters-tt477f6588
+  namespace: kubeflow
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: kubeflow-gateway
+  namespace: kubeflow
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - hosts:
+    - '*'
+    port:
+      name: http
+      number: 80
+      protocol: HTTP
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  name: google-api-entry
+  namespace: kubeflow
+spec:
+  hosts:
+  - www.googleapis.com
+  location: MESH_EXTERNAL
+  ports:
+  - name: https
+    number: 443
+    protocol: HTTPS
+  resolution: DNS
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  name: google-storage-api-entry
+  namespace: kubeflow
+spec:
+  hosts:
+  - storage.googleapis.com
+  location: MESH_EXTERNAL
+  ports:
+  - name: https
+    number: 443
+    protocol: HTTPS
+  resolution: DNS
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: google-api-vs
+  namespace: kubeflow
+spec:
+  hosts:
+  - www.googleapis.com
+  tls:
+  - match:
+    - port: 443
+      sni_hosts:
+      - www.googleapis.com
+    route:
+    - destination:
+        host: www.googleapis.com
+        port:
+          number: 443
+      weight: 100
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: google-storage-api-vs
+  namespace: kubeflow
+spec:
+  hosts:
+  - storage.googleapis.com
+  tls:
+  - match:
+    - port: 443
+      sni_hosts:
+      - storage.googleapis.com
+    route:
+    - destination:
+        host: storage.googleapis.com
+        port:
+          number: 443
+      weight: 100
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: grafana-vs
+  namespace: kubeflow
+spec:
+  gateways:
+  - kubeflow-gateway
+  hosts:
+  - '*'
+  http:
+  - match:
+    - method:
+        exact: GET
+      uri:
+        prefix: /istio/grafana/
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        host: grafana.istio-system.svc.cluster.local
+        port:
+          number: 3000
+---
+apiVersion: rbac.istio.io/v1alpha1
+kind: ClusterRbacConfig
+metadata:
+  name: default
+  namespace: kubeflow
+spec:
+  mode: {{ .Values.istio.clusterRbacConfig | quote }}

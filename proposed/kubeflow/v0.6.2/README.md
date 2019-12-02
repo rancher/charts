@@ -2,6 +2,13 @@
 
 The Kubeflow project is dedicated to making deployments of machine learning (ML) workflows on Kubernetes simple, portable and scalable. Our goal is not to recreate other services, but to provide a straightforward way to deploy best-of-breed open-source systems for ML to diverse infrastructures. Anywhere you are running Kubernetes, you should be able to run Kubeflow
 
+## Requirements
+
+Kubeflow need some requirements in order to work properly:
+- Kubeflow 0.6 is just compatible with k8s 1.14 and 1.15. [Compatibility table](https://www.kubeflow.org/docs/started/k8s/overview/#minimum-system-requirements)
+- Istio with ingress gateway should be deployed or enabled on k8s cluster.
+- Storageclass should be configured on k8s cluster to enable persistence volumes.
+
 ## Who should consider using Kubeflow?
 
 Based on the current functionality you should consider using Kubeflow if:

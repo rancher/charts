@@ -1,184 +1,172 @@
 categories:
 - machine learning
-rancher_max_version: 2.3.1
+rancher_max_version: 2.3.3
 labels:
   io.rancher.certified: experimental
 namespace: kubeflow
 questions:
-- variable: ambassador.service.type
-  default: "NodePort"
-  description: "Define Kubeflow Ambassador UI service type"
-  type: enum
+- variable: profiles.admin
+  default: johnDoe@acme.com
+  description: "Kubeflow admin"
   required: true
-  options:
-    - "ClusterIP"
-    - "NodePort"
-    - "Rancher-Proxy"
-  label: Kubeflow Ambassador UI Service
-  group: "Kubeflow Ambassador Settings"
-  show_subquestion_if: "NodePort"
-  subquestions: 
-  - variable: ambassador.service.nodePort
-    default: ""
-    description: "NodePort port number(to set explicitly, choose port between 30000-32767)"
-    type: int
-    min: 30000
-    max: 32767
-    label: Ambassador UI Service NodePort number
-- variable: katib.vizier.service.type
-  default: "ClusterIP"
-  description: "Define kubeflow katib vizier service type"
-  type: enum
+  type: string
+  label: Admin
+- variable: applicationController.project
+  default: "test"
+  description: "Application controller project"
   required: true
-  options:
-    - "ClusterIP"
-    - "NodePort"
-  label: Kubeflow Katib Vizier Service
-  group: "Kubeflow Katib Settings"
-  show_subquestion_if: "NodePort"
-  subquestions: 
-  - variable: katib.vizier.service.nodePort
-    default: ""
-    description: "NodePort port number(to set explicitly, choose port between 30000-32767)"
-    type: int
-    min: 30000
-    max: 32767
-    label: Katib Vizier Service NodePort number
-- variable: katib.vizierdb.persistence.enabled
+  type: string
+  label: Application controller project
+- variable: argo.executorImage
+  default: "argoproj/argoexec:v2.3.0"
+  description: "Argo executor image"
+  required: true
+  type: string
+  label: Argo executor image
+- variable: argo.artifactRepositoryBucket
+  default: "mlpipeline"
+  description: "Argo artifact repository bucket"
+  required: true
+  type: string
+  label: Argo artifact repository bucket
+- variable: argo.artifactRepositoryKeyPrefix
+  default: "artifacts"
+  description: "Argo artifact repository key prefix"
+  required: true
+  type: string
+  label: Argo artifact repository key prefix
+- variable: argo.artifactRepositoryAccessKeySecretName
+  default: "mlpipeline-minio-artifact"
+  description: "Argo artifact repository access key name"
+  required: true
+  type: string
+  label: Argo artifact repository access key name
+- variable: argo.artifactRepositoryAccessKeySecretKey
+  default: "accesskey"
+  description: "Argo artifact repository access key secret"
+  required: true
+  type: password
+  label: Argo artifact repository access key secret
+- variable: argo.artifactRepositorySecretKeySecretName
+  default: "mlpipeline-minio-artifact"
+  description: "Argo artifact repository secret key name"
+  required: true
+  type: string
+  label: Argo artifact repository secret key name
+- variable: argo.artifactRepositorySecretKeySecretKey
+  default: "secretkey"
+  description: "Argo artifact repository secret key secret"
+  required: true
+  type: password
+  label: Argo artifact repository secret key secret
+- variable: clusterDomain
+  default: "cluster.local"
+  description: "K8s cluster domain"
+  required: true
+  type: string
+  label: K8s cluster domain
+- variable: katib.db.password
+  default: test
+  description: "Katib db password"
+  required: true
+  type: password
+  label: Katib db password
+- variable: katib.db.persistence.enabled
   default: false
-  description: "Enable persistent volume for Katib Vizier"
+  description: "Enable persistent volume for katib db"
   type: boolean
   required: true
-  label: Katib Vizier Persistent Volume Enabled
+  label: Katib db Persistent Volume Enabled
   show_subquestion_if: true
-  group: "Kubeflow Katib Settings"
+  group: "Katib db Settings"
   subquestions:
-  - variable: katib.vizierdb.persistence.size
+  - variable: katib.db.persistence.size
     default: "10Gi"
-    description: "Katib Vizier Persistent Volume Size"
+    description: "Katib db Persistent Volume Size"
     type: string
-    label: Katib Vizier Volume Size
-  - variable: katib.vizierdb.persistence.storageClass
+    label: Katib db Volume Size
+  - variable: katib.db.persistence.storageClass
     default: ""
     description: "If undefined or null, uses the default StorageClass. Default to null"
     type: storageclass
-    label: Default StorageClass for Katib Vizier
-  - variable: katib.vizierdb.persistence.existingClaim
+    label: Default StorageClass for katib db
+- variable: metadata.db.password
+  default: test
+  description: "Metadata db password"
+  type: password
+  label: Metadata db password
+- variable: metadata.db.persistence.enabled
+  default: false
+  description: "Enable persistent volume for metadata db"
+  type: boolean
+  required: true
+  label: Metadata db Persistent Volume Enabled
+  show_subquestion_if: true
+  group: "Metadata db Settings"
+  subquestions:
+  - variable: metadata.db.persistence.size
+    default: "10Gi"
+    description: "Metadata db Persistent Volume Size"
+    type: string
+    label: Metadata db Volume Size
+  - variable: metadata.db.persistence.storageClass
     default: ""
-    description: "If not empty, uses the specified existing PVC instead of creating new one"
-    type: string
-    label: Existing Persistent Volume Claim for Katib Vizier
-- variable: jupyterhub.enabled
-  default: true
-  description: "Enable jupyterhub of single-user Jupyter notebook server"
-  type: boolean
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for metadata db
+- variable: minio.accessKey
+  default: minio
+  description: "Minio access key"
   required: true
-  label: Enable JupyterHub
-  group: "JupyterHub Settings"
-  show_subquestion_if: true
-  subquestions:
-  - variable: jupyterhub.image.repository
-    default: "gcr.io/kubeflow/jupyterhub-k8s"
-    description: "Docker image of the JupyterHub"
-    type: string
-    label: JupyterHub Image Repository
-  - variable: jupyterhub.image.tag
-    default: "v20180531-3bb991b1"
-    description: "The image tag of JupyterHub"
-    type: string
-    label: JupyterHub Image Tag
-- variable: tfJobOperator.enabled
-  default: true
-  description: "Enable tensorflow job operator"
-  type: boolean
+  type: string
+  label: Minio access key
+- variable: minio.secretKey
+  default: minio123
+  description: "Minio secret key"
   required: true
-  label: Enable TensorFlow Job Operator
-  group: "TensorFlow Operator Settings"
-  show_subquestion_if: true
-  subquestions:
-  - variable: tfJobOperator.image.repository
-    default: "gcr.io/kubeflow-images-public/tf_operator"
-    description: "Docker image of the TensorFlow Job Operator"
-    type: string
-    label: Tensorflow Job Operator Image Repository
-  - variable: tfJobOperator.image.tag
-    default: "v0.3.0"
-    description: "The image tag of Tensorflow Job Operator"
-    type: string
-    label: Tensorflow Job Operator Image Tag
-- variable: pytorchOperator.enabled
+  type: password
+  label: Minio secret key
+- variable: minio.persistence.enabled
   default: false
-  description: "Enable PyTorch - a deep learning framework."
+  description: "Enable persistent volume for minio"
   type: boolean
   required: true
-  label: Enable PyTorch Operator
-  group: "PyTorch Settings"
+  label: Minio Persistent Volume Enabled
   show_subquestion_if: true
+  group: "Minio Settings"
   subquestions:
-  - variable: pytorchOperator.image.repository
-    default: "gcr.io/kubeflow-images-public/pytorch-operator"
-    description: "Docker image of the PyTorch operator"
+  - variable: minio.persistence.size
+    default: "20Gi"
+    description: "Minio Persistent Volume Size"
     type: string
-    label: PyTorch Operator Image Repository
-  - variable: pytorchOperator.image.tag
-    default: "v0.3.0"
-    description: "The image tag of PyTorch operator"
-    type: string
-    label: PyTorch Operator Image Tag
-- variable: chainer.enabled
+    label: Minio Volume Size
+  - variable: minio.persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for minio
+- variable: mysql.persistence.enabled
   default: false
-  description: "Enable Chainer operator - a flexible framework of neural networks"
+  description: "Enable persistent volume for mysql"
   type: boolean
   required: true
-  label: Enable Chainer Operator
-  group: "Chainer Settings"
+  label: Mysql Persistent Volume Enabled
   show_subquestion_if: true
+  group: "Mysql Settings"
   subquestions:
-  - variable: chainer.image.repository
-    default: "gcr.io/kubeflow-images-public/chainer-operator"
-    description: "Docker image of the chainer operator"
+  - variable: mysql.persistence.size
+    default: "20Gi"
+    description: "Mysql Persistent Volume Size"
     type: string
-    label: Chainer Operator Image Repository
-  - variable: chainer.image.tag
-    default: "v0.3.0"
-    description: "The image tag of chainer operator"
-    type: string
-    label: Chainer Operator Image Tag
-- variable: mxnetOperator.enabled
-  default: false
-  description: "Enable apache MXNet - a flexible and efficient library for deep learning."
-  type: boolean
+    label: Mysql Volume Size
+  - variable: mysql.persistence.storageClass
+    default: ""
+    description: "If undefined or null, uses the default StorageClass. Default to null"
+    type: storageclass
+    label: Default StorageClass for mysql
+- variable: spartakus.usageId
+  default: test
+  description: "Spartakus Usage ID"
   required: true
-  label: Enable Apache MXNet Operator
-  group: "Apache MXNet Settings"
-  show_subquestion_if: true
-  subquestions:
-  - variable: mxnetOperator.image.repository
-    default: "mxjob/mxnet-operator"
-    description: "Docker image of the MXNet operator"
-    type: string
-    label: MXNet Operator Image Repository
-  - variable: mxnetOperator.image.tag
-    default: "v1"
-    description: "The image tag of MXNet operator"
-    type: string
-    label: MXNet Operator Image Tag
-- variable: pytorchOperator.enabled
-  default: false
-  description: "Enable PyTorch - a deep learning framework."
-  type: boolean
-  required: true
-  label: Enable PyTorch Operator
-  group: "PyTorch Settings"
-  show_subquestion_if: true
-  subquestions:
-  - variable: pytorchOperator.image.repository
-    default: "gcr.io/kubeflow-images-public/pytorch-operator"
-    description: "Docker image of the PyTorch operator"
-    type: string
-    label: PyTorch Operator Image Repository
-  - variable: pytorchOperator.image.tag
-    default: "v0.3.0"
-    description: "The image tag of PyTorch operator"
-    type: string
-    label: PyTorch Operator Image Tag
+  type: string
+  label: Usage ID

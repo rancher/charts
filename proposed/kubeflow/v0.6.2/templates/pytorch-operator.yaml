@@ -1,51 +1,25 @@
-{{- if .Values.pytorchOperator.enabled }}
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
+apiVersion: v1
+kind: ServiceAccount
 metadata:
   labels:
-    ksonnet.io/component: pytorch-operator
-  annotations:
-    "helm.sh/hook": crd-install
-    "helm.sh/hook-delete-policy": before-hook-creation
-  name: pytorchjobs.kubeflow.org
-spec:
-  group: kubeflow.org
-  names:
-    kind: PyTorchJob
-    plural: pytorchjobs
-    singular: pytorchjob
-  validation:
-    openAPIV3Schema:
-      properties:
-        spec:
-          properties:
-            pytorchReplicaSpecs:
-              properties:
-                Master:
-                  properties:
-                    replicas:
-                      maximum: 1
-                      minimum: 1
-                      type: integer
-                Worker:
-                  properties:
-                    replicas:
-                      minimum: 1
-                      type: integer
-  version: v1alpha2
+    app: pytorch-operator
+    kustomize.component: pytorch-operator
+  name: pytorch-operator
+  namespace: kubeflow
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
   labels:
     app: pytorch-operator
-    ksonnet.io/component: pytorch-operator
+    kustomize.component: pytorch-operator
   name: pytorch-operator
 rules:
 - apiGroups:
   - kubeflow.org
   resources:
   - pytorchjobs
+  - pytorchjobs/status
   verbs:
   - '*'
 - apiGroups:
@@ -90,7 +64,7 @@ kind: ClusterRoleBinding
 metadata:
   labels:
     app: pytorch-operator
-    ksonnet.io/component: pytorch-operator
+    kustomize.component: pytorch-operator
   name: pytorch-operator
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -110,38 +84,57 @@ data:
 kind: ConfigMap
 metadata:
   labels:
-    ksonnet.io/component: pytorch-operator
+    kustomize.component: pytorch-operator
   name: pytorch-operator-config
   namespace: kubeflow
 ---
 apiVersion: v1
-kind: ServiceAccount
+kind: Service
 metadata:
+  annotations:
+    prometheus.io/path: /metrics
+    prometheus.io/port: "8443"
+    prometheus.io/scrape: "true"
   labels:
     app: pytorch-operator
-    ksonnet.io/component: pytorch-operator
+    kustomize.component: pytorch-operator
   name: pytorch-operator
   namespace: kubeflow
+spec:
+  ports:
+  - name: monitoring-port
+    port: 8443
+    targetPort: 8443
+  selector:
+    kustomize.component: pytorch-operator
+    name: pytorch-operator
+  type: ClusterIP
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    ksonnet.io/component: pytorch-operator
+    kustomize.component: pytorch-operator
   name: pytorch-operator
   namespace: kubeflow
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      kustomize.component: pytorch-operator
+      name: pytorch-operator
   template:
     metadata:
       labels:
+        kustomize.component: pytorch-operator
         name: pytorch-operator
     spec:
       containers:
       - command:
-        - /pytorch-operator.v2
+        - /pytorch-operator.v1
         - --alsologtostderr
         - -v=1
+        - --monitoring-port=8443
         env:
         - name: MY_POD_NAMESPACE
           valueFrom:
@@ -151,7 +144,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
-        image: "{{ .Values.pytorchOperator.image.repository }}:{{ .Values.pytorchOperator.image.tag }}"
+        image: gcr.io/kubeflow-images-public/pytorch-operator:v1.0.0-rc.0
         name: pytorch-operator
         volumeMounts:
         - mountPath: /etc/config
@@ -161,4 +154,3 @@ spec:
       - configMap:
           name: pytorch-operator-config
         name: config-volume
-{{- end }}

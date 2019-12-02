@@ -1,0 +1,103 @@
+apiVersion: v1
+data:
+  minioPvcName: {{ .Values.minio.persistence.pvcName | quote }}
+kind: ConfigMap
+metadata:
+  labels:
+    app: minio
+  name: pipeline-minio-parameters
+  namespace: kubeflow
+---
+apiVersion: v1
+data:
+  accessKey: {{ .Values.minio.accessKey | b64enc | quote }}
+  secretKey: {{ .Values.minio.secretKey | b64enc | quote }}
+kind: Secret
+metadata:
+  labels:
+    app: minio
+  name: mlpipeline-minio-artifact
+  namespace: kubeflow
+type: Opaque
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: minio
+  name: minio-service
+  namespace: kubeflow
+spec:
+  ports:
+  - port: 9000
+    protocol: TCP
+    targetPort: 9000
+  selector:
+    app: minio
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: minio
+  name: minio
+  namespace: kubeflow
+spec:
+  selector:
+    matchLabels:
+      app: minio
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: minio
+    spec:
+      containers:
+      - args:
+        - server
+        - /data
+        env:
+        - name: MINIO_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              key: accessKey
+              name: mlpipeline-minio-artifact
+        - name: MINIO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              key: secretKey
+              name: mlpipeline-minio-artifact
+        image: minio/minio:RELEASE.2018-02-09T22-40-05Z
+        name: minio
+        ports:
+        - containerPort: 9000
+        volumeMounts:
+        - mountPath: /data
+          name: data
+          subPath: minio
+      volumes:
+      - name: data
+        {{- if .Values.minio.persistence.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ .Values.minio.persistence.pvcName }}
+        {{- else }}
+        emptyDir: {}
+        {{ end }}
+{{- if .Values.minio.persistence.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app: minio
+  name: {{ .Values.minio.persistence.pvcName | quote }}
+  namespace: kubeflow
+spec:
+  accessModes:
+  - {{ .Values.minio.persistence.accessMode | quote }}
+  resources:
+    requests:
+      storage: {{ .Values.minio.persistence.size | quote }}
+    storageClassName: {{ .Values.minio.persistence.storageClass | quote }}
+{{- end -}}
