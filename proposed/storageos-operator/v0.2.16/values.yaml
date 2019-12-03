@@ -1,0 +1,166 @@
+# Default values for storageos.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+name: storageos-operator
+
+k8sDistro: default
+
+serviceAccount:
+  create: true
+  name: storageos-operator-sa
+
+podSecurityPolicy:
+  enabled: false
+  annotations: {}
+    ## Specify pod annotations
+    ## Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/#apparmor
+    ## Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/#seccomp
+    ## Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/#sysctl
+    ##
+    # seccomp.security.alpha.kubernetes.io/allowedProfileNames: '*'
+    # seccomp.security.alpha.kubernetes.io/defaultProfileName: 'docker/default'
+    # apparmor.security.beta.kubernetes.io/defaultProfileName: 'runtime/default'
+
+# operator-specific configuation parameters.
+operator:
+
+  image:
+    repository: storageos/cluster-operator
+    tag: 1.5.1
+    pullPolicy: IfNotPresent
+
+# cluster-specific configuation parameters.
+cluster:
+  # set create to true if the operator should auto-create the StorageOS cluster.
+  create: true
+
+  # Name of the deployment.
+  name: storageos
+
+  # Namespace to install the StorageOS cluster into.
+  namespace: kube-system
+
+  # Name of the secret containing StorageOS API credentials.
+  secretRefName: storageos-api
+
+  # Default admin account.
+  admin:
+
+    # Username to authenticate to the StorageOS API with.
+    username: storageos
+
+    # Password to authenticate to the StorageOS API with. If empty, a random
+    # password will be generated and set in the secretRefName secret.
+    password:
+
+  # sharedDir should be set if running kubelet in a container.  This should
+  # be the path shared into to kubelet container, typically:
+  # "/var/lib/kubelet/plugins/kubernetes.io~storageos".  If not set, defaults
+  # will be used.
+  sharedDir:
+
+  # Key-Value store backend.
+  kvBackend:
+    embedded: true
+    address:
+    backend: etcd
+    tlsSecretName:
+    tlsSecretNamespace:
+
+  # Node selector terms to install StorageOS on.
+  nodeSelectorTerm:
+    key:
+    value:
+
+  # Pod toleration for the StorageOS pods.
+  toleration:
+    key:
+    value:
+
+  # To disable anonymous usage reporting across the cluster, set to true.
+  # Defaults to false. To help improve the product, data such as API usage and
+  # StorageOS configuration information is collected.
+  disableTelemetry: false
+
+  images:
+    # nodeContainer is the StorageOS node image to use, available from the
+    # [Docker Hub](https://hub.docker.com/r/storageos/node/).
+    node:
+      repository: storageos/node
+      tag: 1.5.1
+
+  csi:
+    enable: true
+    deploymentStrategy: deployment
+
+# The following is used for cleaning up unmanaged cluster resources when
+# auto-install is enabled.
+cleanup:
+  - name: daemonset
+    command:
+      - "daemonset"
+      - "storageos-daemonset"
+  - name: statefulset
+    command:
+      - "statefulset"
+      - "storageos-statefulset"
+  - name: csi-helper
+    command:
+      - "deployment"
+      - "storageos-csi-helper"
+  - name: scheduler
+    command:
+      - "deployment"
+      - "storageos-scheduler"
+  - name: configmap
+    command:
+      - "configmap"
+      - "storageos-scheduler-config"
+      - "storageos-scheduler-policy"
+  - name: serviceaccount
+    command:
+      - "serviceaccount"
+      - "storageos-daemonset-sa"
+      - "storageos-statefulset-sa"
+  - name: role
+    command:
+      - "role"
+      - "storageos:key-management"
+  - name: rolebinding
+    command:
+      - "rolebinding"
+      - "storageos:key-management"
+  - name: secret
+    command:
+      - "secret"
+      - "init-secret"
+  - name: service
+    command:
+      - "service"
+      - "storageos"
+  - name: clusterrole
+    command:
+      - "clusterrole"
+      - "storageos:driver-registrar"
+      - "storageos:csi-attacher"
+      - "storageos:csi-provisioner"
+      - "storageos:pod-fencer"
+      - "storageos:scheduler-extender"
+      - "storageos:init"
+      - "storageos:nfs-provisioner"
+  - name: clusterrolebinding
+    command:
+      - "clusterrolebinding"
+      - "storageos:csi-provisioner"
+      - "storageos:csi-attacher"
+      - "storageos:driver-registrar"
+      - "storageos:k8s-driver-registrar"
+      - "storageos:pod-fencer"
+      - "storageos:scheduler-extender"
+      - "storageos:init"
+      - "storageos:nfs-provisioner"
+  - name: storageclass
+    command:
+      - "storageclass"
+      - "fast"

@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "storageos.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ template "storageos.name" . }}
+    chart: {{ template "storageos.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ template "storageos.name" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "storageos.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ template "storageos.serviceAccountName" . }}
+      containers:
+        - name: storageos-operator
+          image: "{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag }}"
+          imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
+          ports:
+          - containerPort: 8383
+            name: metrics
+          - containerPort: 8686
+            name: operatormetrics
+          - containerPort: 5720
+            name: podschedwebhook
+          command:
+          - cluster-operator
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: OPERATOR_NAME
+              value: "storageos-cluster-operator"
+            - name: DISABLE_SCHEDULER_WEBHOOK
+              value: "false"

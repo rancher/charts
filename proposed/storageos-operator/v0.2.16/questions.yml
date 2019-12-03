@@ -1,0 +1,167 @@
+categories:
+- storage
+labels:
+  io.rancher.certified: partner
+questions:
+- variable: k8sDistro
+  default: rancher
+  description: "Kubernetes Distribution"
+  show_if: false
+
+# Operator image configuration.
+- variable: defaultImage
+  default: true
+  description: "Use default Docker images"
+  label: Use Default Images
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: operator.image.pullPolicy
+    default: IfNotPresent
+    description: "Operator Image pull policy"
+    type: enum
+    label: Operator Image pull policy
+    options:
+      - IfNotPresent
+      - Always
+      - Never
+  - variable: operator.image.repository
+    default: "storageos/cluster-operator"
+    description: "StorageOS operator image name"
+    type: string
+    label: StorageOS Operator Image Name
+  - variable: operator.image.tag
+    default: "1.5.1"
+    description: "StorageOS Operator image tag"
+    type: string
+    label: StorageOS Operator Image Tag
+
+# Default minimal cluster configuration.
+- variable: cluster.create
+  default: true
+  type: boolean
+  description: "Install StorageOS cluster with minimal configurations"
+  label: "Install StorageOS cluster"
+  show_subquestion_if: true
+  group: "StorageOS Cluster"
+  subquestions:
+
+  # CSI configuration.
+  - variable: cluster.csi.enable
+    default: true
+    description: "Use Container Storage Interface (CSI) driver"
+    label: Use CSI Driver
+    type: boolean
+
+  # Cluster metadata.
+  - variable: cluster.name
+    default: "storageos"
+    description: "Name of the StorageOS cluster deployment"
+    type: string
+    label: Name
+  - variable: cluster.namespace
+    default: "kube-system"
+    description: "Namespace of the StorageOS cluster deployment. `kube-system` recommended to avoid pre-emption when node is under load."
+    type: string
+    label: Namespace
+
+  # Node container image.
+  - variable: cluster.images.node.repository
+    default: "storageos/node"
+    description: "StorageOS node container image name"
+    type: string
+    label: StorageOS Node Container Image Name
+  - variable: cluster.images.node.tag
+    default: "1.5.1"
+    description: "StorageOS Node container image tag"
+    type: string
+    label: StorageOS Node Container Image Tag
+
+  # Credentials.
+  - variable: cluster.admin.username
+    default: "admin"
+    description: "Username of the StorageOS administrator account"
+    type: string
+    label: Username
+  - variable: cluster.admin.password
+    default: ""
+    description: "Password of the StorageOS administrator account.  If empty, a random password will be generated."
+    type: password
+    label: Password
+
+  # Telemetry.
+  - variable: cluster.disableTelemetry
+    default: false
+    type: boolean
+    description: "Disable telemetry data collection.  See https://docs.storageos.com/docs/reference/telemetry for more information."
+    label: Disable Telemetry
+
+  # KV store backend.
+  - variable: cluster.kvBackend.embedded
+    default: true
+    type: boolean
+    description: "Use embedded KV store for testing.  Select false to use external etcd for production deployments."
+    label: "Use embedded KV store"
+  - variable: cluster.kvBackend.address
+    default: "10.0.0.1:2379"
+    description: "List of etcd targets, in the form ip[:port], separated by commas.  Prefer multiple direct endpoints over a single load-balanced endpoint.  Only used if not using embedded KV store."
+    type: string
+    label: External etcd address(es)
+    show_if: "cluster.kvBackend.embedded=false"
+  - variable: cluster.kvBackend.tls
+    default: false
+    type: boolean
+    description: "Enable etcd TLS"
+    label: "TLS should be configured for external etcd to protect configuration data (Optional)."
+    show_if: "cluster.kvBackend.embedded=false"
+  - variable: cluster.kvBackend.tlsSecretName
+    required: false
+    default: ""
+    description: "Name of the secret that contains the etcd TLS certs. This secret is typically shared with etcd."
+    type: string
+    label: External etcd TLS secret name
+    show_if: "cluster.kvBackend.tls=true"
+  - variable: cluster.kvBackend.tlsSecretNamespace
+    required: false
+    default: ""
+    description: "Namespace of the secret that contains the etcd TLS certs. This secret is typically shared with etcd."
+    type: string
+    label: External etcd TLS secret namespace
+    show_if: "cluster.kvBackend.tls=true"
+
+  # Node Selector Term.
+  - variable: cluster.nodeSelectorTerm.key
+    required: false
+    default: ""
+    description: "Key of the node selector term match expression used to select the nodes to install StorageOS on, e.g. `node-role.kubernetes.io/worker`"
+    type: string
+    label: Node selector term key
+  - variable: cluster.nodeSelectorTerm.value
+    required: false
+    default: ""
+    description: "Value of the node selector term match expression used to select the nodes to install StorageOS on."
+    type: string
+    label: Node selector term value
+
+  # Pod tolerations.
+  - variable: cluster.toleration.key
+    required: false
+    default: ""
+    description: "Key of pod toleration with operator 'Equal' and effect 'NoSchedule'"
+    type: string
+    label: Pod toleration key
+  - variable: cluster.toleration.value
+    required: false
+    default: ""
+    description: "Value of pod toleration with operator 'Equal' and effect 'NoSchedule'"
+    type: string
+    label: Pod toleration value
+
+  # Shared Directory
+  - variable: cluster.sharedDir
+    required: false
+    default: "/var/lib/kubelet/plugins/kubernetes.io~storageos"
+    description: "Shared Directory should be set if running kubelet in a container. This should be the path shared into to kubelet container, typically: '/var/lib/kubelet/plugins/kubernetes.io~storageos'.  If not set, defaults will be used."
+    type: string
+    label: Shared Directory
