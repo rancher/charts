@@ -68,7 +68,7 @@ The above file also provides a list of categories that this chart fits into. Thi
 | 	variable          | string  | true    |  define the variable name specified in the `values.yaml`file, using `foo.bar` for nested object. |
 | 	label             | string  | true      |  define the UI label. |
 | 	description       | string  | false      |  specify the description of the variable.|
-| 	type              | string  | false      |  default to `string` if not specified (current supported types are string, boolean, int, enum, password, storageclass and hostname).|
+| 	type              | string  | false      |  default to `string` if not specified (current supported types are string, multiline, boolean, int, enum, password, storageclass, hostname, pvc, and secret).|
 | 	required          | bool    | false      |  define if the variable is required or not (true \| false)|
 | 	default           | string  | false      |  specify the default value. |
 | 	group             | string  | false      |  group questions by input value. |
