@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: spartakus
+    kustomize.component: spartakus
+  name: spartakus
+  namespace: kubeflow
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  labels:
+    app: spartakus
+    kustomize.component: spartakus
+  name: spartakus
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app: spartakus
+    kustomize.component: spartakus
+  name: spartakus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: spartakus
+subjects:
+- kind: ServiceAccount
+  name: spartakus
+  namespace: kubeflow
+---
+apiVersion: v1
+data:
+  usageId: {{ .Values.spartakus.usageId | quote }}
+kind: ConfigMap
+metadata:
+  labels:
+    kustomize.component: spartakus
+  name: spartakus-parameters
+  namespace: kubeflow
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: spartakus
+    kustomize.component: spartakus
+  name: spartakus-volunteer
+  namespace: kubeflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      kustomize.component: spartakus
+  template:
+    metadata:
+      labels:
+        app: spartakus-volunteer
+        kustomize.component: spartakus
+    spec:
+      containers:
+      - args:
+        - volunteer
+        - --cluster-id={{ .Values.spartakus.usageId | quote }}
+        - --database=https://stats-collector.kubeflow.org
+        image: gcr.io/google_containers/spartakus-amd64:v1.1.0
+        name: volunteer
+      serviceAccountName: spartakus
