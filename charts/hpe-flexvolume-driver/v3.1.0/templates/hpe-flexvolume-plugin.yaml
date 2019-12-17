@@ -31,8 +31,8 @@ spec:
         {{- if eq .Values.flavor "rke"}}
           postStart:
             exec:
-              command: [ "/bin/cp", "-a", "/etc/hpe-storage/{{ .Values.pluginType }}.json",
-                       "/var/lib/kubelet/volumeplugins/hpe.com~{{ .Values.pluginType }}/{{ .Values.pluginType }}.json" ]
+              command: [ "/bin/bash", "-c",
+                       "while [[ ! -d /var/lib/kubelet/volumeplugins/hpe.com~{{ .Values.pluginType }} ]] || [[ ! -f /etc/hpe-storage/{{ .Values.pluginType }}.json ]]; do sleep 1; done; cp -a /etc/hpe-storage/{{ .Values.pluginType }}.json /var/lib/kubelet/volumeplugins/hpe.com~{{ .Values.pluginType }}/{{ .Values.pluginType }}.json" ]
         {{- end }}
         env:
         - name: LOG_LEVEL
