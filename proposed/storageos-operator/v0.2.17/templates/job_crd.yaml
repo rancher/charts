@@ -1,0 +1,87 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: jobs.storageos.com
+  annotations:
+    "helm.sh/hook": crd-install
+spec:
+  group: storageos.com
+  names:
+    kind: Job
+    listKind: JobList
+    plural: jobs
+    singular: job
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            args:
+              description: Args is an array of strings passed as an argument to the
+                job container.
+              items:
+                type: string
+              type: array
+            completionWord:
+              description: CompletionWord is the word that's looked for in the pod
+                logs to find out if a DaemonSet Pod has completed its task.
+              type: string
+            hostPath:
+              description: HostPath is the path in the host that's mounted into a
+                job container.
+              type: string
+            image:
+              description: Image is the container image to run as the job.
+              type: string
+            labelSelector:
+              description: LabelSelector is the label selector for the job Pods.
+              type: string
+            mountPath:
+              description: MountPath is the path in the job container where a volume
+                is mounted.
+              type: string
+            nodeSelectorTerms:
+              description: NodeSelectorTerms is the set of placement of the job pods
+                using node affinity requiredDuringSchedulingIgnoredDuringExecution.
+              items:
+                type: object
+              type: array
+            tolerations:
+              description: Tolerations is to set the placement of storageos pods using
+                pod toleration.
+              items:
+                type: object
+              type: array
+          required:
+          - image
+          - args
+          - mountPath
+          - hostPath
+          - completionWord
+          type: object
+        status:
+          properties:
+            completed:
+              description: Completed indicates the complete status of job.
+              type: boolean
+          type: object
+  version: v1
+  versions:
+  - name: v1
+    served: true
+    storage: true
