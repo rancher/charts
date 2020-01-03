@@ -204,19 +204,19 @@ Create the name of the cluster role binding to use for hooks
 
 {{- if eq "OnPrem" .Values.environment -}}
     {{- if eq "Manually specify disks" .Values.onpremStorage }}
-            {{- if .Values.existingDisk1 }}
+            {{- if ne "none" .Values.existingDisk1 }}
                 "-s", "{{- .Values.existingDisk1 }}",
             {{- end }}
-            {{- if .Values.existingDisk2 -}}
+            {{- if ne "none" .Values.existingDisk2 -}}
                 "-s", "{{- .Values.existingDisk2 }}",
             {{- end }}
-            {{- if .Values.existingDisk3 -}}
+            {{- if ne "none" .Values.existingDisk3 -}}
                 "-s", "{{- .Values.existingDisk3 }}",
             {{- end }}
-            {{- if .Values.existingDisk4 -}}
+            {{- if ne "none" .Values.existingDisk4 -}}
                 "-s", "{{- .Values.existingDisk4 }}",
             {{- end }}
-            {{- if .Values.existingDisk5 }}
+            {{- if ne "none" .Values.existingDisk5 }}
                 "-s", "{{- .Values.existingDisk5 }}",
             {{- end }}
     {{- else if eq "Automatically scan disks" .Values.onpremStorage -}}
@@ -247,16 +247,16 @@ Create the name of the cluster role binding to use for hooks
             {{- if .Values.existingDisk1 -}}
                 "-s", "{{- .Values.existingDisk1 -}}",
             {{- end -}}
-            {{- if .Values.existingDisk2 -}}
+            {{- if ne "none" .Values.existingDisk2 -}}
                 "-s", "{{- .Values.existingDisk2 -}}",
             {{- end -}}
-            {{- if .Values.existingDisk3 -}}
+            {{- if ne "none" .Values.existingDisk3 -}}
                 "-s", "{{- .Values.existingDisk3 -}}",
             {{- end -}}
-            {{- if .Values.existingDisk4 -}}
+            {{- if ne "none" .Values.existingDisk4 -}}
                 "-s", "{{- .Values.existingDisk4 -}}",
             {{- end -}}
-            {{- if .Values.existingDisk5 -}}
+            {{- if ne "none" .Values.existingDisk5 -}}
                 "-s", "{{- .Values.existingDisk5 -}}",
             {{- end -}}
         {{- else if eq "Create Using a Spec" .Values.deviceConfig -}}
@@ -303,19 +303,19 @@ Create the name of the cluster role binding to use for hooks
 {{/*------------------- ----------------- AWS -------------- --------------- */}}
     {{- else if eq "AWS" .Values.provider -}}
         {{- if eq "Use Existing Disks" .Values.deviceConfig -}}
-            {{- if .Values.existingDisk1 -}}
+            {{- if ne "none" .Values.existingDisk1 -}}
                 "-s", "{{ .Values.existingDisk1 }}",
             {{- end -}}
-            {{- if .Values.existingDisk2 -}}
+            {{- if ne "none" .Values.existingDisk2 -}}
                 "-s", "{{ .Values.existingDisk2 }}",
             {{- end -}}
-            {{- if .Values.existingDisk3 -}}
+            {{- if ne "none" .Values.existingDisk3 -}}
                 "-s", "{{ .Values.existingDisk3 }}",
             {{- end -}}
-            {{- if .Values.existingDisk4 -}}
+            {{- if ne "none" .Values.existingDisk4 -}}
                 "-s", "{{ .Values.existingDisk4 }}",
             {{- end -}}
-            {{- if .Values.existingDisk5 -}}
+            {{- if ne "none" .Values.existingDisk5 -}}
                 "-s", "{{ .Values.existingDisk5 }}",
             {{- end -}}
         {{- else if eq "Create Using a Spec" .Values.deviceConfig -}}
