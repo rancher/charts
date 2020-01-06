@@ -1,0 +1,66 @@
+{{- if eq .Values.pluginType "cv"}}
+# Configuration to deploy the HPE Nimble Storage Container Provider service
+#
+# example usage: kubectl create -f <this_file>
+
+---
+
+#######################################
+############  CP Service  ############
+#######################################
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ .Values.serviceName }}
+  namespace: kube-system
+  labels:
+    app: {{ .Values.serviceName }}
+spec:
+  ports:
+  - port: {{ .Values.servicePort }}
+    protocol: TCP
+  selector:
+    app: cv-cp
+
+---
+
+##########################################
+############  CP Deployment  ############
+##########################################
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: cv-cp
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: cv-cp
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: cv-cp
+    spec:
+      priorityClassName: system-cluster-critical
+      containers:
+        - name: cv-cp
+          image: {{ .Values.containerProviderImage}}: {{- .Values.containerProviderTag}}
+          imagePullPolicy: Always
+          env:
+            - name: CLOUDVOLUMES_PORTAL_SERVER
+              value: {{ .Values.backend }}
+            - name: CLOUDVOLUMES_PORT
+              value: {{ .Values.servicePort | quote }}
+            - name: LOG_LEVEL
+              value: {{ .Values.logLevel }}
+          ports:
+          - containerPort: {{ .Values.servicePort }}
+          volumeMounts:
+            - name: log-dir
+              mountPath: /var/log
+      volumes:
+        - name: log-dir
+          hostPath:
+            path: /var/log
+{{- end }}
