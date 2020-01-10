@@ -150,7 +150,7 @@ Operator chart and their default values.
 Parameter | Description | Default
 --------- | ----------- | -------
 `operator.image.repository` | StorageOS Operator container image repository | `storageos/cluster-operator`
-`operator.image.tag` | StorageOS Operator container image tag | `1.5.2`
+`operator.image.tag` | StorageOS Operator container image tag | `1.5.3`
 `operator.image.pullPolicy` | StorageOS Operator container image pull policy | `IfNotPresent`
 `podSecurityPolicy.enabled` | If true, create & use PodSecurityPolicy resources | `false`
 `podSecurityPolicy.annotations` | Specify pod annotations in the pod security policy | `{}`
@@ -173,6 +173,30 @@ Parameter | Description | Default
 `cluster.disableTelemetry` | If true, no telemetry data will be collected from the cluster | `false`
 `cluster.images.node.repository` | StorageOS Node container image repository | `storageos/node`
 `cluster.images.node.tag` | StorageOS Node container image tag | `1.5.2`
+`cluster.images.init.repository` | StorageOS init container image repository |
+`cluster.images.init.tag` | StorageOS init container image tag |
+`cluster.images.csiV1ClusterDriverRegistrar.repository` | CSI v1 Cluster Driver Registrar image repository |
+`cluster.images.csiV1ClusterDriverRegistrar.tag` | CSI v1 Cluster Driver Registrar image tag |
+`cluster.images.csiV1NodeDriverRegistrar.repository` | CSI v1 Node Driver Registrar image repository |
+`cluster.images.csiV1NodeDriverRegistrar.tag` | CSI v1 Node Driver Registrar image tag |
+`cluster.images.csiV1ExternalProvisioner.repository` | CSI v1 External Provisioner image repository |
+`cluster.images.csiV1ExternalProvisioner.tag` | CSI v1 External Provisioner image tag |
+`cluster.images.csiV1ExternalAttacher.repository` | CSI v1 External Attacher image repository |
+`cluster.images.csiV1ExternalAttacher.tag` | CSI v1 External Attacher image tag |
+`cluster.images.csiV1ExternalAttacherV2.repository` | CSI v1 External Attacher v2 image repository |
+`cluster.images.csiV1ExternalAttacherV2.tag` | CSI v1 External Attacher v2 image tag |
+`cluster.images.csiV1LivenessProbe.repository` | CSI v1 Liveness Probe image repository |
+`cluster.images.csiV1LivenessProbe.tag` | CSI v1 Liveness Probe image tag |
+`cluster.images.csiV0DriverRegistrar.repository` | CSI v0 Driver Registrar image repository |
+`cluster.images.csiV0DriverRegistrar.tag` | CSI v0 Driver Registrar image tag |
+`cluster.images.csiV0ExternalProvisioner.repository` | CSI v0 External Provisioner image repository |
+`cluster.images.csiV0ExternalProvisioner.tag` | CSI v0 External Provisioner image tag |
+`cluster.images.csiV0ExternalAttacher.repository` | CSI v0 External Attacher image repository |
+`cluster.images.csiV0ExternalAttacher.tag` | CSI v0 External Attacher image tag |
+`cluster.images.nfs.repository` | NFS container image repository |
+`cluster.images.nfs.tag` | NFS container image tag |
+`cluster.images.kubeScheduler.repository` | Kube Scheduler container image repository |
+`cluster.images.kubeScheduler.tag` | Kube Scheduler container image tag |
 `cluster.csi.enable` | If true, CSI driver is enabled | `true`
 `cluster.csi.deploymentStrategy` | Whether CSI helpers should be deployed as a `deployment` or `statefulset` | `deployment`
 
