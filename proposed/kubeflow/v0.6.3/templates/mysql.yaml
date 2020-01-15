@@ -1,0 +1,78 @@
+apiVersion: v1
+data:
+  mysqlPvcName: {{ .Values.mysql.persistence.pvcName | quote }}
+kind: ConfigMap
+metadata:
+  labels:
+    app: mysql
+  name: pipeline-mysql-parameters
+  namespace: kubeflow
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: mysql
+  name: mysql
+  namespace: kubeflow
+spec:
+  ports:
+  - port: 3306
+  selector:
+    app: mysql
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: mysql
+  name: mysql
+  namespace: kubeflow
+spec:
+  selector:
+    matchLabels:
+      app: mysql
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - env:
+        - name: MYSQL_ALLOW_EMPTY_PASSWORD
+          value: "true"
+        image: mysql:5.6
+        name: mysql
+        ports:
+        - containerPort: 3306
+          name: mysql
+        volumeMounts:
+        - mountPath: /var/lib/mysql
+          name: mysql-persistent-storage
+      volumes:
+      - name: mysql-persistent-storage
+        {{- if .Values.mysql.persistence.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ .Values.mysql.persistence.pvcName | quote }}
+        {{- else }}
+        emptyDir: {}
+        {{ end }}
+{{- if .Values.mysql.persistence.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app: mysql
+  name: {{ .Values.mysql.persistence.pvcName | quote }}
+  namespace: kubeflow
+spec:
+  accessModes:
+  - {{ .Values.mysql.persistence.accessMode | quote }}
+  resources:
+    requests:
+      storage: {{ .Values.mysql.persistence.size | quote }}
+    storageClassName: {{ .Values.mysql.persistence.storageClass | quote }}
+{{- end -}}

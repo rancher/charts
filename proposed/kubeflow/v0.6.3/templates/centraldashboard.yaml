@@ -1,0 +1,191 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    kustomize.component: centraldashboard
+  name: centraldashboard
+  namespace: kubeflow
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app: centraldashboard
+    kustomize.component: centraldashboard
+  name: centraldashboard
+  namespace: kubeflow
+rules:
+- apiGroups:
+  - ""
+  - app.k8s.io
+  resources:
+  - applications
+  - pods
+  - pods/exec
+  - pods/log
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app: centraldashboard
+    kustomize.component: centraldashboard
+  name: centraldashboard
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - events
+  - namespaces
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app: centraldashboard
+    kustomize.component: centraldashboard
+  name: centraldashboard
+  namespace: kubeflow
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: centraldashboard
+subjects:
+- kind: ServiceAccount
+  name: centraldashboard
+  namespace: kubeflow
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app: centraldashboard
+    kustomize.component: centraldashboard
+  name: centraldashboard
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: centraldashboard
+subjects:
+- kind: ServiceAccount
+  name: centraldashboard
+  namespace: kubeflow
+---
+apiVersion: v1
+data:
+  clusterDomain: {{ .Values.clusterDomain }}
+  userid-header: {{ .Values.centraldashboard.useridHeader }}
+  userid-prefix: {{ .Values.centraldashboard.useridPrefix }}
+kind: ConfigMap
+metadata:
+  labels:
+    kustomize.component: centraldashboard
+  name: centraldashboard-parameters
+  namespace: kubeflow
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    getambassador.io/config: |-
+      ---
+      apiVersion: ambassador/v0
+      kind:  Mapping
+      name: centralui-mapping
+      prefix: /
+      rewrite: /
+      service: centraldashboard.kubeflow
+  labels:
+    app: centraldashboard
+    kustomize.component: centraldashboard
+  name: centraldashboard
+  namespace: kubeflow
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 8082
+  selector:
+    app: centraldashboard
+    kustomize.component: centraldashboard
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: centraldashboard
+    kustomize.component: centraldashboard
+  name: centraldashboard
+  namespace: kubeflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: centraldashboard
+      kustomize.component: centraldashboard
+  template:
+    metadata:
+      labels:
+        app: centraldashboard
+        kustomize.component: centraldashboard
+    spec:
+      containers:
+      - env:
+        - name: USERID_HEADER
+          valueFrom:
+            configMapKeyRef:
+              name: centraldashboard-parameters
+              key: userid-header
+        - name: USERID_PREFIX
+          valueFrom:
+            configMapKeyRef:
+              name: centraldashboard-parameters
+              key: userid-prefix
+        - name: PROFILES_KFAM_SERVICE_HOST
+          value: profiles-kfam.kubeflow
+        image: gcr.io/kubeflow-images-public/centraldashboard:v20190823-v0.6.0-rc.0-69-gcb7dab59
+        imagePullPolicy: IfNotPresent
+        name: centraldashboard
+        ports:
+        - containerPort: 8082
+          protocol: TCP
+      serviceAccountName: centraldashboard
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: centraldashboard
+  namespace: kubeflow
+spec:
+  gateways:
+  - kubeflow-gateway
+  hosts:
+  - '*'
+  http:
+  - match:
+    - uri:
+        prefix: /
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        host: centraldashboard.kubeflow.svc.{{ .Values.clusterDomain }}
+        port:
+          number: 80

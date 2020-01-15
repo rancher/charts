@@ -1,0 +1,294 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    kustomize.component: metadata
+  name: metadata-ui
+  namespace: kubeflow
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: Role
+metadata:
+  labels:
+    app: metadata-ui
+    kustomize.component: metadata
+  name: metadata-ui
+  namespace: kubeflow
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - pods/log
+  verbs:
+  - create
+  - get
+  - list
+- apiGroups:
+  - kubeflow.org
+  resources:
+  - viewers
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+  labels:
+    app: metadata-ui
+    kustomize.component: metadata
+  name: metadata-ui
+  namespace: kubeflow
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: metadata-ui
+subjects:
+- kind: ServiceAccount
+  name: ui
+  namespace: kubeflow
+---
+apiVersion: v1
+data:
+  uiClusterDomain: {{ .Values.clusterDomain | quote }}
+kind: ConfigMap
+metadata:
+  labels:
+    kustomize.component: metadata
+  name: metadata-ui-parameters-b6c8ghff7c
+  namespace: kubeflow
+---
+apiVersion: v1
+data:
+  MYSQL_ROOT_PASSWORD: {{ .Values.metadata.db.password | b64enc | quote }}
+kind: Secret
+metadata:
+  labels:
+    kustomize.component: metadata
+  name: metadata-db-secrets
+  namespace: kubeflow
+type: Opaque
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    component: db
+    kustomize.component: metadata
+  name: metadata-db
+  namespace: kubeflow
+spec:
+  ports:
+  - name: dbapi
+    port: 3306
+    protocol: TCP
+  selector:
+    component: db
+    kustomize.component: metadata
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: metadata
+    kustomize.component: metadata
+  name: metadata-service
+  namespace: kubeflow
+spec:
+  ports:
+  - name: backendapi
+    port: 8080
+    protocol: TCP
+  selector:
+    component: server
+    kustomize.component: metadata
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: metadata-ui
+    kustomize.component: metadata
+  name: metadata-ui
+  namespace: kubeflow
+spec:
+  ports:
+  - port: 80
+    targetPort: 3000
+  selector:
+    app: metadata-ui
+    kustomize.component: metadata
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: metadata-ui
+    kustomize.component: metadata
+  name: metadata-ui
+  namespace: kubeflow
+spec:
+  selector:
+    matchLabels:
+      app: metadata-ui
+      kustomize.component: metadata
+  template:
+    metadata:
+      labels:
+        app: metadata-ui
+        kustomize.component: metadata
+      name: ui
+    spec:
+      containers:
+      - image: gcr.io/kubeflow-images-public/metadata-frontend:v0.1.8
+        imagePullPolicy: IfNotPresent
+        name: metadata-ui
+        ports:
+        - containerPort: 3000
+      serviceAccountName: metadata-ui
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    component: db
+    kustomize.component: metadata
+  name: metadata-db
+  namespace: kubeflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      kustomize.component: metadata
+  template:
+    metadata:
+      labels:
+        component: db
+        kustomize.component: metadata
+      name: db
+    spec:
+      containers:
+      - args:
+        - --datadir
+        - /var/lib/mysql/datadir
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: MYSQL_ROOT_PASSWORD
+              name: metadata-db-secrets
+        - name: MYSQL_ALLOW_EMPTY_PASSWORD
+          value: "true"
+        - name: MYSQL_DATABASE
+          value: metadb
+        image: mysql:8.0.3
+        name: db-container
+        ports:
+        - containerPort: 3306
+          name: dbapi
+        readinessProbe:
+          exec:
+            command:
+            - /bin/bash
+            - -c
+            - mysql -D $$MYSQL_DATABASE -p$$MYSQL_ROOT_PASSWORD -e 'SELECT 1'
+          initialDelaySeconds: 5
+          periodSeconds: 2
+          timeoutSeconds: 1
+        volumeMounts:
+        - mountPath: /var/lib/mysql
+          name: metadata-db-pvc
+      volumes:
+      - name: metadata-db-pvc
+        {{- if .Values.metadata.db.persistence.enabled }}
+        persistentVolumeClaim:
+          claimName: metadata-db-pvc
+        {{- else }}
+        emptyDir: {}
+        {{ end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    component: server
+    kustomize.component: metadata
+  name: metadata-deployment
+  namespace: kubeflow
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      kustomize.component: metadata
+  template:
+    metadata:
+      labels:
+        component: server
+        kustomize.component: metadata
+    spec:
+      containers:
+      - command:
+        - ./server/server
+        - --http_port=8080
+        - --mysql_service_host=metadata-db.kubeflow
+        - --mysql_service_port=3306
+        - --mysql_service_user=root
+        - --mysql_service_password=$(MYSQL_ROOT_PASSWORD)
+        - --mlmd_db_name=metadb
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: MYSQL_ROOT_PASSWORD
+              name: metadata-db-secrets
+        image: gcr.io/kubeflow-images-public/metadata:v0.1.8
+        name: container
+        ports:
+        - containerPort: 8080
+          name: backendapi
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: metadata-ui
+  namespace: kubeflow
+spec:
+  gateways:
+  - kubeflow-gateway
+  hosts:
+  - '*'
+  http:
+  - match:
+    - uri:
+        prefix: /metadata
+    rewrite:
+      uri: /metadata
+    route:
+    - destination:
+        host: metadata-ui.kubeflow.svc.{{ .Values.clusterDomain }}
+        port:
+          number: 80
+    timeout: 300s
+{{- if .Values.metadata.db.persistence.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    kustomize.component: metadata
+  name: metadata-db-pvc
+  namespace: kubeflow
+spec:
+  accessModes:
+  - {{ .Values.metadata.db.persistence.accessMode | quote }}
+  resources:
+    requests:
+      storage: {{ .Values.metadata.db.persistence.size | quote }}
+  storageClassName: {{ .Values.metadata.db.persistence.storageClass | quote }}
+{{- end -}}
