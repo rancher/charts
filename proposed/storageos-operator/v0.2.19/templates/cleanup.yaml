@@ -44,6 +44,8 @@ rules:
   - apps
   resources:
   - statefulsets
+  - deployments
+  - daemonsets
   verbs:
   - delete
 - apiGroups:
@@ -76,6 +78,14 @@ rules:
   - configmaps
   verbs:
   - delete
+- apiGroups:
+  - storageos.com
+  resources:
+  - storageosclusters
+  verbs:
+  - get
+  - patch
+  - delete
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -97,10 +107,42 @@ roleRef:
 
 ---
 
+# Delete the StorageOSCluster object by removing the finalizer.
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "storageos-storageoscluster-cleanup"
+  namespace: {{ .namespace }}
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-delete-policy": "hook-succeeded, before-hook-creation"
+    "helm.sh/hook-weight": "3"
+spec:
+  template:
+    spec:
+      serviceAccountName: storageos-cleanup
+      containers:
+      - name: "storageos-storageoscluster-cleanup"
+        image: "{{ $.Values.cleanup.images.kubectl.repository }}:{{ $.Values.cleanup.images.kubectl.tag }}"
+        command:
+          - kubectl
+          - -n
+          - {{ $.Release.namespace }}
+          - patch
+          - stos
+          - {{ $.Values.cluster.name }}
+          - --type=merge
+          - --patch={"metadata":{"finalizers":null}}
+      restartPolicy: Never
+  backoffLimit: 4
+
+---
+
 # Iterate through the Values.cleanup list and create jobs to delete all the
 # unmanaged resources of the cluster.
 
-{{- range .Values.cleanup }}
+{{- range .Values.cleanup.resources }}
 
 apiVersion: batch/v1
 kind: Job
@@ -117,7 +159,7 @@ spec:
       serviceAccountName: storageos-cleanup
       containers:
       - name: "storageos-{{ .name }}-cleanup"
-        image: bitnami/kubectl:1.14.1
+        image: "{{ $.Values.cleanup.images.kubectl.repository }}:{{ $.Values.cleanup.images.kubectl.tag }}"
         command:
           - kubectl
           - -n
