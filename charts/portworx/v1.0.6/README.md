@@ -24,7 +24,7 @@ To perform this operation simply delete the application from the Apps page
 #### **2. Wipe your Portworx installation**
 > **Note** > The commands in this section are disruptive and will lead to data loss. Please use caution..
 
-See more details [here](https://2.1.docs.portworx.com/portworx-install-with-kubernetes/install-px-helm/#uninstall)
+See more details [here](https://docs.portworx.com/portworx-install-with-kubernetes/install-px-helm/#uninstall)
 
 ## **Documentation**
 * [Portworx docs site](https://docs.portworx.com/install-with-other/rancher/rancher-2.x/#step-1-install-rancher)
@@ -32,11 +32,11 @@ See more details [here](https://2.1.docs.portworx.com/portworx-install-with-kube
 
 ## **Installing the Chart using the CLI**
 
-See the installation details [here](https://2.1.docs.portworx.com/portworx-install-with-kubernetes/install-px-helm/)
+See the installation details [here](https://docs.portworx.com/portworx-install-with-kubernetes/install-px-helm/)
 
 ## **Installing Portworx on AWS**
  
-See the installation details [here](https://2.1.docs.portworx.com/cloud-references/auto-disk-provisioning/aws)
+See the installation details [here](https://docs.portworx.com/cloud-references/auto-disk-provisioning/aws)
 
 ## ** Giving your etcd certificates to Portworx using Kubernetes Secrets.**
 This is the recommended way of providing etcd certificates, as the certificates will be automatically available to the new nodes joining the cluster
