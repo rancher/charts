@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "storageos.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ template "storageos.name" . }}
+    chart: {{ template "storageos.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ template "storageos.name" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "storageos.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ template "storageos.serviceAccountName" . }}
+      containers:
+        - name: storageos-operator
+          image: "{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag }}"
+          imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
+          ports:
+          - containerPort: 8383
+            name: metrics
+          - containerPort: 8686
+            name: operatormetrics
+          - containerPort: 5720
+            name: podschedwebhook
+          command:
+          - cluster-operator
+          env:
+            {{- if and .Values.cluster.images.node.repository .Values.cluster.images.node.tag }}
+            - name: RELATED_IMAGE_STORAGEOS_NODE
+              value: "{{ .Values.cluster.images.node.repository }}:{{ .Values.cluster.images.node.tag }}"
+            {{- end }}
+            {{- if and .Values.cluster.images.init.repository .Values.cluster.images.init.tag }}
+            - name: RELATED_IMAGE_STORAGEOS_INIT
+              value: "{{ .Values.cluster.images.init.repository }}:{{ .Values.cluster.images.init.tag }}"
+            {{- end }}
+            {{- if and .Values.cluster.images.csiV1ClusterDriverRegistrar.repository .Values.cluster.images.csiV1ClusterDriverRegistrar.tag }}
+            - name: RELATED_IMAGE_CSIV1_CLUSTER_DRIVER_REGISTRAR
+              value: "{{ .Values.cluster.images.csiV1ClusterDriverRegistrar.repository }}:{{ .Values.cluster.images.csiV1ClusterDriverRegistrar.tag }}"
+            {{- end }}
+            {{- if and .Values.cluster.images.csiV1NodeDriverRegistrar.repository .Values.cluster.images.csiV1NodeDriverRegistrar.tag }}
+            - name: RELATED_IMAGE_CSIV1_NODE_DRIVER_REGISTRAR
+              value: "{{ .Values.cluster.images.csiV1NodeDriverRegistrar.repository }}:{{ .Values.cluster.images.csiV1NodeDriverRegistrar.tag }}"
+            {{- end }}
+            {{- if and .Values.cluster.images.csiV1ExternalProvisioner.repository .Values.cluster.images.csiV1ExternalProvisioner.tag }}
+            - name: RELATED_IMAGE_CSIV1_EXTERNAL_PROVISIONER
+              value: "{{ .Values.cluster.images.csiV1ExternalProvisioner.repository }}:{{ .Values.cluster.images.csiV1ExternalProvisioner.tag }}"
+            {{- end }}
+            {{- if and .Values.cluster.images.csiV1ExternalAttacher.repository .Values.cluster.images.csiV1ExternalAttacher.tag }}
+            - name: RELATED_IMAGE_CSIV1_EXTERNAL_ATTACHER
+              value: "{{ .Values.cluster.images.csiV1ExternalAttacher.repository }}:{{ .Values.cluster.images.csiV1ExternalAttacher.tag }}"
+            {{- end }}
+            {{- if and .Values.cluster.images.csiV1ExternalAttacherV2.repository .Values.cluster.images.csiV1ExternalAttacherV2.tag }}
+            - name: RELATED_IMAGE_CSIV1_EXTERNAL_ATTACHER_V2
+              value: "{{ .Values.cluster.images.csiV1ExternalAttacherV2.repository }}:{{ .Values.cluster.images.csiV1ExternalAttacherV2.tag }}"
+            {{- end }}
+            {{- if and .Values.cluster.images.csiV1LivenessProbe.repository .Values.cluster.images.csiV1LivenessProbe.tag }}
+            - name: RELATED_IMAGE_CSIV1_LIVENESS_PROBE
+              value: "{{ .Values.cluster.images.csiV1LivenessProbe.repository }}:{{ .Values.cluster.images.csiV1LivenessProbe.tag }}"
+            {{- end }}
+            {{- if and .Values.cluster.images.csiV0DriverRegistrar.repository .Values.cluster.images.csiV0DriverRegistrar.tag }}
+            - name: RELATED_IMAGE_CSIV0_DRIVER_REGISTRAR
+              value: "{{ .Values.cluster.images.csiV0DriverRegistrar.repository }}:{{ .Values.cluster.images.csiV0DriverRegistrar.tag }}"
+            {{- end }}
+            {{- if and .Values.cluster.images.csiV0ExternalProvisioner.repository .Values.cluster.images.csiV0ExternalProvisioner.tag }}
+            - name: RELATED_IMAGE_CSIV0_EXTERNAL_PROVISIONER
+              value: "{{ .Values.cluster.images.csiV0ExternalProvisioner.repository }}:{{ .Values.cluster.images.csiV0ExternalProvisioner.tag }}"
+            {{- end }}
+            {{- if and .Values.cluster.images.csiV0ExternalAttacher.repository .Values.cluster.images.csiV0ExternalAttacher.tag }}
+            - name: RELATED_IMAGE_CSIV0_EXTERNAL_ATTACHER
+              value: "{{ .Values.cluster.images.csiV0ExternalAttacher.repository }}:{{ .Values.cluster.images.csiV0ExternalAttacher.tag }}"
+            {{- end }}
+            {{- if and .Values.cluster.images.nfs.repository .Values.cluster.images.nfs.tag }}
+            - name: RELATED_IMAGE_NFS
+              value: "{{ .Values.cluster.images.nfs.repository }}:{{ .Values.cluster.images.nfs.tag }}"
+            {{- end }}
+            {{- if and .Values.cluster.images.kubeScheduler.repository .Values.cluster.images.kubeScheduler.tag }}
+            - name: RELATED_IMAGE_KUBE_SCHEDULER
+              value: "{{ .Values.cluster.images.kubeScheduler.repository }}:{{ .Values.cluster.images.kubeScheduler.tag }}"
+            {{- end }}
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: OPERATOR_NAME
+              value: "storageos-cluster-operator"
+            - name: DISABLE_SCHEDULER_WEBHOOK
+              value: "false"
