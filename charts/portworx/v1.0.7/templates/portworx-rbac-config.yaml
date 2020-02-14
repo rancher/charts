@@ -1,4 +1,31 @@
-
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: portworx
+---
+kind: Role
+apiVersion: {{ template "rbac.apiVersion" . }}
+metadata:
+  name: px-role
+  namespace: portworx
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "create", "update", "patch"]
+---
+kind: RoleBinding
+apiVersion: {{ template "rbac.apiVersion" . }}
+metadata:
+  name: px-role-binding
+  namespace: portworx
+subjects:
+  - kind: ServiceAccount
+    name: px-account
+    namespace: kube-system
+roleRef:
+  kind: Role
+  name: px-role
+  apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -6,7 +33,6 @@ metadata:
   name: px-account
   namespace: kube-system
 ---
-
 kind: ClusterRole
 apiVersion: {{ template "rbac.apiVersion" . }}
 metadata:
