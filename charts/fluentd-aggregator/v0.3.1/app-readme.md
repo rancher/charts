@@ -1,4 +1,4 @@
-# Flunetd Aggregator
+# Fluentd Aggregator
 
 Flunetd Log aggregators are statefulsets that continuously receive events from the log forwarders(flunetd daemonsets). They buffer the events and periodically upload the data into the cloud or user's logging system.
 
