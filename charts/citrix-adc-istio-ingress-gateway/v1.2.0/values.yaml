@@ -1,0 +1,59 @@
+# Default values for citrix-adc-istio-ingress-gateway
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+citrixCPX: false 
+
+metricExporter:
+    required: true
+    image: quay.io/citrix/citrix-adc-metrics-exporter
+    version: 1.4.0
+    port: 8888
+    secure: "YES"
+    logLevel: ERROR
+    imagePullPolicy: IfNotPresent
+
+istioAdaptor:
+    image: quay.io/citrix/citrix-istio-adaptor
+    tag: 1.2.0
+    imagePullPolicy: IfNotPresent
+    netscalerUrl: null 
+    proxyType: router
+    secureConnect: true
+    vserverIP:
+    netProfile:
+    ADMIP: 
+    ADMFingerPrint:
+    coeURL:
+ 
+istioPilot:
+    name: istio-pilot
+    namespace: istio-system
+    secureGrpcPort: 15011
+    insecureGrpcPort: 15010
+    SAN: spiffe://cluster.local/ns/istio-system/sa/istio-pilot-service-account
+
+ingressGateway:
+    image: quay.io/citrix/citrix-k8s-cpx-ingress
+    tag: 13.0-47.22
+    imagePullPolicy: IfNotPresent
+    EULA: NO
+    mgmtHttpPort: 10080
+    mgmtHttpsPort: 10443
+    httpNodePort: 30180
+    httpsNodePort: 31443
+    lightWeightCPX: 1
+    exposeMutipleApps:
+    secretVolumes:
+        name:
+        secretName:
+        mountPath: 
+    #licenseServerIP: this value will be taken from istioAdaptor.ADMIP
+    licenseServerPort: 27000 
+    label: citrix-ingressgateway
+    exposeNonHttpService:
+    tcpPort:
+        name:
+        nodePort:
+        port:
+        targetPort:
