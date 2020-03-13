@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ template "artifactory-ha.primary.name" . }}-system-yaml
+  labels:
+    app: {{ template "artifactory-ha.name" . }}
+    chart: {{ template "artifactory-ha.chart" . }}
+    component: {{ .Values.artifactory.name }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+type: Opaque
+stringData:
+  system.yaml: |
+{{ tpl .Values.artifactory.systemYaml . | indent 4 }}
