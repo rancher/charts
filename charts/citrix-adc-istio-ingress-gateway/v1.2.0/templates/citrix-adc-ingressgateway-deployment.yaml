@@ -36,13 +36,13 @@ spec:
         secret:
           optional: true
           secretName: "citrix-ingressgateway-ca-certs" # IMPORTANT: This secret MUST BE created before deploying gateway and ingress-gateway
-{{- if eq .Values.exposeMutipleApps true }}
-     {{- range .Values.ingressGateway.secretVolumes }}
+{{- if eq .Values.ingressGateway.exposeMutipleApps true }}
+{{- range .Values.ingressGateway.secretVolumes }}
       - name: {{ .name }}
         secret:
           secretName: {{ .secretName | quote }}
           optional: true
-     {{- end }}
+{{- end }}
 {{- end }}
       containers:
 {{- if eq .Values.metricExporter.required true }}
@@ -126,12 +126,12 @@ spec:
           - mountPath: /etc/istio/ingressgateway-ca-certs # Make sure that Gateway definition has this path mentioned in server.tls section for MUTUAL TLS
             name: citrix-ingressgateway-ca-certs
             readOnly: true
-{{- if eq .Values.exposeMutipleApps true }}
-          {{- range .Values.ingressGateway.secretVolumes }}
+{{- if eq .Values.ingressGateway.exposeMutipleApps true }}
+{{- range .Values.ingressGateway.secretVolumes }}
           - name: {{ .name }}
             mountPath: {{ .mountPath | quote }}
             readOnly: true
-          {{- end }}
+{{- end }}
 {{- end }}
         - name: citrix-ingressgateway
           image: "{{ .Values.ingressGateway.image }}:{{ .Values.ingressGateway.tag }}"
@@ -147,7 +147,7 @@ spec:
 {{- if .Values.ingressGateway.mgmtHttpsPort }}
             - containerPort: {{ .Values.ingressGateway.mgmtHttpsPort }}
 {{- end }}
-{{- if eq .Values.exposeNonHttpService true }}
+{{- if eq .Values.ingressGateway.exposeNonHttpService true }}
 {{- range .Values.ingressGateway.tcpPort }}
             - containerPort: {{ .port }}
 {{- end }}
@@ -290,12 +290,12 @@ spec:
         - mountPath: /etc/istio/ingressgateway-ca-certs # Make sure that Gateway definition has this path mentioned in server.tls section for MUTUAL TLS
           name: citrix-ingressgateway-ca-certs
           readOnly: true 
-{{- if eq .Values.exposeMutipleApps true }} 
-        {{- range .Values.ingressGateway.secretVolumes }}
+{{- if eq .Values.ingressGateway.exposeMutipleApps true }}
+{{- range .Values.ingressGateway.secretVolumes }}
         - name: {{ .name }}
           mountPath: {{ .mountPath | quote }}
           readOnly: true
-        {{- end }}
+{{- end }}
 {{- end }}
       volumes:
       - name: nslogin
@@ -313,13 +313,13 @@ spec:
         secret:
           optional: true
           secretName: "citrix-ingressgateway-ca-certs" # IMPORTANT: This secret MUST BE created before deploying gateway and ingress-gateway
-{{- if eq .Values.exposeMutipleApps true }} 
-     {{- range .Values.ingressGateway.secretVolumes }}
+{{- if eq .Values.ingressGateway.exposeMutipleApps true }}
+{{- range .Values.ingressGateway.secretVolumes }}
       - name: {{ .name }}
         secret:
           secretName: {{ .secretName | quote }}
           optional: true
-     {{- end }}
+{{- end }}
 {{- end }}
 ---
 {{- end}}
