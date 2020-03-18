@@ -1,0 +1,36 @@
+apiVersion: citrix.com/v1alpha1
+kind: Listener
+metadata:
+  name: test
+  namespace: default
+spec:
+  certificates:
+  - secret:
+      name: my-secret
+  - secret:
+      name: secret2
+      namespace: demo
+  - default: true
+    preconfigured: second-secret
+  defaultAction:
+    backend:
+      kube:
+        namespace: default
+        port: 80
+        service: default-service
+        backendConfig:
+          lbConfig:
+            lbmethod: ROUNDROBIN
+          servicegroupConfig:
+            clttimeout: "20"
+  vip: 1.1.1.1
+  port: 443
+  protocol: https
+  routes:
+  - labelSelector:
+      xyz: abc
+  - name: domain-1
+    namespace: default
+  - name: domain-2
+    namespace: default
+
