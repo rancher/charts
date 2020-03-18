@@ -1,0 +1,39 @@
+apiVersion: citrix.com/v1beta1
+kind: authpolicy
+metadata:
+  name: authexample
+spec:
+    servicenames:
+    - frontend
+
+    auth_providers:
+
+        - name: "local-auth-provider"
+          basic-local-db:
+
+    auth_policies:
+
+        - resource:
+            path:
+              - '/orders/'
+              - '/shipping/'
+            method: [GET, POST]
+          provider: ["local-auth-provider"]    
+
+        - resource:
+            path:
+              - '/products/'
+            method: [POST]
+          provider: ["local-auth-provider"]    
+
+          # no auth for these
+        - resource:
+            path:
+              - '/products/'
+            method: [GET]
+          provider: []
+
+        - resource:
+            path:
+              -  '/reviews/'
+          provider: []
