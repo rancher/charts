@@ -1,0 +1,67 @@
+#### HPE Dynamic Provisioner ###
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hpe-dynamic-provisioner
+  namespace: kube-system
+  labels:
+    app: hpe-dynamic-provisioner
+spec:
+  selector:
+    matchLabels:
+      daemon: hpe-dynamic-provisioner-daemon
+  strategy:
+     type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        daemon: hpe-dynamic-provisioner-daemon
+      name: hpe-dynamic-provisioner
+    spec:
+      priorityClassName: system-cluster-critical
+      restartPolicy: Always
+      serviceAccountName: hpe-flexvolume-sa
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        -
+          image: {{ .Values.dynamicProvisionerImage}}: {{- .Values.dynamicProvisionerTag}}
+          imagePullPolicy: Always
+          name: hpe-dynamic-provisioner
+          env:
+          - name: LOG_LEVEL
+            value: {{ .Values.logLevel }}
+          volumeMounts:
+             - name: k8s
+               mountPath: /etc/kubernetes
+             - name: flexvolumedriver
+               mountPath: /usr/libexec/kubernetes/kubelet-plugins/volume/exec
+             - name: varlog
+               mountPath: /var/log
+             - name: hpeconfig
+               mountPath: /etc/hpe-storage
+             {{- if eq .Values.flavor "rke"}}
+             - name: hpeconfig
+               mountPath: /host/etc/hpe-storage
+             {{- end }}
+          securityContext:
+            privileged: true
+      volumes:
+        - name: k8s
+          hostPath:
+             path: /etc/kubernetes
+        - name: flexvolumedriver
+          hostPath:
+          {{- $flavor := .Values.flavor -}}
+          {{- range .Values.flexVolumeExec }}
+            {{- if eq .name $flavor }}
+             path: {{ .value }}
+            {{- end }}
+          {{- end }}
+        - name: hpeconfig
+          hostPath:
+              path: /etc/hpe-storage
+        - name: varlog
+          hostPath:
+              path: /var/log

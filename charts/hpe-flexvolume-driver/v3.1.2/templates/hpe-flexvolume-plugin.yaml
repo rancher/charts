@@ -1,0 +1,216 @@
+ #### Flexvolume Driver ###
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: hpe-flexvolume-driver
+  namespace: kube-system
+  labels:
+    k8s-app: hpe-flexvolume-driver
+spec:
+  selector:
+    matchLabels:
+      name: hpe-flexvolume-driver
+  template:
+    metadata:
+      labels:
+        name: hpe-flexvolume-driver
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      serviceAccountName: hpe-flexvolume-sa
+      containers:
+      - name: flexvolume
+        image: {{ .Values.flexVolumeDriverImage}}: {{- .Values.flexVolumeDriverTag}}
+        imagePullPolicy: "Always"
+        lifecycle:
+          preStop:
+            # create empty file to let plugin signal handler to perform cleanup of config/cert/dory files
+            exec:
+              command: [ "/bin/sh", "-c", "touch /etc/hpe-storage/remove" ]
+        {{- if eq .Values.flavor "rke"}}
+          postStart:
+            exec:
+              command: [ "/bin/bash", "-c",
+              "while [[ ! -d /var/lib/kubelet/volumeplugins/hpe.com~{{ .Values.pluginType }} ]] || [[ ! -f /etc/hpe-storage/{{ .Values.pluginType }}.json ]]; do sleep 1; done; sleep 10; cp -a /etc/hpe-storage/{{ .Values.pluginType }}.json /var/lib/kubelet/volumeplugins/hpe.com~{{ .Values.pluginType }}/{{ .Values.pluginType }}.json" ]
+        {{- end }}
+        env:
+        - name: LOG_LEVEL
+          value: {{ .Values.logLevel }}
+        - name: FLAVOR
+          value: {{ .Values.flavor }}
+        - name: PROVIDER_IP
+          valueFrom:
+            secretKeyRef:
+              name: hpe-secret
+              key: backend
+        - name: PROVIDER_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: hpe-secret
+              key: username
+        - name: PROVIDER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: hpe-secret
+              key: password
+        - name: PROTOCOL
+          valueFrom:
+            secretKeyRef:
+              name: hpe-secret
+              key: protocol
+        {{- if eq .Values.pluginType "cv"}}
+        - name: PROVIDER_PORT
+          valueFrom:
+            secretKeyRef:
+              name: hpe-secret
+              key: servicePort
+        - name: PROVIDER_SERVICE
+          valueFrom:
+            secretKeyRef:
+              name: hpe-secret
+              key: serviceName
+        {{- end }}
+        - name: SCOPE
+          value: global
+        - name: PLUGIN_TYPE
+          value: {{ .Values.pluginType }}
+        volumeMounts:
+        - name: pluginmountdir
+          mountPath: /var/lib/kubelet
+          mountPropagation: Bidirectional
+        - name: bindmountdir
+          mountPath: {{ .Values.podsMountDir }}
+          mountPropagation: Bidirectional
+        - name: legacymounts
+          mountPath: /opt/nimble
+          mountPropagation: Bidirectional
+        - name: dev
+          mountPath: /dev
+        - name: libmodules
+          mountPath: /lib/modules
+        - name: var-log
+          mountPath: /var/log
+        - name: var-lib-iscsi
+          mountPath: /var/lib/iscsi
+        - name: exec
+          mountPath: /usr/libexec/kubernetes/kubelet-plugins/volume/exec
+        - name: runlock
+          mountPath: /run/lock
+        - name: etc-iscsi
+          mountPath: /etc/iscsi
+        - name: etc-multipath
+          mountPath: /etc/multipath
+        {{- if ne .Values.flavor "rke"}}
+        - name: etc-multipath-conf
+          mountPath: /etc/multipath.conf
+        {{- end }}
+        - name: etc-redhat-release
+          mountPath: /etc/redhat-release
+        - name: etc-os-release
+          mountPath: /etc/os-release
+        - name: etc-hpe-storage-dir
+          mountPath: /etc/hpe-storage
+        {{- if eq .Values.flavor "rke"}}
+        - name: etc-hpe-storage-dir
+          mountPath: /host/etc/hpe-storage
+        {{- end }}
+        - name: sys
+          mountPath: /sys
+        - name: iscsiadm
+          mountPath: /sbin/iscsiadm
+        - name: config-file
+          mountPath: /etc/hpe-storage/volume-driver.json
+          subPath: volume-driver.json
+        {{- if eq .Values.flavor "rke"}}
+        - name: config-file
+          mountPath: /etc/hpe-storage/{{ .Values.pluginType }}.json
+          subPath: {{ .Values.pluginType }}.json
+        {{- end }}
+        - name: runsystemd
+          mountPath: /run/systemd
+        - name: libsystemd
+          mountPath: /lib/systemd/system
+        - name: usrlocal
+          mountPath: /usr_local
+        securityContext:
+          privileged: true
+          capabilities:
+            add: ["SYS_ADMIN"]
+          allowPrivilegeEscalation: true
+      volumes:
+      - name: pluginmountdir
+        hostPath:
+          path: /var/lib/kubelet
+      - name: bindmountdir
+        hostPath:
+          path: {{ .Values.podsMountDir }}
+      # required to handle legacy mounts from NLT based plugin. Remove this for CoreOS
+      - name: legacymounts
+        hostPath:
+          path: /opt/nimble/
+      - name: dev
+        hostPath:
+          path: /dev
+      - name: libmodules
+        hostPath:
+          path: /lib/modules
+      - name: var-log
+        hostPath:
+          path: /var/log
+      - name: var-lib-iscsi
+        hostPath:
+          path: /var/lib/iscsi/
+      - name: exec
+        hostPath:
+        {{- $flavor := .Values.flavor -}}
+        {{- range .Values.flexVolumeExec }}
+          {{- if eq .name $flavor }}
+          path: {{ .value }}
+          {{- end }}
+        {{- end }}
+      - name: runlock
+        hostPath:
+          path: /run/lock
+      - name: etc-iscsi
+        hostPath:
+          path: /etc/iscsi/
+      - name: etc-multipath
+        hostPath:
+          path: /etc/multipath/
+      {{- if ne .Values.flavor "rke"}}
+      - name: etc-multipath-conf
+        hostPath:
+          path: /etc/multipath.conf
+          type: FileOrCreate
+      {{- end }}
+      - name: etc-redhat-release
+        hostPath:
+          path: /etc/redhat-release
+          type: FileOrCreate
+      - name: etc-os-release
+        hostPath:
+          path: /etc/os-release
+          type: FileOrCreate
+      - name: etc-hpe-storage-dir
+        hostPath:
+          path: /etc/hpe-storage/
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: iscsiadm
+        hostPath:
+          path: /sbin/iscsiadm
+          type: FileOrCreate
+      - name: config-file
+        configMap:
+          name: hpe-config
+      - name: runsystemd
+        hostPath:
+          path: /run/systemd
+      - name: libsystemd
+        hostPath:
+          path: /lib/systemd/system
+      - name: usrlocal
+        hostPath:
+          path: /usr
