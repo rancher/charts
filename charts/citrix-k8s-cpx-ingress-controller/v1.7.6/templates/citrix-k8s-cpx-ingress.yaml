@@ -38,6 +38,11 @@ spec:
           - name: "PLATFORM"
             value: {{ .Values.platform }}
 {{- end }}
+          volumeMounts:
+            - mountPath: /cpx/conf/
+              name: cpx-volume1
+            - mountPath: /cpx/crash/
+              name: cpx-volume2
 {{- if .Values.cic.required }}
         # Add cic as a sidecar
         - name: cic
@@ -90,6 +95,11 @@ spec:
             - "--port={{ .Values.exporter.ports.containerPort }}"
           imagePullPolicy: {{ .Values.exporter.pullPolicy }}
 {{- end }}
+      volumes:
+        - name: cpx-volume1
+          emptyDir: {}
+        - name: cpx-volume2
+          emptyDir: {}
 ---
 
 apiVersion: v1
