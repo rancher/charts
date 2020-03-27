@@ -1,0 +1,194 @@
+{{- if .Values.nginx.enabled -}}
+{{- $serviceName := include "artifactory.fullname" . -}}
+{{- $servicePort := .Values.artifactory.externalPort -}}
+apiVersion: apps/v1
+kind: {{ .Values.nginx.kind }}
+metadata:
+  name: {{ template "artifactory.nginx.fullname" . }}
+  labels:
+    app: {{ template "artifactory.name" . }}
+    chart: {{ template "artifactory.chart" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+    component: {{ .Values.nginx.name }}
+{{- if .Values.nginx.labels }}
+{{ toYaml .Values.nginx.labels | indent 4 }}
+{{- end }}
+spec:
+{{- if eq .Values.nginx.kind "StatefulSet" }}
+  serviceName: {{ template "artifactory.nginx.fullname" . }}
+{{- end }}
+{{- if ne .Values.nginx.kind "DaemonSet" }}
+  replicas: {{ .Values.nginx.replicaCount }}
+{{- end }}
+  selector:
+    matchLabels:
+      app: {{ template "artifactory.name" . }}
+      release: {{ .Release.Name }}
+      component: {{ .Values.nginx.name }}
+  template:
+    metadata:
+      annotations:
+        checksum/nginx-conf: {{ include (print $.Template.BasePath "/nginx-conf.yaml") . | sha256sum }}
+        checksum/nginx-artifactory-conf: {{ include (print $.Template.BasePath "/nginx-artifactory-conf.yaml") . | sha256sum }}
+      labels:
+        app: {{ template "artifactory.name" . }}
+        chart: {{ template "artifactory.chart" . }}
+        component: {{ .Values.nginx.name }}
+        heritage: {{ .Release.Service }}
+        release: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ template "artifactory.serviceAccountName" . }}
+    {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      - name: {{ .Values.imagePullSecrets }}
+    {{- end }}
+      initContainers:
+      - name: "setup"
+        image: "{{ .Values.initContainerImage }}"
+        imagePullPolicy: {{ .Values.nginx.image.pullPolicy }}
+        command:
+        - '/bin/sh'
+        - '-c'
+        - >
+          rm -rfv {{ .Values.nginx.persistence.mountPath }}/lost+found;
+          mkdir -p {{ .Values.nginx.persistence.mountPath }}/logs;
+        volumeMounts:
+        - mountPath: {{ .Values.nginx.persistence.mountPath | quote }}
+          name: nginx-volume
+      securityContext:
+        runAsUser: {{ .Values.nginx.uid }}
+        fsGroup: {{ .Values.nginx.gid }}
+      containers:
+      - name: {{ .Values.nginx.name }}
+        image: '{{ .Values.nginx.image.repository }}:{{ default .Chart.AppVersion .Values.nginx.image.version }}'
+        imagePullPolicy: {{ .Values.nginx.image.pullPolicy }}
+        command:
+          - 'nginx'
+          - '-g'
+          - 'daemon off;'
+        ports:
+        # DEPRECATION NOTE: The following is to maintain support for values pre 1.3.1 and
+        # will be cleaned up in a later version
+        {{- if .Values.nginx.http }}
+        {{- if .Values.nginx.http.enabled }}
+        - containerPort: {{ .Values.nginx.http.internalPort }}
+        {{- end }}
+        {{- else }} # DEPRECATED
+        - containerPort: {{ .Values.nginx.internalPortHttp }}
+        {{- end }}
+        {{- if .Values.nginx.https }}
+        {{- if .Values.nginx.https.enabled }}
+        - containerPort: {{ .Values.nginx.https.internalPort }}
+        {{- end }}
+        {{- else }} # DEPRECATED
+        - containerPort: {{ .Values.nginx.internalPortHttps }}
+        {{- end }}
+        {{- if .Values.artifactory.ssh.enabled }}
+        - containerPort: {{ .Values.nginx.ssh.internalPort }}
+        {{- end }}
+        volumeMounts:
+        - name: nginx-conf
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        - name: nginx-artifactory-conf
+          mountPath: "{{ .Values.nginx.persistence.mountPath }}/conf.d/"
+        - name: nginx-volume
+          mountPath: {{ .Values.nginx.persistence.mountPath | quote }}
+        - name: ssl-certificates
+          mountPath: "{{ .Values.nginx.persistence.mountPath }}/ssl"
+        resources:
+{{ toYaml .Values.nginx.resources | indent 10 }}
+        {{- if .Values.nginx.readinessProbe.enabled }}
+        readinessProbe:
+          httpGet:
+            path: {{ .Values.nginx.readinessProbe.path }}
+            {{- if .Values.nginx.http.enabled }}
+            port: {{ .Values.nginx.http.internalPort }}
+            scheme: HTTP
+            {{- else }}
+            port: {{ .Values.nginx.https.internalPort }}
+            scheme: HTTPS
+            {{- end }}
+          initialDelaySeconds: {{ .Values.nginx.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.nginx.readinessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.nginx.readinessProbe.timeoutSeconds }}
+          failureThreshold: {{ .Values.nginx.readinessProbe.failureThreshold }}
+          successThreshold: {{ .Values.nginx.readinessProbe.successThreshold }}
+        {{- end }}
+        {{- if .Values.nginx.livenessProbe.enabled }}
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.nginx.livenessProbe.path }}
+            {{- if .Values.nginx.http.enabled }}
+            port: {{ .Values.nginx.http.internalPort }}
+            scheme: HTTP
+            {{- else }}
+            port: {{ .Values.nginx.https.internalPort }}
+            scheme: HTTPS
+            {{- end }}
+          initialDelaySeconds: {{ .Values.nginx.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.nginx.livenessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.nginx.livenessProbe.timeoutSeconds }}
+          failureThreshold: {{ .Values.nginx.livenessProbe.failureThreshold }}
+          successThreshold: {{ .Values.nginx.livenessProbe.successThreshold }}
+        {{- end }}
+      {{- $image := .Values.logger.image.repository }}
+      {{- $tag := .Values.logger.image.tag }}
+      {{- $mountPath := .Values.nginx.persistence.mountPath }}
+      {{- range .Values.nginx.loggers }}
+      - name: {{ . | replace "_" "-" | replace "." "-" }}
+        image: '{{ $image }}:{{ $tag }}'
+        command:
+        - tail
+        args:
+        - '-F'
+        - '{{ $mountPath }}/logs/{{ . }}'
+        volumeMounts:
+        - name: nginx-volume
+          mountPath: {{ $mountPath }}
+        resources:
+{{ toYaml $.Values.nginx.loggersResources | indent 10 }}
+      {{- end }}
+    {{- with .Values.nginx.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.nginx.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.nginx.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+      volumes:
+      - name: nginx-conf
+        configMap:
+        {{- if .Values.nginx.customConfigMap }}
+          name: {{ .Values.nginx.customConfigMap }}
+        {{- else }}
+          name: {{ template "artifactory.fullname" . }}-nginx-conf
+        {{- end }}
+      - name: nginx-artifactory-conf
+        configMap:
+      {{- if .Values.nginx.customArtifactoryConfigMap }}
+          name: {{ .Values.nginx.customArtifactoryConfigMap }}
+      {{- else }}
+          name: {{ template "artifactory.fullname" . }}-nginx-artifactory-conf
+      {{- end }}
+      - name: nginx-volume
+      {{- if .Values.nginx.persistence.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ .Values.nginx.persistence.existingClaim | default (include "artifactory.nginx.fullname" .) }}
+      {{- else }}
+        emptyDir: {}
+      {{- end }}
+      - name: ssl-certificates
+        secret:
+      {{- if .Values.nginx.tlsSecretName }}
+          secretName: {{ .Values.nginx.tlsSecretName }}
+      {{- else }}
+          secretName: {{ template "artifactory.fullname" . }}-nginx-certificate
+      {{- end }}
+{{- end }}

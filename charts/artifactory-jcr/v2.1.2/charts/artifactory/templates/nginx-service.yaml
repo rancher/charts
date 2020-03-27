@@ -1,0 +1,73 @@
+{{- if .Values.nginx.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "artifactory.nginx.fullname" . }}
+  labels:
+    app: {{ template "artifactory.name" . }}
+    chart: {{ template "artifactory.chart" . }}
+    component: {{ .Values.nginx.name }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+{{- if .Values.nginx.service.annotations }}
+  annotations:
+{{ toYaml .Values.nginx.service.annotations | indent 4 }}
+{{- end }}
+spec:
+  type: {{ .Values.nginx.service.type }}
+{{- if eq .Values.nginx.service.type "LoadBalancer" }}
+  {{ if .Values.nginx.service.loadBalancerIP -}}
+  loadBalancerIP: {{ .Values.nginx.service.loadBalancerIP }}
+  {{ end -}}
+  {{- if .Values.nginx.service.externalTrafficPolicy }}
+  externalTrafficPolicy: {{ .Values.nginx.service.externalTrafficPolicy }}
+  {{- end }}
+{{- end }}
+{{- if .Values.nginx.service.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+{{ toYaml .Values.nginx.service.loadBalancerSourceRanges | indent 4 }}
+{{- end }}
+  ports:
+  # DEPRECATION NOTE: The following is to maintain support for values pre 1.3.0 and
+  # will be cleaned up in a later version
+  {{- if .Values.nginx.http }}
+  {{- if .Values.nginx.http.enabled }}
+  - port: {{ .Values.nginx.http.externalPort }}
+    targetPort: {{ .Values.nginx.http.internalPort }}
+    protocol: TCP
+    name: http
+  {{- end }}
+  {{- else }} # DEPRECATED
+  - port: {{ .Values.nginx.externalPortHttp }}
+    targetPort: {{ .Values.nginx.internalPortHttp }}
+    protocol: TCP
+    name: http
+  {{- end }}
+  {{- if .Values.nginx.https }}
+  {{- if or .Values.nginx.https.enabled .Values.nginx.service.ssloffload }}
+  - port: {{ .Values.nginx.https.externalPort }}
+    {{- if .Values.nginx.service.ssloffload }}
+    targetPort: {{ .Values.nginx.http.internalPort }}
+    {{- else }}
+    targetPort: {{ .Values.nginx.https.internalPort}}
+    {{- end }}
+    protocol: TCP
+    name: https
+  {{- end }}
+  {{- else }} # DEPRECATED
+  - port: {{ .Values.nginx.externalPortHttps }}
+    targetPort: {{ .Values.nginx.internalPortHttps }}
+    protocol: TCP
+    name: https
+  {{- end }}
+  {{- if .Values.artifactory.ssh.enabled }}
+  - port: {{ .Values.nginx.ssh.externalPort }}
+    targetPort: {{ .Values.nginx.ssh.internalPort }}
+    protocol: TCP
+    name: ssh
+  {{- end }}
+  selector:
+    app: {{ template "artifactory.name" . }}
+    component: {{ .Values.nginx.name }}
+    release: {{ .Release.Name }}
+{{- end }}
