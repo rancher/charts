@@ -1,6 +1,224 @@
 # JFrog Artifactory-ha Chart Changelog
 All changes to this chart will be documented in this file.
 
+## [2.2.9] - Apr 01, 2020
+* Support masterKey and joinKey as secrets
+
+## [2.2.8] - Apr 01, 2020
+* Ensure that the join key is also copied when provided by an external secret
+* Migration container in primary and node statefulset now respects custom versions and the specified node/primary resources
+
+## [2.2.7] - Apr 01, 2020
+* Added cache-layer in chain definition of Google Cloud Storage template
+* Fix readme use to `-hex 32` instead of `-hex 16`
+
+## [2.2.6] - Mar 31, 2020
+* Change the way the artifactory `command:` is set so it will properly pass a SIGTERM to java
+
+## [2.2.5] - Mar 31, 2020
+* Removed duplicate `artifactory-license` volume from primary node
+
+## [2.2.4] - Mar 31, 2020
+* Restore `artifactory-license` volume for the primary node
+
+## [2.2.3] - Mar 29, 2020
+* Add Nginx log options: stderr as logfile and log level
+
+## [2.2.2] - Mar 30, 2020
+* Apply initContainers.resources to `copy-system-yaml`, `prepare-custom-persistent-volume`, and `migration-artifactory-ha` containers
+* Use the same defaulting mechanism used for the artifactory version used elsewhere in the chart
+* Removed duplicate `artifactory-license` volume that prevented using an external secret
+
+## [2.2.1] - Mar 29, 2020
+* Fix loggers sidecars configurations to support new file system layout and new log names
+
+## [2.2.0] - Mar 29, 2020
+* Fix broken admin user bootstrap configuration
+* **Breaking change:** renamed `artifactory.accessAdmin` to `artifactory.admin`
+
+## [2.1.3] - Mar 24, 2020
+* Use `postgresqlExtendedConf` for setting custom PostgreSQL configuration (instead of `postgresqlConfiguration`)
+
+## [2.1.2] - Mar 21, 2020
+* Support for SSL offload in Nginx service(LoadBalancer) layer. Introduced `nginx.service.ssloffload` field with boolean type.
+
+## [2.1.1] - Mar 23, 2020
+* Moved installer info to values.yaml so it is fully customizable
+
+## [2.1.0] - Mar 23, 2020
+* Updated Artifactory version to 7.3.2
+
+## [2.0.36] - Mar 20, 2020
+* Add support GCP credentials.json authentication
+
+## [2.0.35] - Mar 20, 2020
+* Add support for masterKey trim during 6.x to 7.x migration if 6.x masterKey is 32 hex (64 characters)
+
+## [2.0.34] - Mar 19, 2020
+* Add support for NFS directories `haBackupDir` and `haDataDir`
+
+## [2.0.33] - Mar 18, 2020
+* Increased Nginx proxy_buffers size
+
+## [2.0.32] - Mar 17, 2020
+* Changed all single quotes to double quotes in values files
+* useInstanceCredentials variable was declared in S3 settings but not used in chart. Now it is being used.
+
+## [2.0.31] - Mar 17, 2020
+* Fix rendering of Service Account annotations
+
+## [2.0.30] - Mar 16, 2020
+* Add Unsupported message from 6.18 to 7.2.x (migration)
+
+## [2.0.29] - Mar 11, 2020
+* Upgrade Docs update
+
+## [2.0.28] - Mar 11, 2020
+* Unified charts public release
+
+## [2.0.27] - Mar 8, 2020
+* Add an optional wait for primary node to be ready with a proper test for http status
+
+## [2.0.23] - Mar 6, 2020
+* Fix path to `/artifactory_bootstrap`
+* Add support for controlling the name of the ingress and allow to set more than one cname
+
+## [2.0.22] - Mar 4, 2020
+* Add support for disabling `consoleLog` in `system.yaml` file
+
+## [2.0.21] - Feb 28, 2020
+* Add support to process `valueFrom` for extraEnvironmentVariables
+
+## [2.0.20] - Feb 26, 2020
+* Store join key to secret
+
+## [2.0.19] - Feb 26, 2020
+* Updated Artifactory version to 7.2.1 
+
+## [2.0.12] - Feb 07, 2020
+* Remove protection flag `databaseUpgradeReady` which was added to check internal postgres upgrade 
+
+## [2.0.0] - Feb 07, 2020
+* Updated Artifactory version to 7.0.0
+
+## [1.4.10] - Feb 13, 2020
+* Add support for SSH authentication to Artifactory
+
+## [1.4.9] - Feb 10, 2020
+* Fix custom DB password indention
+
+## [1.4.8] - Feb 9, 2020
+* Add support for `tpl` in the `postStartCommand`
+
+## [1.4.7] - Feb 4, 2020
+* Support customisable Nginx kind 
+
+## [1.4.6] - Feb 2, 2020
+* Add a comment stating that it is recommended to use an external PostgreSQL with a static password for production installations
+
+## [1.4.5] - Feb 2, 2020
+* Add support for primary or member node specific preStartCommand
+
+## [1.4.4] - Jan 30, 2020
+* Add the option to configure resources for the logger containers
+
+## [1.4.3] - Jan 26, 2020
+* Improve `database.user` and `database.password` logic in order to support more use cases and make the configuration less repetitive
+
+## [1.4.2] - Jan 22, 2020
+* Refined pod disruption budgets to separate nginx and Artifactory pods
+
+## [1.4.1] - Jan 19, 2020
+* Fix replicator port config in nginx replicator configmap
+
+## [1.4.0] - Jan 19, 2020
+* Updated Artifactory version to 6.17.0
+
+## [1.3.8] - Jan 16, 2020
+* Added example for external nginx-ingress
+
+## [1.3.7] - Jan 07, 2020
+* Add support for customizable `mountOptions` of NFS PVs
+
+## [1.3.6] - Dec 30, 2019
+* Fix for nginx probes failing when launched with http disabled
+
+## [1.3.5] - Dec 24, 2019
+* Better support for custom `artifactory.internalPort`
+
+## [1.3.4] - Dec 23, 2019
+* Mark empty map values with `{}`
+
+## [1.3.3] - Dec 16, 2019
+* Another fix for toggling nginx service ports
+
+## [1.3.2] - Dec 12, 2019
+* Fix for toggling nginx service ports
+
+## [1.3.1] - Dec 10, 2019
+* Add support for toggling nginx service ports
+
+## [1.3.0] - Dec 1, 2019
+* Updated Artifactory version to 6.16.0
+
+## [1.2.4] - Nov 28, 2019
+* Add support for using existing PriorityClass
+
+## [1.2.3] - Nov 27, 2019
+* Add support for PriorityClass
+
+## [1.2.2] - Nov 20, 2019
+* Update Artifactory logo
+
+## [1.2.1] - Nov 18, 2019
+* Add the option to provide service account annotations (in order to support stuff like https://docs.aws.amazon.com/eks/latest/userguide/specify-service-account-role.html)
+
+## [1.2.0] - Nov 18, 2019
+* Updated Artifactory version to 6.15.0
+
+## [1.1.12] - Nov 17, 2019
+* Fix `README.md` format (broken table)
+
+## [1.1.11] - Nov 17, 2019
+* Update comment on Artifactory master key
+
+## [1.1.10] - Nov 17, 2019
+* Fix creation of double slash in nginx artifactory configuration
+
+## [1.1.9] - Nov 14, 2019
+* Set explicit `postgresql.postgresqlPassword=""` to avoid helm v3 error
+
+## [1.1.8] - Nov 12, 2019
+* Updated Artifactory version to 6.14.1
+
+## [1.1.7] - Nov 11, 2019
+* Additional documentation for masterKey
+
+## [1.1.6] - Nov 10, 2019
+* Update PostgreSQL chart version to 7.0.1
+* Use formal PostgreSQL configuration format
+
+## [1.1.5] - Nov 8, 2019
+* Add support `artifactory.service.loadBalancerSourceRanges` for whitelisting when setting `artifactory.service.type=LoadBalancer`
+
+## [1.1.4] - Nov 6, 2019
+* Add support for any type of environment variable by using `extraEnvironmentVariables` as-is
+
+## [1.1.3] - Nov 6, 2019
+* Add nodeselector support for Postgresql
+
+## [1.1.2] - Nov 5, 2019
+* Add support for the aws-s3-v3 filestore, which adds support for pod IAM roles
+
+## [1.1.1] - Nov 4, 2019
+* When using `copyOnEveryStartup`, make sure that the target base directories are created before copying the files
+
+## [1.1.0] - Nov 3, 2019
+* Updated Artifactory version to 6.14.0
+
+## [1.0.1] - Nov 3, 2019
+* Make sure the artifactory pod exits when one of the pre-start stages fail
+
 ## [1.0.0] - Oct 27, 2019
 **IMPORTANT - BREAKING CHANGES!**<br>
 **DOWNTIME MIGHT BE REQUIRED FOR AN UPGRADE!**

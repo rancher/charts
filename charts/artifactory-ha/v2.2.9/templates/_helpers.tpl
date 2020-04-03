@@ -10,16 +10,24 @@ Expand the name of the chart.
 The primary node name
 */}}
 {{- define "artifactory-ha.primary.name" -}}
+{{- if .Values.nameOverride -}}
+{{- printf "%s-primary" .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
 {{- $name := .Release.Name | trunc 29 -}}
 {{- printf "%s-%s-primary" $name .Chart.Name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
 {{- end -}}
 
 {{/*
 The member node name
 */}}
 {{- define "artifactory-ha.node.name" -}}
+{{- if .Values.nameOverride -}}
+{{- printf "%s-member" .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
 {{- $name := .Release.Name | trunc 29 -}}
 {{- printf "%s-%s-member" $name .Chart.Name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
 {{- end -}}
 
 {{/*
