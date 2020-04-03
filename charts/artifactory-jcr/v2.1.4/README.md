@@ -1,8 +1,10 @@
 # JFrog Container Registry Helm Chart
 
+JFrog Container Registry is a free Artifactory edition with Docker and Helm repositories support.
+
 ## Prerequisites Details
 
-* Kubernetes 1.6+
+* Kubernetes 1.10+
 
 ## Chart Details
 This chart will do the following:
@@ -23,7 +25,7 @@ helm repo add jfrog https://charts.jfrog.io
 ### Install Chart
 To install the chart with the release name `jfrog-container-registry`:
 ```bash
-helm install --name jfrog-container-registry jfrog/artifactory-jcr
+helm install --name jfrog-container-registry --set postgresql.postgresqlPassword=<postgres_password> jfrog/artifactory-jcr
 ```
 
 ### Accessing JFrog Container Registry
@@ -46,6 +48,10 @@ kubectl delete pvc ...
 kubectl delete pv ...
 ```
 
+## Database
+The JFrog Container Registry chart comes with PostgreSQL deployed by default.<br>
+For details on the PostgreSQL configuration or customising the database, Look at the options described in the [Artifactory helm chart](https://github.com/jfrog/charts/tree/master/stable/artifactory). 
+
 ## Configuration
 The following table lists the **basic** configurable parameters of the JFrog Container Registry chart and their default values.
 
@@ -55,6 +61,8 @@ The following table lists the **basic** configurable parameters of the JFrog Con
 |------------------------------------------------|-----------------------------------|---------------------------------------------------|
 | `artifactory.artifactory.image.repository`     | Container image                   | `docker.bintray.io/jfrog/artifactory-jcr`         |
 | `artifactory.artifactory.image.version`        | Container tag                     | `.Chart.AppVersion`                               |
+| `artifactory.artifactory.resources`            | Artifactory container resources   | `{}`                                              |
+| `artifactory.artifactory.javaOpts`             | Artifactory Java options          | `{}`                                              |
 | `artifactory.nginx.enabled`                    | Deploy nginx server               | `true`                                            |
 | `artifactory.nginx.service.type`               | Nginx service type                | `LoadBalancer`                                    |
 | `artifactory.nginx.tlsSecretName`              | TLS secret for Nginx pod          | ``                                                |

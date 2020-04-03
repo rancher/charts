@@ -1,0 +1,63 @@
+{{- if or .Values.artifactory.loggers .Values.artifactory.catalinaLoggers }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "artifactory.fullname" . }}-logger
+  labels:
+    app: {{ template "artifactory.name" . }}
+    chart: {{ template "artifactory.chart" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+data:
+  tail-log.sh: |
+    #!/bin/sh
+
+    LOG_DIR=$1
+    LOG_NAME=$2
+    PID=
+
+    # Wait for log dir to appear
+    while [ ! -d ${LOG_DIR} ]; do
+      sleep 1
+    done
+
+    cd ${LOG_DIR}
+
+    LOG_PREFIX=$(echo ${LOG_NAME} | sed 's/.log$//g')
+
+    # Find the log to tail
+    LOG_FILE=$(ls -1t ./${LOG_PREFIX}*.log 2>/dev/null | head -1)
+
+    # Wait for the log file
+    while [ -z "${LOG_FILE}" ]; do
+      sleep 1
+      LOG_FILE=$(ls -1t ./${LOG_PREFIX}*.log 2>/dev/null | head -1)
+    done
+
+    echo "Log file ${LOG_FILE} is ready!"
+
+    # Get inode number
+    INODE_ID=$(ls -i ${LOG_FILE})
+
+    # echo "Tailing ${LOG_FILE}"
+    tail -F ${LOG_FILE} &
+    PID=$!
+
+    # Loop forever to see if a new log was created
+    while true; do
+      # Check inode number
+      NEW_INODE_ID=$(ls -i ${LOG_FILE})
+
+      # If inode number changed, this means log was rotated and need to start a new tail
+      if [ "${INODE_ID}" != "${NEW_INODE_ID}" ]; then
+        kill -9 ${PID} 2>/dev/null
+        INODE_ID="${NEW_INODE_ID}"
+
+        # Start a new tail
+        tail -F ${LOG_FILE} &
+        PID=$!
+      fi
+      sleep 1
+    done
+
+{{- end }}
