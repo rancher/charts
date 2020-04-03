@@ -15,3 +15,4 @@ Blog: [Herd Trust Into Your Rancher Labs Multi-Cloud Strategy with Artifactory](
 
 ## Activate Your Artifactory Instance 
 Don't have a license? Please send an email to [rancher-jfrog-licenses@jfrog.com](mailto:rancher-jfrog-licenses@jfrog.com) to get it.
+

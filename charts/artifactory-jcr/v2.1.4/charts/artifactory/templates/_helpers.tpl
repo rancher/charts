@@ -50,7 +50,7 @@ Create chart name and version as used by the chart label.
 {{- end -}}
 
 {{/*
-Generate SSL certificates 
+Generate SSL certificates
 */}}
 {{- define "artifactory.gen-certs" -}}
 {{- $altNames := list ( printf "%s.%s" (include "artifactory.name" .) .Release.Namespace ) ( printf "%s.%s.svc" (include "artifactory.name" .) .Release.Namespace ) -}}

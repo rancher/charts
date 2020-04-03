@@ -11,6 +11,8 @@ installer:
   type:
   platform:
 
+installerInfo: "{ 'productId': 'Helm_artifactory/{{ .Chart.Version }}', 'features': [ { 'featureId': 'ArtifactoryVersion/{{ default .Chart.AppVersion .Values.artifactory.image.version }}' }, { 'featureId': '{{ if .Values.postgresql.enabled }}postgresql{{ else }}{{ default \"derby\" .Values.database.type }}{{ end }}/0.0.0' }, { 'featureId': 'Platform/{{ default \"kubernetes\" .Values.installer.platform }}' } ] }"
+
 # For supporting pulling from private registries
 imagePullSecrets:
 
@@ -49,14 +51,18 @@ ingress:
     enabled: true
   # Used to create an Ingress record.
   hosts: []
-  path: /
-  annotations:
+  routerPath: /
+  artifactoryPath: /artifactory/
+  annotations: {}
   # kubernetes.io/ingress.class: nginx
+  # nginx.ingress.kubernetes.io/configuration-snippet: |
+  #   proxy_pass_header   Server;
+  #   proxy_set_header    X-JFrog-Override-Base-Url https://<artifactory-domain>;
   # kubernetes.io/tls-acme: "true"
-  labels:
+  labels: {}
   # traffic-type: external
   # traffic-type: internal
-  tls:
+  tls: []
   # Secrets must be manually created in the namespace.
   # - secretName: chart-example-tls
   #   hosts:
@@ -88,51 +94,92 @@ networkpolicy:
 
 logger:
   image:
-    repository: 'busybox'
-    tag: '1.30'
+    repository: "busybox"
+    tag: "1.30"
 
 # Artifactory
 artifactory:
   name: artifactory
+  # Note that by default we use appVersion to get image tag/version
   image:
-    # repository: "docker.bintray.io/jfrog/artifactory-oss"
-    # repository: "docker.bintray.io/jfrog/artifactory-cpp-ce"
-    repository: "docker.bintray.io/jfrog/artifactory-pro"
-    # Note that by default we use appVersion to get image tag
+    repository: docker.bintray.io/jfrog/artifactory-pro
     # version:
     pullPolicy: IfNotPresent
   labels: {}
 
+  # Create a priority class for the Artifactory pod or use an existing one
+  # NOTE - Maximum allowed value of a user defined priority is 1000000000
+  priorityClass:
+    create: false
+    value: 1000000000
+    ## Override default name
+    # name:
+    ## Use an existing priority class
+    # existingPriorityClass:
+
   # Delete the db.properties file in ARTIFACTORY_HOME/etc/db.properties
   deleteDBPropertiesOnStartup: true
 
+  database:
+    maxOpenConnections: 80
+
   # Files to copy to ARTIFACTORY_HOME/ on each Artifactory startup
   copyOnEveryStartup:
-#     # absolute path
-#    - source: /artifactory_extra_conf/binarystore.xml
-#     # relative to ARTIFACTORY_HOME/
-#      target: etc/
-#     # absolute path
-#    - source: /artifactory_extra_conf/artifactory.lic
-#     # relative to ARTIFACTORY_HOME/
-#      target: etc/
+  #  # Absolute path
+  #  - source: /artifactory_bootstrap/binarystore.xml
+  #    # Relative to ARTIFACTORY_HOME/
+  #    target: etc/artifactory/
+  #  # Absolute path
+  #  - source: /artifactory_bootstrap/artifactory.lic
+  #    # Relative to ARTIFACTORY_HOME/
+  #    target: etc/artifactory/
 
   # Sidecar containers for tailing Artifactory logs
   loggers: []
-  # - request.log
-  # - event.log
-  # - binarystore.log
-  # - request_trace.log
-  # - access.log
-  # - artifactory.log
-  # - build_info_migration.log
+  # - access-audit.log
+  # - access-request.log
+  # - access-security-audit.log
+  # - access-service.log
+  # - artifactory-access.log
+  # - artifactory-event.log
+  # - artifactory-import-export.log
+  # - artifactory-request.log
+  # - artifactory-service.log
+  # - frontend-request.log
+  # - frontend-service.log
+  # - metadata-request.log
+  # - metadata-service.log
+  # - router-request.log
+  # - router-service.log
+  # - router-traefik.log
+  # - derby.log
+
+  # Loggers containers resources
+  loggersResources: {}
+  #  requests:
+  #    memory: "10Mi"
+  #    cpu: "10m"
+  #  limits:
+  #    memory: "100Mi"
+  #    cpu: "50m"
 
   # Sidecar containers for tailing Tomcat (catalina) logs
   catalinaLoggers: []
-  # - catalina.log
-  # - host-manager.log
-  # - localhost.log
-  # - manager.log
+  # - tomcat-catalina.log
+  # - tomcat-localhost.log
+
+  # Tomcat (catalina) loggers resources
+  catalinaLoggersResources: {}
+  #  requests:
+  #    memory: "10Mi"
+  #    cpu: "10m"
+  #  limits:
+  #    memory: "100Mi"
+  #    cpu: "50m"
+
+  # Migration support from 6.x to 7.x
+  migration:
+    timeoutSeconds: 3600
 
   ## Add custom init containers
   customInitContainers: |
@@ -186,6 +233,30 @@ artifactory:
   #  - name: custom-script
   #    mountPath: "/scripts/script.sh"
   #    subPath: script.sh
+  #  - name: posthook-start
+  #    mountPath: "/scripts/posthoook-start.sh"
+  #    subPath: posthoook-start.sh
+  #  - name: prehook-start
+  #    mountPath: "/scripts/prehook-start.sh"
+  #    subPath: prehook-start.sh
+
+  # Add custom persistent volume mounts - Available for the pod
+  customPersistentPodVolumeClaim: {}
+  #  name:
+  #  mountPath:
+  #  accessModes:
+  #   - "-"
+  #  size:
+  #  storageClassName:
+
+  # Add custom persistent volume mounts - Available to the entire namespace
+  customPersistentVolumeClaim: {}
+  #  name:
+  #  mountPath:
+  #  accessModes:
+  #   - "-"
+  #  size:
+  #  storageClassName:
 
   ## Artifactory license.
   license:
@@ -200,6 +271,13 @@ artifactory:
   ## Create configMap with artifactory.config.import.xml and security.import.xml and pass name of configMap in following parameter
   configMapName:
 
+  # Add any list of configmaps to Artifactory
+  configMaps: |
+  #  posthook-start.sh: |-
+  #    echo "This is a post start script"
+  #  posthook-end.sh: |-
+  #    echo "This is a post end script"
+
   ## List of secrets for Artifactory user plugins.
   ## One Secret per plugin's files.
   userPluginSecrets:
@@ -209,15 +287,28 @@ artifactory:
   #  - '{{ template "my-chart.fullname" . }}'
 
   ## Artifactory requires a unique master key.
-  ## You can generate one with the command: 'openssl rand -hex 32'
+  ## You can generate one with the command: "openssl rand -hex 32"
   ## An initial one is auto generated by Artifactory on first startup.
-  # masterKey:
+  # masterKey: FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
   ## Alternatively, you can use a pre-existing secret with a key called master-key by specifying masterKeySecretName
   # masterKeySecretName:
 
-  # accessAdmin is the password used for the access-admin user: https://jfrog.com/knowledge-base/how-to-change-the-default-password-for-access-admin-user/
-  accessAdmin:
+  ## Join Key to connect other services to Artifactory
+  ## IMPORTANT: Setting this value overrides the existing joinKey
+  ## IMPORTANT: You should NOT use the example joinKey for a production deployment!
+  # joinKey: EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+
+  ## If false, all service console logs will not redirect to a common console.log
+  consoleLog: false
+
+  binarystore:
+    enabled: true
+
+  ## admin allows to set the password for the default admin user.
+  ## See: https://www.jfrog.com/confluence/display/JFROG/Users+and+Groups#UsersandGroups-RecreatingtheDefaultAdminUserrecreate
+  admin:
     ip: "127.0.0.1"
+    username: "admin"
     password:
     secret:
     dataKey:
@@ -230,27 +321,89 @@ artifactory:
   ## Extra environment variables that can be used to tune Artifactory to your needs.
   ## Uncomment and set value as needed
   extraEnvironmentVariables:
-  #    - name: SERVER_XML_ARTIFACTORY_PORT
-  #     value: "8081"
-  #    - name: SERVER_XML_ARTIFACTORY_MAX_THREADS
-  #     value: "200"
-  #    - name: SERVER_XML_ACCESS_MAX_THREADS
-  #     value: "50"
-  #    - name: SERVER_XML_ARTIFACTORY_EXTRA_CONFIG
-  #     value: ""
-  #    - name: SERVER_XML_ACCESS_EXTRA_CONFIG
-  #     value: ""
-  #    - name: SERVER_XML_EXTRA_CONNECTOR
-  #     value: ""
-  #    - name: DB_POOL_MAX_ACTIVE
-  #     value: "100"
-  #    - name: DB_POOL_MAX_IDLE
-  #     value: "10"
-  #    - name: MY_SECRET_ENV_VAR
-  #      valueFrom:
-  #        secretKeyRef:
-  #          name: my-secret-name
-  #          key: my-secret-key
+  # - name: SERVER_XML_ARTIFACTORY_PORT
+  #   value: "8081"
+  # - name: SERVER_XML_ARTIFACTORY_MAX_THREADS
+  #   value: "200"
+  # - name: SERVER_XML_ACCESS_MAX_THREADS
+  #   value: "50"
+  # - name: SERVER_XML_ARTIFACTORY_EXTRA_CONFIG
+  #   value: ""
+  # - name: SERVER_XML_ACCESS_EXTRA_CONFIG
+  #   value: ""
+  # - name: SERVER_XML_EXTRA_CONNECTOR
+  #   value: ""
+  # - name: DB_POOL_MAX_ACTIVE
+  #   value: "100"
+  # - name: DB_POOL_MAX_IDLE
+  #   value: "10"
+  # - name: MY_SECRET_ENV_VAR
+  #   valueFrom:
+  #     secretKeyRef:
+  #       name: my-secret-name
+  #       key: my-secret-key
+
+  systemYaml: |
+    shared:
+      logging:
+        consoleLog:
+          enabled: {{ .Values.artifactory.consoleLog }}
+      extraJavaOpts: >
+      {{- with .Values.artifactory.javaOpts }}
+        -Dartifactory.async.corePoolSize={{ .corePoolSize }}
+      {{- if .xms }}
+        -Xms{{ .xms }}
+      {{- end }}
+      {{- if .xmx }}
+        -Xmx{{ .xmx }}
+      {{- end }}
+      {{- if .jmx.enabled }}
+        -Dcom.sun.management.jmxremote
+        -Dcom.sun.management.jmxremote.port={{ .jmx.port }}
+        -Dcom.sun.management.jmxremote.rmi.port={{ .jmx.port }}
+        -Dcom.sun.management.jmxremote.ssl={{ .jmx.ssl }}
+      {{- if .jmx.host }}
+        -Djava.rmi.server.hostname={{ tpl .jmx.host $ }}
+      {{- else }}
+        -Djava.rmi.server.hostname={{ template "artifactory.fullname" $ }}
+      {{- end }}
+      {{- if .jmx.authenticate }}
+        -Dcom.sun.management.jmxremote.authenticate=true
+        -Dcom.sun.management.jmxremote.access.file={{ .jmx.accessFile }}
+        -Dcom.sun.management.jmxremote.password.file={{ .jmx.passwordFile }}
+      {{- else }}
+        -Dcom.sun.management.jmxremote.authenticate=false
+      {{- end }}
+      {{- end }}
+      {{- if .other }}
+        {{ .other }}
+      {{- end }}
+      {{- end }}
+      {{- if or .Values.database.type .Values.postgresql.enabled }}
+      database:
+        {{- if .Values.postgresql.enabled }}
+        type: postgresql
+        url: "jdbc:postgresql://{{ .Release.Name }}-postgresql:{{ .Values.postgresql.service.port }}/{{ .Values.postgresql.postgresqlDatabase }}"
+        host: ""
+        driver: org.postgresql.Driver
+        username: "{{ .Values.postgresql.postgresqlUsername }}"
+        {{- else }}
+        type: "{{ .Values.database.type }}"
+        url: "{{ .Values.database.url }}"
+        driver: "{{ .Values.database.driver }}"
+        username: "{{ .Values.database.user }}"
+        {{- end }}
+      {{- end }}
+      security:
+      {{- if .Values.artifactory.masterKey }}
+        masterKey: "{{ .Values.artifactory.masterKey }}"
+      {{- end }}
+    artifactory:
+      database:
+        maxOpenConnections: {{ .Values.artifactory.database.maxOpenConnections }}
+    access:
+      database:
+        maxOpenConnections: {{ .Values.access.database.maxOpenConnections }}
 
   annotations: {}
 
@@ -265,17 +418,20 @@ artifactory:
     loadBalancerSourceRanges: []
     annotations: {}
 
-  externalPort: 8081
-  internalPort: 8081
-  internalPortReplicator: 6061
-  externalPortReplicator: 6061
+  ## IMPORTANT: If overriding artifactory.internalPort:
+  ## DO NOT use port lower than 1024 as Artifactory runs as non-root and cannot bind to ports lower than 1024!
+  externalPort: 8082
+  internalPort: 8082
+  externalArtifactoryPort: 8081
+  internalArtifactoryPort: 8081
   uid: 1030
   terminationGracePeriodSeconds: 30
+
   ## The following settings are to configure the frequency of the liveness and readiness probes
   livenessProbe:
     enabled: true
-    path: '/artifactory/webapp/#/login'
-    initialDelaySeconds: 90
+    path: /router/api/v1/system/health
+    initialDelaySeconds: 180
     failureThreshold: 10
     timeoutSeconds: 10
     periodSeconds: 10
@@ -283,12 +439,13 @@ artifactory:
 
   readinessProbe:
     enabled: true
-    path: '/artifactory/webapp/#/login'
+    path: /router/api/v1/system/health
     initialDelaySeconds: 60
     failureThreshold: 10
     timeoutSeconds: 10
     periodSeconds: 10
     successThreshold: 1
+
   persistence:
     mountPath: "/var/opt/jfrog/artifactory"
     enabled: true
@@ -313,6 +470,7 @@ artifactory:
     ## nfs
     ## google-storage
     ## aws-s3
+    ## aws-s3-v3
     ## azure-blob
     type: file-system
 
@@ -322,7 +480,22 @@ artifactory:
       {{- if eq .Values.artifactory.persistence.type "file-system" -}}
       <!-- File system filestore -->
       <config version="v1">
-          <chain template="file-system"/>
+          <chain>
+            {{- if .Values.artifactory.persistence.fileSystem.cache.enabled }}
+              <provider id="cache-fs" type="cache-fs">
+            {{- end }}
+                  <provider id="file-system" type="file-system"/>
+            {{- if .Values.artifactory.persistence.fileSystem.cache.enabled }}
+              </provider>
+            {{- end }}
+          </chain>
+
+        {{- if .Values.artifactory.persistence.fileSystem.cache.enabled }}
+          <provider id="cache-fs" type="cache-fs">
+              <maxCacheSize>{{ .Values.artifactory.persistence.maxCacheSize }}</maxCacheSize>
+              <cacheProviderDir>{{ .Values.artifactory.persistence.cacheProviderDir }}</cacheProviderDir>
+          </provider>
+        {{- end }}
       </config>
       {{- end }}
       {{- if eq .Values.artifactory.persistence.type "google-storage" }}
@@ -402,7 +575,11 @@ artifactory:
             {{- with .kmsCryptoMode }}
               <kmsCryptoMode>{{ . }}</kmsCryptoMode>
             {{- end }}
+            {{- if .useInstanceCredentials }}
+              <useInstanceCredentials>{{ .useInstanceCredentials }}</useInstanceCredentials>
+            {{- else }}
               <useInstanceCredentials>true</useInstanceCredentials>
+            {{- end }}
               <usePresigning>{{ .usePresigning }}</usePresigning>
               <signatureExpirySeconds>{{ .signatureExpirySeconds }}</signatureExpirySeconds>
             {{- with .cloudFrontDomainName }}
@@ -505,6 +682,12 @@ artifactory:
       dataDir: "/var/opt/jfrog/artifactory"
       backupDir: "/var/opt/jfrog/artifactory-backup"
       capacity: 200Gi
+
+    ## For artifactory.persistence.type file-system
+    fileSystem:
+      cache:
+        enabled: false
+
     ## For artifactory.persistence.type google-storage
     googleStorage:
       endpoint: storage.googleapis.com
@@ -589,6 +772,10 @@ artifactory:
       port: 9010
       host:
       ssl: false
+      # When authenticate is true, accessFile and passwordFile are required
+      authenticate: false
+      accessFile:
+      passwordFile:
     corePoolSize: 8
    # other: ""
 
@@ -598,22 +785,27 @@ artifactory:
 
   affinity: {}
 
-  ## Artifactory Replicator is available only for Enterprise Plus
-  replicator:
+  ssh:
     enabled: false
-    publicUrl:
+    internalPort: 1339
+    externalPort: 1339
+
+access:
+  database:
+    maxOpenConnections: 80
 
 # Nginx
 nginx:
   enabled: true
+  kind: Deployment
   name: nginx
   labels: {}
   replicaCount: 1
   uid: 104
   gid: 107
+  # Note that by default we use appVersion to get image tag/version
   image:
-    repository: "docker.bintray.io/jfrog/nginx-artifactory-pro"
-    # Note that by default we use appVersion to get image tag
+    repository: docker.bintray.io/jfrog/nginx-artifactory-pro
     # version:
     pullPolicy: IfNotPresent
 
@@ -622,13 +814,42 @@ nginx:
   # - access.log
   # - error.log
 
+  # Loggers containers resources
+  loggersResources: {}
+  #  requests:
+  #    memory: "64Mi"
+  #    cpu: "25m"
+  #  limits:
+  #    memory: "128Mi"
+  #    cpu: "50m"
+
+  # Logs options
+  logs:
+    stderr: false
+    level: warn
+
   mainConf: |
     # Main Nginx configuration file
     worker_processes  4;
 
-    error_log  {{ .Values.nginx.persistence.mountPath }}/logs/error.log warn;
+    {{ if .Values.nginx.logs.stderr }}
+    error_log  stderr {{ .Values.nginx.logs.level }};
+    {{- else -}}
+    error_log  {{ .Values.nginx.persistence.mountPath }}/logs/error.log {{ .Values.nginx.logs.level }};
+    {{- end }}
     pid        /tmp/nginx.pid;
 
+    {{- if .Values.artifactory.ssh.enabled }}
+    # Load the stream module to support TCP streaming
+    load_module /usr/lib/nginx/modules/ngx_stream_module.so;
+    ## SSH Server Configuration
+    stream {
+      server {
+        listen {{ .Values.nginx.ssh.internalPort }};
+        proxy_pass {{ include "artifactory.fullname" . }}:{{ .Values.artifactory.ssh.externalPort }};
+      }
+    }
+    {{- end }}
 
     events {
       worker_connections  1024;
@@ -650,9 +871,9 @@ nginx:
       client_body_timeout 2400s;
       proxy_connect_timeout 75s;
       proxy_send_timeout 2400s;
-      proxy_buffer_size 32k;
-      proxy_buffers 40 32k;
-      proxy_busy_buffers_size 64k;
+      proxy_buffer_size 128k;
+      proxy_buffers 40 128k;
+      proxy_busy_buffers_size 128k;
       proxy_temp_file_write_size 250m;
       proxy_http_version 1.1;
       client_body_buffer_size 128k;
@@ -685,23 +906,33 @@ nginx:
 
       include /etc/nginx/conf.d/*.conf;
 
-    {{- if .Values.artifactory.replicator.enabled }}
-      include /etc/nginx/conf.d/replicator/*.conf;
-    {{- end }}
-
     }
 
 
   artifactoryConf: |
+    {{- if .Values.nginx.https.enabled }}
     ssl_protocols TLSv1 TLSv1.1 TLSv1.2 TLSv1.3;
     ssl_certificate  {{ .Values.nginx.persistence.mountPath }}/ssl/tls.crt;
     ssl_certificate_key  {{ .Values.nginx.persistence.mountPath }}/ssl/tls.key;
     ssl_session_cache shared:SSL:1m;
     ssl_prefer_server_ciphers   on;
+    {{- end }}
     ## server configuration
     server {
+    {{- if .Values.nginx.internalPortHttps }}
       listen {{ .Values.nginx.internalPortHttps }} ssl;
-      listen {{ .Values.nginx.internalPortHttp }} ;
+    {{- else -}}
+      {{- if .Values.nginx.https.enabled }}
+      listen {{ .Values.nginx.https.internalPort }} ssl;
+      {{- end }}
+    {{- end }}
+    {{- if .Values.nginx.internalPortHttp }}
+      listen {{ .Values.nginx.internalPortHttp }};
+    {{- else -}}
+      {{- if .Values.nginx.http.enabled }}
+      listen {{ .Values.nginx.http.internalPort }};
+      {{- end }}
+    {{- end }}
       server_name ~(?<repo>.+)\.{{ include "artifactory.fullname" . }} {{ include "artifactory.fullname" . }}
       {{- range .Values.ingress.hosts -}}
         {{- if contains "." . -}}
@@ -715,34 +946,41 @@ nginx:
       ## Application specific logs
       ## access_log /var/log/nginx/artifactory-access.log timing;
       ## error_log /var/log/nginx/artifactory-error.log;
-      rewrite ^/$ /artifactory/webapp/ redirect;
-      rewrite ^/artifactory/?(/webapp)?$ /artifactory/webapp/ redirect;
+      rewrite ^/artifactory/?$ / redirect;
       if ( $repo != "" ) {
         rewrite ^/(v1|v2)/(.*) /artifactory/api/docker/$repo/$1/$2 break;
       }
-      rewrite ^/(v1|v2)/([^/]+)/(.*)$ /artifactory/api/docker/$2/$1/$3;
-      rewrite ^/(v1|v2)/ /artifactory/api/docker/$1/;
       chunked_transfer_encoding on;
       client_max_body_size 0;
-      location /artifactory/ {
+
+      location / {
         proxy_read_timeout  900;
         proxy_pass_header   Server;
         proxy_cookie_path   ~*^/.* /;
-        if ( $request_uri ~ ^/artifactory/(.*)$ ) {
-          proxy_pass       http://{{ include "artifactory.fullname" . }}:{{ .Values.artifactory.externalPort }}/artifactory/$1;
-        }
-        proxy_pass          http://{{ include "artifactory.fullname" . }}:{{ .Values.artifactory.externalPort }}/artifactory/;
-        proxy_set_header    X-Artifactory-Override-Base-Url $http_x_forwarded_proto://$host:$server_port/artifactory;
+        proxy_pass          http://{{ include "artifactory.fullname" . }}:{{ .Values.artifactory.externalPort }}/;
+        {{- if .Values.nginx.service.ssloffload}}
+        proxy_set_header    X-JFrog-Override-Base-Url $http_x_forwarded_proto://$host;
+        {{- else }}
+        proxy_set_header    X-JFrog-Override-Base-Url $http_x_forwarded_proto://$host:$server_port;
         proxy_set_header    X-Forwarded-Port  $server_port;
+        {{- end }}
         proxy_set_header    X-Forwarded-Proto $http_x_forwarded_proto;
         proxy_set_header    Host              $http_host;
         proxy_set_header    X-Forwarded-For   $proxy_add_x_forwarded_for;
+
+        location /artifactory/ {
+          if ( $request_uri ~ ^/artifactory/(.*)$ ) {
+            proxy_pass       http://{{ include "artifactory.fullname" . }}:{{ .Values.artifactory.externalArtifactoryPort }}/artifactory/$1;
+          }
+          proxy_pass          http://{{ include "artifactory.fullname" . }}:{{ .Values.artifactory.externalArtifactoryPort }}/artifactory/;
+        }
       }
     }
 
   service:
     ## For minikube, set this to NodePort, elsewhere use LoadBalancer
     type: LoadBalancer
+    ssloffload: false
     ## For supporting whitelist on the Nginx LoadBalancer service
     ## Set this to a list of IP CIDR ranges
     ## Example: loadBalancerSourceRanges: ['10.10.10.5/32', '10.11.10.5/32']
@@ -754,16 +992,30 @@ nginx:
     loadBalancerIP:
     ## There are two available options: “Cluster” (default) and “Local”.
     externalTrafficPolicy: Cluster
-  externalPortHttp: 80
-  internalPortHttp: 80
-  externalPortHttps: 443
-  internalPortHttps: 443
-  internalPortReplicator: 6061
-  externalPortReplicator: 6061
+
+  http:
+    enabled: true
+    externalPort: 80
+    internalPort: 80
+  https:
+    enabled: true
+    externalPort: 443
+    internalPort: 443
+
+  ssh:
+    internalPort: 1339
+    externalPort: 1339
+
+  # DEPRECATED: The following will be removed in a future release
+  # externalPortHttp: 80
+  # internalPortHttp: 80
+  # externalPortHttps: 443
+  # internalPortHttps: 443
+
   ## The following settings are to configure the frequency of the liveness and readiness probes
   livenessProbe:
     enabled: true
-    path: '/artifactory/webapp/#/login'
+    path: /router/api/v1/system/health
     initialDelaySeconds: 10
     failureThreshold: 10
     timeoutSeconds: 10
@@ -772,7 +1024,7 @@ nginx:
 
   readinessProbe:
     enabled: true
-    path: '/artifactory/webapp/#/login'
+    path: /router/api/v1/system/health
     initialDelaySeconds: 10
     failureThreshold: 10
     timeoutSeconds: 10
@@ -831,7 +1083,7 @@ postgresql:
   postgresqlUsername: artifactory
   postgresqlPassword: ""
   postgresqlDatabase: artifactory
-  postgresqlConfiguration:
+  postgresqlExtendedConf:
     listenAddresses: "'*'"
     maxConnections: "1500"
   persistence:
@@ -852,8 +1104,7 @@ postgresql:
 ## specify custom database details here or leave empty and Artifactory will use embedded derby
 database:
   type:
-  host:
-  port:
+  driver:
   ## If you set the url, leave host and port empty
   url:
   ## If you would like this chart to create the secret containing the db
@@ -872,3 +1123,65 @@ database:
   #  url:
   #    name: "rds-artifactory"
   #    key: "db-url"
+
+# Filebeat Sidecar container
+## The provided filebeat configuration is for Artifactory logs. It assumes you have a logstash installed and configured properly.
+filebeat:
+  enabled: false
+  name: artifactory-filebeat
+  image:
+    repository: "docker.elastic.co/beats/filebeat"
+    version: 7.5.1
+  logstashUrl: "logstash:5044"
+
+  livenessProbe:
+    exec:
+      command:
+        - sh
+        - -c
+        - |
+          #!/usr/bin/env bash -e
+          curl --fail 127.0.0.1:5066
+    failureThreshold: 3
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+
+  readinessProbe:
+    exec:
+      command:
+        - sh
+        - -c
+        - |
+          #!/usr/bin/env bash -e
+          filebeat test output
+    failureThreshold: 3
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+
+  resources: {}
+#    requests:
+#      memory: "100Mi"
+#      cpu: "100m"
+#    limits:
+#      memory: "100Mi"
+#      cpu: "100m"
+
+  filebeatYml: |
+    logging.level: info
+    path.data: {{ .Values.artifactory.persistence.mountPath }}/log/filebeat
+    name: artifactory-filebeat
+    queue.spool: ~
+    filebeat.inputs:
+    - type: log
+      enabled: true
+      close_eof: ${CLOSE:false}
+      paths:
+         - {{ .Values.artifactory.persistence.mountPath }}/log/*.log
+      fields:
+        service: "jfrt"
+        log_type: "artifactory"
+    output:
+      logstash:
+         hosts: ["{{ .Values.filebeat.logstashUrl }}"]

@@ -1,7 +1,12 @@
 # JFrog Artifactory Chart Upgrade Notes
 This file describes special upgrade notes needed at specific versions
 
-## Upgrade from 7.X to 8.X
+## Upgrade from 8.X to 9.X (Chart Versions)
+
+* If this is a new deployment or you already use an external database (`postgresql.enabled=false`), these changes **do not affect you!**
+* To upgrade from a version prior to 8.x, you first need to upgrade to latest version of 8.x as described in https://github.com/jfrog/charts/blob/master/stable/artifactory/CHANGELOG.md.
+
+## Upgrade from 7.X to 8.X (Chart Versions)
 **DOWNTIME IS REQUIRED FOR AN UPGRADE!**
 * If this is a new deployment or you already use an external database (`postgresql.enabled=false`), these changes **do not affect you!**
 * PostgreSQL sub chart was upgraded to version `6.5.x`. This version is not backward compatible with the old version (`0.9.5`)!
