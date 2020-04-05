@@ -1,0 +1,199 @@
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: {{ template "alcide-advisor.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "alcide-advisor.labels" . | indent 4 }}
+spec:
+  schedule: {{ .Values.cronSchedule | quote }}
+  # Keep the last run 
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1  
+  # Concurrency is not required
+  concurrencyPolicy: Forbid
+
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          annotations:
+            alcide.io/advisor: "cronjob" 
+{{ if eq .Values.vaultAgent.mode "agent-inject" }}
+            vault.hashicorp.com/agent-inject: "true"
+            vault.hashicorp.com/role: "alcide-advisor"
+            vault.hashicorp.com/agent-pre-populate-only: "true"
+            vault.hashicorp.com/agent-inject-secret-alcide-advisor.yaml: "secret/alcide/advisor"
+            vault.hashicorp.com/agent-inject-template-alcide-advisor.yaml: |
+              Exports:
+              {{"{{- with secret \"secret/alcide/advisor\" -}}"}}   
+                {{"{{- if  .Data.data.prometheusUsername }}"}}
+                prometheusPassword: {{"{{ .Data.data.prometheusPassword }}"}}
+                prometheusUsername: {{"{{ .Data.data.prometheusUsername }}"}}
+                {{"{{- end }}"}}      
+
+                {{"{{- if .Data.data.s3AwsAccessKeyId }}"}}  
+                s3AwsAccessKeyId: {{"{{ .Data.data.s3AwsAccessKeyId }}"}}
+                s3AwsSecretAccessKey: {{"{{ .Data.data.s3AwsSecretAccessKey }}"}}
+                {{"{{- end }}"}}  
+
+                {{"{{- if .Data.data.slackApiToken }}"}}  
+                slackApiToken: {{"{{ .Data.data.slackApiToken }}"}}
+                {{"{{- end }}"}}   
+
+                {{"{{- if  .Data.data.alcideApiKey }}"}}             
+              Profile:
+                alcideApiKey: {{"{{ .Data.data.alcideApiKey }}"}}
+                {{"{{- end }}"}}   
+              {{"{{- end }}"}}
+{{ end }}
+        spec:
+          serviceAccountName: {{ template "alcide-advisor.fullname" . }}
+          volumes:
+{{- if ne .Values.alcide.advisorProfileFile "" }}
+            - name: advisor-profile
+              configMap:
+                defaultMode: 420
+                items:
+                  - key: profile.advisor
+                    path: profile.advisor
+                name: advisor-policy-{{ .Values.alcide.advisorProfileFile | sha256sum | trunc 5 }}                         
+{{- end }}                      
+{{- if eq .Values.vaultAgent.mode "vault" }}       
+            - emptyDir:
+                medium: Memory
+              name: vault-token
+            - configMap:
+                defaultMode: 420
+                items:
+                  - key: vault-agent-config.hcl
+                    path: vault-agent-config.hcl
+                name: vault-agent-config
+              name: vault-agent-config           
+          initContainers:
+            - name: vault-agent-auth
+              args:
+                - agent
+                - -config=/etc/vault/vault-agent-config.hcl
+              env:
+                - name: VAULT_ADDR
+                  value: {{.Values.vaultAgent.vaultServer }} 
+                - name: VAULT_AGENT_ADDR
+                  value: http://localhost:8100
+              image: vault
+              imagePullPolicy: IfNotPresent              
+              volumeMounts:            
+                - mountPath: /etc/vault
+                  name: vault-agent-config
+                - mountPath: /vault
+                  name: vault-token
+{{- end }}
+          containers:
+          - name: advisor
+            #
+            # For debugging Vault injection ... going away soooooon
+            #
+            #imagePullPolicy: IfNotPresent
+            #image: nginx
+            #command: ["nginx", "-g", "daemon off;"]
+{{- if eq .Values.vaultAgent.mode "vault" }}          
+            #volumeMounts:            
+            #    - mountPath: /vault
+            #      name: vault-token
+{{- end }}             
+            image: {{ .Values.image.alcideAdvisor }}
+            imagePullPolicy: {{ .Values.image.pullPolicy }}
+            volumeMounts:            
+{{- if eq .Values.vaultAgent.mode "vault" }}          
+                - mountPath: /vault
+                  name: vault-token
+{{- end }}   
+{{- if ne .Values.alcide.advisorProfileFile "" }}
+                - mountPath: /advisor-profile
+                  name: advisor-profile
+{{- end }}               
+            args:
+              - --eula-sign
+              - validate
+              - cluster
+              - --inCluster
+              - --outfile
+              - /dev/null
+{{- if eq .Values.vaultAgent.mode "none" }}              
+              - --slack-api-token
+              - $(ALCIDE_ADVISOR_EXPORT_SLACK_API_TOKEN)
+{{- end }}                             
+              - --slack-channel
+              - {{ .Values.slack.channel | quote }}
+{{- if ne .Values.alcide.advisorProfileId "" }}
+              - --profile-id
+              - {{ .Values.alcide.advisorProfileId | quote }}  
+              - --organization
+              - {{ .Values.alcide.orgId | quote }}
+              - --alcide-api-server
+              - {{ .Values.alcide.apiServer | quote }}
+              - --alcide-api-key
+              - $(ALCIDE_API_KEY)                      
+{{- end }} 
+{{- if ne .Values.alcide.advisorProfileFile "" }}
+              - --policy-profile
+              - /advisor-profile/profile.advisor 
+              - --alcide-api-key
+              - $(ALCIDE_API_KEY)                      
+{{- end }}
+{{- if ne .Values.s3.s3Url "" }}
+              - --s3-export-url
+              - {{ .Values.s3.s3Url | quote }}
+{{- end }}     
+{{- if ne .Values.prometheus.pushGateway "" }}
+              - --prom-push-gateway
+              - {{ .Values.prometheus.pushGateway | quote }}
+{{- end }}
+{{- if ne .Values.vaultAgent.mode "none" }}
+              - --config 
+              - /vault/secrets/alcide-advisor.yaml
+{{- end }}
+              #- --debug
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              runAsNonRoot: true
+              runAsUser: 10001
+              readOnlyRootFilesystem: true
+{{ if eq .Values.vaultAgent.mode "none" }}            
+            env:
+              - name: ALCIDE_API_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ template "alcide-advisor.fullname" . }}-exports
+                    key: alcideApiKey           
+              - name: ALCIDE_ADVISOR_EXPORT_SLACK_API_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ template "alcide-advisor.fullname" . }}-exports
+                    key: slackApiToken
+              - name: ALCIDE_ADVISOR_EXPORT_AWS_ACCESS_KEY_ID
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ template "alcide-advisor.fullname" . }}-exports
+                    key: awsAccessKeyId
+              - name: ALCIDE_ADVISOR_EXPORT_AWS_SECRET_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ template "alcide-advisor.fullname" . }}-exports
+                    key: awsSecretKey 
+              - name: ALCIDE_ADVISOR_EXPORT_PROM_USERNAME
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ template "alcide-advisor.fullname" . }}-exports
+                    key: promPushGatewayUsername 
+              - name: ALCIDE_ADVISOR_EXPORT_PROM_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ template "alcide-advisor.fullname" . }}-exports
+                    key: promPushGatewayPassword 
+{{ end }}                      
+          restartPolicy: OnFailure

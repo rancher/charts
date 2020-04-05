@@ -1,0 +1,10 @@
+{{ if ne .Values.alcide.advisorProfileFile "" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: advisor-policy-{{ .Values.alcide.advisorProfileFile | sha256sum | trunc 5 }}
+  namespace: {{ .Release.Namespace }}
+data:
+  profile.advisor: |
+{{ .Files.Get .Values.alcide.advisorProfileFile  | indent 4 -}}
+{{ end }}
