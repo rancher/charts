@@ -1,0 +1,151 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fah-worker
+  labels:
+    app: fah-worker  
+spec:
+  selector:
+    matchLabels:
+      app: fah-worker
+  replicas: {{ .Values.replicas  }}  # Set number of replicas to run - one replica per node
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 100%
+      maxSurge: 100%
+  template:
+    metadata:
+      labels:
+        app: fah-worker
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - fah-worker
+            topologyKey: "kubernetes.io/hostname"
+
+      containers:
+        - name: fah-worker
+          image: "richstokes20/fah-covid:latest"
+          # --run-as UID should match runAsUser value in containers securityContext
+          command:
+            - "/usr/bin/FAHClient"
+            - "--config"
+            - "/var/lib/fahclient/config.xml"
+            - "--config-rotate=false"
+            - "--run-as"
+            - "1234"
+            - "--pid-file=/var/lib/fahclient/fahclient.pid"
+            {{- if .Values.gpu }}
+            - "--gpu=true"
+            {{- else }}
+            - "--gpu=false"
+            {{- end}}
+
+          resources:
+            {{- if .Values.gpu }}
+            limits:
+              nvidia.com/gpu: "1" # How many gpu's you want to donate per ndoe
+              cpu: {{ .Values.limits.cpu | quote }} # How much CPU you wish to donate per node
+              memory: {{ .Values.limits.memory | quote }} 
+            requests:
+              nvidia.com/gpu: "1"
+              cpu: {{ .Values.requests.cpu | quote }} 
+              memory: {{ .Values.limits.memory | quote }}       
+            {{- else }}
+            limits:
+              cpu: {{ .Values.limits.cpu | quote }} # How much CPU you wish to donate per node
+              memory: {{ .Values.limits.memory | quote }} 
+            requests:
+              cpu: {{ .Values.requests.cpu | quote }} 
+              memory: {{ .Values.limits.memory | quote }} 
+            {{- end}}
+
+          # Make the container harder to break out of or exploit
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1234
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - mountPath: /var/lib/fahclient
+              name: fahclient
+      # We make an emptyDir to mount on the work directory /var/lib/fahclient
+      # so we can make the rest of the container's root filesystem read-only
+      volumes:
+        - name: fahclient
+          emptyDir: {}
+        # Uncomment if using ConfigMap config.xml
+        # - name: fah-worker-config
+        #   configMap:
+        #     name: foldingathome-config
+      initContainers:
+        - name: copy-config
+          imagePullPolicy: Always
+          image: "richstokes20/fah-covid:latest"
+          command:
+            - "sh"
+            - "-c"
+            - "cp /etc/fahclient/config.xml /var/lib/fahclient/config.xml"
+            # Use this cp command instead if using ConfigMap config.xml
+            # - "cp /etc/fahclient-config/config.xml /var/lib/fahclient/config.xml"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1234
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - mountPath: /var/lib/fahclient
+              name: fahclient
+            # Uncomment if using ConfigMap config.xml
+            # - name: fah-worker-config
+            #   mountPath: /etc/fahclient-config
+      # priorityClassName: low-priority-class
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: foldingathome-config
+data:
+  config.xml: |
+    <config>
+      <!--
+        To set your user name, team and passkey just edit the text
+        in quotes below.
+      -->
+
+      <!-- User Information -->
+      <user value=""/> <!-- Enter your user name here -->
+      <team value=""/>         <!-- Your team number -->
+      <passkey value=""/>       <!-- 32 hexadecimal characters if provided -->
+
+      <power value="full"/>     <!-- Throttling this at K8s level -->
+      {{- if .Values.gpu }}
+      <gpu value="true"/>      <!-- If true, attempt to autoconfigure GPUs -->
+      {{- else }}               <!-- If true, attempt to autoconfigure GPUs -->
+      <gpu value="false"/>
+      {{- end }}
+      <fold-anon value="true"/>
+
+      <!-- Folding Slots
+        No folding slot configuration is necessary.  The client will
+        automaticlaly choose a good configuration for you.  However, here
+        are some examples:
+      
+          <slot id="0" type="CPU"/>
+
+        or
+        
+          <slot id="0" type="CPU"/>
+          <slot id="1" type="GPU"/>
+
+        All slots in a configuration MUST have unique ids.
+      -->
+    </config>
+---
