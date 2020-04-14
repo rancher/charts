@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "lightstep.fullname" . }}
+  labels:
+    {{- include "lightstep.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.service.httpPort }}
+      targetPort: {{ .Values.service.httpPort }}
+    - name: grpc-insecure
+      port: {{ .Values.service.grpcinsecure }}
+      targetPort: {{ .Values.service.grpcinsecure }}
+  selector:
+    {{- include "lightstep.selectorLabels" . | nindent 4 }}

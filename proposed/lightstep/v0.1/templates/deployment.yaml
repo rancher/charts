@@ -1,0 +1,142 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "lightstep.fullname" . }}
+  labels:
+    {{ include "lightstep.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "lightstep.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "lightstep.selectorLabels" . | nindent 8 }}
+    spec:
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      serviceAccountName: {{ include "lightstep.serviceAccountName" . }}
+      securityContext:
+{{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: rancher-test
+        image: "{{ .Values.image.repository }}:{{ .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+          {{- if .Values.lightstep.collector_satellite_key_secret_name }}
+          - name: COLLECTOR_SATELLITE_KEY
+            valueFrom:
+              secretKeyRef:
+                key: {{ .Values.lightstep.collector_satellite_key_secret_key }}
+                name: {{ .Values.lightstep.collector_satellite_key_secret_name }}
+          {{- end }}
+          {{- if .Values.lightstep.satelliteKey }}
+          - name: COLLECTOR_SATELLITE_KEY
+            valueFrom:
+              secretKeyRef:
+                key: satelliteKey
+                name: lightstep-satellite
+          {{- end }}
+          - name: COLLECTOR_POOL
+            value: {{ .Values.lightstep.collector_pool | quote }}
+          {{- if .Values.lightstep.guid -}}
+          - name: GUID
+            value: {{ .Values.lightstep.guid }}
+          {{- end }}
+          - name: COLLECTOR_REPORTER_BYTES_PER_PROJECT
+            value: {{ .Values.lightstep.bytes_per_project | quote }}
+          {{- if .Values.lightstep.bytes_per_project_override -}}
+          - name: COLLECTOR_REPORTER_BYTES_PER_PROJECT_OVERRIDES
+            value: {{ .Values.lightstep.bytes_per_project_override | quote }}
+          {{ end }}
+          - name: COLLECTOR_DIAGNOSTIC_PORT
+            value: {{ .Values.lightstep.diagnostic_port | quote }}
+          - name: COLLECTOR_ADMIN_PLAIN_PORT
+            value: {{ .Values.lightstep.admin_plain_port | quote }}
+          - name: COLLECTOR_ADMIN_SECURE_PORT
+            value: {{ .Values.lightstep.admin_secure_port | quote }}
+          - name: COLLECTOR_HTTP_PLAIN_PORT
+            value: {{ .Values.lightstep.http_plain_port | quote }}
+          - name: COLLECTOR_HTTP_SECURE_PORT
+            value: {{ .Values.lightstep.http_secure_port | quote }}
+          - name: COLLECTOR_GRPC_PLAIN_PORT
+            value: {{ .Values.lightstep.grpc_plain_port | quote }}
+          - name: COLLECTOR_GRPC_SECURE_PORT
+            value: {{ .Values.lightstep.grpc_secure_port | quote }}
+          - name: COLLECTOR_PLAIN_PORT
+            value: {{ .Values.lightstep.plain_port | quote }}
+          - name: COLLECTOR_SECURE_PORT
+            value: {{ .Values.lightstep.secure_port | quote }}
+          {{- if .Values.lightstep.tls_cert_prefix -}}
+          - name: COLLECTOR_TLS_CERT_PREFIX
+            value: {{ .Values.lightstep.tls_cert_prefix | quote }}
+          {{ end }}
+          {{- if .Values.lightstep.collector_ingestion_tags -}}
+          - name: COLLECTOR_INGESTION_TAGS
+            value: {{ .Values.lightstep.collector_ingestion_tags | quote }}
+          {{ end }}
+        ports:
+        - containerPort: {{ .Values.lightstep.diagnostic_port }}
+          name: diagnostics
+          protocol: TCP
+        - containerPort: {{ .Values.lightstep.admin_plain_port }}
+          name: admin
+          protocol: TCP
+        - containerPort: {{ .Values.lightstep.admin_secure_port }}
+          name: admin-secure
+          protocol: TCP
+        - containerPort: {{ .Values.lightstep.http_plain_port }}
+          name: http
+          protocol: TCP
+        - containerPort: {{ .Values.lightstep.http_secure_port }}
+          name: http-secure
+          protocol: TCP
+        - containerPort: {{ .Values.lightstep.grpc_plain_port }}
+          name: grpc-insecure
+          protocol: TCP
+        - containerPort: {{ .Values.lightstep.grpc_secure_port }}
+          name: grpc-secure
+          protocol: TCP
+        - containerPort: {{ .Values.lightstep.plain_port }}
+          name: plain-port
+          protocol: TCP
+        - containerPort: {{ .Values.lightstep.secure_port }}
+          name: plain-secure
+          protocol: TCP
+        resources:
+{{- toYaml .Values.resources | nindent 10 }}
+        readinessProbe:
+            failureThreshold: 10
+            httpGet:
+              path: /_ready
+              port: admin
+              scheme: HTTP
+            timeoutSeconds: 15
+            initialDelaySeconds: 5
+            periodSeconds: 20
+            successThreshold: 1
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /_live
+            port: admin
+            scheme: HTTP
+          timeoutSeconds: 15
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          successThreshold: 1
+    {{- with .Values.nodeSelector }}
+    nodeSelector:
+{{- toYaml . | nindent 8 }}
+    {{ end }}
+  {{- with .Values.affinity }}
+    affinity:
+{{- toYaml . | nindent 8 }}
+  {{ end }}
+  {{- with .Values.tolerations }}
+    tolerations:
+{{- toYaml . | nindent 8 }}
+  {{ end }}
