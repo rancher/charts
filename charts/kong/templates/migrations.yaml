@@ -1,4 +1,9 @@
-{{- if (and (.Values.runMigrations) (not (eq .Values.env.database "off"))) }}
+{{- if .Release.IsInstall -}}
+{{/* .migrations.init isn't normally exposed in values.yaml. In testing,
+however, adding it with value "false" didn't actually disable this job. Not
+clear why, but not a major concern: this job should always be created if it
+meets the .Release.IsInstall condition for a DB-backed instance. */}}
+{{- if (and (or (.Values.runMigrations) (.Values.migrations.init | default true)) (not (eq .Values.env.database "off"))) }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -13,6 +18,10 @@ spec:
       labels:
         {{- include "kong.metaLabels" . | nindent 8 }}
         app.kubernetes.io/component: init-migrations
+      annotations:
+        {{- range $key, $value := .Values.migrations.annotations }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
     spec:
       {{- if .Values.podSecurityPolicy.enabled }}
       serviceAccountName: {{ template "kong.serviceAccountName" . }}
@@ -41,4 +50,5 @@ spec:
       restartPolicy: OnFailure
       volumes:
       {{- include "kong.volumes" . | nindent 6 -}}
+{{- end }}
 {{- end }}

@@ -33,6 +33,7 @@ $ helm install kong/kong --generate-name --set ingressController.installCRDs=fal
   - [Database](#database)
   - [Runtime package](#runtime-package)
   - [Configuration method](#configuration-method)
+  - [Separate admin and proxy nodes](#separate-admin-and-proxy-nodes)
 - [Configuration](#configuration)
   - [Kong Parameters](#kong-parameters)
     - [Kong Service Parameters](#kong-service-parameters)
@@ -120,13 +121,16 @@ document.
 If using Kong Enterprise, several additional steps are necessary before
 installing the chart:
 
-- set `enterprise.enabled` to `true` in `values.yaml` file
-- Update values.yaml to use a Kong Enterprise image
+- Set `enterprise.enabled` to `true` in `values.yaml` file.
+- Update values.yaml to use a Kong Enterprise image.
 - Satisfy the two  prerequsisites below for
   [Enterprise License](#kong-enterprise-license) and
-  [Enterprise Docker Registry](#kong-enterprise-docker-registry-access)
+  [Enterprise Docker Registry](#kong-enterprise-docker-registry-access).
+- (Optional) [set a `password` environment variable](#rbac) to create the
+  initial super-admin. Though not required, this is recommended for users that
+  wish to use RBAC, as it cannot be done after initial setup.
 
-Once you have these set, it is possible to install Kong Enterprise
+Once you have these set, it is possible to install Kong Enterprise.
 
 Please read through
 [Kong Enterprise considerations](#kong-enterprise-parameters)
@@ -201,6 +205,45 @@ The package to run can be changed via `image.repository` and `image.tag`
 parameters. If you would like to run the Enterprise package, please read
 the [Kong Enterprise Parameters](#kong-enterprise-parameters) section.
 
+### Separate admin and proxy nodes
+
+Users may wish to split their Kong deployment into multiple instances that only
+run some of Kong's services, e.g. where some nodes only run the proxy and other
+only run the admin API, or where some nodes only run Developer Portal services.
+These require separate Helm releases (i.e. you run `helm install` once for
+every instance type you wish to create).
+
+To disable Kong services on an instance, you should set `SVC.enabled`,
+`SVC.http.enabled`, `SVC.tls.enabled`, and `SVC.ingress.enabled` all to
+`false`, where `SVC` is `proxy`, `admin`, `manager`, `portal`, or `portalapi`.
+
+The standard chart upgrade automation process assumes that there is only a
+single Kong release in the Kong cluster, and runs both `migrations up` and
+`migrations finish` jobs. To handle clusters split across multiple releases,
+you should:
+1. Upgrade one of the releases with `helm upgrade RELEASENAME -f values.yaml
+   --set migrations.preUpgrade=true --set migrations.postUpgrade=false`.
+2. Upgrade all but one of the remaining releases with `helm upgrade RELEASENAME
+   -f values.yaml --set migrations.preUpgrade=false --set
+   migrations.postUpgrade=false`.
+3. Upgrade the final release with `helm upgrade RELEASENAME -f values.yaml
+   --set migrations.preUpgrade=false --set migrations.postUpgrade=true`.
+
+This ensures that all instances are using the new Kong package before running
+`kong migrations finish`.
+
+Users should note that Helm supports supplying multiple values.yaml files,
+allowing you to separate shared configuration from instance-specific
+configuration. For example, you may have a shared values.yaml that contains
+environment variables and other common settings, and then several
+instance-specific values.yamls that contain service configuration only. You can
+then create releases with:
+
+```
+helm install proxy-only -f shared-values.yaml -f only-proxy.yaml kong/kong
+helm install admin-only -f shared-values.yaml -f only-admin.yaml kong/kong
+```
+
 ### Configuration method
 
 Kong can be configured via two methods:
@@ -227,13 +270,15 @@ Kong can be configured via two methods:
 | Parameter                          | Description                                                                           | Default             |
 | ---------------------------------- | ------------------------------------------------------------------------------------- | ------------------- |
 | image.repository                   | Kong image                                                                            | `kong`              |
-| image.tag                          | Kong image version                                                                    | `1.3`               |
+| image.tag                          | Kong image version                                                                    | `2.0`               |
 | image.pullPolicy                   | Image pull policy                                                                     | `IfNotPresent`      |
 | image.pullSecrets                  | Image pull secrets                                                                    | `null`              |
 | replicaCount                       | Kong instance count                                                                   | `1`                 |
 | plugins                            | Install custom plugins into Kong via ConfigMaps or Secrets                            | `{}`                |
 | env                                | Additional [Kong configurations](https://getkong.org/docs/latest/configuration/)      |                     |
-| runMigrations                      | Run Kong migrations job                                                               | `true`              |
+| migrations.preUpgrade              | Run "kong migrations up" jobs                                                         | `true`              |
+| migrations.postUpgrade             | Run "kong migrations finish" jobs                                                     | `true`              |
+| migrations.annotations             | Annotations for migration jobs                                                        | `{"sidecar.istio.io/inject": "false", "kuma.io/sidecar-injection": "disabled"}` |
 | waitImage.repository               | Image used to wait for database to become ready                                       | `busybox`           |
 | waitImage.tag                      | Tag for image used to wait for database to become ready                               | `latest`            |
 | waitImage.pullPolicy               | Wait image pull policy                                                                | `IfNotPresent`      |
@@ -255,6 +300,12 @@ individual services: see values.yaml for their individual default values.
 * `manager`
 * `portal`
 * `portalapi`
+* `status`
+
+`status` is intended for internal use within the cluster. Unlike other
+services it cannot be exposed externally, and cannot create a Kubernetes
+service or ingress. It supports the settings under `SVC.http` and `SVC.tls`
+only.
 
 | Parameter                          | Description                                                                           | Default             |
 | ---------------------------------- | ------------------------------------------------------------------------------------- | ------------------- |
@@ -285,6 +336,19 @@ individual services: see values.yaml for their individual default values.
 | SVC.ingress.annotations            | Ingress annotations. See documentation for your ingress controller for details        | `{}`                |
 | SVC.annotations                    | Service annotations                                                                   | `{}`                |
 
+#### Stream listens
+
+The proxy configuration additionally supports creating stream listens. These
+are configured using an array of objects under `proxy.stream`:
+
+| Parameter                          | Description                                                                           | Default             |
+| ---------------------------------- | ------------------------------------------------------------------------------------- | ------------------- |
+| containerPort                      | Container port to use for a stream listen                                             |                     |
+| servicePort                        | Service port to use for a stream listen                                               |                     |
+| nodePort                           | Node port to use for a stream listen                                                  |                     |
+| hostPort                           | Host port to use for a stream listen                                                  |                     |
+| parameters                         | Array of additional listen parameters                                                 | `[]`                |
+
 ### Ingress Controller Parameters
 
 All of the following properties are nested under the `ingressController`
@@ -299,7 +363,8 @@ section of `values.yaml` file:
 | livenessProbe                      | Kong ingress controllers liveness probe                                               |                                                                              |
 | installCRDs                        | Create CRDs. **FOR HELM3, MAKE SURE THIS VALUE IS SET TO `false`.**                   | true                                                                         |
 | serviceAccount.create              | Create Service Account for ingress controller                                         | true
-| serviceAccount.name                | Use existing Service Account, specifiy its name                                       | ""
+| serviceAccount.name                | Use existing Service Account, specify its name                                        | ""
+| serviceAccount.annotations         | Annotations for Service Account                                                       | {}
 | installCRDs                        | Create CRDs. Regardless of value of this, Helm v3+ will install the CRDs if those are not present already. Use `--skip-crds` with `helm install` if you want to skip CRD creation. | true |
 | env                                | Specify Kong Ingress Controller configuration via environment variables               |                                                                              |
 | ingressClass                       | The ingress-class value for controller                                                | kong                                                                         |
@@ -334,6 +399,7 @@ For a complete list of all configuration values you can set in the
 | podDisruptionBudget.maxUnavailable | Represents the minimum number of Pods that can be unavailable (integer or percentage) | `50%`               |
 | podDisruptionBudget.minAvailable   | Represents the number of Pods that must be available (integer or percentage)          |                     |
 | podSecurityPolicy.enabled          | Enable podSecurityPolicy for Kong                                                     | `false`             |
+| podSecurityPolicy.spec             | Collection of [PodSecurityPolicy settings](https://kubernetes.io/docs/concepts/policy/pod-security-policy/#what-is-a-pod-security-policy) | |
 | priorityClassName                  | Set pod scheduling priority class for Kong pods                                       | ""                  |
 | serviceMonitor.enabled             | Create ServiceMonitor for Prometheus Operator                                         | false               |
 | serviceMonitor.interval            | Scrapping interval                                                                    | 10s                 |
@@ -378,10 +444,13 @@ Kong Enterprise requires some additional configuration not needed when using
 Kong Open-Source. To use Kong Enterprise, at the minimum,
 you need to do the following:
 
-- set `enterprise.enabled` to `true` in `values.yaml` file
-- Update values.yaml to use a Kong Enterprise image
-- Satisfy the two  prerequsisites below for Enterprise License and
-  Enterprise Docker Registry
+- Set `enterprise.enabled` to `true` in `values.yaml` file.
+- Update values.yaml to use a Kong Enterprise image.
+- Satisfy the two prerequsisites below for Enterprise License and
+  Enterprise Docker Registry.
+- (Optional) [set a `password` environment variable](#rbac) to create the
+  initial super-admin. Though not required, this is recommended for users that
+  wish to use RBAC, as it cannot be done after initial setup.
 
 Once you have these set, it is possible to install Kong Enterprise,
 but please make sure to review the below sections for other settings that
@@ -453,21 +522,42 @@ for more details on these settings.
 
 ### RBAC
 
-You can create a default RBAC superuser when initially setting up an
-environment, by setting the `KONG_PASSWORD` environment variable on the initial
-migration Job's Pod. This will create a `kong_admin` admin whose token and
-basic-auth password match the value of `KONG_PASSWORD`.
-You can create a secret holding the initial password value and then
-mount the secret as an environment variable using the `env` section.
+You can create a default RBAC superuser when initially running `helm install`
+by setting a `password` environment variable under `env` in values.yaml. It
+should be a reference to a secret key containing your desired password. This
+will create a `kong_admin` admin whose token and basic-auth password match the
+value in the secret. For example:
 
-Note that RBAC is **NOT** currently enabled on the admin API container for the
-controller Pod when the ingress controller is enabled. This admin API container
-is not exposed outside the Pod, so only the controller can interact with it. We
-intend to add RBAC to this container in the future after updating the controller
-to add support for storing its RBAC token in a Secret, as currently it would
-need to be stored in plaintext. RBAC is still enforced on the admin API of the
-main deployment when using the ingress controller, as that admin API *is*
-accessible outside the Pod.
+```yaml
+env:
+ password:
+   valueFrom:
+     secretKeyRef:
+        name: CHANGEME-admin-token-secret
+        key: CHANGEME-admin-token-key
+```
+
+If using the ingress controller, it needs access to the token as well, by
+specifying `kong_admin_token` in its environment variables:
+
+```yaml
+ingressController:
+  env:
+   kong_admin_token:
+     valueFrom:
+       secretKeyRef:
+          name: CHANGEME-admin-token-secret
+          key: CHANGEME-admin-token-key
+```
+
+Although the above examples both use the initial super-admin, we recommend
+[creating a less-privileged RBAC user](https://docs.konghq.com/enterprise/latest/kong-manager/administration/rbac/add-user/)
+for the controller after installing. It needs at least workspace admin
+privileges in its workspace (`default` by default, settable by adding a
+`workspace` variable under `ingressController.env`). Once you create the
+controller user, add its token to a secret and update your `kong_admin_token`
+variable to use it. Remove the `password` variable from Kong's environment
+variables and the secret containing the super-admin token after.
 
 ### Sessions
 

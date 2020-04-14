@@ -1,10 +1,8 @@
 To connect to Kong, please execute the following commands:
-
 {{ if contains "LoadBalancer" .Values.proxy.type }}
 HOST=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ template "kong.fullname" . }}-proxy -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 PORT=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ template "kong.fullname" . }}-proxy -o jsonpath='{.spec.ports[0].port}')
-{{- else if contains "NodePort" .Values.proxy.type -}}
-HOST=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath='{.items[0].status.addresses[0].address}')
+{{ else if contains "NodePort" .Values.proxy.type }}HOST=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath='{.items[0].status.addresses[0].address}')
 PORT=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ template "kong.fullname" . }}-proxy -o jsonpath='{.spec.ports[0].nodePort}')
 {{ end -}}
 export PROXY_IP=${HOST}:${PORT}
@@ -15,18 +13,21 @@ Kong: https://bit.ly/k4k8s-get-started
 
 {{ if and (.Values.enterprise.portal.enabled) (or (.Values.enterprise.portal.portal_auth) (.Values.enterprise.portal.session_conf_secret)) -}} {{/* Legacy Portal auth handling */}}
 /!\ WARNING: You are currently using legacy Portal authentication configuration
-in values.yaml. Support for this will be removed in a future release:
-https://github.com/Kong/charts/blob/kong-1.2.0/charts/kong/values.yaml#L384-L392
-
-You should move these settings to "portal_session_conf" (using a secretKeyRef)
-and "portal_auth" under your "env" block.
+in values.yaml. Support for this will be removed in a future release. Please
+see the upgrade guide for instructions to update your configuration:
+https://github.com/Kong/charts/blob/master/charts/kong/UPGRADE.md#removal-of-dedicated-portal-authentication-configuration-parameters
 {{- end }}
 
 {{ if .Values.admin.containerPort -}} {{/* Legacy admin API listen */}}
 /!\ WARNING: You are currently using legacy admin API configuration in
-values.yaml.  Support for this will be removed in a future release:
-https://github.com/Kong/charts/blob/kong-1.3.0/charts/kong/values.yaml#L58-L66
+values.yaml. Support for this will be removed in a future release. Please see
+the upgrade guide for instructions to update your configuration:
+https://github.com/Kong/charts/blob/master/charts/kong/UPGRADE.md#changes-to-kong-service-configuration
+{{- end }}
 
-You should rework your admin listen configuration to match the current format
-(https://github.com/Kong/charts/blob/master/charts/kong/values.yaml).
-{{- end -}}
+{{ if .Values.runMigrations -}} {{/* Legacy migration toggle */}}
+/!\ WARNING: You are currently using the legacy runMigrations setting in
+values.yaml. Support for this will be removed in a future release. Please see
+the upgrade guide for instructions to update your configuration:
+https://github.com/Kong/charts/blob/master/charts/kong/UPGRADE.md#changes-to-migration job-configuration
+{{- end }}

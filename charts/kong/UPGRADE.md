@@ -13,6 +13,7 @@ install/status/upgrade`.
 ## Table of contents
 
 - [Upgrade considerations for all versions](#upgrade-considerations-for-all-versions)
+- [1.5.0](#150)
 - [1.4.0](#140)
 - [1.3.0](#130)
 
@@ -26,6 +27,10 @@ these pods become ready, they begin processing traffic and old pods are
 terminated. Once this is complete, the chart spawns another job to run `kong
 migrations finish`.
 
+If you split your Kong deployment across multiple Helm releases (to create
+proxy-only and admin-only nodes, for example), you must
+[set which migration jobs run based on your upgrade order](https://github.com/Kong/charts/blob/master/charts/kong/README.md#separate-admin-and-proxy-nodes).
+
 While the migrations themselves are automated, the chart does not automatically
 ensure that you follow the recommended upgrade path. If you are upgrading from
 more than one minor Kong version back, check the [upgrade path
@@ -38,12 +43,80 @@ the issue stems from changes in Kubernetes resources or changes in Kong.
 
 Users may encounter an error when upgrading which displays a large block of
 text ending with `field is immutable`. This is typically due to a bug with the
-`init-migrations` job, which is [difficult to solve using current Helm
-functionality](https://github.com/Kong/charts/blob/master/charts/kong/FAQs.md#running-helm-upgrade-fails-because-of-old-init-migrations-job).
+`init-migrations` job, which was not removed automatically prior to 1.5.0.
 If you encounter this error, deleting any existing `init-migrations` jobs will
 clear it.
 
+## 1.5.0
+
+### PodSecurityPolicy defaults to read-only root filesystem
+
+1.5.0 defaults to using a read-only root container filesystem if
+`podSecurityPolicy.enabled: true` is set in values.yaml. This improves
+security, but is incompatible with Kong Enterprise versions prior to 1.5. If
+you use an older version and enable PodSecurityPolicy, you must set
+`podSecurityPolicy.spec.readOnlyRootFilesystem: false`.
+
+Kong open-source and Kong for Kubernetes Enterprise are compatible with a
+read-only root filesystem on all versions.
+
+### Changes to migration job configuration
+
+Previously, all migration jobs were enabled/disabled through a single
+`runMigrations` setting. 1.5.0 splits these into toggles for each of the
+individual upgrade migrations:
+
+```
+migrations:
+  preUpgrade: true
+  postUpgrade: true
+```
+
+Initial migration jobs are now only run during `helm install` and are deleted
+automatically when users first run `helm upgrade`.
+
+Users should replace `runMigrations` with the above block from the latest
+values.yaml.
+
+The new format addresses several needs:
+* The initial migrations job are only created during the initial install,
+  preventing [conflicts on upgrades](https://github.com/Kong/charts/blob/master/charts/kong/FAQs.md#running-helm-upgrade-fails-because-of-old-init-migrations-job).
+* The upgrade migrations jobs can be disabled as need for managing
+  [multi-release clusters](https://github.com/Kong/charts/blob/master/charts/kong/README.md#separate-admin-and-proxy-nodes).
+  This enables management of clusters that have nodes with different roles,
+  e.g. nodes that only run the proxy and nodes that only run the admin API.
+* Migration jobs now allow specifying annotations, and provide a default set
+  of annotations that disable some service mesh sidecars. Because sidecar
+  containers do not terminate, they [prevent the jobs from completing](https://github.com/kubernetes/kubernetes/issues/25908).
+
 ## 1.4.0
+
+### Changes to default Postgres permissions
+
+The [Postgres sub-chart](https://github.com/bitnami/charts/tree/master/bitnami/postgresql)
+used by this chart has modified the way their chart handles file permissions.
+This is not an issue for new installations, but prevents Postgres from starting
+if its PVC was created with an older version. If affected, your Postgres pod
+logs will show:
+
+```
+postgresql 19:16:04.03 INFO  ==> ** Starting PostgreSQL **
+2020-03-27 19:16:04.053 GMT [1] FATAL:  data directory "/bitnami/postgresql/data" has group or world access
+2020-03-27 19:16:04.053 GMT [1] DETAIL:  Permissions should be u=rwx (0700).
+```
+
+You can restore the old permission handling behavior by adding two settings to
+the `postgresql` block in values.yaml:
+
+```yaml
+postgresql:
+  enabled: true
+  postgresqlDataDir: /bitnami/postgresql/data
+  volumePermissions:
+    enabled: true
+```
+
+For background, see https://github.com/helm/charts/issues/13651
 
 ### `strip_path` now defaults to `false` for controller-managed routes
 

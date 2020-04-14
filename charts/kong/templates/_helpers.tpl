@@ -57,26 +57,27 @@ Create KONG_SERVICE_LISTEN strings
 Generic tool for creating KONG_PROXY_LISTEN, KONG_ADMIN_LISTEN, etc.
 */}}
 {{- define "kong.listen" -}}
-  {{- $httpListen := list -}}
-  {{- $tlsListen := list -}}
   {{- $unifiedListen := list -}}
 
   {{- if .http.enabled -}}
-    {{- $httpListen = append $httpListen (printf "0.0.0.0:%d" (int64 .http.containerPort)) -}}
-    {{- range $param := .http.parameters }}
-      {{- $httpListen = append $httpListen $param -}}
-    {{- end -}}
-
-    {{- $unifiedListen = append $unifiedListen ($httpListen | join " ") -}}
+    {{- $httpListen := (include "kong.singleListen" .http) -}}
+    {{- $unifiedListen = append $unifiedListen $httpListen -}}
   {{- end -}}
 
   {{- if .tls.enabled -}}
-    {{- $tlsListen = append $tlsListen (printf "0.0.0.0:%d ssl" (int64 .tls.containerPort)) -}}
-    {{- range $param := .tls.parameters }}
-      {{- $tlsListen = append $tlsListen $param -}}
-    {{- end -}}
-
-    {{- $unifiedListen = append $unifiedListen ($tlsListen | join " ") -}}
+    {{/*
+    This is a bit of a hack to support always including "ssl" in the parameter
+    list for TLS listens. It's not possible to set a variable to an object from
+    .Values and then modify one of the objects values locally, although
+    https://github.com/helm/helm/issues/4987 indicates it should be. Instead,
+    this creates a new object and new parameters list built from the original.
+    */}}
+    {{- $tls := dict -}}
+    {{- $parameters := append .tls.parameters "ssl" -}}
+    {{- $_ := set $tls "containerPort" .tls.containerPort -}}
+    {{- $_ := set $tls "parameters" $parameters -}}
+    {{- $tlsListen := (include "kong.singleListen" $tls) -}}
+    {{- $unifiedListen = append $unifiedListen $tlsListen -}}
   {{- end -}}
 
   {{- $listenString := ($unifiedListen | join ", ") -}}
@@ -86,6 +87,33 @@ Generic tool for creating KONG_PROXY_LISTEN, KONG_ADMIN_LISTEN, etc.
   {{- $listenString -}}
 {{- end -}}
 
+{{/*
+Create KONG_STREAM_LISTEN string
+*/}}
+{{- define "kong.streamListen" -}}
+  {{- $unifiedListen := list -}}
+  {{- range .stream -}}
+    {{- $unifiedListen = append $unifiedListen (include "kong.singleListen" . ) -}}
+  {{- end -}}
+
+  {{- $listenString := ($unifiedListen | join ", ") -}}
+  {{- if eq (len $listenString) 0 -}}
+    {{- $listenString = "off" -}}
+  {{- end -}}
+  {{- $listenString -}}
+{{- end -}}
+
+{{/*
+Create a single listen (IP+port+parameter combo)
+*/}}
+{{- define "kong.singleListen" -}}
+  {{- $listen := list -}}
+  {{- $listen = append $listen (printf "0.0.0.0:%d" (int64 .containerPort)) -}}
+  {{- range $param := .parameters | default (list) | uniq }}
+    {{- $listen = append $listen $param -}}
+  {{- end -}}
+  {{- $listen | join " " -}}
+{{- end -}}
 
 {{/*
 Return the local admin API URL, preferring HTTPS if available
@@ -144,15 +172,38 @@ The name of the service used for the ingress controller's validation webhook
 {{- end -}}
 
 {{- define "kong.ingressController.env" -}}
+{{/*
+    ====== AUTO-GENERATED ENVIRONMENT VARIABLES ======
+*/}}
+
+{{- $autoEnv := dict -}}
+{{- $_ := set $autoEnv "CONTROLLER_KONG_ADMIN_TLS_SKIP_VERIFY" "true" -}}
+{{- $_ := set $autoEnv "CONTROLLER_PUBLISH_SERVICE" (printf "%s/%s-proxy" .Release.Namespace (include "kong.fullname" .)) -}}
+{{- $_ := set $autoEnv "CONTROLLER_INGRESS_CLASS" .Values.ingressController.ingressClass -}}
+{{- $_ := set $autoEnv "CONTROLLER_ELECTION_ID" (printf "kong-ingress-controller-leader-%s" .Values.ingressController.ingressClass) -}}
+{{- $_ := set $autoEnv "CONTROLLER_KONG_URL" (include "kong.adminLocalURL" .) -}}
+{{- if .Values.ingressController.admissionWebhook.enabled }}
+  {{- $_ := set $autoEnv "CONTROLLER_ADMISSION_WEBHOOK_LISTEN" (printf "0.0.0.0:%d" .Values.ingressController.admissionWebhook.port) -}}
+{{- end }}
+
+{{/*
+    ====== USER-SET ENVIRONMENT VARIABLES ======
+*/}}
+
+{{- $userEnv := dict -}}
 {{- range $key, $val := .Values.ingressController.env }}
-- name: CONTROLLER_{{ $key | upper}}
-{{- $valueType := printf "%T" $val -}}
-{{ if eq $valueType "map[string]interface {}" }}
-{{ toYaml $val | indent 2 -}}
-{{- else }}
-  value: {{ $val | quote -}}
+  {{- $upper := upper $key -}}
+  {{- $var := printf "CONTROLLER_%s" $upper -}}
+  {{- $_ := set $userEnv $var $val -}}
 {{- end -}}
-{{- end -}}
+
+{{/*
+      ====== MERGE AND RENDER ENV BLOCK ======
+*/}}
+
+{{- $completeEnv := mergeOverwrite $autoEnv $userEnv -}}
+{{- template "kong.renderEnv" $completeEnv -}}
+
 {{- end -}}
 
 {{- define "kong.volumes" -}}
@@ -269,21 +320,6 @@ The name of the service used for the ingress controller's validation webhook
 - name: ingress-controller
   args:
   - /kong-ingress-controller
-  # Service from were we extract the IP address/es to use in Ingress status
-  - --publish-service={{ .Release.Namespace }}/{{ template "kong.fullname" . }}-proxy
-  # Set the ingress class
-  - --ingress-class={{ .Values.ingressController.ingressClass }}
-  - --election-id=kong-ingress-controller-leader-{{ .Values.ingressController.ingressClass }}
-  # the kong URL points to the kong admin api server
-  {{- if (or .Values.admin.useTLS .Values.admin.tls.enabled) }} {{/* TODO: remove legacy admin handling */}}
-  - --kong-url={{ template "kong.adminLocalURL" . }}
-  - --admin-tls-skip-verify
-  {{- else }}
-  - --kong-url={{ template "kong.adminLocalURL" . }}
-  {{- end }}
-  {{- if .Values.ingressController.admissionWebhook.enabled }}
-  - --admission-webhook-listen=0.0.0.0:{{ .Values.ingressController.admissionWebhook.port }}
-  {{- end }}
   {{ if .Values.ingressController.args}}
   {{- range $val := .Values.ingressController.args }}
   - {{ $val }}
@@ -368,6 +404,10 @@ TODO: remove legacy admin listen behavior at a future date
 {{- end -}}
 
 {{- $_ := set $autoEnv "KONG_PROXY_LISTEN" (include "kong.listen" .Values.proxy) -}}
+
+{{- $_ := set $autoEnv "KONG_STREAM_LISTEN" (include "kong.streamListen" .Values.proxy) -}}
+
+{{- $_ := set $autoEnv "KONG_STATUS_LISTEN" (include "kong.listen" .Values.status) -}}
 
 {{- if .Values.enterprise.enabled }}
   {{- $_ := set $autoEnv "KONG_ADMIN_GUI_LISTEN" (include "kong.listen" .Values.manager) -}}
@@ -474,9 +514,20 @@ TODO: remove legacy admin listen behavior at a future date
 */}}
 
 {{- $completeEnv := mergeOverwrite $autoEnv $userEnv -}}
+{{- template "kong.renderEnv" $completeEnv -}}
 
-{{- range keys $completeEnv | sortAlpha }}
-{{- $val := pluck . $completeEnv | first -}}
+{{- end -}}
+
+{{/*
+Given a dictionary of variable=value pairs, render a container env block.
+Environment variables are sorted alphabetically
+*/}}
+{{- define "kong.renderEnv" -}}
+
+{{- $dict := . -}}
+
+{{- range keys . | sortAlpha }}
+{{- $val := pluck . $dict | first -}}
 {{- $valueType := printf "%T" $val -}}
 {{ if eq $valueType "map[string]interface {}" }}
 - name: {{ . }}

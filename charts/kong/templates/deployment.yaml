@@ -108,6 +108,30 @@ spec:
           {{- end}}
           protocol: TCP
         {{- end }}
+        {{- range .Values.proxy.stream }}
+        - name: stream-{{ .containerPort }}
+          containerPort: {{ .containerPort }}
+          {{- if .hostPort }}
+          hostPort: {{ .hostPort }}
+          {{- end}}
+          protocol: TCP
+        {{- end }}
+        {{- if .Values.status.http.enabled }}
+        - name: status
+          containerPort: {{ .Values.status.http.containerPort }}
+          {{- if .Values.status.http.hostPort }}
+          hostPort: {{ .Values.status.http.hostPort }}
+          {{- end}}
+          protocol: TCP
+        {{- end }}
+        {{- if .Values.status.tls.enabled }}
+        - name: status-tls
+          containerPort: {{ .Values.status.tls.containerPort }}
+          {{- if .Values.status.tls.hostPort }}
+          hostPort: {{ .Values.status.tls.hostPort }}
+          {{- end}}
+          protocol: TCP
+        {{- end }}
         - name: metrics
           containerPort: 9542
           protocol: TCP

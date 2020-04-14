@@ -45,6 +45,16 @@ spec:
   {{- end }}
     protocol: TCP
   {{- end }}
+  {{- $root := .Values }}
+  {{- range .Values.proxy.stream }}
+  - name: stream-{{ .containerPort }}
+    port: {{ .servicePort }}
+    targetPort: {{ .containerPort }}
+    {{- if (and (or (eq $root.proxy.type "LoadBalancer") (eq $root.proxy.type "NodePort")) (not (empty .nodePort))) }}
+    nodePort: {{ .nodePort }}
+    {{- end }}
+    protocol: TCP
+  {{- end }}
   {{- if .Values.proxy.externalTrafficPolicy }}
   externalTrafficPolicy: {{ .Values.proxy.externalTrafficPolicy }}
   {{- end }}

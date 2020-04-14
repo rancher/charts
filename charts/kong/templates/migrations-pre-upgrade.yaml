@@ -1,4 +1,4 @@
-{{- if (and (.Values.runMigrations) (not (eq .Values.env.database "off"))) }}
+{{- if (and (or (.Values.runMigrations) (.Values.migrations.preUpgrade)) (not (eq .Values.env.database "off"))) }}
 # Why is this Job duplicated and not using only helm hooks?
 # See: https://github.com/helm/charts/pull/7362
 apiVersion: batch/v1
@@ -18,6 +18,10 @@ spec:
       labels:
         {{- include "kong.metaLabels" . | nindent 8 }}
         app.kubernetes.io/component: pre-upgrade-migrations
+      annotations:
+        {{- range $key, $value := .Values.migrations.annotations }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
     spec:
       {{- if .Values.podSecurityPolicy.enabled }}
       serviceAccountName: {{ template "kong.serviceAccountName" . }}
