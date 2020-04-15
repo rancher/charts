@@ -81,10 +81,9 @@ spec:
       volumes:
         - name: fahclient
           emptyDir: {}
-        # Uncomment if using ConfigMap config.xml
-        # - name: fah-worker-config
-        #   configMap:
-        #     name: foldingathome-config
+        - name: fah-worker-config
+          configMap:
+            name: foldingathome-config
       initContainers:
         - name: copy-config
           imagePullPolicy: Always
@@ -92,9 +91,7 @@ spec:
           command:
             - "sh"
             - "-c"
-            - "cp /etc/fahclient/config.xml /var/lib/fahclient/config.xml"
-            # Use this cp command instead if using ConfigMap config.xml
-            # - "cp /etc/fahclient-config/config.xml /var/lib/fahclient/config.xml"
+            - "cp /etc/fahclient-config/config.xml /var/lib/fahclient/config.xml"
           securityContext:
             runAsNonRoot: true
             runAsUser: 1234
@@ -103,9 +100,8 @@ spec:
           volumeMounts:
             - mountPath: /var/lib/fahclient
               name: fahclient
-            # Uncomment if using ConfigMap config.xml
-            # - name: fah-worker-config
-            #   mountPath: /etc/fahclient-config
+            - name: fah-worker-config
+              mountPath: /etc/fahclient-config
       # priorityClassName: low-priority-class
 ---
 apiVersion: v1
@@ -121,9 +117,9 @@ data:
       -->
 
       <!-- User Information -->
-      <user value=""/> <!-- Enter your user name here -->
-      <team value=""/>         <!-- Your team number -->
-      <passkey value=""/>       <!-- 32 hexadecimal characters if provided -->
+      <user value="{{ .Values.fah.username }}"/>         <!-- Enter your user name here -->
+      <team value="{{ .Values.fah.teamname }}"/>         <!-- Your team number -->
+      <passkey value="{{ .Values.fah.passkey }}"/>       <!-- 32 hexadecimal characters if provided -->
 
       <power value="full"/>     <!-- Throttling this at K8s level -->
       {{- if .Values.gpu }}
@@ -131,7 +127,13 @@ data:
       {{- else }}               <!-- If true, attempt to autoconfigure GPUs -->
       <gpu value="false"/>
       {{- end }}
+
+      {{- if or .Values.fah.username .Values.fah.teamname .Values.fah.passkey }}
+      <fold-anon value="false"/>
+      {{- else }}}
       <fold-anon value="true"/>
+      {{- end }}
+
 
       <!-- Folding Slots
         No folding slot configuration is necessary.  The client will
