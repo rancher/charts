@@ -4,6 +4,5 @@
 
 MariaDB is developed as open source software and as a relational database it provides an SQL interface for accessing data. The latest versions of MariaDB also include GIS and JSON features.
 
-## Notable changes
-### v6.7.4
-**Warning:** Upgrade from previous version is currently not supported.
+## Changelog
+### v7.3.14
