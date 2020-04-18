@@ -18,16 +18,6 @@ questions:
     description: "Traefik Image Tag"
     type: string
     label: Traefik Image Tag
-- variable: serviceType
-  type: enum
-  options:
-    - "LoadBalancer"
-    - "NodePort"
-    - "ClusterIP"
-  default: "LoadBalancer"
-  description: "Service Type for Traefik"
-  label: Service Type
-  group: "General Settings"
 - variable: debug.enabled
   type: boolean
   default: false
@@ -40,6 +30,35 @@ questions:
   label: RBAC
   type: boolean
   group: "General Settings"
+- variable: serviceType
+  type: enum
+  options:
+    - "LoadBalancer"
+    - "NodePort"
+    - "ClusterIP"
+  default: "LoadBalancer"
+  description: "Service Type for Traefik"
+  label: Service Type
+  group: "Services and Load Balancing"
+  show_subquestion_if: "NodePort"
+  group: "Services and Load Balancing"
+  subquestions:
+  - variable: service.nodePorts.http
+    default: ""
+    description: "NodePort http port(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    show_if: "serviceType=NodePort"
+    label: NodePort Http Port
+  - variable: service.nodePorts.https
+    default: ""
+    description: "NodePort https port(to set explicitly, choose port between 30000-32767)"
+    type: int
+    min: 30000
+    max: 32767
+    show_if: "serviceType=NodePort"
+    label: NodePort Https Port
 - variable: ssl.enabled
   type: boolean
   default: false
