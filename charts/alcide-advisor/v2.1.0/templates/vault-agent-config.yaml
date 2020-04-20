@@ -1,0 +1,60 @@
+{{ if eq .Values.vaultAgent.mode "vault" }}
+---
+kind: ConfigMap
+metadata:
+  name: vault-agent-config
+  namespace: alcide-advisor
+apiVersion: v1
+data:
+  vault-agent-config.hcl: |-
+    exit_after_auth = true
+    pid_file = "/home/vault/pidfile"
+
+    auto_auth {
+        method "kubernetes" {
+            mount_path = "auth/kubernetes"
+            config = {
+                role = "alcide-advisor"
+            }
+        }
+    }
+    listener "tcp" {
+        address = "localhost:8100"
+        tls_disable = true
+    }
+    cache {
+        use_auto_auth_token = true
+    }
+    sink "file" {
+        config = {
+            path = "/vault/.vault-token"
+        }
+    }
+
+    template {
+      destination = "/vault/secrets/alcide-advisor.yaml"
+      contents = <<EOH
+      Exports:
+      {{"{{- with secret \"secret/alcide/advisor\" -}}"}}   
+        {{"{{- if  .Data.data.prometheusUsername }}"}}
+        prometheusPassword: {{"{{ .Data.data.prometheusPassword }}"}}
+        prometheusUsername: {{"{{ .Data.data.prometheusUsername }}"}}
+        {{"{{- end }}"}}      
+
+        {{"{{- if .Data.data.s3AwsAccessKeyId }}"}}  
+        s3AwsAccessKeyId: {{"{{ .Data.data.s3AwsAccessKeyId }}"}}
+        s3AwsSecretAccessKey: {{"{{ .Data.data.s3AwsSecretAccessKey }}"}}
+        {{"{{- end }}"}}  
+
+        {{"{{- if .Data.data.slackApiToken }}"}}  
+        slackApiToken: {{"{{ .Data.data.slackApiToken }}"}}
+        {{"{{- end }}"}}   
+
+        {{"{{- if  .Data.data.alcideApiKey }}"}}             
+      Profile:
+        alcideApiKey: {{"{{ .Data.data.alcideApiKey }}"}}
+        {{"{{- end }}"}}   
+      {{"{{- end }}"}}
+      EOH
+    }
+{{ end }}

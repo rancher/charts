@@ -1,0 +1,89 @@
+namespace: alcide-advisor
+image:
+  alcideAdvisor: alcide/advisor:stable #alcide/advisor:stable # For Vault secret support use alcidelabs/advisor:2.11.0-vault
+  pullPolicy: Always #IfNotPresent
+
+#  string	   meaning
+#  ------	   -------
+#  @yearly	   Run once a year, "0 0 1 1 *".
+#  @annually	 (same as @yearly)
+#  @monthly	   Run once a month, "0	0 1 * *".
+#  @weekly	   Run once a week, "0 0 * * 0".
+#  @daily	     Run once a day, "0 0	* * *".
+#  @midnight	 (same as @daily)
+#  @hourly	   Run once an hour, "0	* * * *".
+#  @every_minute   Run once a minute, "*/1 * * * *".
+#  @every_second   Run once a second.
+cronSchedule: "*/1 * * * *"
+
+# 
+# Example: 
+# advisor validate cluster --output html --outfile report.html --profile-id 11111111-1111-1111-aaaa-bbbbbbbbbbbb --organization salesonboarding --alcide-api-server free.cloud.alcide.io --cluster-context <Your_Cluster_Context>  --alcide-api-key <Your_Alcide_API_Key>
+# Create an account: https://www.alcide.io/pricing/
+#
+alcide:
+  orgId: yourorg
+  apiServer: 
+  # Obtain an API Key from your Alcide Cloud Account
+  apiKey: 
+  # Either use a profile id or use the profile exported to file
+  advisorProfileId: ""
+  advisorProfileFile: ""
+
+
+slack:
+  #<Your_Slack_Channel>
+  channel: |-
+      @someuser
+  #Slack OAuth Token - https://api.slack.com/apps/ - should have the form: xoxb-12345678901-123456789012-somerandomstuff
+  token: ""
+
+s3:
+  # Format: s3://mybucket/subdir?region=us-west-2
+  s3Url: "s3://mybucket/subdir?region=us-west-2"
+  # S3 AWS Access Secret and Key Id
+  awsAccessKeyId:
+  awsSecretKey:
+
+prometheus:
+  pushGateway: ""
+  username: 
+  password:  
+
+vaultAgent:
+  #
+  # Vault Secrets (Assume KV v2)
+  # See also: https://www.hashicorp.com/blog/injecting-vault-secrets-into-kubernetes-pods-via-a-sidecar/
+  #
+
+  # cat <<EOF > /home/vault/alcide-policy.hcl
+  # path "secret/data/alcide/advisor" {
+  #   capabilities = ["read"]
+  # }
+  # EOF
+
+  # vault policy write alcide-advisor /home/vault/alcide-policy.hcl
+
+  # vault write auth/kubernetes/role/alcide-advisor \
+  #    bound_service_account_names=alcide-advisor \
+  #    bound_service_account_namespaces=alcide-advisor \
+  #    policies=alcide-advisor \
+  #    ttl=1h
+
+  # vault kv put secret/alcide/advisor \
+  #     s3AwsAccessKeyId=someawskey \
+  #     s3AwsSecretAccessKey=someawssecret \
+  #     slackApiToken=xoxb-somekey \
+  #     alcideApiKey=alcideapikey  \
+  #     prometheusUsername=''   \
+  #     prometheusPassword=''    
+
+  #
+  # Mode can be one of: 
+  #    none, agent-inject, vault
+  mode: "none"
+
+  #
+  # For "vault" mode this parameter is required
+  #
+  vaultServer: "http://vault.demo:8200"
