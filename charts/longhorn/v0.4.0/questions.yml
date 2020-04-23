@@ -1,8 +1,6 @@
 rancher_max_version: 2.3.1
 categories:
 - storage
-labels:
-  io.rancher.certified: experimental
 namespace: longhorn-system
 questions:
 - variable: driver
@@ -21,6 +19,23 @@ questions:
     description: "Leave blank to autodetect. For RKE, use `/var/lib/kubelet/volumeplugins`. For GKE, use `/home/kubernetes/flexvolume/` instead. Users can find the correct directory by running `ps aux|grep kubelet` on the host and check the --volume-plugin-dir parameter.  If there is none, the default `/usr/libexec/kubernetes/kubelet-plugins/volume/exec/` will be used."
     type: string
     label: Longhorn Flexvolume Path
+  show_subquestion_if: csi
+  subquestions:
+  - variable: csi.attacherImage
+    default:
+    description: "Specify CSI attacher image. Leave blank to autodetect."
+    type: string
+    label: Longhorn CSI Attacher Image
+  - variable: csi.provisionerImage
+    default:
+    description: "Specify CSI provisioner image. Leave blank to autodetect."
+    type: string
+    label: Longhorn CSI Provisioner Image
+  - variable: csi.driverRegistrarImage
+    default:
+    description: "Specify CSI Driver Registrar image. Leave blank to autodetect."
+    type: string
+    label: Longhorn CSI Driver Registrar Image
 - variable: persistence.defaultClass
   default: "true"
   description: "Set as default StorageClass"

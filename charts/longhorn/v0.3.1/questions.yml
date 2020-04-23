@@ -1,8 +1,6 @@
 rancher_max_version: 2.3.1
 categories:
 - storage
-labels:
-  io.rancher.certified: experimental
 namespace: longhorn-system
 questions:
 - variable: driver
@@ -21,23 +19,6 @@ questions:
     description: "Leave blank to autodetect. For RKE, use `/var/lib/kubelet/volumeplugins`. For GKE, use `/home/kubernetes/flexvolume/` instead. Users can find the correct directory by running `ps aux|grep kubelet` on the host and check the --volume-plugin-dir parameter.  If there is none, the default `/usr/libexec/kubernetes/kubelet-plugins/volume/exec/` will be used."
     type: string
     label: Longhorn Flexvolume Path
-  show_subquestion_if: csi
-  subquestions:
-  - variable: csi.attacherImage
-    default:
-    description: "Specify CSI attacher image. Leave blank to autodetect."
-    type: string
-    label: Longhorn CSI Attacher Image
-  - variable: csi.provisionerImage
-    default:
-    description: "Specify CSI provisioner image. Leave blank to autodetect."
-    type: string
-    label: Longhorn CSI Provisioner Image
-  - variable: csi.driverRegistrarImage
-    default:
-    description: "Specify CSI Driver Registrar image. Leave blank to autodetect."
-    type: string
-    label: Longhorn CSI Driver Registrar Image
 - variable: persistence.defaultClass
   default: "true"
   description: "Set as default StorageClass"
@@ -46,7 +27,7 @@ questions:
   required: true
   label: Default Storage Class
 - variable: ingress.enabled
-  default: "false"
+  default: "true"
   description: "Expose app using Layer 7 Load Balancer - ingress"
   type: boolean
   group: "Services and Load Balancing"
@@ -60,14 +41,13 @@ questions:
     required: true
     label: Layer 7 Load Balancer Hostname
 - variable: service.ui.type
-  default: "Rancher-Proxy"
+  default: "NodePort"
   description: "Define Longhorn UI service type"
   type: enum
   options:
     - "ClusterIP"
     - "NodePort"
     - "LoadBalancer"
-    - "Rancher-Proxy"
   label: Longhorn UI Service
   show_if: "ingress.enabled=false"
   group: "Services and Load Balancing"
