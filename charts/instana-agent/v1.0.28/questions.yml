@@ -1,0 +1,227 @@
+name: instana-agent
+rancher_min_version: 2.3.0-rc1
+labels:
+  io.cattle.role: cluster
+  io.rancher.certified: partner
+questions:
+# Basic agent configuration
+- variable: agent.key
+  label: agent.key
+  description: "Your Instana Agent key is the secret token which your agent uses to authenticate to Instana's servers"
+  type: string
+  required: true
+  group: "Agent Configuration"
+- variable: agent.endpointHost
+  label: agent.endpointHost
+  description: "The hostname of the Instana server your agents will connect to"
+  type: string
+  required: true
+  default: "saas-us-west-2.instana.io"
+  group: "Agent Configuration"
+- variable: zone.name
+  label: zone.name
+  description: "Custom zone that detected technologies will be assigned to"
+  type: string
+  required: true
+  group: "Agent Configuration"
+# Advanced agent configuration
+- variable: advancedAgentConfiguration
+  description: "Show advanced configuration for the Instana Agent"
+  label: Show advanced configuration
+  type: boolean
+  default: false
+  show_subquestion_if: true
+  group: "Advanced Agent Configuration"
+  subquestions:
+  - variable: agent.configuration_yaml
+    label: agent.configuration_yaml (Optional)
+    description: "Custom content for the agent configuration.yaml file in YAML format. Please use the 'Edit as YAML' feature in the Rancher UI for the best editing experience."
+    type: string
+    required: false
+    group: "Advanced Agent Configuration"
+  - variable: agent.downloadKey
+    label: agent.downloadKey (Optional)
+    description: "Your Instana download key"
+    type: string
+    required: false
+    group: "Advanced Agent Configuration"
+  - variable: agent.endpointPort
+    label: agent.endpointPort
+    description: "The Agent backend port number (as a string) of the Instana server your agents will connect to"
+    type: string
+    required: true
+    default: "443"
+    group: "Advanced Agent Configuration"
+  - variable: agent.image.name
+    label: agent.image.name
+    description: "The name of the container image of the Instana Agent"
+    type: string
+    required: true
+    default: "instana/agent"
+    group: "Advanced Agent Configuration"
+  - variable: agent.image.tag
+    label: agent.image.tag
+    description: "The tag name of the Instana Agent container image"
+    type: string
+    required: true
+    default: "latest"
+    group: "Advanced Agent Configuration"
+  - variable: agent.image.pullPolicy
+    label: agent.image.pullPolicy
+    description: "Specifies when to pull the Instana Agent image container"
+    type: string
+    required: true
+    default: "Always"
+    group: "Advanced Agent Configuration"
+  - variable: agent.leaderElectorPort
+    label: agent.leaderElectorPort
+    description: "The port on which the leader elector sidecar is exposed"
+    type: int
+    required: true
+    default: 42655
+    group: "Advanced Agent Configuration"
+  - variable: agent.listenAddress
+    label: agent.listenAddress (Optional)
+    description: "The IP address the agent HTTP server will listen to, or '*' for all interfaces"
+    type: string
+    required: false
+    group: "Advanced Agent Configuration"
+  - variable: agent.mode
+    label: agent.mode (Optional)
+    description: "Agent mode. Possible options are: APM, INFRASTRUCTURE or AWS"
+    type: enum
+    options:
+    - "APM"
+    - "INFRASTRUCTURE"
+    - "AWS"
+    required: false
+    group: "Advanced Agent Configuration"
+  - variable: agent.pod.annotations
+    label: agent.pod.annotations (Optional)
+    description: "Additional annotations to be added to the agent pods in YAML format. Please use the 'Edit as YAML' feature in the Rancher UI for the best editing experience."
+    type: string
+    required: false
+    group: "Advanced Agent Configuration"
+  - variable: agent.pod.limits.cpu
+    label: agent.pod.limits.cpu
+    description: "CPU units allocation limits for the agent pods"
+    type: string
+    required: true
+    default: "1.5"
+    group: "Advanced Agent Configuration"
+  - variable: agent.pod.limits.memory
+    label: agent.pod.limits.memory
+    description: "Memory allocation limits in MiB for the agent pods"
+    type: int
+    required: true
+    default: 512
+    group: "Advanced Agent Configuration"
+  - variable: agent.pod.proxyHost
+    label: agent.pod.proxyHost (Optional)
+    description: "Hostname/address of a proxy. Sets the INSTANA_AGENT_PROXY_HOST environment variable"
+    type: string
+    required: false
+    group: "Advanced Agent Configuration"
+  - variable: agent.pod.proxyPort
+    label: agent.pod.proxyPort (Optional)
+    description: "Port of a proxy. Sets the INSTANA_AGENT_PROXY_PORT environment variable"
+    type: string
+    required: false
+    group: "Advanced Agent Configuration"
+  - variable: agent.pod.proxyProtocol
+    label: agent.pod.proxyProtocol (Optional)
+    description: "Proxy protocol. Sets the INSTANA_AGENT_PROXY_PROTOCOL environment variable. Supported proxy types are http, socks4, socks5"
+    type: string
+    required: false
+    group: "Advanced Agent Configuration"
+  - variable: agent.pod.proxyUser
+    label: agent.pod.proxyUser (Optional)
+    description: "Username of the proxy auth. Sets the INSTANA_AGENT_PROXY_USER environment variable"
+    type: string
+    required: false
+    group: "Advanced Agent Configuration"
+  - variable: agent.pod.proxyPassword
+    label: agent.pod.proxyPassword (Optional)
+    description: "Password of the proxy auth. Sets the INSTANA_AGENT_PROXY_PASSWORD environment variable"
+    type: string
+    required: false
+    group: "Advanced Agent Configuration"
+  - variable: agent.pod.proxyUseDNS
+    label: agent.pod.proxyUseDNS. (Optional)
+    description: "Boolean if proxy also does DNS. Sets the INSTANA_AGENT_PROXY_USE_DNS environment variable"
+    type: enum
+    options:
+      - "true"
+      - "false"
+    required: false
+    group: "Advanced Agent Configuration"
+  - variable: agent.pod.requests.cpu
+    label: agent.pod.requests.cpu
+    description: "Requested CPU units allocation for the agent pods"
+    type: string
+    required: true
+    default: "0.5"
+    group: "Advanced Agent Configuration"
+  - variable: agent.pod.requests.memory
+    label: agent.pod.requests.memory
+    description: "Requested memory allocation in MiB for the agent pods"
+    type: int
+    required: true
+    default: 512
+    group: "Advanced Agent Configuration"
+  - variable: agent.pod.tolerations
+    label: agent.pod.tolerations (Optional)
+    description: "Tolerations to influence agent pod assignment in YAML format. Please use the 'Edit as YAML' feature in the Rancher UI for the best editing experience."
+    type: string
+    required: false
+    group: "Advanced Agent Configuration"
+  - variable: agent.redactKubernetesSecrets
+    label: agent.redactKubernetesSecrets (Optional)
+    description: "Enable additional secrets redaction for selected Kubernetes resources"
+    type: boolean
+    required: false
+    default: false
+    group: "Advanced Agent Configuration"
+  - variable: cluster.name
+    label: cluster.name (Optional)
+    description: "The name that will be assigned to this cluster in Instana. See the 'Installing the Chart' section in the 'Detailed Descriptions' tab for more details"
+    type: string
+    required: false
+    group: "Advanced Agent Configuration"
+- variable: podSecurityPolicy.enable
+  label: podSecurityPolicy.enable (Optional)
+  description: "Specifies whether a PodSecurityPolicy should be authorized for the Instana Agent pods. Requires `rbac.create` to also be `true`"
+  type: boolean
+  show_if: "rbac.create=true"
+  required: false
+  default: false
+  group: "Pod Security Policy Configuration"
+- variable: podSecurityPolicy.name
+  label: podSecurityPolicy.name (Optional)
+  description: "The name of an existing PodSecurityPolicy you would like to authorize for the Instana Agent pods. If not set and `podSecurityPolicy.enable` is `true`, a PodSecurityPolicy will be created with a name generated using the fullname template"
+  type: string
+  show_if: "rbac.create=true&&podSecurityPolicy.enable=true"
+  required: false
+  group: "Pod Security Policy Configuration"
+- variable: rbac.create
+  label: rbac.create
+  description: "Specifies whether RBAC resources should be created"
+  type: boolean
+  required: true
+  default: true
+  group: "RBAC Configuration"
+- variable: serviceAccount.create
+  label: serviceAccount.create
+  description: "Specifies whether a ServiceAccount should be created"
+  type: boolean
+  required: true
+  default: true
+  show_subquestion_if: true
+  group: "RBAC Configuration"
+  subquestions:
+  - variable: serviceAccount.name
+    label: Name of the ServiceAccount (Optional)
+    description: "The name of the ServiceAccount to use. If not set and `serviceAccount.create` is true, a name is generated using the fullname template."
+    type: string
+    required: false
+    group: "RBAC Configuration"
