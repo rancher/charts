@@ -39,12 +39,14 @@ securityContext: {}
 service:
   type: ClusterIP
   httpPort: 8181
+  plainPort: 8383
   grpcinsecure: 8184
 
 ingress:
   enabled: false
   annotations: {}
-
+  http_trace_ingress: false
+  plain_trace_ingress: false
   hosts:
     - host: chart-example.local
       paths: []
@@ -78,15 +80,33 @@ lightstep:
   bytes_per_project: "1000000000"
   bytes_per_project_override:
   guid:
+  diagnostic_port_enabled: true
   diagnostic_port: 8000
+  diagnostic_port_node: 38000
+  admin_plain_port_enabled: true
   admin_plain_port: 8180
+  admin_plain_port_nodes: 38180
+  admin_secure_port_enabled: true
   admin_secure_port: 9090
+  admin_secure_port_node: 39090
+  http_plain_port_enabled: true
   http_plain_port: 8181
+  http_plain_port_node: 38181
+  http_secure_port_enabled: true
   http_secure_port: 9191
+  http_secure_port_nodes: 39191
+  grpc_plain_port_enabled: true
   grpc_plain_port: 8184
+  grpc_plain_port_node: 38184
+  grpc_secure_port_enabled: true
   grpc_secure_port: 9292
+  grpc_secure_port_nodes: 39292
+  plain_port_enabled: true
   plain_port: 8383
+  plain_port_nodes: 38383
+  secure_port_enabled: true
   secure_port: 9393
+  secure_port_nodes: 39393
   tls_cert_prefix:
   collector_ingestion_tags:
 
@@ -104,3 +124,14 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+statsd:
+  enabled: true
+  host: 127.0.0.1
+  port: 8125
+  export_statsd: true                               # If true, dogStatsD will be ignored
+  prefix: "lightstep.prod.us-west-1"
+  satellite_prefix: "satellite-canary"
+  client_prefix: "client_via_canary"
+  dogStatsD: false                                  # If true, will output dogStatsD instead of statsD
+  dogStatsDTags: "pool:us-west-1,canary:true"

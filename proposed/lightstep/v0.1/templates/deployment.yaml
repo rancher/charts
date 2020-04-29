@@ -22,23 +22,23 @@ spec:
       securityContext:
 {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-      - name: rancher-test
+      - name: rancher-lightstep-satellite
         image: "{{ .Values.image.repository }}:{{ .Chart.AppVersion }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         env:
-          {{- if .Values.lightstep.collector_satellite_key_secret_name }}
-          - name: COLLECTOR_SATELLITE_KEY
-            valueFrom:
-              secretKeyRef:
-                key: {{ .Values.lightstep.collector_satellite_key_secret_key }}
-                name: {{ .Values.lightstep.collector_satellite_key_secret_name }}
-          {{- end }}
           {{- if .Values.lightstep.satelliteKey }}
           - name: COLLECTOR_SATELLITE_KEY
             valueFrom:
               secretKeyRef:
                 key: satelliteKey
                 name: lightstep-satellite
+          {{- end }}
+          {{- if .Values.lightstep.collector_satellite_key_secret_name }}
+          - name: COLLECTOR_SATELLITE_KEY
+            valueFrom:
+              secretKeyRef:
+                key: {{ .Values.lightstep.collector_satellite_key_secret_key }}
+                name: {{ .Values.lightstep.collector_satellite_key_secret_name }}
           {{- end }}
           - name: COLLECTOR_POOL
             value: {{ .Values.lightstep.collector_pool | quote }}
@@ -77,6 +77,27 @@ spec:
           {{- if .Values.lightstep.collector_ingestion_tags -}}
           - name: COLLECTOR_INGESTION_TAGS
             value: {{ .Values.lightstep.collector_ingestion_tags | quote }}
+          {{ end }}
+          {{ if eq .Values.statsd.enabled true }}
+          - name: COLLECTOR_STATSD_HOST
+            value: {{ .Values.statsd.host | quote }}
+          - name: COLLECTOR_STATSD_PORT
+            value: {{ .Values.statsd.port | quote }}
+          {{ if eq .Values.statsd.dogStatsD true }}
+          - name: COLLECTOR_STATSD_EXPORT_DOGSTATSD
+            value: {{ .Values.statsd.dogStatsD | quote }}
+          - name: COLLECTOR_STATSD_DOGSTATSD_TAGS
+            value: {{ .Values.statsd.dogStatsDTags | quote }}
+          {{ else }}
+          - name: COLLECTOR_STATSD_EXPORT_STATSD
+            value: {{ .Values.statsd.export_statsd | quote }}
+          {{ end }}
+          - name: COLLECTOR_STATSD_PREFIX
+            value: {{ .Values.statsd.prefix | quote }}
+          - name: COLLECTOR_STATSD_SATELLITE_PREFIX
+            value: {{ .Values.statsd.satellite_prefix | quote }}
+          - name: COLLECTOR_STATSD_CLIENT_PREFIX
+            value: {{ .Values.statsd.client_prefix | quote }}
           {{ end }}
         ports:
         - containerPort: {{ .Values.lightstep.diagnostic_port }}
