@@ -1,0 +1,62 @@
+questions:
+# Authentication
+- variable: basic_auth
+  label: Enable Authentication
+  type: boolean
+  required: true
+  default: true
+  show_subquestion_if: true
+  group: "Authentication"
+  subquestions:
+  - variable: generateBasicAuth
+    label: Generate Admin Credentials
+    description: "Generate basic authentication for the \"admin\" user. If disabled, a secret with the basic_auth credentials will need to be manually supplied"
+    required: true
+    type: boolean
+    default: true
+
+# Services and Load Balancing
+- variable: ingress.enabled
+  label: Enable Ingress
+  description: "Expose app using Ingress (Layer 7 Load Balancer)"
+  type: boolean
+  default: true
+  show_subquestion_if: true
+  group: Services and Load Balancing
+  subquestions:
+  - variable: ingress.hosts[0].host
+    label: Hostname
+    description: "Hostname to your OpenFaas installation. Example: \"gateway.openfaas.local\" or \"gateway.example.com\" if public facing"
+    required: true
+    type: hostname
+    default: "xip.io"
+  - variable: ingress.hosts[0].servicePort
+    label: Ingress Service Port
+    required: true
+    type: int
+    default: 8080
+  - variable: ingress.hosts[0].serviceName
+    label: Ingress Service Name
+    type: string
+    required: true
+    default: "gateway"
+- variable: service.type
+  label: Service Type
+  required: true
+  type: enum
+  default: NodePort
+  show_if: "ingress.enabled=false"
+  options:
+  - "NodePort"
+  - "LoadBalancer"
+  show_subquestion_if: "NodePort"
+  group: "Services and Load Balancing"
+  subquestions:
+  - variable: gateway.nodePort
+    label: NodePort Port Number
+    description: "Assign a port number between 30000-32767 or leave blank for K8s to assign one automatically"
+    default: ""
+    type: int
+    min: 30000
+    max: 32767
+    show_if: "ingress.enabled=false&&service.type=NodePort"
