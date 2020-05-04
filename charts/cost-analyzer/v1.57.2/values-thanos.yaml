@@ -1,0 +1,72 @@
+global:
+  thanos:
+    enabled: true
+
+prometheus:
+  server:
+    extraArgs:
+      storage.tsdb.min-block-duration: 2h
+      storage.tsdb.max-block-duration: 2h
+      storage.tsdb.retention: 2w
+    extraVolumes:
+    - name: object-store-volume
+      secret:
+        # Ensure this secret name matches thanos.storeSecretName
+        secretName: kubecost-thanos
+    enableAdminApi: true
+    sidecarContainers:
+    - name: thanos-sidecar
+      image: thanosio/thanos:v0.11.0
+      args:
+      - sidecar
+      - --log.level=debug
+      - --tsdb.path=/data/
+      - --prometheus.url=http://127.0.0.1:9090
+      - --objstore.config-file=/etc/config/object-store.yaml
+      # Start of time range limit to serve. Thanos sidecar will serve only metrics, which happened
+      # later than this value. Option can be a constant time in RFC3339 format or time duration
+      # relative to current time, such as -1d or 2h45m. Valid duration units are ms, s, m, h, d, w, y.
+      - --min-time=-3h
+      env:
+      - name: POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      ports:
+      - name: sidecar-http
+        containerPort: 10902
+      - name: grpc
+        containerPort: 10901
+      - name: cluster
+        containerPort: 10900
+      volumeMounts:
+      - name: config-volume
+        mountPath: /etc/prometheus
+      - name: storage-volume
+        mountPath: /data
+        subPath: ""
+      - name: object-store-volume
+        mountPath: /etc/config
+    
+thanos:
+  store:
+    enabled: true
+    grpcSeriesMaxConcurrency: 20
+    blockSyncConcurrency: 20
+    resources: 
+      requests:
+        memory: "2.5Gi"
+  query: 
+    enabled: true
+    timeout: 3m
+    maxConcurrent: 10
+  # Thanos Sidecar Service Discovery
+  sidecar:
+    enabled: true
+  bucket:
+    enabled: true
+  compact:
+    enabled: true
+  # This secret name should match the sidecar configured secret name volume
+  # in the prometheus.server.extraVolumes entry
+  storeSecretName: kubecost-thanos
