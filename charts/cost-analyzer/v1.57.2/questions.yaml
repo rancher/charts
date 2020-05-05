@@ -1,0 +1,154 @@
+labels:
+  io.cattle.role: cluster
+questions:
+# General Settings
+- variable: persistentVolume.enabled
+  label: Enable Persistent Volume for CostAnalyzer
+  description: "If true, Kubecost will create a Persistent Volume Claim for product config data"
+  type: boolean
+  default: false
+  group: "General Settings"
+- variable: persistentVolume.size
+  label: CostAnalyzer Persistent Volume Size
+  type: string
+  default: "0.2Gi"
+  group: "General Settings"
+
+# Prometheus Server
+- variable: global.prometheus.enabled
+  label: Enable Prometheus
+  description: If false, use an existing Prometheus install
+  type: boolean
+  default: true
+  group: "Prometheus"
+- variable: prometheus.kubeStateMetrics.enabled
+  label: Enable KubeStateMetrics
+  description: 	"If true, deploy kube-state-metrics for Kubernetes metrics"
+  type: boolean
+  default: true  
+  show_if: "global.prometheus.enabled=true"
+  group: "Prometheus"
+- variable: prometheus.server.retention	
+  label: Prometheus Server Retention
+  description: "Determines when to remove old data"
+  type: string
+  default: "15d"
+  show_if: "global.prometheus.enabled=true"
+  group: "Prometheus"
+- variable: prometheus.server.persistentVolume.enabled
+  label: Create Persistent Volume for Prometheus
+  description: "If true, prometheus will create a persistent volume claim"
+  type: boolean
+  required: true
+  default: false
+  group: "Prometheus"
+  show_if: "global.prometheus.enabled=true"
+  show_subquestion_if: true
+  subquestions:
+  - variable: prometheus.server.persistentVolume.size
+    label: Prometheus Persistent Volume Size
+    type: string
+    default: "8Gi"
+  - variable: prometheus.server.persistentVolume.storageClass
+    label: Prometheus Persistent Volume StorageClass
+    description: "Prometheus data persistent volume storageClass, if not set use default StorageClass"
+    default: ""
+    type: storageclass
+  - variable: prometheus.server.persistentVolume.existingClaim
+    label: Existing Persistent Volume Claim for Prometheus
+    description: "If not empty, uses the specified existing PVC instead of creating new one"
+    type: pvc
+    default: ""
+
+# Prometheus Node Exporter
+- variable: prometheus.nodeExporter.enabled
+  label: Enable NodeExporter
+  description: "If false, do not create NodeExporter daemonset"
+  type: boolean
+  default: true
+  group: "NodeExporter"
+- variable: prometheus.serviceAccounts.nodeExporter.create
+  label: Enable Service Accounts NodeExporter
+  description: "If false, do not create NodeExporter daemonset"
+  type: boolean
+  default: true
+  group: "NodeExporter"
+
+# Prometheus AlertManager
+- variable: prometheus.alertmanager.enabled
+  label: Enable AlertManager
+  type: boolean
+  default: true
+  group: "AlertManager"
+- variable: prometheus.alertmanager.persistentVolume.enabled
+  label: Create Persistent Volume for AlertManager
+  description: "If true, alertmanager will create a persistent volume claim"
+  type: boolean
+  required: true
+  default: false
+  group: "AlertManager"
+  show_if: "prometheus.alertmanager.enabled=true"
+  show_subquestion_if: true
+  subquestions:
+  - variable: prometheus.alertmanager.persistentVolume.size
+    default: "2Gi"
+    description: "AlertManager data persistent volume size"
+    type: string
+    label: AlertManager Persistent Volume Size
+  - variable: prometheus.alertmanager.persistentVolume.storageClass
+    default: ""
+    description: "Alertmanager data persistent volume storageClass, if not set use default StorageClass"
+    type: storageclass
+    label: AlertManager Persistent Volume StorageClass
+  - variable: prometheus.alertmanager.persistentVolume.existingClaim
+    default: ""
+    description: "If not empty, uses the specified existing PVC instead of creating new one"
+    type: pvc
+    label: Existing Persistent Volume Claim for AlertManager
+
+# PushGateway
+- variable: prometheus.pushgateway.enabled
+  label: Enable PushGateway
+  type: boolean
+  default: true
+  group: "PushGateway"
+- variable: prometheus.pushgateway.persistentVolume.enabled
+  label: Create Persistent Volume for PushGateway
+  description: "If true, PushGateway will create a persistent volume claim"
+  required: true
+  type: boolean
+  default: false
+  group: "PushGateway"
+  show_if: "prometheus.pushgateway.enabled=true"
+  show_subquestion_if: true
+  subquestions:
+  - variable: prometheus.prometheus.pushgateway.persistentVolume.size
+    label: PushGateway Persistent Volume Size
+    type: string
+    default: "2Gi"
+  - variable: prometheus.pushgateway.persistentVolume.storageClass
+    label: PushGateway Persistent Volume StorageClass
+    description: "PushGateway data persistent volume storageClass, if not set use default StorageClass"
+    type: storageclass
+    default: ""
+  - variable: prometheus.pushgateway.persistentVolume.existingClaim
+    label: Existing Persistent Volume Claim for PushGateway
+    description: "If not empty, uses the specified existing PVC instead of creating new one"
+    type: pvc
+    default: ""
+
+# Services and Load Balancing
+- variable: ingress.enabled
+  label: Enable Ingress
+  description: "Expose app using Ingress (Layer 7 Load Balancer)"
+  default: true
+  type: boolean
+  show_subquestion_if: true
+  group: "Services and Load Balancing"
+  subquestions:
+  - variable: ingress.hosts[0]
+    default: "xip.io"
+    description: "Hostname to your CostAnalyzer installation"
+    type: hostname
+    required: true
+    label: Hostname
