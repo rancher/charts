@@ -76,7 +76,7 @@ Where ’your-name’ is your Docker username, ’your-pword’ is your Docker p
 To install the chart with the release name `my-release` and image pull secret:
 
 ```console
-$ helm install --name my-release --namespace neuvector ./neuvector-helm/ --set imagePullSecrets=regsecret
+$ helm install my-release --namespace neuvector ./neuvector-helm/ --set imagePullSecrets=regsecret
 ```
 
 > If you already installed neuvector in your cluster without using helm, please `kubectl delete -f your-neuvector-yaml.yaml` before trying to use helm install.
@@ -98,7 +98,7 @@ $ oc -n neuvector adm policy add-scc-to-user privileged -z default
 To install the chart with the release name `my-release` and your private registry:
 
 ```console
-$ helm install --name my-release --namespace neuvector ./neuvector-helm/ --set openshift=true,registry=your-private-registry
+$ helm install my-release --namespace neuvector ./neuvector-helm/ --set openshift=true,registry=your-private-registry
 ```
 
 If you are using a private registry, and want to enable the updater cronjob, please create a script, run it as a cronjob before midnight or the updater daily schedule.
@@ -150,46 +150,65 @@ Parameter | Description | Default | Notes
 `openshift` | If deploying in OpenShift, set this to true | `false` | 
 `registry` | image registry | `docker.io` | If Azure, set to my-reg.azurecr.io;<br>if OpenShift, set to docker-registry.default.svc:5000
 `tag` | image tag for controller enforcer manager | `latest` | 
-`imagePullSecrets` | image pull secret | `{}` | 
+`imagePullSecrets` | image pull secret | `nil` | 
+`psp` | NeuVector Pod Security Policy when psp policy is enabled | `false` | 
 `controller.enabled` | If true, create controller | `true` | 
 `controller.image.repository` | controller image repository | `neuvector/controller` | 
 `controller.replicas` | controller replicas | `3` | 
+`controller.disruptionbudget` | controller PodDisruptionBudget. 0 to disable. Recommended value: 2. | `0` | 
 `controller.pvc.enabled` | If true, enable persistence for controller using PVC | `false` | Require persistent volume type RWX, and storage 1Gi
 `controller.pvc.storageClass` | Storage Class to be used | `default` | 
 `controller.azureFileShare.enabled` | If true, enable the usage of an existing or statically provisioned Azure File Share | `false` | 
-`controller.azureFileShare.secretName` | The name of the secret containing the Azure file share storage account name and key | `{}` | 
-`controller.azureFileShare.shareName` | The name of the Azure file share to use | `{}` | 
+`controller.azureFileShare.secretName` | The name of the secret containing the Azure file share storage account name and key | `nil` | 
+`controller.azureFileShare.shareName` | The name of the Azure file share to use | `nil` | 
+`controller.apisvc.type` | Controller REST API service type | `nil` | 
+`controller.federation.mastersvc.type` | Multi-cluster master cluster service type | `nil` | 
+`controller.federation.managedsvc.type` | Multi-cluster managed cluster service type | `nil` | 
+`controller.ingress.enabled` | If true, create ingress for rest api, must also set ingress host value | `false` | enable this if ingress controller is installed
+`controller.ingress.host` | Must set this host value if ingress is enabled | `nil` | 
+`controller.ingress.path` | Set ingress path |`/` | If set, it might be necessary to set a rewrite rule in annotations. 
+`controller.ingress.annotations` | Add annotations to ingress to influence behavior | `ingress.kubernetes.io/protocol: https ingress.kubernetes.io/rewrite-target: /` | see examples in [values.yaml](values.yaml)
+`controller.configmap.enabled` | If true, configure NeuVector using a ConfigMap | `false`
+`controller.configmap.data` | NeuVector configuration in YAML format | `{}`
 `enforcer.enabled` | If true, create enforcer | `true` | 
 `enforcer.image.repository` | enforcer image repository | `neuvector/enforcer` | 
 `enforcer.tolerations` | List of node taints to tolerate | `- effect: NoSchedule`<br>`key: node-role.kubernetes.io/master` | other taints can be added after the default
 `manager.enabled` | If true, create manager | `true` | 
 `manager.image.repository` | manager image repository | `neuvector/manager` | 
-`manager.env.ssl` | enable/disable HTTPS and disable/enable HTTP access  | `on`;<br>if ingress is enabled, then default is `off` | 
+`manager.env.ssl` | If false, manager will listen on HTTP access instead of HTTPS | `true` | 
 `manager.svc.type` | set manager service type for native Kubernetes | `NodePort`;<br>if it is OpenShift platform or ingress is enabled, then default is `ClusterIP` | set to LoadBalancer if using cloud providers, such as Azure, Amazon, Google
 `manager.ingress.enabled` | If true, create ingress, must also set ingress host value | `false` | enable this if ingress controller is installed
-`manager.ingress.host` | Must set this host value if ingress is enabled | `{}` | 
+`manager.ingress.host` | Must set this host value if ingress is enabled | `nil` | 
 `manager.ingress.path` | Set ingress path |`/` | If set, it might be necessary to set a rewrite rule in annotations. Currently only supports `/` 
 `manager.ingress.annotations` | Add annotations to ingress to influence behavior | `{}` | see examples in [values.yaml](values.yaml)
-`manager.ingress.tls` | If true, TLS is enabled for ingress |`false` | If set, the tls-host used is the one set with `manager.ingress.host`. It might be necessary to set `manager.env.ssl="off"` 
-`manager.ingress.secretName` | Name of the secret to be used for TLS-encryption | `{}` | Secret must be created separately (Let's encrypt, manually)
+`manager.ingress.tls` | If true, TLS is enabled for manager ingress service |`false` | If set, the tls-host used is the one set with `manager.ingress.host`.
+`manager.ingress.secretName` | Name of the secret to be used for TLS-encryption | `nil` | Secret must be created separately (Let's encrypt, manually)
 `cve.updater.enabled` | If true, create cve updater | `false` | 
 `cve.updater.image.repository` | cve updater image repository | `neuvector/updater` | 
 `cve.updater.image.tag` | image tag for cve updater | `latest` | 
 `cve.updater.schedule` | cronjob cve updater schedule | `0 0 * * *` | 
-`containerd.enabled` | If true, use containerd instead of docker | `false` | 
-`containerd.path` | If containerd enabled, this local containerd sock path will be used | `/var/run/containerd/containerd.sock` | 
-`admissionwebhook.type` | admission webhook type | `ClusterIP` |  |
+`cve.scanner.enabled` | If true, external scanners will be deployed | `false` | 
+`cve.scanner.image.repository` | external scanner image repository | `neuvector/scanner` | 
+`cve.scanner.replicas` | external scanner replicas | `3` | 
+`cve.scanner.dockerPath` | the remote docker socket if CI/CD integration need scan images before they are pushed to the registry | `nil` | 
+`docker.path` | docker path | `/var/run/docker.sock` | 
+`containerd.enabled` | Set to true, if the container runtime is containerd | `false` | 
+`containerd.path` | If containerd is enabled, this local containerd socket path will be used | `/var/run/containerd/containerd.sock` | 
+`crio.enabled` | Set to true, if the container runtime is cri-o | `false` | 
+`crio.path` | If cri-o is enabled, this local cri-o socket path will be used | `/var/run/crio/crio.sock` | 
+`admissionwebhook.type` | admission webhook type | `ClusterIP` | 
+`crdwebhook.type` | crd webhook type | `ClusterIP` | 
 
 Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`. For example,
 
 ```console
-$ helm install --name my-release --namespace neuvector ./neuvector-helm/ --set manager.env.ssl=off
+$ helm install my-release --namespace neuvector ./neuvector-helm/ --set manager.env.ssl=off
 ```
 
 Alternatively, a YAML file that specifies the values for the above parameters can be provided while installing the chart. For example,
 
 ```console
-$ helm install --name my-release --namespace neuvector ./neuvector-helm/ -f values.yaml
+$ helm install my-release --namespace neuvector ./neuvector-helm/ -f values.yaml
 ```
 
 > **Tip**: You can use the default [values.yaml](values.yaml)

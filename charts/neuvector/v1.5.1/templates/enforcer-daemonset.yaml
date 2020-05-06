@@ -1,5 +1,9 @@
 {{- if .Values.enforcer.enabled -}}
+{{- if (semverCompare ">=1.9-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: apps/v1
+{{- else }}
 apiVersion: extensions/v1beta1
+{{- end }}
 kind: DaemonSet
 metadata:
   name: neuvector-enforcer-pod
@@ -11,6 +15,9 @@ metadata:
 spec:
   updateStrategy:
     type: RollingUpdate  
+  selector:
+    matchLabels:
+      app: neuvector-enforcer-pod
   template:
     metadata:
       labels:
@@ -31,6 +38,8 @@ spec:
           image: "{{ .Values.registry }}/{{ .Values.enforcer.image.repository }}:{{ .Values.tag }}"
           securityContext:
             privileged: true
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
           env:
             - name: CLUSTER_JOIN_ADDR
               value: neuvector-svc-controller.{{ .Release.Namespace }}
@@ -45,11 +54,13 @@ spec:
           volumeMounts:
           {{- if .Values.containerd.enabled }}
             - mountPath: /var/run/containerd/containerd.sock
+          {{- else if .Values.crio.enabled }}
+            - mountPath: /var/run/crio/crio.sock
           {{- else }}
             - mountPath: /var/run/docker.sock
           {{- end }}
               name: runtime-sock
-              readOnly: false
+              readOnly: true
             - mountPath: /host/proc
               name: proc-vol
               readOnly: true
@@ -59,14 +70,17 @@ spec:
             - mountPath: /lib/modules
               name: modules-vol
               readOnly: true
+      terminationGracePeriodSeconds: 1200
       restartPolicy: Always
       volumes:
         - name: runtime-sock
           hostPath:
           {{- if .Values.containerd.enabled }}
             path: {{ .Values.containerd.path }}
+          {{- else if .Values.crio.enabled }}
+            path: {{ .Values.crio.path }}
           {{- else }}
-            path: /var/run/docker.sock
+            path: {{ .Values.docker.path }}
           {{- end }}
         - name: proc-vol
           hostPath:
