@@ -1,0 +1,80 @@
+{{- if .Values.enforcer.enabled -}}
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: neuvector-enforcer-pod
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+spec:
+  updateStrategy:
+    type: RollingUpdate  
+  template:
+    metadata:
+      labels:
+        app: neuvector-enforcer-pod
+        release: {{ .Release.Name }}
+    spec:
+    {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecrets }}
+    {{- end }}
+    {{- if .Values.enforcer.tolerations }}
+      tolerations:
+{{ toYaml .Values.enforcer.tolerations | indent 8 }}
+    {{- end }}
+      hostPID: true
+      containers:
+        - name: neuvector-enforcer-pod
+          image: "{{ .Values.registry }}/{{ .Values.enforcer.image.repository }}:{{ .Values.tag }}"
+          securityContext:
+            privileged: true
+          env:
+            - name: CLUSTER_JOIN_ADDR
+              value: neuvector-svc-controller.{{ .Release.Namespace }}
+            - name: CLUSTER_ADVERTISED_ADDR
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: CLUSTER_BIND_ADDR
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          volumeMounts:
+          {{- if .Values.containerd.enabled }}
+            - mountPath: /var/run/containerd/containerd.sock
+          {{- else }}
+            - mountPath: /var/run/docker.sock
+          {{- end }}
+              name: runtime-sock
+              readOnly: false
+            - mountPath: /host/proc
+              name: proc-vol
+              readOnly: true
+            - mountPath: /host/cgroup
+              name: cgroup-vol
+              readOnly: true
+            - mountPath: /lib/modules
+              name: modules-vol
+              readOnly: true
+      restartPolicy: Always
+      volumes:
+        - name: runtime-sock
+          hostPath:
+          {{- if .Values.containerd.enabled }}
+            path: {{ .Values.containerd.path }}
+          {{- else }}
+            path: /var/run/docker.sock
+          {{- end }}
+        - name: proc-vol
+          hostPath:
+            path: /proc
+        - name: cgroup-vol
+          hostPath:
+            path: /sys/fs/cgroup
+        - name: modules-vol
+          hostPath:
+            path: /lib/modules
+{{- end }}
