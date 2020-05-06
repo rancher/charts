@@ -1,5 +1,9 @@
 {{- if .Values.controller.enabled -}}
+{{- if (semverCompare ">=1.9-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: apps/v1
+{{- else }}
 apiVersion: extensions/v1beta1
+{{- end }}
 kind: Deployment
 metadata:
   name: neuvector-controller-pod
@@ -12,16 +16,28 @@ spec:
   replicas: {{ .Values.controller.replicas }}
   minReadySeconds: 60
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
+{{ toYaml .Values.controller.strategy | indent 4 }}
+  selector:
+    matchLabels:
+      app: neuvector-controller-pod
   template:
     metadata:
       labels:
         app: neuvector-controller-pod
         release: {{ .Release.Name }}
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - neuvector-controller-pod
+              topologyKey: "kubernetes.io/hostname"
     {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
         - name: {{ .Values.imagePullSecrets }}
@@ -31,6 +47,8 @@ spec:
           image: "{{ .Values.registry }}/{{ .Values.controller.image.repository }}:{{ .Values.tag }}"
           securityContext:
             privileged: true
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
           readinessProbe:
             exec:
               command:
@@ -59,22 +77,23 @@ spec:
               readOnly: false
           {{- if .Values.containerd.enabled }}
             - mountPath: /var/run/containerd/containerd.sock
+          {{- else if .Values.crio.enabled }}
+            - mountPath: /var/run/crio/crio.sock
           {{- else }}
             - mountPath: /var/run/docker.sock
           {{- end }}
               name: runtime-sock
-              readOnly: false
+              readOnly: true
             - mountPath: /host/proc
               name: proc-vol
               readOnly: true
             - mountPath: /host/cgroup
               name: cgroup-vol
-              readOnly: true            
-          lifecycle:
-            preStop:
-              exec:
-                command: ["/usr/local/bin/consul", "leave"]
-      terminationGracePeriodSeconds: 60
+              readOnly: true
+            - mountPath: /etc/config
+              name: config-volume
+              readOnly: true              
+      terminationGracePeriodSeconds: 300
       restartPolicy: Always
       volumes:
         - name: nv-share
@@ -94,8 +113,10 @@ spec:
           hostPath:
           {{- if .Values.containerd.enabled }}
             path: {{ .Values.containerd.path }}
+          {{- else if .Values.crio.enabled }}
+            path: {{ .Values.crio.path }}
           {{- else }}
-            path: /var/run/docker.sock
+            path: {{ .Values.docker.path }}
           {{- end }}
         - name: proc-vol
           hostPath:
@@ -103,4 +124,23 @@ spec:
         - name: cgroup-vol
           hostPath:
             path: /sys/fs/cgroup
+        - name: config-volume
+          configMap:
+            name: neuvector-init 
+          {{- if not .Values.controller.configmap.enabled }}
+            optional: true
+          {{- end }}
+{{- if gt (int .Values.controller.disruptionbudget) 0 }}
+---
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: neuvector-controller-pdb
+  namespace: neuvector
+spec:
+  minAvailable: {{ .Values.controller.disruptionbudget }}
+  selector:
+    matchLabels:
+      app: neuvector-controller-pod
+{{- end }}
 {{- end }}
