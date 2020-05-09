@@ -1,0 +1,206 @@
+labels:
+  io.cattle.role: project
+questions:
+# Global Options
+- variable: replicaCount
+  label: Replica Count
+  description: Number of scanner adapter Pods to run
+  type: int
+  required: true
+  default: 1
+  group: "Global Options"
+- variable: scanner.logLevel
+  label: Scanner Log Level
+  description: Standard log levels, wheere logger logs entries with that level or anything above it	.
+  type: enum
+  required: true
+  default: "info"
+  group: "Global Options"
+  options:
+  - "panic"
+  - "fatal"
+  - "error"
+  - "warning"
+  - "warn"
+  - "info"
+  - "debug"
+  - "trace"
+- variable: persistence.enabled
+  label: Create Persistent Volume for harbor-scanner-trivy
+  description: "If true, HarborScannerTrivy will create a persistent volume claim"
+  type: boolean
+  required: true
+  default: false
+  group: "Global Options"
+  show_subquestion_if: true
+  subquestions:
+  - variable: persistence.size
+    label: HarborScannerTrivy Persistent Volume Size
+    description: "HarborScannerTrivy data persistent volume size"
+    default: "5Gi" 
+    type: string
+  - variable: persistence.storageClass
+    label: HarborScannerTrivy Persistent Volume StorageClass
+    description: "HarborScannerTrivy data persistent volume storageClass, if not set use default StorageClass"
+    type: storageclass
+    default: ""
+  
+# Docker Images
+- variable: defaultImage
+  default: true
+  description: "Use default Docker images"
+  label: Use Default Images
+  type: boolean
+  show_subquestion_if: false
+  group: "Docker Images"
+  subquestions:
+  - variable: image.registry
+    label: Docker Registry Name
+    type: string
+    default: "docker.io"
+  - variable: image.repository
+    label: HarborScannerTrivy Image Name
+    type: string
+    default: "aquasec/harbor-scanner-trivy"
+  - variable: image.tag
+    label: HarborScannerTrivy Image Tag
+    type: string
+    default: "0.9.0"
+
+# API
+- variable: scanner.api.tlsEnabled
+  label: Enable TLS for HTTP
+  type: boolean
+  default: false
+  show_subquestion_if: true
+  group: "API"
+  subquestions:
+  - variable: scanner.api.tlsCertificate
+    label: TLS Certificate Path
+    description: "Absolute path to the x509 certificate file"
+    type: string
+    default: ""
+  - variable: scanner.api.tlsKey
+    label: TLS Key
+    description: "Absolute path to the x509 private key file"
+    type: string
+    default: ""
+- variable: scanner.api.readTimeout
+  label: Scanner Read Timeout
+  description: "Maximum duration for reading the entire request, including the body"
+  type: string
+  default: "15s"
+  group: "API"
+- variable: scanner.api.writeTimeout
+  label: Scanner Write Timeout
+  description: "Maximum duration before timing out writes of the response"
+  type: string
+  default: "15s"
+  group: "API"
+- variable: scanner.api.idleTimeout
+  label: Scanner Idle Timeout
+  description: "Maximum amount of time to wait for the next request when keep-alives are enabled"
+  type: string
+  default: "60s"
+  group: "API"
+
+# Trivy
+- variable: scanner.trivy.cacheDir
+  label: Trivy Cache Directory
+  type: string
+  required: true
+  default: "/home/scanner/.cache/trivy"
+  group: "Trivy"
+- variable: scanner.trivy.reportsDir
+  label: Trivy Reports Directory
+  type: string
+  required: true
+  default: "/home/scanner/.cache/reports"
+  group: "Trivy"
+- variable: scanner.trivy.debugMode
+  label: Enable Debug Mode
+  type: boolean
+  required: true
+  default: false
+  group: "Trivy"
+- variable: scanner.trivy.vulnType
+  label: Vulnerability Types
+  description: "Comma-separated list of vulnerability types. Possible values are os and library"
+  type: string
+  required: true
+  default: "os,library"
+  group: "Trivy"
+- variable: scanner.trivy.severity
+  label: Vulnerability Severities
+  description: "Comma-separated list of vulnerabilities severities to be displayed UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL"
+  type: string
+  required: true
+  default: "UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL"
+  group: "Trivy"
+- variable: scanner.trivy.ignoreUnfixed
+  label: Enable Ignore Unfixed
+  description: "Display only fixed vulnerabilities"
+  type: boolean
+  required: false
+  default: false
+  group: "Trivy"
+
+# Redis Store
+- variable: scanner.store.redisURL
+  label: Redis Store URI
+  description: "Redis server URI for a redis store"
+  type: string
+  required: true
+  default: "redis://harbor-harbor-redis:6379"
+  group: "Redis Store"
+- variable: scanner.store.redisNamespace
+  label: Redis Store  Namespace
+  description: "Namespace for keys in a redis store"
+  type: string
+  required: true
+  default: "harbor.scanner.trivy:store"
+  group: "Redis Store"
+
+# Redis Job Queue
+- variable: scanner.jobQueue.redisURL
+  label: Redis Job Queue URI
+  description: "Redis server URI for a jobs queue"
+  type: string
+  required: true
+  default: "redis://harbor-harbor-redis:6379"
+  group: "Redis Jobs Queue"
+- variable: scanner.jobQueue.redisNamespace
+  label: Redis Jobs Queue Namespace
+  description: "Namespace for keys in a jobs queue"
+  type: string
+  required: true
+  default: "harbor.scanner.trivy:job-queue"
+  group: "Redis Jobs Queue"
+
+# Services and Load Balancing
+- variable: service.type
+  label: Service Type
+  description: "Service type for exposing HarborScannerTrivy"
+  required: true
+  type: enum
+  default: LoadBalancer
+  options:
+  - "LoadBalancer"
+  - "NodePort"
+  - "ClusterIP"
+  group: "Services and Load Balancing"
+- variable: service.nodePort
+  label: Service NodePort Number
+  type: int
+  default: ""
+  min: 30000
+  max: 32767
+  show_if: "service.type=NodePort"
+  group: "Services and Load Balancing"
+- variable: service.port
+  label: Service Port Number
+  required: true
+  type: int
+  default: ""
+  show_if: "service.type=ClusterIP"
+  group: "Services and Load Balancing"
