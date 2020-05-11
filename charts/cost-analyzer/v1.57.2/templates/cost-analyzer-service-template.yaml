@@ -1,0 +1,54 @@
+{{- $nginxPort := .Values.service.targetPort | default 9090 -}}
+{{- $servicePort := .Values.service.port | default 9090 -}}
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ template "cost-analyzer.serviceName" . }}
+  labels:
+    {{ include "cost-analyzer.commonLabels" . | nindent 4 }}
+{{- if .Values.service.labels }}
+{{ toYaml .Values.service.labels | indent 4 }}
+{{- end }}
+{{- if .Values.service.annotations }}
+  annotations:
+{{ toYaml .Values.service.annotations | indent 4 }}
+{{- end }}
+spec:
+  selector:
+    {{ include "cost-analyzer.selectorLabels" . | nindent 4 }}
+{{- if .Values.service -}}
+{{- if .Values.service.type }}
+  type: "{{ .Values.service.type }}"
+{{- else }}
+  type: ClusterIP
+{{- end }}
+{{- else }}
+  type: ClusterIP
+{{- end }}
+  ports:
+    - name: server
+      port: 9001
+      targetPort: 9001
+    - name: model
+      port: 9003
+      targetPort: 9003
+    - name: frontend
+      {{- if .Values.kubecostFrontend.tls }}
+      {{- if .Values.kubecostFrontend.tls.enabled }}
+      port: 443
+      targetPort: 443
+      {{- else }}
+      port: {{ $servicePort }}
+      targetPort: {{ $nginxPort }}
+      {{- end}}
+      {{- else }}
+      port: {{ $servicePort }}
+      targetPort: {{ $nginxPort }}
+      {{- end }}
+    {{- if .Values.saml }}
+    {{- if .Values.saml.enabled }}
+    - name: apiserver
+      port: 9004
+      targetPort: 9004
+    {{- end }}
+    {{- end }}

@@ -1,0 +1,401 @@
+global:
+  # zone: cluster.local (use only if your DNS server doesn't live in the same zone as kubecost)
+  prometheus:
+    enabled: true  # If false, Prometheus will not be installed -- only actively supported on paid Kubecost plans
+    fqdn: http://cost-analyzer-prometheus-server.default.svc  # example fqdn. Ignored if enabled: true
+
+  # Durable storage option, product key required
+  thanos:
+    enabled: false
+
+  grafana:
+    enabled: true  # If false, Grafana will not be installed
+    domainName: cost-analyzer-grafana.default.svc  # example grafana domain Ignored if enabled: true
+    scheme: "http"  # http or https, for the domain name above.
+    proxy: true  # If true, the kubecost frontend will route to your grafana through its service endpoint
+
+  notifications:
+    slack:  # Write to a webhook.
+      enabled: false  # Allow kubecost to write to your slackbot.
+      webhook: https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX  # Example Webhook
+    alertmanager:  # Supply an alertmanager FQDN to receive notifications from the app.
+      enabled: false  # If true, allow kubecost to write to your alertmanager
+      fqdn: http://cost-analyzer-prometheus-server.default.svc  # example fqdn. Ignored if prometheus.enabled: true
+
+  podAnnotations: {}
+    # iam.amazonaws.com/role: role-arn
+
+saml:  # enterprise key required to use
+  enabled: false
+  secretName: "kubecost-authzero"
+  idpMetadataURL: "https://dev-elu2z98r.auth0.com/samlp/metadata/c6nY4M37rBP0qSO1IYIqBPPyIPxLS8v2"
+  appRootURL: "http://localhost:9090"   # sample URL
+  rbac:
+    enabled: false
+    groups:
+      - name: admin
+        enabled: false  # if admin is disabled, all SAML users will be able to make configuration changes to the kubecost frontend
+        assertionName: "http://schemas.auth0.com/userType"  # a SAML Assertion, one of whose elements has a value that matches on of the values in assertionValues
+        assertionValues:
+          - "admin"
+          - "superusers"
+      - name: readonly
+        enabled: false  # if readonly is disabled, all users authorized on SAML will default to readonly
+        assertionName: "http://schemas.auth0.com/userType"
+        assertionvalues:
+          - "readonly"
+
+kubecostChecks:
+  enabled: true
+  image: "gcr.io/kubecost1/checks"
+  resources:
+    requests:
+      cpu: "20m"
+      memory: "100Mi"
+    limits:
+      cpu: "100m"
+      memory: "200Mi"
+
+kubecostFrontend:
+  image: "gcr.io/kubecost1/frontend"
+  imagePullPolicy: Always
+  resources:
+    requests:
+      cpu: "10m"
+      memory: "55Mi"
+    # limits:
+    #  cpu: "100m"
+    #  memory: "256Mi"
+
+kubecost:
+  image: "gcr.io/kubecost1/server"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "55Mi"
+    # limits:
+    #  cpu: "100m"
+    #  memory: "256Mi"
+
+kubecostModel:
+  image: "gcr.io/kubecost1/cost-model"
+  imagePullPolicy: Always
+  warmCache: true
+  warmSavingsCache: true
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "55Mi"
+    # limits:
+    #  cpu: "800m"
+    #  memory: "256Mi"
+
+kubecostInit:
+  image: "gcr.io/kubecost1/init"
+  imagePullPolicy: Always
+
+ingress:
+  enabled: false
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  paths: ["/"]  # There's no need to route specifically to the pods-- we have an nginx deployed that handles routing
+  hosts:
+    - cost-analyzer.local
+  tls: []
+  #  - secretName: cost-analyzer-tls
+  #    hosts:
+  #      - cost-analyzer.local
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# If true, creates a PriorityClass to be used by the cost-analyzer pod
+priority:
+  enabled: true
+  # value: 1000000
+
+# If true, enable creation of NetworkPolicy resources.
+networkPolicy:
+  enabled: false
+
+# Define persistence volume for cost-analyzer
+persistentVolume:
+  size: 0.2Gi
+  enabled: true  # Note that setting this to false means configurations will be wiped out on pod restart.
+  # storageClass: "-" #
+  # existingClaim: kubecost-cost-analyzer # a claim in the same namespace as kubecost
+
+service:
+  type: ClusterIP
+  port: 9090
+  targetPort: 9090
+  labels: {}
+  annotations: {}
+
+# enabling long-term durable storage with Postgres requires an enterprise license
+remoteWrite:
+  postgres:
+    enabled: false
+    initImage: "gcr.io/kubecost1/sql-init"
+    initImagePullPolicy: Always
+    installLocal: true
+    remotePostgresAddress: ""  # ignored if installing locally
+    persistentVolume:
+      size: 200Gi
+    auth:
+      password: admin  # change me
+
+prometheus:
+  extraScrapeConfigs: |
+    - job_name: kubecost
+      honor_labels: true
+      scrape_interval: 1m
+      scrape_timeout: 10s
+      metrics_path: /metrics
+      scheme: http
+      dns_sd_configs:
+      - names:
+        - {{ template "cost-analyzer.serviceName" . }}
+        type: 'A'
+        port: 9003
+    - job_name: kubecost-networking
+      kubernetes_sd_configs:
+        - role: pod
+      relabel_configs:
+      # Scrape only the the targets matching the following metadata
+        - source_labels: [__meta_kubernetes_pod_label_app]
+          action: keep
+          regex:  {{ template "cost-analyzer.networkCostsName" . }}
+  server:
+    # If clusterIDConfigmap is defined, instead use user-generated configmap with key CLUSTER_ID
+    # to use as unique cluster ID in kubecost cost-analyzer deployment.
+    # This overrides the cluster_id set in prometheus.server.global.external_labels.
+    # NOTE: This does not affect the external_labels set in prometheus config.
+    # clusterIDConfigmap: cluster-id-configmap
+    global:
+      scrape_interval: 1m
+      scrape_timeout: 10s
+      evaluation_interval: 1m
+      external_labels:
+        cluster_id: cluster-one  # Each cluster should have a unique ID
+    persistentVolume:
+      size: 32Gi
+      enabled: true
+    extraArgs:
+      query.max-concurrency: 1
+  alertmanager:
+    # enabled: false
+    persistentVolume:
+      enabled: true
+  pushgateway:
+    # enabled: false
+    persistentVolume:
+      enabled: true
+  serverFiles:
+  #  prometheus.yml: # Sample block -- enable if using an in cluster durable store.
+  #      remote_write:
+  #        - url: "http://pgprometheus-adapter:9201/write"
+  #          write_relabel_configs:
+  #            - source_labels: [__name__]
+  #              regex: 'container_.*_allocation|container_.*_allocation_bytes|.*_hourly_cost|kube_pod_container_resource_requests_memory_bytes|container_memory_working_set_bytes|kube_pod_container_resource_requests_cpu_cores|kube_pod_container_resource_requests|pod_pvc_allocation|kube_namespace_labels|kube_pod_labels'
+  #              action: keep
+  #          queue_config:
+  #            max_samples_per_send: 1000
+        # remote_read:
+        #  - url: "http://pgprometheus-adapter:9201/read"
+    rules:
+      groups:
+        - name: CPU
+          rules:
+            - expr: sum(rate(container_cpu_usage_seconds_total{container_name!=""}[5m]))
+              record: cluster:cpu_usage:rate5m
+            - expr: rate(container_cpu_usage_seconds_total{container_name!=""}[5m])
+              record: cluster:cpu_usage_nosum:rate5m
+            - expr: avg(irate(container_cpu_usage_seconds_total{container_name!="POD", container_name!=""}[5m])) by (container_name,pod_name,namespace)
+              record: kubecost_container_cpu_usage_irate
+            - expr: sum(container_memory_working_set_bytes{container_name!="POD",container_name!=""}) by (container_name,pod_name,namespace)
+              record: kubecost_container_memory_working_set_bytes
+            - expr: sum(container_memory_working_set_bytes{container_name!="POD",container_name!=""})
+              record: kubecost_cluster_memory_working_set_bytes
+
+networkCosts:
+  enabled: false
+  image: gcr.io/kubecost1/kubecost-network-costs:v13.1
+  imagePullPolicy: Always
+  resources: {}
+    # requests:
+    #  cpu: "50m"
+    #  memory: "20Mi"
+  config:
+    # Configuration for traffic destinations, including specific classification
+    # for IPs and CIDR blocks. This configuration will act as an override to the
+    # automatic classification provided by network-costs.
+    destinations:
+      # In Zone contains a list of address/range that will be
+      # classified as in zone.
+      in-zone:
+        # Loopback
+        - "127.0.0.1"
+        # IPv4 Link Local Address Space
+        - "169.254.0.0/16"
+        # Private Address Ranges in RFC-1918
+        - "10.0.0.0/8"
+        - "172.16.0.0/12"
+        - "192.168.0.0/16"
+
+      # In Region contains a list of address/range that will be
+      # classified as in region. This is synonymous with cross
+      # zone traffic, where the regions between source and destinations
+      # are the same, but the zone is different.
+      in-region: []
+
+      # Cross Region contains a list of address/range that will be
+      # classified as non-internet egress from one region to another.
+      cross-region: []
+  ## Node tolerations for server scheduling to nodes with taints
+  ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+  ##
+  tolerations: []
+  #  - key: "key"
+  #    operator: "Equal|Exists"
+  #    value: "value"
+  #    effect: "NoSchedule|PreferNoSchedule|NoExecute(1.6 only)"
+
+  ## PriorityClassName
+  ## Ref: https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/#priorityclass
+  priorityClassName: []
+
+# Kubecost Cluster Controller for Right Sizing and Cluster Turndown
+clusterController:
+  enabled: false
+  image: gcr.io/kubecost1/cluster-controller:v0.0.1
+  imagePullPolicy: Always
+
+reporting:
+  # Kubecost bug report feature: Logs access/collection limited to .Release.Namespace
+  # Ref: http://docs.kubecost.com/bug-report
+  logCollection: true
+  productAnalytics: true
+  errorReporting: true
+
+serviceMonitor:
+  enabled: false
+  additionalLabels: {}
+
+prometheusRule:
+  enabled: false
+  additionalLabels: {}
+
+supportNFS: true
+
+grafana:
+  # namespace_datasources: kubecost # override the default namespace here
+  # namespace_dashboards: kubecost # override the default namespace here
+  sidecar:
+    dashboards:
+      enabled: true
+      # label that the configmaps with dashboards are marked with
+      label: grafana_dashboard
+    datasources:
+      enabled: true
+      defaultDatasourceEnabled: true
+      dataSourceName: Prometheus
+      # label that the configmaps with datasources are marked with
+      label: grafana_datasource
+#  For grafana to be accessible, add the path to root_url. For example, if you run kubecost at www.foo.com:9090/kubecost
+#  set root_url to "%(protocol)s://%(domain)s:%(http_port)s/kubecost/grafana". No change is necessary here if kubecost runs at a root URL
+  grafana.ini:
+    server:
+      root_url: "%(protocol)s://%(domain)s:%(http_port)s/grafana"
+serviceAccount:
+  create: true  # Set this to false if you're bringing your own service account.
+  annotations: {}
+  # name: kc-test
+
+# These configs can also be set from the Settings page in the Kubecost product UI
+# Values in this block override config changes in the Settings UI on pod restart
+#
+# kubecostProductConfigs:
+# An optional list of cluster definitions that can be added for frontend access. The local
+# cluster is *always* included by default, so this list is for non-local clusters.
+# Ref: https://github.com/kubecost/docs/blob/master/multi-cluster.md
+#  clusters:
+#   - name: "Cluster A"
+#     address: http://cluster-a.kubecost.com:9090
+#     # Optional authentication credentials - only basic auth is currently supported.
+#     auth:
+#       type: basic
+#       # Secret name should be a secret formatted based on: https://github.com/kubecost/docs/blob/master/ingress-examples.md
+#       secretName: cluster-a-auth
+#       # Or pass auth directly as base64 encoded user:pass
+#       data: YWRtaW46YWRtaW4=
+#       # Or user and pass directly
+#       user: admin
+#       pass: admin
+#   - name: "Cluster B"
+#     address: http://cluster-b.kubecost.com:9090
+#  defaultModelPricing: # default monthly resource prices, used predominately for on-prem clusters
+#    CPU: 28.0
+#    spotCPU: 4.86
+#    RAM: 3.09
+#    spotRAM: 0.65
+#    GPU: 693.50
+#    spotGPU: 225.0
+#    storage: 0.04
+#    zoneNetworkEgress: 0.01
+#    regionNetworkEgress: 0.01
+#    internetNetworkEgress: 0.12
+#    enabled: true
+#  customPricesEnabled: false # This makes the default view custom prices-- generally used for on-premises clusters
+#  spotLabel: lifecycle
+#  spotLabelValue: Ec2Spot
+#  gpuLabel: gpu
+#  gpuLabelValue: true
+#  awsServiceKeyName: ACCESSKEYID
+#  awsSpotDataRegion: us-east-1
+#  awsSpotDataBucket: spot-data-feed-s3-bucket
+#  awsSpotDataPrefix: dev
+#  athenaProjectID: "530337586277"
+#  athenaBucketName: "s3://aws-athena-query-results-530337586277-us-east-1"
+#  athenaRegion: us-east-1
+#  athenaDatabase: athenacurcfn_athena_test1
+#  athenaTable: "athena_test1"
+#  projectID: "123456789"
+#  labelMappingConfigs:  # names of k8s labels used to designate different allocation concepts
+#    enabled: true
+#    owner_label: "owner"
+#    team_label: "team"
+#    department_label: "dept"
+#    product_label: "product"
+#    environment_label: "env"
+#    namespace_external_label: "kubernetes_namespace" # external labels are used to map external cloud costs to kubernetes concepts
+#    cluster_external_label: "kubernetes_cluster"
+#    controller_external_label: "kubernetes_controller"
+#    product_external_label: "kubernetes_label_app"
+#    service_external_label: "kubernetes_service"
+#    deployment_external_label: "kubernetes_deployment"
+#    team_external_label: "kubernetes_label_team"
+#    environment_external_label: "kubernetes_label_env"
+#    department_external_label: "kubernetes_label_department"
+#    statefulset_external_label: "kubernetes_statefulset"
+#    daemonset_external_label: "kubernetes_daemonset"
+#    pod_external_label: "kubernetes_pod"
+#  grafanaURL: ""
+#  clusterName: "" # used for display in Kubecost UI
+#  currencyCode: "USD" # offical support for USD, EUR, and CHF
+#  azureBillingRegion: US
+#  azureSubscriptionID: 0bd50fdf-c923-4e1e-850c-196dd3dcc5d3
+#  azureClientID: f2ef6f7d-71fb-47c8-b766-8d63a19db017
+#  azureTenantID: 72faf3ff-7a3f-4597-b0d9-7b0b201bb23a
+#  discount: "" # percentage discount applied to compute
+#  negotiatedDiscount: "" # custom negotiated cloud provider discount
+#  defaultIdle: false
+#  serviceKeySecretName: ""
+#  sharedNamespaces: ""
+#  productKey: # apply business or enterprise product license
+#    key: ""
+#    enabled: false
