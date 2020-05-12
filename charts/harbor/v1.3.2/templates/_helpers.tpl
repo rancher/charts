@@ -194,6 +194,14 @@ postgres://{{ template "harbor.database.username" . }}:{{ template "harbor.datab
   {{- end -}}
 {{- end -}}
 
+{{- define "harbor.redis.clairAdapterIndex" -}}
+  {{- if eq .Values.redis.type "internal" -}}
+    {{- printf "%s" "4" }}
+  {{- else -}}
+    {{- .Values.redis.external.clairAdapterIndex -}}
+  {{- end -}}
+{{- end -}}
+
 {{- define "harbor.redis.rawPassword" -}}
   {{- if and (eq .Values.redis.type "external") .Values.redis.external.password -}}
     {{- .Values.redis.external.password -}}
@@ -221,6 +229,15 @@ postgres://{{ template "harbor.database.username" . }}:{{ template "harbor.datab
     {{- printf "redis://redis:%s@%s:%s/%s" (include "harbor.redis.escapedRawPassword" . ) (include "harbor.redis.host" . ) (include "harbor.redis.port" . ) (include "harbor.redis.registryDatabaseIndex" . ) }}
   {{- else }}
     {{- printf "redis://%s:%s/%s" (include "harbor.redis.host" . ) (include "harbor.redis.port" . ) (include "harbor.redis.registryDatabaseIndex" . ) -}}
+  {{- end -}}
+{{- end -}}
+
+{{/*the username redis is used for a placeholder as no username needed in redis*/}}
+{{- define "harbor.redisForClairAdapter" -}}
+  {{- if (include "harbor.redis.escapedRawPassword" . ) -}}
+    {{- printf "redis://redis:%s@%s:%s/%s" (include "harbor.redis.escapedRawPassword" . ) (include "harbor.redis.host" . ) (include "harbor.redis.port" . ) (include "harbor.redis.clairAdapterIndex" . ) }}
+  {{- else }}
+    {{- printf "redis://%s:%s/%s" (include "harbor.redis.host" . ) (include "harbor.redis.port" . ) (include "harbor.redis.clairAdapterIndex" . ) -}}
   {{- end -}}
 {{- end -}}
 
@@ -281,33 +298,5 @@ host:port,pool_size,password
 {{- end -}}
 
 {{- define "harbor.noProxy" -}}
-  {{- printf "%s,%s,%s,%s,%s,%s,%s,%s,%s" (include "harbor.core" .) (include "harbor.jobservice" .) (include "harbor.database" .) (include "harbor.chartmuseum" .) (include "harbor.clair" .) (include "harbor.notary-server" .) (include "harbor.notary-signer" .) (include "harbor.registry" .) .Values.proxy.noProxy -}}
-{{- end -}}
-
-{{- define "harbor.externalURL" -}}
-  {{- if eq .Values.expose.type "ingress" }}
-    {{- printf "https://%s" .Values.expose.ingress.hosts.core -}}
-  {{- else if eq .Values.expose.type "clusterIP" }}
-    {{- printf "https://%s" .Values.expose.clusterIP.name -}}
-  {{- else if eq .Values.expose.type "loadBalancer" }}
-    {{- printf "%s" .Values.expose.loadBalancer.IP -}}
-  {{- else }}
-    {{- .Values.externalURL -}}
-  {{- end }}
-{{- end -}}
-
-{{/*
-The commmon name used to generate the certificate, it's necessary when the type isn't "ingress"
-*/}}
-{{- define "harbor.tlsCommonName" -}}
-  {{- $trimURL := (include "harbor.externalURL" .)  | trimPrefix "https://"  | trimPrefix "http://" -}}
-  {{ regexReplaceAll ":.*$" $trimURL "${1}" }}
-{{- end -}}
-
-{{- define "harbor.cert" -}}
-  {{- printf "%s-cert" (include "harbor.fullname" .) -}}
-{{- end -}}
-
-{{- define "harbor.certPath" -}}
-  {{- (include "harbor.externalURL" .) | trimPrefix "https://"  | trimPrefix "http://" -}}
+  {{- printf "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s" (include "harbor.core" .) (include "harbor.jobservice" .) (include "harbor.database" .) (include "harbor.chartmuseum" .) (include "harbor.clair" .) (include "harbor.notary-server" .) (include "harbor.notary-signer" .) (include "harbor.registry" .) (include "harbor.portal" .) .Values.proxy.noProxy -}}
 {{- end -}}

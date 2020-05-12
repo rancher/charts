@@ -44,17 +44,17 @@ questions:
   - "loadBalancer"
 - variable: expose.ingress.hosts.core
   required: true
-  default: ""
+  default: "xip.io"
   description: "The host of Harbor core service in ingress rule, e.g, core.harbor.domain"
-  type: string
+  type: hostname
   label: Ingress Hostname of Harbor
   group: "Expose Service Options"
   show_if: "expose.type=ingress||expose.type=loadBalancer"
 - variable: expose.ingress.hosts.notary
   required: true
-  default: ""
+  default: "xip.io"
   description: "The host of Harbor notary service in ingress rule, e.g, notary.harbor.domain"
-  type: string
+  type: hostname
   label: Ingress Hostname of Harbor Notary
   group: "Expose Service Options"
   show_if: "expose.type=ingress||expose.type=loadBalancer"
@@ -73,12 +73,24 @@ questions:
   label: Set LoadBalancer IP
   show_if: "expose.type=loadBalancer"
   group: "Expose Service Options"
-- variable: expose.tls.secretName
-  default: ""
-  description: "The secret must contain keys named tls.crt and tls.key that contain the certificate and private key to use for TLS"
-  type: certificate
-  label: Select Your Harbor TLS Certificate
+- variable: expose.tls.enabled
+  label: Enable TLS Certificate for Harbor
+  description: "If type is \"ingress\" and TLS is disabled, the port must be included in the command when pull/push images"
+  type: boolean
+  default: true
   group: "Expose Service Options"
+  show_subquestion_if: true
+  subquestions:
+  - variable: expose.tls.secretName
+    default: ""
+    description: "The secret must contain keys named tls.crt and tls.key that contain the certificate and private key to use for TLS"
+    type: certificate
+    label: Select Your Harbor TLS Certificate
+  - variable: expose.tls.commonName
+    default: "enter-common-name"
+    description: "Common name used to generate the certificate, it's necessary when the type isn't \"ingress\" and \"secretName\" is null"
+    type: string
+    label: TLS Certificate Common Name
 # config imageChartStorage type
 - variable: persistence.imageChartStorage.type
   default: "filesystem"
@@ -499,22 +511,16 @@ questions:
   description: "Enable Clair for vulnerability static analysis of containers images"
   type: boolean
   label: Enable Clair
-  group: "Notary, Clair & Cert"
+  group: "Notary, Clair & ChartMuseum"
 - variable: notary.enabled
   default: true
   description: "Notary is a tool for publishing and managing trusted collections of content like Docker images. Publishers can digitally sign collections and consumers can verify integrity and origin of content"
   type: boolean
   label: Enable Notary
-  group: "Notary, Clair & Cert"
+  group: "Notary, Clair & ChartMuseum"
 - variable: chartmuseum.enabled
   default: true
   description: "Enable Chartmuseum to support Helm chart repository in Harbor"
   type: boolean
   label: Enable Helm Chart Repository in Harbor
-  group: "Notary, Clair & Cert"
-- variable: cert.enabled
-  default: true
-  description: "Enable cert to distribute Harbor CA certs to each node under `/etc/docker/certs.d/` path"
-  type: boolean
-  label: Enable Cert DaemonSet
-  group: "Notary, Clair & Cert"
+  group: "Notary, Clair & ChartMuseum"

@@ -7,6 +7,11 @@ metadata:
     component: jobservice
 spec:
   replicas: {{ .Values.jobservice.replicas }}
+  strategy:
+    type: {{ .Values.updateStrategy.type }}
+    {{- if eq .Values.updateStrategy.type "Recreate" }}
+    rollingUpdate: null
+    {{- end }}
   selector:
     matchLabels:
 {{ include "harbor.matchLabels" . | indent 6 }}
@@ -38,7 +43,7 @@ spec:
           httpGet:
             path: /api/v1/stats
             port: 8080
-          initialDelaySeconds: 20
+          initialDelaySeconds: 300
           periodSeconds: 10
         readinessProbe:
           httpGet:
