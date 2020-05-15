@@ -1,0 +1,398 @@
+rancher_min_version: 2.4.0
+labels:
+  io.rancher.certified: partner
+categories:
+- Monitoring
+questions:
+# TODO: Re-enable ingress operations. Mostly pending testing to ensure that communications to this are valid from tracing libs
+# server configurations
+# - variable: ingress.enabled
+#   default: false
+#   description: "Expose the Lightstep satellite using Layer 7 Load Balancer - ingress"
+#   type: boolean
+#   group: "Load balancing"
+#   label: Expose the Lightstep satellite using Layer 7 Load Balancer
+#   show_subquestion_if: true
+#   required: true
+#   subquestions:
+#   - variable: ingress.hosts[0].host
+#     default: "xip.io"
+#     description: "Hostname to your Lightstep satellite installation"
+#     type: hostname
+#     required: true
+#     label: Hostname
+  # - variable: ingress.http_trace_ingress
+  #   default: false
+  #   description: "Enable posting http trace data from external services"
+  #   type: boolean
+  #   group: "Load balancing"
+  #   label: Enable public HTTP trace data
+  # - variable: ingress.plain_trace_ingress
+  #   default: false
+  #   description: "Enable posting plain trace data from external services"
+  #   type: boolean
+  #   group: "Load balancing"
+  #   label: Enable public plain text trace data
+- variable: service.type
+  default: "NodePort"
+  description: "Server service type"
+  group: "Load balancing"
+  type: enum
+  options:
+    - "ClusterIP"
+    - "NodePort"
+  required: true
+  label: Lightstep Service Type
+  # show_subquestion_if: "NodePort"
+  # subquestions:
+  # - variable: service.nodePort
+  #   default: ""
+  #   description: "NodePort http port(to set explicitly, choose port between 30000-32767)"
+  #   type: int
+  #   min: 30000
+  #   max: 32767
+  #   label: Lightstep NodePort Http Port
+  #   show_if: "ingress.enabled=false&&service.type=NodePort"
+# - variable: server.persistentVolume.enabled
+#   default: false
+#   description: "If true, Lightstep will create a persistent volume claim"
+#   type: boolean
+#   group: "Lightstep satellite"
+#   required: true
+#   label: Create Persistent Volume for Lightstep
+#   show_subquestion_if: true
+#   subquestions:
+#   - variable: server.persistentVolume.size
+#     default: "8Gi"
+#     description: "Lightstep satellite data persistent volume size"
+#     type: string
+#     label: Lightstep Persistent Volume Size
+#   - variable: server.persistentVolume.storageClass
+#     default: ""
+#     description: "Lightstep data persistent volume storageClass, if not set use default StorageClass"
+#     type: storageclass
+#     label: Lightstep Persistent Volume StorageClass
+#   - variable: server.persistentVolume.existingClaim
+#     default: ""
+#     description: "If not empty, uses the specified existing PVC instead of creating new one"
+#     type: pvc
+#     label: Existing Persistent Volume Claim for Lightstep satellite
+# Satellite Configuration
+- variable: lightstep.satelliteKey
+  default: ""
+  description: "Enter your Lightstep satellite key. You may input your satellite key directly here, or use a reference to an existing secret. If you need to create a satelite key, please refer to this page: https://docs.lightstep.com/docs/create-and-manage-satellite-keys"
+  type: string
+  label: Lightstep satellite key
+  show_if: "lightstep.satelliteSecretKey="
+  group: "Satellite Configuration"
+  required: true
+- variable: lightstep.satelliteSecret
+  default: ""
+  description: "If set, use an existing secret that contains your satellite API key. This must be provided, unless you provided your plain satellite key."
+  type: secret
+  label: Select existing secret with satellite API key
+  group: "Satellite Configuration"
+  show_if: "lightstep.satelliteKey="
+- variable: lightstep.satelliteSecretKey
+  default: ""
+  description: "List the key of the secret that contains the satellite API key. Only required if you are using an existing secret for your satellite key."
+  type: string
+  label: Enter the name of the key that contains the satellite API key.
+  group: "Satellite Configuration"
+  show_if: "lightstep.satelliteKey="
+- variable: lightstep.collector_pool
+  default: ""
+  description: "Provide a name for your pool of satellites"
+  type: string
+  label: Lightstep satellite pool
+  group: "Satellite Configuration"
+  required: false
+- variable: lightstep.bytes_per_project
+  default: ""
+  description: "The number of bytes that will be allocated to each project reporting to this satellite ppol"
+  type: string
+  label: Bytes per project
+  group: "Satellite Configuration"
+- variable: lightstep.bytes_per_project_override
+  default: ""
+  description: "An override list of projects that will allow specific projects to exceed the bytes per project."
+  type: string
+  label: Bytes per project override
+  group: "Satellite Configuration"
+- variable: lightstep.guid
+  default: ""
+  description: "A unique identifier for this collector. This is useful in debugging collectors and understanding where traces report through."
+  type: string
+  label: Collector guid
+  group: "Satellite Configuration"
+#Port definitions
+- variable: lightstep.diagnostic_port_enabled
+  default: true
+  description: "Enabled diagnostics reporting for the satellite (recommended)"
+  type: boolean
+  group: "Satellite Configuration"
+  label: Expose satellite diagnotic port
+  show_subquestion_if: true
+  required: true
+  subquestions:
+  - variable: lightstep.diagnostic_port
+    default: "8000"
+    description: "Port to expose for Collector diagnostics."
+    type: string
+    label: Collector diagnostic port
+    group: "Satellite Configuration"
+  - variable: lightstep.diagnostic_port_node
+    default: "30000"
+    description: "Port to expose for Collector diagnostics for external services. By default will use 30000"
+    type: string
+    label: Nodeport for collector diagnostic port
+    group: "Satellite Configuration"
+    show_if: "service.type=NodePort"
+- variable: lightstep.admin_plain_port_enabled
+  default: true
+  description: "Enable satellite admin functions (recommended)"
+  type: boolean
+  group: "Satellite Configuration"
+  label: Expose satellite diagnotic port
+  show_subquestion_if: true
+  required: true
+  subquestions:
+  - variable: lightstep.admin_plain_port
+    default: "8180"
+    description: "Port for collector admin functions, such as health and readiness"
+    type: string
+    label: Collector admin port
+    group: "Satellite Configuration"
+  - variable: lightstep.admin_plain_port_node
+    default: "30180"
+    description: "Port to expose for admin diagnostics for external services. By default will use 30180."
+    type: string
+    label: Nodeport for collector diagnostic port
+    group: "Satellite Configuration"
+    show_if: "service.type=NodePort"
+- variable: lightstep.admin_secure_port_enabled
+  default: true
+  description: "Enable satellite admin functions (recommended)"
+  type: boolean
+  group: "Satellite Configuration"
+  label: Expose satellite diagnotic port
+  show_subquestion_if: true
+  required: true
+  subquestions:
+  - variable: lightstep.admin_secure_port
+    default: "9090"
+    description: "Port for secure collector admin functions, such as health and readiness"
+    type: string
+    label: Collector admin secure port
+    group: "Satellite Configuration"
+  - variable: lightstep.admin_secure_port_node
+    default: "30090"
+    description: "Port to expose for secure admin diagnostics for external services. By default will use 30090."
+    type: string
+    label: Nodeport for collector diagnostic port
+    group: "Satellite Configuration"
+    show_if: "service.type=NodePort"
+- variable: lightstep.http_plain_port_enabled
+  default: true
+  description: "Enable satellite to receive unencrypted Proto-over-HTTP span traffic"
+  type: boolean
+  group: "Satellite Configuration"
+  label: Expose plain http port
+  show_subquestion_if: true
+  required: true
+  subquestions:
+  - variable: lightstep.http_plain_port
+    default: "8181"
+    description: "Port for the satellite to accept unencrypted Proto-over-HTTP span traffic"
+    type: string
+    label: Collector http plain port
+    group: "Satellite Configuration"
+  - variable: lightstep.http_plain_port_node
+    default: "30181"
+    description: "Port to expose for the satellite to accept unencrypted Proto-over-HTTP span traffic from external services. By default will use 30181."
+    type: string
+    label: Nodeport for plain http data
+    group: "Satellite Configuration"
+    show_if: "service.type=NodePort"
+- variable: lightstep.http_secure_port_enabled
+  default: false
+  description: "Enable satellite to receive encrypted Proto-over-HTTP span traffic"
+  type: boolean
+  group: "Satellite Configuration"
+  label: Expose secure http port
+  show_subquestion_if: true
+  required: true
+  subquestions:
+  - variable: lightstep.http_secure_port
+    default: "9191"
+    description: "Port for the satellite to accept encrypted Proto-over-HTTP span traffic"
+    type: string
+    label: Collector secure http port
+    group: "Satellite Configuration"
+  - variable: lightstep.http_secure_port_node
+    default: "30191"
+    description: "Port for the satellite to accept encrypted Proto-over-HTTP span traffic from external services. By default will use 30191."
+    type: string
+    label: Nodeport for secure http data
+    group: "Satellite Configuration"
+    show_if: "service.type=NodePort"
+- variable: lightstep.grpc_plain_port_enabled
+  default: false
+  description: "Port for the Satellite to accept unencrypted gRPC span traffic. This is required for several tracers (https://docs.lightstep.com/docs/satellite-configuration-parameters#grpc-ports)"
+  type: boolean
+  group: "Satellite Configuration"
+  label: Expose grpc port
+  show_subquestion_if: true
+  required: true
+  subquestions:
+  - variable: lightstep.grpc_plain_port
+    default: "8184"
+    description: "Port for the Satellite to accept unencrypted gRPC span traffic."
+    type: string
+    label: Collector grpc plain port
+    group: "Satellite Configuration"
+  - variable: lightstep.grpc_plain_port_node
+    default: "30184"
+    description: "Port for the Satellite to accept unencrypted gRPC span traffic from external services. By default will use 30184."
+    type: string
+    label: Nodeport for grpc data
+    group: "Satellite Configuration"
+    show_if: "service.type=NodePort"
+- variable: lightstep.grpc_secure_port_enabled
+  default: false
+  description: "Port for the Satellite to accept encrypted gRPC span traffic. This is required for several tracers (https://docs.lightstep.com/docs/satellite-configuration-parameters#grpc-ports)"
+  type: boolean
+  group: "Satellite Configuration"
+  label: Expose secure grpc port
+  show_subquestion_if: true
+  required: true
+  subquestions:
+  - variable: lightstep.grpc_secure_port
+    default: "9292"
+    description: "Port for the Satellite to accept encrypted gRPC span traffic."
+    type: string
+    label: Collector grpc secure port
+    group: "Satellite Configuration"
+  - variable: lightstep.grpc_secure_port_node
+    default: "30292"
+    description: "Port for the Satellite to accept encrypted gRPC span traffic from external services. By default will use 30292."
+    type: string
+    label: Nodeport for secure grpc data
+    group: "Satellite Configuration"
+    show_if: "service.type=NodePort"
+- variable: lightstep.plain_port_enabled
+  default: false
+  description: "Collector port accepts unencrypted Thrift span traffic. This is required for several tracers (https://docs.lightstep.com/docs/satellite-configuration-parameters#thrift-ports)"
+  type: boolean
+  group: "Satellite Configuration"
+  label: Expose plain Thrift port
+  show_subquestion_if: true
+  required: true
+  subquestions:
+  - variable: lightstep.plain_port
+    default: "8383"
+    description: "Collector port accepts unencrypted Thrift span traffic."
+    type: string
+    label: Collector plain port
+    group: "Satellite Configuration"
+  - variable: lightstep.plaain_port_node
+    default: "30383"
+    description: "Collector port accepts unencrypted Thrift span traffic. from external services. By default will use 30383."
+    type: string
+    label: Nodeport for unencrypted Thrift data
+    group: "Satellite Configuration"
+    show_if: "service.type=NodePort"
+- variable: lightstep.secure_port_enabled
+  default: false
+  description: "Collector port accepts encrypted Thrift span traffic. This is required for several tracers (https://docs.lightstep.com/docs/satellite-configuration-parameters#thrift-ports)"
+  type: boolean
+  group: "Satellite Configuration"
+  label: Expose secure Thrift port
+  show_subquestion_if: true
+  required: true
+  subquestions:
+  - variable: lightstep.secure_port
+    default: "9393"
+    description: "Collector port accepts encrypted Thrift span traffic."
+    type: string
+    label: Collector secure port
+    group: "Satellite Configuration"
+  - variable: lightstep.secure_port_node
+    default: "30393"
+    description: "Collector port accepts encrypted Thrift span traffic from external services. By default will use 30393."
+    type: string
+    label: Nodeport for encrypted Thrift data
+    group: "Satellite Configuration"
+    show_if: "service.type=NodePort"
+- variable: lightstep.tls_cert_prefix
+  default: ""
+  description: "This string gives the file path prefix for certificate files used in serving TLS connections on the Satellite."
+  type: string
+  label: Collector TLS cert prefix
+  group: "Satellite Configuration"
+- variable: lightstep.collector_ingestion_tags
+  default: ""
+  description: "A comma-separated name/value pair list of tags/values. These tags are static - the same tag and value is applied to every span the Satellite receives."
+  type: string
+  label: Collector ingestion tags
+  group: "Satellite Configuration"
+- variable: statsd.enabled
+  default: false
+  description: "Enable the Satellite to send StatsD metrics"
+  type: boolean
+  group: "StatsD metrics"
+  label: Expose metrics from within the satellite
+  show_subquestion_if: true
+  required: true
+  subquestions:
+  - variable: statsd.host
+    default: "127.0.0.1"
+    description: "Server to report statsD metrics to"
+    type: string
+    group: "StatsD metrics"
+    required: true
+    label: StatsD host
+  - variable: statsd.port
+    default: "8125"
+    description: "Port to write StatsD metrics to"
+    type: string
+    group: "StatsD metrics"
+    label: Port target for StatsD metrics
+  - variable: statsd.export_statsd
+    default: true
+    description: "Export data in StatsD format"
+    type: boolean
+    group: "StatsD metrics"
+    label: Send metric data in StatsD format
+  - variable: statsd.dogStatsD
+    default: false
+    description: "Export metrics in dogStatsD format. If enabled, cannot send metrics in StatsD format"
+    type: boolean
+    group: "StatsD metrics"
+    label: Use dogStatsD format for metrics
+    show_if: "statsd.export_statsd=false"
+  - variable: statsd.dogStatsDTags
+    default: "pool:us-west-1,canary:true"
+    description: "Tags to add to dogStatsD metrics"
+    type: string
+    group: "StatsD metrics"
+    label: Tags for dogStatsD metrics
+    show_if: "statsd.dogStatsD=true"
+  - variable: statsd.prefix
+    default: "lightstep.prod.us-west-1"
+    description: "Universal metrics prefix for all metrics"
+    type: string
+    group: "StatsD metrics"
+    label: Global prefix to append to all metrics
+  - variable: statsd.satellite_prefix
+    default: "satellite-canary"
+    description: "Prefix to add to any metrics from this satellite. This can help distinguish metrics from multiple satellites within a pool"
+    type: string
+    group: "StatsD metrics"
+    label: Prefix to append to any metrics from this satellite
+  - variable: statsd.client_prefix
+    default: "client_via_canary"
+    description: "Prefix to append to any metric names that pass through the client"
+    type: string
+    group: "StatsD metrics"
+    label: Prefix to append to this client
