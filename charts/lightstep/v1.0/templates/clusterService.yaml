@@ -1,0 +1,58 @@
+{{ if eq .Values.service.type "ClusterIP"}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "lightstep.fullname" . }}
+  labels:
+    {{- include "lightstep.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+  {{- if .Values.lightstep.diagnostic_port_enabled }}
+    - name: diagnostic-port
+      port: {{ .Values.lightstep.diagnostic_port }}
+      targetPort: {{ .Values.lightstep.diagnostic_port }}
+  {{ end -}}
+  {{- if .Values.lightstep.admin_plain_port_enabled }}
+    - name: admin-plain-port
+      port: {{ .Values.lightstep.admin_plain_port }}
+      targetPort: {{ .Values.lightstep.admin_plain_port }}
+  {{ end -}}
+  {{- if .Values.lightstep.admin_secure_port_enabled }}
+    - name: admin-secure-port
+      port: {{ .Values.lightstep.admin_secure_port }}
+      targetPort: {{ .Values.lightstep.admin_secure_port }}
+  {{ end -}}
+  {{- if .Values.lightstep.http_plain_port }}
+    - name: http-plain-port
+      port: {{ .Values.lightstep.http_plain_port }}
+      targetPort: {{ .Values.lightstep.http_plain_port }}
+  {{ end -}}
+  {{- if .Values.lightstep.http_secure_port }}
+    - name: http-secure-port
+      port: {{ .Values.lightstep.http_secure_port }}
+      targetPort: {{ .Values.lightstep.http_secure_port }}
+  {{ end -}}
+  {{- if .Values.lightstep.grpc_plain_port_enabled }}
+    - name: grpc-plain-port
+      port: {{ .Values.lightstep.grpc_plain_port }}
+      targetPort: {{ .Values.lightstep.grpc_plain_port }}
+  {{ end -}}
+  {{- if .Values.lightstep.grpc_secure_port_enabled }}
+    - name: grpc-secure-port
+      port: {{ .Values.lightstep.grpc_secure_port }}
+      targetPort: {{ .Values.lightstep.grpc_secure_port }}
+  {{ end -}}
+  {{- if .Values.lightstep.plain_port_enabled }}
+    - name: plain-port
+      port: {{ .Values.lightstep.plain_port }}
+      targetPort: {{ .Values.lightstep.plain_port }}
+  {{ end -}}
+  {{- if .Values.lightstep.secure_port_enabled }}
+    - name: secure-port
+      port: {{ .Values.lightstep.secure_port }}
+      targetPort: {{ .Values.lightstep.secure_port }}
+  {{ end -}}
+  selector:
+    {{- include "lightstep.selectorLabels" . | nindent 4 }}
+{{ end -}}
