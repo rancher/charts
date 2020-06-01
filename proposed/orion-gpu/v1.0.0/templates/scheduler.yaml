@@ -37,16 +37,17 @@ spec:
           mountPath: /orion-scheduler
       - name: orion-scheduler-extender-ctr
         image: '{{ .Values.scheduler.image.extender.repository }}:{{ default .Chart.AppVersion .Values.scheduler.image.scheduler.version }}'
-        #command: ["/go/bin/scheduler"]
         env:
         - name: ORION_CONTROLLER
-          value: '{{ .Values.controller.service }}.{{- .Release.Namespace -}}.svc.cluster.local:{{ .Values.controller.port | atoi }}' # TODO how to make sure svc.cluster.local is the correct suffix?
+          # TODO how to make sure svc.cluster.local is the correct suffix?
+          value: '{{ .Values.controller.service }}.{{- .Release.Namespace -}}.svc.cluster.local:{{ .Values.controller.port | atoi }}' 
         - name: ORION_API_VERSION
           value: '{{ default .Chart.AppVersion .Values.scheduler.apiVersion }}'
         - name: ORION_DATA_VERSION
           value: '{{ default .Chart.AppVersion .Values.scheduler.dataVersion }}'
         - name: MANAGED_ORION_SERVER
-          value: "true" # always true for helm chart
+          # always true for helm chart
+          value: "true" 
         - name: ORION_RES_NAME
           value: {{ .Values.resources.name }}
         livenessProbe:
