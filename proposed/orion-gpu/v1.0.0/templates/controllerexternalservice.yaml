@@ -1,0 +1,18 @@
+# externalName is used for cross namespace access
+# remember that our scheduler extender is deployed in the kube-system namespace
+apiVersion: v1
+kind: Service
+metadata:
+  name: orion-controller-external
+  namespace: kube-system
+spec:
+  type: ExternalName
+  # please make sure this dns entry pointing to the correct service name
+  externalName: {{ .Values.controller.service -}}.{{- .Release.Namespace -}}.svc.cluster.local
+  ports:
+  - port: {{ .Values.controller.port | atoi }}
+    name: {{ .Values.controller.portName0 }}
+  - port: {{ .Values.controller.port | atoi | add 1 }}
+    name: {{ .Values.controller.portName1 }}
+  - port: {{ .Values.controller.port | atoi | add 2 }}
+    name: {{ .Values.controller.portName2 }}

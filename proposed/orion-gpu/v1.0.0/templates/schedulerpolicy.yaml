@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: orion-scheduler-policy
+  namespace: kube-system
+data:
+ policy.cfg : |
+  {
+    "kind" : "Policy",
+    "apiVersion" : "v1",
+    "extenders" : [{
+      "urlPrefix": "http://localhost:{{ .Values.scheduler.port }}",
+      "filterVerb": "filter",
+      "prioritizeVerb": "",
+      "preemptVerb": "",
+      "bindVerb": "",
+      "weight": 1,
+      "managedResources": [
+        {
+          "name": "{{ .Values.resources.name }}",
+          "ignoredByScheduler": false
+        }
+      ],
+      "enableHttps": false
+    }]
+  }

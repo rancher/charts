@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: orion-plugin
+  labels:
+    k8s-app: virtaitech
+spec:
+  selector:
+    matchLabels:
+      name: orion-plugin
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ""
+      labels:
+        name: orion-plugin
+    spec:
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+      - image: '{{ .Values.plugin.image.repository }}:{{ default .Chart.AppVersion .Values.plugin.image.version }}'
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- if .Values.imagePullSecrets }}
+        imagePullSecrets:
+        - name: {{ .Values.imagePullSecrets }}
+        {{- end }}
+        name: orion-plugin
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: 
+              - ALL
+        volumeMounts:
+          - name: device-plugin
+            mountPath: {{ .Values.plugin.path }}
+          - name: device-shm
+            mountPath: {{ .Values.volumes.shm }}
+        env:
+        - name: ORION_CONTROLLER
+          value: '{{ .Values.controller.service }}:{{ .Values.controller.port | atoi }}'
+        - name: ORION_RES_NAME 
+          value: {{ .Values.resources.name }}
+        - name: ORION_BIND_NET
+          value: {{ .Values.server.net }}
+        - name: CONTROLLER_API_VERSION
+          value: '{{ .Values.controller.version }}'
+      volumes:
+        - name: device-plugin
+          hostPath:
+            path: {{ .Values.plugin.path }}
+        - name: device-shm
+          hostPath:
+            path: {{ .Values.volumes.shm }}

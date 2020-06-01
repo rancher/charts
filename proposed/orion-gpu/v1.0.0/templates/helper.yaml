@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  namespace: kube-system
+  name: orion-helper
+  labels:
+    k8s-app: virtaitech
+spec:
+  selector:
+    matchLabels:
+      name: orion-helper
+  template:
+    metadata:
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ""
+      labels:
+        name: orion-helper
+    spec:
+      serviceAccountName: orion-scheduler # kubernetes cluster admin privilege is used to manipulate cluster nodes (i.e. add labels to the nodes)
+      hostNetwork: true
+      tolerations:
+      - key: node-role.kubernetes.io/master #TODO: rancher tolerations
+        effect: NoSchedule
+      containers:
+      - image: '{{ .Values.helper.image.repository }}:{{ default .Chart.AppVersion .Values.helper.image.version }}'
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- if .Values.imagePullSecrets }}
+        imagePullSecrets:
+        - name: {{ .Values.imagePullSecrets }}
+        {{- end }}
+        name: orion-helper
+        env:
+        - name: MY_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        # BIND_ADDR will be created based on this 
+        - name: ORION_BIND_NET
+          value : {{ .Values.server.net }}

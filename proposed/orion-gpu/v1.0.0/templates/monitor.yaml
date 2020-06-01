@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: orion-monitor
+  labels:
+    k8s-app: virtaitech
+    app: orion-monitor
+spec:
+  selector:
+    matchLabels:
+      name: orion-monitor
+      app: orion-monitor
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '{{ .Values.monitor.port }}'
+        prometheus.io/path: 'metrics'
+      labels:
+        name: orion-monitor
+        app: orion-monitor
+    spec:
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      hostNetwork: true
+      hostPID: true
+      containers:
+      - image: '{{ .Values.monitor.image.exporter.repository }}:{{ default .Chart.AppVersion .Values.monitor.image.exporter.version }}'
+        name: nv-exporter
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- if .Values.imagePullSecrets }}
+        imagePullSecrets:
+        - name: {{ .Values.imagePullSecrets }}
+        {{- end }}
+        volumeMounts:
+        - name: prometheus
+          mountPath: {{ .Values.monitor.collectorPath }}
+        # fix crash on cpu node, just a workaround
+        command: [ "/bin/bash", "-c", "--" ]
+        args: [ "/usr/bin/dcgm-exporter; sleep infinity"]
+      - image: '{{ .Values.monitor.image.prometheus.repository }}:{{ default .Chart.AppVersion .Values.monitor.image.prometheus.version }}'
+        name: prometheus
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- if .Values.imagePullSecrets }}
+        imagePullSecrets:
+        - name: {{ .Values.imagePullSecrets }}
+        {{- end }}
+        args:
+        - --collector.textfile.directory={{- .Values.monitor.collectorPath }}
+        ports:
+        - name: prometheus
+          containerPort: {{ .Values.monitor.port }}
+        volumeMounts:
+        - name: prometheus
+          mountPath: {{ .Values.monitor.collectorPath }}
+      volumes:
+      - name: prometheus
+        emptyDir: {}
+        #hostPath:
+        #  path: {{ .Values.monitor.collectorPath }}

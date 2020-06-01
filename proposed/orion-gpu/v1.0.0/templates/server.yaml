@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: orion-server
+  labels:
+    k8s-app: virtaitech
+    app: orion-server
+spec:
+  selector:
+    matchLabels:
+      name: orion-server
+      app: orion-server
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ""
+      labels:
+        name: orion-server
+        app: orion-server
+    spec:
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      hostIPC: true
+      hostPID: true
+      #nodeSelector:
+      #  gpu: "true"
+      containers:
+      - image: 'virtaitech/orion-server-{{ .Values.server.image.version }}:cuda{{ .Values.server.cudaVersion }}'
+        name: orion-server
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- if .Values.imagePullSecrets }}
+        imagePullSecrets:
+        - name: {{ .Values.imagePullSecrets }}
+        {{- end }}
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: timezone
+          mountPath: /etc/timezone
+        - name: time
+          mountPath: /etc/localtime
+        - name: comm
+          mountPath: {{ .Values.server.path.comm }}
+        env:
+        - name: LD_LIBRARY_PATH
+          value: "/usr/lib/libnv"
+        - name: ORION_CONTROLLER
+          value: '{{ .Values.controller.service }}:{{ .Values.controller.port | atoi }}'
+        - name: ORION_SERVER_PORT # TODO: changing this value not tested
+          value: '{{ .Values.server.port }}'
+        - name: ORION_BIND_NET
+          value: {{ .Values.server.net }}
+        {{- if .Values.server.ibName }}
+        - name: ORION_IB_NAME
+          value: {{ .Values.server.ibName }}
+        {{- end }}
+        - name: ORION_VGPU_COUNT
+          value: '{{ .Values.server.vgpus }}'
+      volumes:
+      - name: timezone
+        hostPath:
+          path: /etc/timezone
+      - name: time
+        hostPath:
+          path: /etc/localtime
+      - name: comm
+        hostPath:
+          path: {{ .Values.server.path.comm }}

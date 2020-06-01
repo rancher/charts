@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.controller.name }}
+  labels:
+    name: {{ .Values.controller.name }}
+spec:
+  selector:
+    matchLabels:
+      app: orion
+      name: {{ .Values.controller.name }}
+  replicas: {{ .Values.controller.replicas }}
+  template:
+    metadata:
+      labels:
+        app: orion
+        name: {{ .Values.controller.name }}
+    spec:
+      serviceAccountName: orion-controller
+      containers:
+      - name: prometheus
+        image: '{{ .Values.controller.image.prom }}:{{ default .Chart.AppVersion .Values.controller.image.version }}'
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- if .Values.imagePullSecrets }}
+        imagePullSecrets:
+        - name: {{ .Values.imagePullSecrets }}
+        {{- end }}
+        volumeMounts:
+        - name: prometheus
+          mountPath: /etc/prometheus
+      - name: controller
+        command: ['/entrypoint.sh']
+        image: '{{ .Values.controller.image.repository }}:{{ default .Chart.AppVersion .Values.controller.image.version }}'
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- if .Values.imagePullSecrets }}
+        imagePullSecrets:
+        - name: {{ .Values.imagePullSecrets }}
+        {{- end }}
+        env:
+        - name: ORION_PORT
+          value: '{{ .Values.controller.port }}'
+        - name: EXT_DB
+          value: "127.0.0.1:9090" # TODO: should be the same as the port in prometheus
+        - name: TOKEN # TODO: use secret?
+          value: '{{ .Values.controller.token }}'
+        - name: ADMIN_PASSWD # TODO: use secret?
+          value: '{{ .Values.controller.password }}'
+        - name: ORION_LICENSE
+          value: '{{ .Values.license.key }}'
+        - name: ENABLE_QUOTA
+        {{- if eq .Values.controller.enableQuota true }}
+          value: "1"
+        {{- else }}
+          value: "0"
+        {{- end }}
+        ports:
+        - name: {{ .Values.controller.portName0 }}
+          containerPort: {{ .Values.controller.port | atoi }}
+        - name: {{ .Values.controller.portName1 }}
+          containerPort: {{ .Values.controller.port | atoi | add 1 }}
+        - name: {{ .Values.controller.portName2 }}
+          containerPort: {{ .Values.controller.port | atoi | add 2 }}
+        volumeMounts:
+        - name: time
+          mountPath: /etc/localtime
+        - name: timezone
+          mountPath: /etc/timezone
+        #- name: licensefile
+        #  mountPath: /root/license.txt
+        #- name: license
+        #  mountPath: /home # TODO: move this to a different place, remember to change --license in the container
+      volumes:
+      - name: prometheus
+        configMap:
+          name: orion-controller-prometheus-config
+      - name: license
+        configMap:
+          name: orion-controller-license
+      - name: time
+        hostPath:
+          path: /etc/localtime
+      - name: timezone
+        hostPath:
+          path: /etc/timezone
+      #- name: licensefile
+      #  hostPath:
+      #    path: /home/ubuntu/license.txt

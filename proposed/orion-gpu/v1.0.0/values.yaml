@@ -1,0 +1,92 @@
+image:
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+resources:
+  # Interesting Config:
+  # resource name exposed by Orion
+  name: "virtaitech.com/gpu"
+
+monitor:
+  collectorPath: /run/prometheus
+  image:
+    exporter:
+      repository: virtaitech/dcgm-export #nvidia/dcgm-exporter
+      version: "2.2"
+    prometheus:
+      repository: virtaitech/node-exporter #quay.io/prometheus/node-exporter
+      version: "2.2"
+  # this port is also used by controller to scrap info.
+  # should not change this value
+  port: 9100
+
+controller:
+  version: "2.2"
+  name: "orion-controller"
+  port: "15500"
+  portName0: "controller"
+  portName1: "port1"
+  portName2: "webportal"
+  nodeport: 30007
+  service: orion-controller
+  image:
+    prom: virtaitech/prometheus
+    repository: virtaitech/orion-controller
+    version: "2.2"
+  # Interesting Config:
+  password: "admin"
+  # Interesting Config:
+  enableQuota: false # or true
+  # Interesting Config:
+  token: ""
+  # changing this value not tested
+  replicas: 1
+
+helper:
+  image:
+    repository: virtaitech/orion-helper
+    version: "2.2"
+
+server:
+  port: "9960"
+  #mode: "rdma"
+  # Interesting Config:
+  # TODO: requires addtional images
+  cudaVersion: "10.1"
+  image:
+    version: "2.2"
+  path:
+    comm: /var/tmp/orion/comm
+  # Interesting Config:
+  net: ens5
+  # Interesting Config:
+  vgpus: 4
+  # Interesting Config:
+  ibName: ""
+
+plugin:
+  path: /var/lib/kubelet/device-plugins
+  image:
+    repository: virtaitech/orion-plugin
+    version: "2.2"
+
+scheduler:
+  replicas: 1
+  apiVersion: "2.2"
+  dataVersion: "2.2"
+  image:
+    scheduler:
+      repository: virtaitech/hyperkube #gcr.io/google_containers/hyperkube:v1.16.3
+      version: "2.2"
+    extender:
+      repository: virtaitech/k8s-scheduler-extender
+      version: "2.2"
+  port: 8888
+  verbose: 4
+
+license:
+  # Interesting Config:
+  key: ""
+
+volumes:
+  shm: /dev/shm

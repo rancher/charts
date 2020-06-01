@@ -1,0 +1,172 @@
+categories:
+- repository
+labels:
+  io.rancher.certified: partner
+questions:
+- variable: defaultImage
+  default: "true"
+  description: "Use default Orion image, change this with caution!"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  # cannot set server iamge repository
+  #- variable: server.image.repository
+  #  default: "virtaitech/orion-server"
+  #  description: "Orion server image name"
+  #  type: string
+  #  label: Server Image Name
+  - variable: server.image.version
+    default: "2.1"
+    description: "Orion server image tag"
+    type: string
+    label: Server Image Tag
+  - variable: controller.image.prom
+    default: "virtaitech/prometheus"
+    description: "Orion controller monitor image name"
+    type: string
+    label: Controller Monitor Image Name
+  - variable: controller.image.repository
+    default: "virtaitech/orion-controller-ent"
+    description: "Orion controller image name"
+    type: string
+    label: Controller Image Name
+  - variable: controller.image.version
+    default: "2.1"
+    description: "Orion controller image tag"
+    type: string
+    label: Controller Image Tag
+  - variable: plugin.image.repository
+    default: "virtaitech/orion-plugin"
+    description: "Plugin controller image name"
+    type: string
+    label: Plugin Image Name
+  - variable: plugin.image.version
+    default: "2.1"
+    description: "Plugin controller image tag"
+    type: string
+    label: Plugin Image Tag
+  - variable: monitor.image.exporter.repository
+    default: "virtaitech/dcgm-exporter"
+    description: "dcgm exporter image name"
+    type: string
+    label: dcgm Image Name
+  - variable: monitor.image.exporter.version
+    default: "2.1"
+    description: "dcgm exporter image tag"
+    type: string
+    label: dcgm Image Tag
+  - variable: monitor.image.prometheus.repository
+    default: "virtaitech/node-exporter"
+    description: "node exporter image name"
+    type: string
+    label: Node Image Name
+  - variable: monitor.image.prometheus.version
+    default: "2.1"
+    description: "node exporter image tag"
+    type: string
+    label: Node Image Tag
+  - variable: scheduler.image.scheduler.repository
+    default: "virtaitech/hyperkube"
+    description: "scheduler image name"
+    type: string
+    label: Scheduler Image Name
+  - variable: scheduler.image.scheduler.version
+    default: "2.1"
+    description: "scheduler image version"
+    type: string
+    label: Scheduler Image Tag
+  - variable: scheduler.image.extender.repository
+    default: "virtaitech/orion-scheduler-extender"
+    description: "extender image name"
+    type: string
+    label: Extender Image Name
+  - variable: scheduler.image.extender.version
+    default: "2.1"
+    description: "extender image version"
+    type: string
+    label: Extender Image Tag
+  - variable: helper.image.repository
+    default: "virtaitech/orion-helper"
+    description: "Orion helper image name"
+    type: string
+    label: Helper Image Name
+  - variable: helper.image.version
+    default: "2.1"
+    description: "Orion helper image tag"
+    type: string
+    label: Helper Image Tag
+  - variable: imagePullSecrets
+    description: "Image Pull Secret"
+    type: string
+    label: Image Pull Secret
+- variable: license.key
+  default: ""
+  description: "A license key is required to use Orion vGPU, if you don't have one, please visit https://www.virtaitech.com to get one. FREE trial is available!"
+  label: License Key
+  type: string
+  group: "General"
+  required: true
+- variable: controller.password
+  default: "admin"
+  description: "Password used to login to Orion controller web ui"
+  label: Controller Web Portal Password
+  type: password
+  required: true
+  group: "General"
+- variable: controller.token
+  default: ""
+  description: "token used to call advanced controller api"
+  label: Controller Token
+  type: password
+  required: true
+  group: "General"
+- variable: controller.enableQuota
+  default: "false"
+  description: "Controller enables quota limitations. please visit https://www.virtaitech.com for more information."
+  label: Controller Quota
+  type: boolean
+  group: "Settings"
+- variable: server.net
+  default: "eth0"
+  description: "network interface used by Orion Server, This is a critical setting! Orion assumes that network interfaces to be used on Kubernetes nodes have exactly the same name. If not, please visit https://www.virtaitech.com for additional options."
+  label: Network Interface
+  type: string
+  group: "Network"
+  required: true
+- variable: server.vgpus
+  default: 4
+  min: 1
+  max: 100
+  description: "number of vGPUs created for each NVidia physical GPU."
+  label: VGPU Numbers
+  type: int
+  group: "Settings"
+  required: true
+- variable: server.cudaVersion
+  default: "10.1"
+  description: "cuda version to be supported by Orion"
+  label: Server CUDA
+  type: enum
+  group: "Settings"
+  required: true
+  options:
+  - "10.0"
+  - "10.1"
+  - "9.0"
+  - "9.1"
+  - "9.2"
+- variable: server.ibName
+  default: ""
+  description: "infiniband network name. Please leave it blank if you do not know how to set this value, Orion will try to auto detect the settings."
+  label: Infiniband Network Name
+  type: string
+  group: "Network"
+- variable: resources.name
+  default: "virtaitech.com/gpu"
+  required: true
+  description: "Resource name provided by Kubernetes and then be request by Orion client"
+  label: Orion Resource Name 
+  type: string
+  group: "General"
