@@ -1,0 +1,127 @@
+questions:
+# General
+- variable: logFormat 
+  label: Log Format
+  description: "Log format (fmt or json)"
+  type: enum
+  default: "fmt"
+  options:
+  - "fmt"
+  - "json"
+  group: General
+
+# Service Acccount
+- variable: serviceAccount.create 
+  label: Create New Service Account
+  type: boolean 
+  default: true
+  group: Service Account
+- variable: serviceAccount.name
+  label: Service Account Name
+  type: string
+  required: true
+  default: flux 
+  group: Service Account
+
+# Service
+- variable: service.port 
+  label: Service Port
+  description: "Service port to be used for Flux"
+  type: int
+  required: true
+  default: 3030
+  group: Service
+
+# Git
+- variable: git.url
+  label: Git Repository URL
+  description: "URL of git repository with Kubernetes manifests"
+  type: string
+  default: "git@github.com:fluxcd/flux-get-started"
+  group: Git
+- variable: git.branch
+  label: Git Branch
+  type: string
+  default: master
+  group: Git
+- variable: git.user
+  label: Git User
+  description: Username to use as git committer
+  type: string
+  default: "Weave Flux"
+  group: Git
+- variable: git.email
+  label: Git Email
+  description: Email to use as git committer
+  type: string
+  default: "support@weave.works"
+  group: Git
+
+# Registry
+- variable: registry.automationInterval 
+  label: Automation Interval
+  description: "Period at which to check for updated images"
+  type: string
+  default: "5m"
+  group: Registry
+- variable: registry.rps 
+  label: Request Rate Max
+  description: "Maximum registry requests per second per host"
+  type: int 
+  default: 200
+  group: Registry
+- variable: registry.burst
+  label: Warmer Connections Max
+  description: "Maximum number of warmer connections to remote and memcache"
+  type: int
+  default: 125
+  group: Registry
+
+# Memcached
+- variable: memcached.enabled 
+  label: Enable Memcached
+  description: "Create a memcached deployment and service. When set to false you must set an external memcached service."
+  type: boolean
+  default: true
+  group: Memcached
+  show_subquestion_if: true
+  subquestions:
+    - variable: memcached.verbose
+      label: "Enable Request logging"
+      type: boolean
+      default: false
+
+# Prometheus
+- variable: prometheus.enabled
+  label: Enable Prometheus
+  description: "If enabled, adds prometheus annotations to Flux and helmOperator pod(s)"
+  type: boolean
+  default: false
+  group: Prometheus
+  show_subquestion_if: true
+  subquestions:
+  - variable: prometheus.serviceMonitor.create	false
+    label: Create Service Monitor
+    description: "Set to true if using the Prometheus Operator"
+    type: boolean
+    default: true
+  - variable: prometheus.serviceMonitor.interval	``	Interval at which metrics should be scraped  
+    label: Service Monitor Interval
+    description: "Interval at which metrics should be scraped"
+    type: string
+    default: "1m"
+
+# Garbage Collection
+- variable: syncGarbageCollection.enabled
+  label: Enable Garbage Collection
+  description: "If enabled, fluxd will delete resources that it created, but are no longer present in git (see garbage collection)"
+  type: boolean
+  default: false
+  group: Garbage Collection
+  show_subquestions_if: true
+  subquestions:
+    - variable: syncGarbageCollection.dry 
+      label: Enable Dry Run
+      description: "If enabled, fluxd won't delete any resources, but log the garbage collection output (see garbage collection)"
+      type: boolean
+      default: false
