@@ -43,32 +43,28 @@ Create the name of the service account to use
 {{- end -}}
 
 {{/*
+Define the proper imageRegistry to use for agent and kmodule image
+*/}}
+{{- define "sysdig.imageRegistry" -}}
+{{- if and .Values.global (hasKey (default .Values.global dict) "imageRegistry") -}}
+    {{- .Values.global.imageRegistry -}}
+{{- else -}}
+    {{- .Values.image.registry -}}
+{{- end -}} 
+{{- end -}}
+
+{{/*
 Return the proper Sysdig Agent image name
 */}}
+{{- define "sysdig.repositoryName" -}}
+{{- .Values.image.repository -}} {{- if .Values.slim.enabled -}} -slim {{- end -}}
+{{- end -}}
+
 {{- define "sysdig.image" -}}
-{{- $registryName := .Values.image.registry -}}
-{{- $repositoryName := .Values.image.repository -}}
-{{- $tag := .Values.image.tag | toString -}}
-{{/*
-Helm 2.11 supports the assignment of a value to a variable defined in a different scope,
-but Helm 2.9 and 2.10 doesn't support it, so we need to implement this if-else logic.
-Also, we can't use a single if because lazy evaluation is not an option
-*/}}
 {{- if .Values.image.overrideValue }}
     {{- printf .Values.image.overrideValue -}}
 {{- else -}}
-    {{- if .Values.slim.enabled }}
-    {{- $repositoryName = printf "%s-%s" .Values.image.repository "slim" -}}
-    {{- end -}}
-    {{- if .Values.global }}
-        {{- if .Values.global.imageRegistry }}
-            {{- printf "%s/%s:%s" .Values.global.imageRegistry $repositoryName $tag -}}
-        {{- else -}}
-            {{- printf "%s/%s:%s" $registryName $repositoryName $tag -}}
-        {{- end -}}
-    {{- else -}}
-        {{- printf "%s/%s:%s" $registryName $repositoryName $tag -}}
-    {{- end -}}
+    {{- include "sysdig.imageRegistry" . -}} / {{- include "sysdig.repositoryName" . -}} : {{- .Values.image.tag -}}
 {{- end -}}
 {{- end -}}
 
@@ -76,23 +72,7 @@ Also, we can't use a single if because lazy evaluation is not an option
 Return the proper Sysdig Agent image name for module building
 */}}
 {{- define "sysdig.image.kmodule" -}}
-{{- $registryName := .Values.image.registry -}}
-{{- $repositoryName := .Values.slim.kmoduleImage.repository -}}
-{{- $tag := .Values.image.tag | toString -}}
-{{/*
-Helm 2.11 supports the assignment of a value to a variable defined in a different scope,
-but Helm 2.9 and 2.10 doesn't support it, so we need to implement this if-else logic.
-Also, we can't use a single if because lazy evaluation is not an option
-*/}}
-{{- if .Values.global }}
-    {{- if .Values.global.imageRegistry }}
-        {{- printf "%s/%s:%s" .Values.global.imageRegistry $repositoryName $tag -}}
-    {{- else -}}
-        {{- printf "%s/%s:%s" $registryName $repositoryName $tag -}}
-    {{- end -}}
-{{- else -}}
-    {{- printf "%s/%s:%s" $registryName $repositoryName $tag -}}
-{{- end -}}
+    {{- include "sysdig.imageRegistry" . -}} / {{- .Values.slim.kmoduleImage.repository -}} : {{- .Values.image.tag -}}
 {{- end -}}
 
 {{/*
@@ -106,4 +86,18 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end -}}
+
+
+{{/* 
+Use like: {{ include "get_or_fail_if_in_settings" (dict "root" . "key" "<mypath.key>" "setting" "<agent_setting>") }}
+Return the value of key "<mypath.key>" and if "<agent_setting>" is also defined in sysdig.settings.<agent_setting>, and error is thrown
+NOTE: I don't like the error message! Too much information. 
+*/}}
+{{- define "get_or_fail_if_in_settings" -}}
+{{- $keyValue := tpl (printf "{{- .Values.%s -}}" .key) .root }}
+{{- if $keyValue -}}
+    {{- if hasKey .root.Values.sysdig.settings .setting }}{{ fail (printf "Value '%s' is also set via .sysdig.settings.%s'." .key .setting) }}{{- end -}}
+    {{- $keyValue -}}
+{{- end -}}
 {{- end -}}

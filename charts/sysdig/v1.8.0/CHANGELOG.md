@@ -5,13 +5,25 @@
 This file documents all notable changes to Sysdig Helm Chart. The release
 numbering uses [semantic versioning](http://semver.org).
 
-## v1.17.20
+## v1.8.0
+
+### Major changes
+
+* Migrated charts to *sysdiglabs* repository
+
+###  Minor changes
+
+* Add explicit *clusterName* option in values.yaml
+* Add beta.kubernetes.io labels for node affinity, to support older versions
+* SCC deployed by default in Openshift (check API security.openshift.io/v1)
+
+## v1.7.20
 
 ###  Minor changes
 
 * Use the latest image from Agent (10.1.1) by default.
 
-## v1.17.19
+## v1.7.19
 
 ###  Minor changes
 

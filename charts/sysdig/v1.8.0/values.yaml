@@ -36,6 +36,10 @@ rbac:
   # true here enables creation of rbac resources
   create: true
 
+scc:
+  # true here enabled creation of Security Context Constraints in Openshift
+  create: true
+
 serviceAccount:
   # Create and use serviceAccount resources
   create: true
@@ -63,6 +67,15 @@ daemonset:
             values:
               - amd64
           - key: kubernetes.io/os
+            operator: In
+            values:
+              - linux
+        - matchExpressions:
+          - key: beta.kubernetes.io/arch
+            operator: In
+            values:
+              - amd64
+          - key: beta.kubernetes.io/os
             operator: In
             values:
               - linux
@@ -116,6 +129,9 @@ onPrem:
   ssl: true
   sslVerifyCertificate: true
 
+# Setting a cluster name allows you to filter events from this cluster using kubernetes.cluster.name
+clusterName: ""
+
 sysdig:
   # Required: You need your Sysdig Monitor access key before running agents.
   accessKey: ""
@@ -126,8 +142,6 @@ sysdig:
   settings: {}
     ### Agent tags
     # tags: linux:ubuntu,dept:dev,local:nyc
-    #######################################
-    # k8s_cluster_name: production
 
 secure:
   # true here enables Sysdig Secure: container run-time security & forensics
@@ -142,9 +156,6 @@ auditLog:
   dynamicBackend:
     # true here configures an AuditSink who will receive the K8s audit logs
     enabled: false
-
-scc:
-  create: false
 
 customAppChecks: {}
   # Allow passing custom app checks for Sysdig Agent.
