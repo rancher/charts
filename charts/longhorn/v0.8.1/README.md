@@ -1,8 +1,6 @@
 # Rancher Longhorn Chart
 
-> **Important**: Please install Longhorn chart in `longhorn-system` namespace only.
-
-> **Warning**: Longhorn doesn't support downgrading from a higher version to a lower version.
+Please install Longhorn chart in `longhorn-system` namespace only.
 
 The following document pertains to running Longhorn from the Rancher 2.0 chart.
 

@@ -15,18 +15,18 @@ spec:
     spec:
       initContainers:
         - name: wait-longhorn-manager
-          image: {{ printf "%s:%s" .Values.image.longhorn.manager .Values.image.longhorn.managerTag | quote }}
+          image: "{{ .Values.image.longhorn.manager }}:{{ .Values.image.longhorn.managerTag }}"
           command: ['sh', '-c', 'while [ $(curl -m 1 -s -o /dev/null -w "%{http_code}" http://longhorn-backend:9500/v1) != "200" ]; do echo waiting; sleep 2; done']
       containers:
         - name: longhorn-driver-deployer
-          image: {{ printf "%s:%s" .Values.image.longhorn.manager .Values.image.longhorn.managerTag | quote }}
+          image: "{{ .Values.image.longhorn.manager }}:{{ .Values.image.longhorn.managerTag }}"
           imagePullPolicy: Always
           command:
           - longhorn-manager
           - -d
           - deploy-driver
           - --manager-image
-          - {{ printf "%s:%s" .Values.image.longhorn.manager .Values.image.longhorn.managerTag | quote }}
+          - "{{ .Values.image.longhorn.manager }}:{{ .Values.image.longhorn.managerTag }}"
           - --manager-url
           - http://longhorn-backend:9500/v1
           env:
@@ -64,20 +64,14 @@ spec:
           {{- end }}
           {{- if .Values.csi.attacherReplicaCount }}
           - name: CSI_ATTACHER_REPLICA_COUNT
-            value: {{ .Values.csi.attacherReplicaCount | quote }}
+            value: "{{ .Values.csi.attacherReplicaCount }}"
           {{- end }}
           {{- if .Values.csi.provisionerReplicaCount }}
           - name: CSI_PROVISIONER_REPLICA_COUNT
-            value: {{ .Values.csi.provisionerReplicaCount | quote }}
-          {{- end }}
-          {{- if .Values.csi.resizerReplicaCount }}
-          - name: CSI_RESIZER_REPLICA_COUNT
-            value: {{ .Values.csi.resizerReplicaCount | quote }}
+            value: "{{ .Values.csi.provisionerReplicaCount }}"
           {{- end }}
       {{- if .Values.defaultSettings.registrySecret }}
       imagePullSecrets:
       - name: {{ .Values.defaultSettings.registrySecret }}
       {{- end }}
       serviceAccountName: longhorn-service-account
-      securityContext:
-        runAsUser: 0
