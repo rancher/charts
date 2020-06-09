@@ -1,0 +1,97 @@
+{{/*
+Copyright 2019 HAProxy Technologies LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/}}
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "kubernetes-ingress.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ template "kubernetes-ingress.name" . }}
+    helm.sh/chart: {{ template "kubernetes-ingress.chart" . }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+{{- if .Values.controller.service.labels }}
+{{ toYaml .Values.controller.service.labels | indent 4 }}
+{{- end }}
+  annotations:
+{{- range $key, $value := .Values.controller.service.annotations }}
+    {{ $key }}: {{ $value | quote }}
+{{- end }}
+spec:
+  {{ with .Values.controller.service.clusterIP }}clusterIP: {{ . }}{{ end }}
+  type: {{ .Values.controller.service.type }}
+  {{- if .Values.controller.service.externalTrafficPolicy }}
+  externalTrafficPolicy: {{ .Values.controller.service.externalTrafficPolicy }}
+  {{- end }}
+  {{- if .Values.controller.service.healthCheckNodePort }}
+  healthCheckNodePort: {{ .Values.controller.service.healthCheckNodePort }}
+  {{- end }}
+  ports:
+  {{- if .Values.controller.service.enablePorts.http }}
+    - name: http
+      port: {{ .Values.controller.service.ports.http }}
+      protocol: TCP
+      targetPort: {{ .Values.controller.service.targetPorts.http }}
+    {{- if .Values.controller.service.nodePorts.http }}
+      nodePort: {{ .Values.controller.service.nodePorts.http }}
+    {{- end }}
+  {{- end }}
+  {{- if .Values.controller.service.enablePorts.https }}
+    - name: https
+      port: {{ .Values.controller.service.ports.https }}
+      protocol: TCP
+      targetPort: {{ .Values.controller.service.targetPorts.https }}
+    {{- if .Values.controller.service.nodePorts.https }}
+      nodePort: {{ .Values.controller.service.nodePorts.https }}
+    {{- end }}
+  {{- end }}
+  {{- if .Values.controller.service.enablePorts.stat }}
+    - name: stat
+      port: {{ .Values.controller.service.ports.stat }}
+      protocol: TCP
+      targetPort: {{ .Values.controller.service.targetPorts.stat }}
+    {{- if .Values.controller.service.nodePorts.stat }}
+      nodePort: {{ .Values.controller.service.nodePorts.stat }}
+    {{- end }}
+  {{- end }}
+  {{- range .Values.controller.service.tcpPorts }}
+    - name: {{ .name }}-tcp
+      port: {{ .port }}
+      protocol: TCP
+      targetPort: {{ .targetPort }}
+    {{- if .nodePort }}
+      nodePort: {{ .nodePort }}
+    {{- end }}
+  {{- end }}
+  selector:
+    app.kubernetes.io/name: {{ template "kubernetes-ingress.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  externalIPs:
+{{- if .Values.controller.service.externalIPs }}
+{{ toYaml .Values.controller.service.externalIPs | indent 4 }}
+{{- end -}}
+{{- if (eq .Values.controller.service.type "LoadBalancer") }}
+{{- if .Values.controller.service.loadBalancerIP }}
+  loadBalancerIP: "{{ .Values.controller.service.loadBalancerIP }}"
+{{- end }}
+{{- if .Values.controller.service.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+{{ toYaml .Values.controller.service.loadBalancerSourceRanges | indent 4 }}
+{{- end }}
+{{- end }}
+

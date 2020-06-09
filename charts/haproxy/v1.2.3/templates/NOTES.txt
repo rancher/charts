@@ -1,0 +1,67 @@
+HAProxy Kubernetes Ingress Controller has been successfully installed.
+
+Controller image deployed is: "{{ .Values.controller.image.repository }}:{{ tpl .Values.controller.image.tag . }}".
+Your controller is of a "{{ .Values.controller.kind }}" kind. Your controller service is running as a "{{ .Values.controller.service.type }}" type.
+{{- if and .Values.rbac.create}}
+RBAC authorization is enabled.
+{{- else}}
+RBAC authorization is disabled.
+{{- end}}
+{{- if .Values.controller.ingressClass}}
+Controller ingress.class is set to "{{ .Values.controller.ingressClass }}" so make sure to use same annotation for
+Ingress resource.
+{{- end}}
+
+Service ports mapped are:
+{{- if eq .Values.controller.kind "Deployment" }}
+{{- range $key, $value := .Values.controller.containerPort }}
+  - name: {{ $key }}
+    containerPort: {{ $value }}
+    protocol: TCP
+{{- end }}
+{{- end }}
+{{- if eq .Values.controller.kind "DaemonSet" }}
+{{- $hostPorts := .Values.controller.daemonset.hostPorts -}}
+{{- range $key, $value := .Values.controller.containerPort }}
+  - name: {{ $key }}
+    containerPort: {{ $value }}
+    protocol: TCP
+    hostPort: {{ index $hostPorts $key | default $value }}
+{{- end }}
+{{- end }}
+
+Node IP can be found with:
+  $ kubectl --namespace {{ .Release.Namespace }} get nodes -o jsonpath="{.items[0].status.addresses[1].address}"
+
+The following ingress resource routes traffic to pods that match the following:
+  * service name: web
+  * client's Host header: webdemo.com
+  * path begins with /
+
+  ---
+  apiVersion: networking.k8s.io/v1beta1
+  kind: Ingress
+  metadata:
+    name: web-ingress
+    namespace: default
+  spec:
+    rules:
+    - host: webdemo.com
+      http:
+        paths:
+        - path: /
+          backend:
+            serviceName: web
+            servicePort: 80
+
+In case that you are using multi-ingress controller environment, make sure to use ingress.class annotation and match it
+with helm chart option controller.ingressClass.
+
+For more examples and up to date documentation, please visit:
+  * Helm chart documentation: https://github.com/haproxytech/helm-charts/tree/master/kubernetes-ingress
+  * Controller documentation: https://www.haproxy.com/documentation/hapee/2-0r1/traffic-management/kubernetes-ingress-controller/
+  * Annotation reference: https://github.com/haproxytech/kubernetes-ingress/tree/master/documentation
+  * Image parameters reference: https://github.com/haproxytech/kubernetes-ingress/blob/master/documentation/controller.md
+
+
+
