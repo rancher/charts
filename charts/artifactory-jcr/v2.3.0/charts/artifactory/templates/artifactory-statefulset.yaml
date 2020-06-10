@@ -117,19 +117,31 @@ spec:
           cp -fv /tmp/etc/system.yaml {{ .Values.artifactory.persistence.mountPath }}/etc/system.yaml;
           echo "Remove {{ .Values.artifactory.persistence.mountPath }}/lost+found folder if exists";
           rm -rfv {{ .Values.artifactory.persistence.mountPath }}/lost+found;
-      {{- if .Values.artifactory.joinKey }}
+        {{- if or .Values.artifactory.joinKey .Values.artifactory.joinKeySecretName }}
           echo "Copy joinKey to {{ .Values.artifactory.persistence.mountPath }}/bootstrap/access/etc/security";
-          rm -rfv /tmp/join.key;
-          echo -n ${ARTIFACTORY_JOIN_KEY} > /tmp/join.key;
           mkdir -p {{ .Values.artifactory.persistence.mountPath }}/bootstrap/access/etc/security;
-          cp -fv /tmp/join.key {{ .Values.artifactory.persistence.mountPath }}/bootstrap/access/etc/security;
+          echo -n ${ARTIFACTORY_JOIN_KEY} > {{ .Values.artifactory.persistence.mountPath }}/bootstrap/access/etc/security/join.key;
+        {{- end }}
+        {{- if or .Values.artifactory.masterKey .Values.artifactory.masterKeySecretName }}
+          echo "Copy masterKey to {{ .Values.artifactory.persistence.mountPath }}/etc/security";
+          mkdir -p {{ .Values.artifactory.persistence.mountPath }}/etc/security;
+          echo -n ${ARTIFACTORY_MASTER_KEY} > {{ .Values.artifactory.persistence.mountPath }}/etc/security/master.key;
+        {{- end }}
         env:
+        {{- if or .Values.artifactory.joinKey .Values.artifactory.joinKeySecretName}}
         - name: ARTIFACTORY_JOIN_KEY
           valueFrom:
             secretKeyRef:
               name: "{{ .Values.artifactory.joinKeySecretName | default (include "artifactory.fullname" .) }}"
               key: join-key
-      {{- end }}
+        {{- end }}
+        {{- if or .Values.artifactory.masterKey .Values.artifactory.masterKeySecretName }}
+        - name: ARTIFACTORY_MASTER_KEY
+          valueFrom:
+            secretKeyRef:
+              name: "{{ .Values.artifactory.masterKeySecretName | default (include "artifactory.fullname" .) }}"
+              key: master-key
+        {{- end }}
         volumeMounts:
         - name: artifactory-volume
           mountPath: {{ .Values.artifactory.persistence.mountPath | quote }}
@@ -164,6 +176,9 @@ spec:
           done;
       {{- end }}
     {{- end }}
+    {{- if .Values.artifactory.customInitContainers }}
+{{ tpl .Values.artifactory.customInitContainers . | indent 6 }}
+    {{- end }}
       - name: 'migration-artifactory'
         image: '{{ .Values.artifactory.image.repository }}:{{ default .Chart.AppVersion .Values.artifactory.image.version }}'
         imagePullPolicy: {{ .Values.artifactory.image.pullPolicy }}
@@ -173,6 +188,10 @@ spec:
         - '/bin/bash'
         - '-c'
         - >
+          {{- if .Values.artifactory.migration.preStartCommand }}
+          echo "Running custom preStartCommand command";
+          {{ tpl .Values.artifactory.migration.preStartCommand . }};
+          {{- end }}
           scriptsPath="/opt/jfrog/artifactory/app/bin";
           mkdir -p $scriptsPath;
           echo "Copy migration scripts and Run migration";
@@ -180,7 +199,7 @@ spec:
           cp -fv /tmp/migrationHelmInfo.yaml $scriptsPath/migrationHelmInfo.yaml;
           cp -fv /tmp/migrationStatus.sh $scriptsPath/migrationStatus.sh;
           mkdir -p {{ .Values.artifactory.persistence.mountPath }}/log;
-          bash $scriptsPath/migrationStatus.sh {{ default .Chart.AppVersion .Values.artifactory.image.version }} > >(tee {{ .Values.artifactory.persistence.mountPath }}/log/helm-migration.log) 2>&1;
+          bash $scriptsPath/migrationStatus.sh {{ default .Chart.AppVersion .Values.artifactory.image.version }} {{ .Values.artifactory.migration.timeoutSeconds }} > >(tee {{ .Values.artifactory.persistence.mountPath }}/log/helm-migration.log) 2>&1;
         env:
         {{- if .Values.database.secrets.user }}
         - name: JF_SHARED_DATABASE_USERNAME
@@ -236,9 +255,9 @@ spec:
           mountPath: "/artifactory_bootstrap/binarystore.xml"
           subPath: binarystore.xml
       {{- end }}
-    {{- if .Values.artifactory.customInitContainers }}
-{{ tpl .Values.artifactory.customInitContainers . | indent 6 }}
-    {{- end }}
+      {{- if .Values.artifactory.customVolumeMounts }}
+{{ tpl .Values.artifactory.customVolumeMounts . | indent 8 }}
+      {{- end }}
       containers:
       - name: {{ .Values.artifactory.name }}
         image: '{{ .Values.artifactory.image.repository }}:{{ default .Chart.AppVersion .Values.artifactory.image.version }}'
@@ -246,7 +265,7 @@ spec:
         securityContext:
           allowPrivilegeEscalation: false
         command:
-        - '/bin/sh'
+        - '/bin/bash'
         - '-c'
         - >
           set -e;
@@ -272,12 +291,12 @@ spec:
           echo "Running custom preStartCommand command";
           {{ tpl .Values.artifactory.preStartCommand . }};
           {{- end }}
-          /entrypoint-artifactory.sh
+          exec /entrypoint-artifactory.sh
         lifecycle:
           postStart:
             exec:
               command:
-              - '/bin/sh'
+              - '/bin/bash'
               - '-c'
               - >
                 echo;

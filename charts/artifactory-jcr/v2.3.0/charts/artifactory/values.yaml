@@ -5,13 +5,13 @@
 # Access the values with {{ .Values.key.subkey }}
 
 # Common
-initContainerImage: "alpine:3.10"
+initContainerImage: "alpine:3.11"
 
 installer:
   type:
   platform:
 
-installerInfo: "{ 'productId': 'Helm_artifactory/{{ .Chart.Version }}', 'features': [ { 'featureId': 'ArtifactoryVersion/{{ default .Chart.AppVersion .Values.artifactory.image.version }}' }, { 'featureId': '{{ if .Values.postgresql.enabled }}postgresql{{ else }}{{ default \"derby\" .Values.database.type }}{{ end }}/0.0.0' }, { 'featureId': 'Platform/{{ default \"kubernetes\" .Values.installer.platform }}' } ] }"
+installerInfo: '{"productId": "Helm_artifactory/{{ .Chart.Version }}", "features": [ { "featureId": "Platform/{{ default "kubernetes" .Values.installer.platform }}"}]}'
 
 # For supporting pulling from private registries
 imagePullSecrets:
@@ -59,6 +59,7 @@ ingress:
   #   proxy_pass_header   Server;
   #   proxy_set_header    X-JFrog-Override-Base-Url https://<artifactory-domain>;
   # kubernetes.io/tls-acme: "true"
+  # nginx.ingress.kubernetes.io/proxy-body-size: "0"
   labels: {}
   # traffic-type: external
   # traffic-type: internal
@@ -122,6 +123,10 @@ artifactory:
 
   database:
     maxOpenConnections: 80
+  tomcat:
+    connector:
+      maxThreads: 200
+      extraConfig: 'acceptCount="100"'
 
   # Files to copy to ARTIFACTORY_HOME/ on each Artifactory startup
   copyOnEveryStartup:
@@ -180,6 +185,8 @@ artifactory:
   # Migration support from 6.x to 7.x
   migration:
     timeoutSeconds: 3600
+    ## Extra pre-start command in migration Init Container to install JDBC driver for MySql/MariaDb/Oracle
+    # preStartCommand: "wget -O /opt/jfrog/artifactory/tomcat/lib/mysql-connector-java-5.1.41.jar https://jcenter.bintray.com/mysql/mysql-connector-java/5.1.41/mysql-connector-java-5.1.41.jar"
 
   ## Add custom init containers
   customInitContainers: |
@@ -297,6 +304,8 @@ artifactory:
   ## IMPORTANT: Setting this value overrides the existing joinKey
   ## IMPORTANT: You should NOT use the example joinKey for a production deployment!
   # joinKey: EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+  ## Alternatively, you can use a pre-existing secret with a key called join-key by specifying joinKeySecretName
+  # joinKeySecretName:
 
   ## If false, all service console logs will not redirect to a common console.log
   consoleLog: false
@@ -394,16 +403,23 @@ artifactory:
         username: "{{ .Values.database.user }}"
         {{- end }}
       {{- end }}
-      security:
-      {{- if .Values.artifactory.masterKey }}
-        masterKey: "{{ .Values.artifactory.masterKey }}"
-      {{- end }}
     artifactory:
       database:
         maxOpenConnections: {{ .Values.artifactory.database.maxOpenConnections }}
+      tomcat:
+        connector:
+          maxThreads: {{ .Values.artifactory.tomcat.connector.maxThreads }}
+          extraConfig: {{ .Values.artifactory.tomcat.connector.extraConfig }}
     access:
       database:
         maxOpenConnections: {{ .Values.access.database.maxOpenConnections }}
+      tomcat:
+        connector:
+          maxThreads: {{ .Values.access.tomcat.connector.maxThreads }}
+          extraConfig: {{ .Values.access.tomcat.connector.extraConfig }}
+    metadata:
+      database:
+        maxOpenConnections: {{ .Values.metadata.database.maxOpenConnections }}
 
   annotations: {}
 
@@ -455,13 +471,14 @@ artifactory:
     # existingClaim:
 
     accessMode: ReadWriteOnce
+    ## Storage default size. Should be increased for production deployments.
     size: 20Gi
 
     ## Use a custom Secret to be mounted as your binarystore.xml
     ## NOTE: This will ignore all settings below that make up binarystore.xml
     customBinarystoreXmlSecret:
-
-    maxCacheSize: 50000000000
+    ## Cache default size. Should be increased for production deployments.
+    maxCacheSize: 5000000000
     cacheProviderDir: cache
 
     ## Set the persistence storage type. This will apply the matching binarystore.xml to Artifactory config
@@ -576,9 +593,9 @@ artifactory:
               <kmsCryptoMode>{{ . }}</kmsCryptoMode>
             {{- end }}
             {{- if .useInstanceCredentials }}
-              <useInstanceCredentials>{{ .useInstanceCredentials }}</useInstanceCredentials>
-            {{- else }}
               <useInstanceCredentials>true</useInstanceCredentials>
+            {{- else }}
+              <useInstanceCredentials>false</useInstanceCredentials>
             {{- end }}
               <usePresigning>{{ .usePresigning }}</usePresigning>
               <signatureExpirySeconds>{{ .signatureExpirySeconds }}</signatureExpirySeconds>
@@ -791,6 +808,14 @@ artifactory:
     externalPort: 1339
 
 access:
+  database:
+    maxOpenConnections: 80
+  tomcat:
+    connector:
+      maxThreads: 50
+      extraConfig: 'acceptCount="100"'
+
+metadata:
   database:
     maxOpenConnections: 80
 
@@ -1073,13 +1098,13 @@ nginx:
 waitForDatabase: true
 
 ## Configuration values for the PostgreSQL dependency sub-chart
-## ref: https://github.com/kubernetes/charts/blob/master/stable/postgresql/README.md
+## ref: https://github.com/bitnami/charts/blob/master/bitnami/postgresql/README.md
 postgresql:
   enabled: true
   image:
     registry: docker.bintray.io
     repository: bitnami/postgresql
-    tag: 9.6.15-debian-9-r91
+    tag: 9.6.18-debian-10-r7
   postgresqlUsername: artifactory
   postgresqlPassword: ""
   postgresqlDatabase: artifactory

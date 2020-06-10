@@ -2,10 +2,13 @@
 
 [PostgreSQL](https://www.postgresql.org/) is an object-relational database management system (ORDBMS) with an emphasis on extensibility and on standards-compliance.
 
+For HA, please see [this repo](https://github.com/bitnami/charts/tree/master/bitnami/postgresql-ha)
+
 ## TL;DR;
 
 ```console
-$ helm install stable/postgresql
+$ helm repo add bitnami https://charts.bitnami.com/bitnami
+$ helm install my-release bitnami/postgresql
 ```
 
 ## Introduction
@@ -24,7 +27,7 @@ Bitnami charts can be used with [Kubeapps](https://kubeapps.com/) for deployment
 To install the chart with the release name `my-release`:
 
 ```console
-$ helm install --name my-release stable/postgresql
+$ helm install my-release bitnami/postgresql
 ```
 
 The command deploys PostgreSQL on the Kubernetes cluster in the default configuration. The [Parameters](#parameters) section lists the parameters that can be configured during installation.
@@ -45,146 +48,183 @@ The command removes all the Kubernetes components associated with the chart and 
 
 The following tables lists the configurable parameters of the PostgreSQL chart and their default values.
 
-| Parameter                                     | Description                                                                                                            | Default                                                     |
-| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| `global.imageRegistry`                        | Global Docker Image registry                                                                                           | `nil`                                                       |
-| `global.postgresql.postgresqlDatabase`        | PostgreSQL database (overrides `postgresqlDatabase`)                                                                   | `nil`                                                       |
-| `global.postgresql.postgresqlUsername`        | PostgreSQL username (overrides `postgresqlUsername`)                                                                   | `nil`                                                       |
-| `global.postgresql.existingSecret`            | Name of existing secret to use for PostgreSQL passwords (overrides `existingSecret`)                                   | `nil`                                                       |
-| `global.postgresql.postgresqlPassword`        | PostgreSQL admin password (overrides `postgresqlPassword`)                                                             | `nil`                                                       |
-| `global.postgresql.servicePort`               | PostgreSQL port (overrides `service.port`)                                                                             | `nil`                                                       |
-| `global.postgresql.replicationPassword`       | Replication user password (overrides `replication.password`)                                                           | `nil`                                                       |
-| `global.imagePullSecrets`                     | Global Docker registry secret names as an array                                                                        | `[]` (does not add image pull secrets to deployed pods)     |
-| `global.storageClass`                         | Global storage class for dynamic provisioning                                                                          | `nil`                                                       |
-| `image.registry`                              | PostgreSQL Image registry                                                                                              | `docker.io`                                                 |
-| `image.repository`                            | PostgreSQL Image name                                                                                                  | `bitnami/postgresql`                                        |
-| `image.tag`                                   | PostgreSQL Image tag                                                                                                   | `{TAG_NAME}`                                                |
-| `image.pullPolicy`                            | PostgreSQL Image pull policy                                                                                           | `IfNotPresent`                                              |
-| `image.pullSecrets`                           | Specify Image pull secrets                                                                                             | `nil` (does not add image pull secrets to deployed pods)    |
-| `image.debug`                                 | Specify if debug values should be set                                                                                  | `false`                                                     |
-| `nameOverride`                                | String to partially override postgresql.fullname template with a string (will prepend the release name)                | `nil`                                                       |
-| `fullnameOverride`                            | String to fully override postgresql.fullname template with a string                                                    | `nil`                                                       |
-| `volumePermissions.image.registry`            | Init container volume-permissions image registry                                                                       | `docker.io`                                                 |
-| `volumePermissions.image.repository`          | Init container volume-permissions image name                                                                           | `bitnami/minideb`                                           |
-| `volumePermissions.image.tag`                 | Init container volume-permissions image tag                                                                            | `stretch`                                                   |
-| `volumePermissions.image.pullPolicy`          | Init container volume-permissions image pull policy                                                                    | `Always`                                                    |
-| `volumePermissions.securityContext.runAsUser` | User ID for the init container                                                                                         | `0`                                                         |
-| `usePasswordFile`                             | Have the secrets mounted as a file instead of env vars                                                                 | `false`                                                     |
-| `replication.enabled`                         | Enable replication                                                                                                     | `false`                                                     |
-| `replication.user`                            | Replication user                                                                                                       | `repl_user`                                                 |
-| `replication.password`                        | Replication user password                                                                                              | `repl_password`                                             |
-| `replication.slaveReplicas`                   | Number of slaves replicas                                                                                              | `1`                                                         |
-| `replication.synchronousCommit`               | Set synchronous commit mode. Allowed values: `on`, `remote_apply`, `remote_write`, `local` and `off`                   | `off`                                                       |
-| `replication.numSynchronousReplicas`          | Number of replicas that will have synchronous replication. Note: Cannot be greater than `replication.slaveReplicas`.   | `0`                                                         |
-| `replication.applicationName`                 | Cluster application name. Useful for advanced replication settings                                                     | `my_application`                                            |
-| `existingSecret`                              | Name of existing secret to use for PostgreSQL passwords                                                                | `nil`                                                       |
-| `postgresqlUsername`                          | PostgreSQL admin user                                                                                                  | `postgres`                                                  |
-| `postgresqlPassword`                          | PostgreSQL admin password                                                                                              | _random 10 character alphanumeric string_                   |
-| `postgresqlDatabase`                          | PostgreSQL database                                                                                                    | `nil`                                                       |
-| `postgresqlDataDir`                           | PostgreSQL data dir folder                                                                                             | `/bitnami/postgresql` (same value as persistence.mountPath) |
-| `postgresqlInitdbArgs`                        | PostgreSQL initdb extra arguments                                                                                      | `nil`                                                       |
-| `postgresqlInitdbWalDir`                      | PostgreSQL location for transaction log                                                                                | `nil`                                                       |
-| `postgresqlConfiguration`                     | Runtime Config Parameters                                                                                              | `nil`                                                       |
-| `postgresqlExtendedConf`                      | Extended Runtime Config Parameters (appended to main or default configuration)                                         | `nil`                                                       |
-| `pgHbaConfiguration`                          | Content of pg\_hba.conf                                                                                                | `nil (do not create pg_hba.conf)`                           |
-| `configurationConfigMap`                      | ConfigMap with the PostgreSQL configuration files (Note: Overrides `postgresqlConfiguration` and `pgHbaConfiguration`). The value is evaluated as a template. | `nil`                |
-| `extendedConfConfigMap`                       | ConfigMap with the extended PostgreSQL configuration files. The value is evaluated as a template.                      | `nil`                                                       |
-| `initdbScripts`                               | Dictionary of initdb scripts                                                                                           | `nil`                                                       |
-| `initdbUsername`                              | PostgreSQL user to execute the .sql and sql.gz scripts                                                                 | `nil`                                                       |
-| `initdbPassword`                              | Password for the user specified in `initdbUsername`                                                                    | `nil`                                                       |
-| `initdbScriptsConfigMap`                      | ConfigMap with the initdb scripts (Note: Overrides `initdbScripts`). The value is evaluated as a template.             | `nil`                                                       |
-| `initdbScriptsSecret`                         | Secret with initdb scripts that contain sensitive information (Note: can be used with `initdbScriptsConfigMap` or `initdbScripts`). The value is evaluated as a template. | `nil`    |
-| `service.type`                                | Kubernetes Service type                                                                                                | `ClusterIP`                                                 |
-| `service.port`                                | PostgreSQL port                                                                                                        | `5432`                                                      |
-| `service.nodePort`                            | Kubernetes Service nodePort                                                                                            | `nil`                                                       |
-| `service.annotations`                         | Annotations for PostgreSQL service, the value is evaluated as a template.                                              | {}                                                          |
-| `service.loadBalancerIP`                      | loadBalancerIP if service type is `LoadBalancer`                                                                       | `nil`                                                       |
-| `service.loadBalancerSourceRanges`            | Address that are allowed when svc is LoadBalancer                                                                      | []                                                          |
-| `schedulerName`                               | Name of the k8s scheduler (other than default)                                                                         | `nil`                                                       |
-| `persistence.enabled`                         | Enable persistence using PVC                                                                                           | `true`                                                      |
-| `persistence.existingClaim`                   | Provide an existing `PersistentVolumeClaim`, the value is evaluated as a template.                                     | `nil`                                                       |
-| `persistence.mountPath`                       | Path to mount the volume at                                                                                            | `/bitnami/postgresql`                                       |
-| `persistence.subPath`                         | Subdirectory of the volume to mount at                                                                                 | `""`                                                        |
-| `persistence.storageClass`                    | PVC Storage Class for PostgreSQL volume                                                                                | `nil`                                                       |
-| `persistence.accessModes`                     | PVC Access Mode for PostgreSQL volume                                                                                  | `[ReadWriteOnce]`                                           |
-| `persistence.size`                            | PVC Storage Request for PostgreSQL volume                                                                              | `8Gi`                                                       |
-| `persistence.annotations`                     | Annotations for the PVC                                                                                                | `{}`                                                        |
-| `master.nodeSelector`                         | Node labels for pod assignment (postgresql master)                                                                     | `{}`                                                        |
-| `master.affinity`                             | Affinity labels for pod assignment (postgresql master)                                                                 | `{}`                                                        |
-| `master.tolerations`                          | Toleration labels for pod assignment (postgresql master)                                                               | `[]`                                                        |
-| `master.anotations`                           | Map of annotations to add to the statefulset (postgresql master)                                                       | `{}`                                                        |
-| `master.labels`                               | Map of labels to add to the statefulset (postgresql master)                                                            | `{}`                                                        |
-| `master.podAnnotations`                       | Map of annotations to add to the pods (postgresql master)                                                              | `{}`                                                        |
-| `master.podLabels`                            | Map of labels to add to the pods (postgresql master)                                                                   | `{}`                                                        |
-| `master.extraVolumeMounts`                    | Additional volume mounts to add to the pods (postgresql master)                                                        |  `[]`                                                       |
-| `master.extraVolumes`                          | Additional volumes to add to the pods (postgresql master)                                                              |  `[]`                                                       |
-| `slave.nodeSelector`                          | Node labels for pod assignment (postgresql slave)                                                                      | `{}`                                                        |
-| `slave.affinity`                              | Affinity labels for pod assignment (postgresql slave)                                                                  | `{}`                                                        |
-| `slave.tolerations`                           | Toleration labels for pod assignment (postgresql slave)                                                                | `[]`                                                        |
-| `slave.anotations`                            | Map of annotations to add to the statefulsets (postgresql slave)                                                       | `{}`                                                        |
-| `slave.labels`                                | Map of labels to add to the statefulsets (postgresql slave)                                                            | `{}`                                                        |
-| `slave.podAnnotations`                        | Map of annotations to add to the pods (postgresql slave)                                                               | `{}`                                                        |
-| `slave.podLabels`                             | Map of labels to add to the pods (postgresql slave)                                                                    | `{}`                                                        |
-| `slave.extraVolumeMounts`                     | Additional volume mounts to add to the pods (postgresql slave)                                                         |  `[]`                                                       |
-| `slave.extraVolumes`                           | Additional volumes to add to the pods (postgresql slave)                                                               |  `[]`                                                       |
-| `terminationGracePeriodSeconds`               | Seconds the pod needs to terminate gracefully                                                                          | `nil`                                                       |
-| `resources`                                   | CPU/Memory resource requests/limits                                                                                    | Memory: `256Mi`, CPU: `250m`                                |
-| `securityContext.enabled`                     | Enable security context                                                                                                | `true`                                                      |
-| `securityContext.fsGroup`                     | Group ID for the container                                                                                             | `1001`                                                      |
-| `securityContext.runAsUser`                   | User ID for the container                                                                                              | `1001`                                                      |
-| `serviceAccount.enabled`                      | Enable service account (Note: Service Account will only be automatically created if `serviceAccount.name` is not set)  | `false`                                                     |
-| `serviceAcccount.name`                        | Name of existing service account                                                                                       | `nil`                                                       |
-| `livenessProbe.enabled`                       | Would you like a livenessProbe to be enabled                                                                            | `true`                                                      |
-| `networkPolicy.enabled`                       | Enable NetworkPolicy                                                                                                   | `false`                                                     |
-| `networkPolicy.allowExternal`                 | Don't require client label for connections                                                                             | `true`                                                      |
-| `livenessProbe.initialDelaySeconds`           | Delay before liveness probe is initiated                                                                               | 30                                                          |
-| `livenessProbe.periodSeconds`                 | How often to perform the probe                                                                                         | 10                                                          |
-| `livenessProbe.timeoutSeconds`                | When the probe times out                                                                                               | 5                                                           |
-| `livenessProbe.failureThreshold`              | Minimum consecutive failures for the probe to be considered failed after having succeeded.                             | 6                                                           |
-| `livenessProbe.successThreshold`              | Minimum consecutive successes for the probe to be considered successful after having failed                            | 1                                                           |
-| `readinessProbe.enabled`                      | would you like a readinessProbe to be enabled                                                                          | `true`                                                      |
-| `readinessProbe.initialDelaySeconds`          | Delay before readiness probe is initiated                                                                               | 5                                                           |
-| `readinessProbe.periodSeconds`                | How often to perform the probe                                                                                         | 10                                                          |
-| `readinessProbe.timeoutSeconds`               | When the probe times out                                                                                               | 5                                                           |
-| `readinessProbe.failureThreshold`             | Minimum consecutive failures for the probe to be considered failed after having succeeded.                             | 6                                                           |
-| `readinessProbe.successThreshold`             | Minimum consecutive successes for the probe to be considered successful after having failed                            | 1                                                           |
-| `metrics.enabled`                             | Start a prometheus exporter                                                                                            | `false`                                                     |
-| `metrics.service.type`                        | Kubernetes Service type                                                                                                | `ClusterIP`                                                 |
-| `service.clusterIP`                           | Static clusterIP or None for headless services                                                                         | `nil`                                                       |
-| `metrics.service.annotations`                 | Additional annotations for metrics exporter pod                                                                        | `{ prometheus.io/scrape: "true", prometheus.io/port: "9187"}` |
-| `metrics.service.loadBalancerIP`              | loadBalancerIP if redis metrics service type is `LoadBalancer`                                                         | `nil`                                                       |
-| `metrics.serviceMonitor.enabled`              | Set this to `true` to create ServiceMonitor for Prometheus operator                                                    | `false`                                                     |
-| `metrics.serviceMonitor.additionalLabels`     | Additional labels that can be used so ServiceMonitor will be discovered by Prometheus                                  | `{}`                                                        |
-| `metrics.serviceMonitor.namespace`            | Optional namespace in which to create ServiceMonitor                                                                   | `nil`                                                       |
-| `metrics.serviceMonitor.interval`             | Scrape interval. If not set, the Prometheus default scrape interval is used                                            | `nil`                                                       |
-| `metrics.serviceMonitor.scrapeTimeout`        | Scrape timeout. If not set, the Prometheus default scrape timeout is used                                              | `nil`                                                       |
-| `metrics.image.registry`                      | PostgreSQL Image registry                                                                                              | `docker.io`                                                 |
-| `metrics.image.repository`                    | PostgreSQL Image name                                                                                                  | `bitnami/postgres-exporter`                               |
-| `metrics.image.tag`                           | PostgreSQL Image tag                                                                                                   | `{TAG_NAME}`                                                    |
-| `metrics.image.pullPolicy`                    | PostgreSQL Image pull policy                                                                                           | `IfNotPresent`                                              |
-| `metrics.image.pullSecrets`                   | Specify Image pull secrets                                                                                             | `nil` (does not add image pull secrets to deployed pods)    |
-| `metrics.securityContext.enabled`             | Enable security context for metrics                                                                                    | `false`                                                     |
-| `metrics.securityContext.runAsUser`           | User ID for the container for metrics                                                                                  | `1001`                                                      |
-| `metrics.livenessProbe.initialDelaySeconds`   | Delay before liveness probe is initiated                                                                               | 30                                                          |
-| `metrics.livenessProbe.periodSeconds`         | How often to perform the probe                                                                                         | 10                                                          |
-| `metrics.livenessProbe.timeoutSeconds`        | When the probe times out                                                                                               | 5                                                           |
-| `metrics.livenessProbe.failureThreshold`      | Minimum consecutive failures for the probe to be considered failed after having succeeded.                             | 6                                                           |
-| `metrics.livenessProbe.successThreshold`      | Minimum consecutive successes for the probe to be considered successful after having failed                            | 1                                                           |
-| `metrics.readinessProbe.enabled`              | would you like a readinessProbe to be enabled                                                                          | `true`                                                      |
-| `metrics.readinessProbe.initialDelaySeconds`  | Delay before liveness probe is initiated                                                                               | 5                                                           |
-| `metrics.readinessProbe.periodSeconds`        | How often to perform the probe                                                                                         | 10                                                          |
-| `metrics.readinessProbe.timeoutSeconds`       | When the probe times out                                                                                               | 5                                                           |
-| `metrics.readinessProbe.failureThreshold`     | Minimum consecutive failures for the probe to be considered failed after having succeeded.                             | 6                                                           |
-| `metrics.readinessProbe.successThreshold`     | Minimum consecutive successes for the probe to be considered successful after having failed                            | 1                                                           |
-| `extraEnv`                                    | Any extra environment variables you would like to pass on to the pod. The value is evaluated as a template.            | `{}`                                                        |
-| `updateStrategy`                              | Update strategy policy                                                                                                 | `{type: "RollingUpdate"}`                                   |
+|                   Parameter                   |                                                                                Description                                                                                |                            Default                            |
+|-----------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------|
+| `global.imageRegistry`                        | Global Docker Image registry                                                                                                                                              | `nil`                                                         |
+| `global.postgresql.postgresqlDatabase`        | PostgreSQL database (overrides `postgresqlDatabase`)                                                                                                                      | `nil`                                                         |
+| `global.postgresql.postgresqlUsername`        | PostgreSQL username (overrides `postgresqlUsername`)                                                                                                                      | `nil`                                                         |
+| `global.postgresql.existingSecret`            | Name of existing secret to use for PostgreSQL passwords (overrides `existingSecret`)                                                                                      | `nil`                                                         |
+| `global.postgresql.postgresqlPassword`        | PostgreSQL admin password (overrides `postgresqlPassword`)                                                                                                                | `nil`                                                         |
+| `global.postgresql.servicePort`               | PostgreSQL port (overrides `service.port`)                                                                                                                                | `nil`                                                         |
+| `global.postgresql.replicationPassword`       | Replication user password (overrides `replication.password`)                                                                                                              | `nil`                                                         |
+| `global.imagePullSecrets`                     | Global Docker registry secret names as an array                                                                                                                           | `[]` (does not add image pull secrets to deployed pods)       |
+| `global.storageClass`                         | Global storage class for dynamic provisioning                                                                                                                             | `nil`                                                         |
+| `image.registry`                              | PostgreSQL Image registry                                                                                                                                                 | `docker.io`                                                   |
+| `image.repository`                            | PostgreSQL Image name                                                                                                                                                     | `bitnami/postgresql`                                          |
+| `image.tag`                                   | PostgreSQL Image tag                                                                                                                                                      | `{TAG_NAME}`                                                  |
+| `image.pullPolicy`                            | PostgreSQL Image pull policy                                                                                                                                              | `IfNotPresent`                                                |
+| `image.pullSecrets`                           | Specify Image pull secrets                                                                                                                                                | `nil` (does not add image pull secrets to deployed pods)      |
+| `image.debug`                                 | Specify if debug values should be set                                                                                                                                     | `false`                                                       |
+| `nameOverride`                                | String to partially override postgresql.fullname template with a string (will prepend the release name)                                                                   | `nil`                                                         |
+| `fullnameOverride`                            | String to fully override postgresql.fullname template with a string                                                                                                       | `nil`                                                         |
+| `volumePermissions.enabled`                   | Enable init container that changes volume permissions in the data directory (for cases where the default k8s `runAsUser` and `fsUser` values do not work)                 | `false`                                                       |
+| `volumePermissions.image.registry`            | Init container volume-permissions image registry                                                                                                                          | `docker.io`                                                   |
+| `volumePermissions.image.repository`          | Init container volume-permissions image name                                                                                                                              | `bitnami/minideb`                                             |
+| `volumePermissions.image.tag`                 | Init container volume-permissions image tag                                                                                                                               | `buster`                                                      |
+| `volumePermissions.image.pullPolicy`          | Init container volume-permissions image pull policy                                                                                                                       | `Always`                                                      |
+| `volumePermissions.securityContext.runAsUser` | User ID for the init container (when facing issues in OpenShift or uid unknown, try value "auto")                                                                         | `0`                                                           |
+| `usePasswordFile`                             | Have the secrets mounted as a file instead of env vars                                                                                                                    | `false`                                                       |
+| `ldap.enabled`                                | Enable LDAP support                                                                                                                                                       | `false`                                                       |
+| `ldap.existingSecret`                         | Name of existing secret to use for LDAP passwords                                                                                                                         | `nil`                                                         |
+| `ldap.url`                                    | LDAP URL beginning in the form `ldap[s]://host[:port]/basedn[?[attribute][?[scope][?[filter]]]]`                                                                          | `nil`                                                         |
+| `ldap.server`                                 | IP address or name of the LDAP server.                                                                                                                                    | `nil`                                                         |
+| `ldap.port`                                   | Port number on the LDAP server to connect to                                                                                                                              | `nil`                                                         |
+| `ldap.scheme`                                 | Set to `ldaps` to use LDAPS.                                                                                                                                              | `nil`                                                         |
+| `ldap.tls`                                    | Set to `1` to use TLS encryption                                                                                                                                          | `nil`                                                         |
+| `ldap.prefix`                                 | String to prepend to the user name when forming the DN to bind                                                                                                            | `nil`                                                         |
+| `ldap.suffix`                                 | String to append to the user name when forming the DN to bind                                                                                                             | `nil`                                                         |
+| `ldap.search_attr`                            | Attribute to match agains the user name in the search                                                                                                                     | `nil`                                                         |
+| `ldap.search_filter`                          | The search filter to use when doing search+bind authentication                                                                                                            | `nil`                                                         |
+| `ldap.baseDN`                                 | Root DN to begin the search for the user in                                                                                                                               | `nil`                                                         |
+| `ldap.bindDN`                                 | DN of user to bind to LDAP                                                                                                                                                | `nil`                                                         |
+| `ldap.bind_password`                          | Password for the user to bind to LDAP                                                                                                                                     | `nil`                                                         |
+| `replication.enabled`                         | Enable replication                                                                                                                                                        | `false`                                                       |
+| `replication.user`                            | Replication user                                                                                                                                                          | `repl_user`                                                   |
+| `replication.password`                        | Replication user password                                                                                                                                                 | `repl_password`                                               |
+| `replication.slaveReplicas`                   | Number of slaves replicas                                                                                                                                                 | `1`                                                           |
+| `replication.synchronousCommit`               | Set synchronous commit mode. Allowed values: `on`, `remote_apply`, `remote_write`, `local` and `off`                                                                      | `off`                                                         |
+| `replication.numSynchronousReplicas`          | Number of replicas that will have synchronous replication. Note: Cannot be greater than `replication.slaveReplicas`.                                                      | `0`                                                           |
+| `replication.applicationName`                 | Cluster application name. Useful for advanced replication settings                                                                                                        | `my_application`                                              |
+| `existingSecret`                              | Name of existing secret to use for PostgreSQL passwords. The secret has to contain the keys `postgresql-postgres-password` which is the password for `postgresqlUsername` when it is different of `postgres`, `postgresql-password` which will override `postgresqlPassword`, `postgresql-replication-password` which will override `replication.password` and `postgresql-ldap-password` which will be sed to authenticate on LDAP. The value is evaluated as a template.                                                                                                                  | `nil`                                                         |
+| `postgresqlPostgresPassword`                  | PostgreSQL admin password (used when `postgresqlUsername` is not `postgres`)                                                                                              | _random 10 character alphanumeric string_                     |
+| `postgresqlUsername`                          | PostgreSQL admin user                                                                                                                                                     | `postgres`                                                    |
+| `postgresqlPassword`                          | PostgreSQL admin password                                                                                                                                                 | _random 10 character alphanumeric string_                     |
+| `postgresqlDatabase`                          | PostgreSQL database                                                                                                                                                       | `nil`                                                         |
+| `postgresqlDataDir`                           | PostgreSQL data dir folder                                                                                                                                                | `/bitnami/postgresql` (same value as persistence.mountPath)   |
+| `extraEnv`                                    | Any extra environment variables you would like to pass on to the pod. The value is evaluated as a template.                                                               | `[]`                                                          |
+| `extraEnvVarsCM`                              | Name of a Config Map containing extra environment variables you would like to pass on to the pod. The value is evaluated as a template.                                   | `nil`                                                         |
+| `postgresqlInitdbArgs`                        | PostgreSQL initdb extra arguments                                                                                                                                         | `nil`                                                         |
+| `postgresqlInitdbWalDir`                      | PostgreSQL location for transaction log                                                                                                                                   | `nil`                                                         |
+| `postgresqlConfiguration`                     | Runtime Config Parameters                                                                                                                                                 | `nil`                                                         |
+| `postgresqlExtendedConf`                      | Extended Runtime Config Parameters (appended to main or default configuration)                                                                                            | `nil`                                                         |
+| `pgHbaConfiguration`                          | Content of pg_hba.conf                                                                                                                                                    | `nil (do not create pg_hba.conf)`                             |
+| `configurationConfigMap`                      | ConfigMap with the PostgreSQL configuration files (Note: Overrides `postgresqlConfiguration` and `pgHbaConfiguration`). The value is evaluated as a template.             | `nil`                                                         |
+| `extendedConfConfigMap`                       | ConfigMap with the extended PostgreSQL configuration files. The value is evaluated as a template.                                                                         | `nil`                                                         |
+| `initdbScripts`                               | Dictionary of initdb scripts                                                                                                                                              | `nil`                                                         |
+| `initdbUser`                                  | PostgreSQL user to execute the .sql and sql.gz scripts                                                                                                                    | `nil`                                                         |
+| `initdbPassword`                              | Password for the user specified in `initdbUser`                                                                                                                       | `nil`                                                         |
+| `initdbScriptsConfigMap`                      | ConfigMap with the initdb scripts (Note: Overrides `initdbScripts`). The value is evaluated as a template.                                                                | `nil`                                                         |
+| `initdbScriptsSecret`                         | Secret with initdb scripts that contain sensitive information (Note: can be used with `initdbScriptsConfigMap` or `initdbScripts`). The value is evaluated as a template. | `nil`                                                         |
+| `service.type`                                | Kubernetes Service type                                                                                                                                                   | `ClusterIP`                                                   |
+| `service.port`                                | PostgreSQL port                                                                                                                                                           | `5432`                                                        |
+| `service.nodePort`                            | Kubernetes Service nodePort                                                                                                                                               | `nil`                                                         |
+| `service.annotations`                         | Annotations for PostgreSQL service                                                                                                                                        | `{}` (evaluated as a template)                                |
+| `service.loadBalancerIP`                      | loadBalancerIP if service type is `LoadBalancer`                                                                                                                          | `nil`                                                         |
+| `service.loadBalancerSourceRanges`            | Address that are allowed when svc is LoadBalancer                                                                                                                         | `[]` (evaluated as a template)                                |
+| `schedulerName`                               | Name of the k8s scheduler (other than default)                                                                                                                            | `nil`                                                         |
+| `shmVolume.enabled`                           | Enable emptyDir volume for /dev/shm for master and slave(s) Pod(s)                                                                                                        | `true`                                                        |
+| `shmVolume.chmod.enabled`                     | Run at init chmod 777 of the /dev/shm (ignored if `volumePermissions.enabled` is `false`)                                                                                 | `true`                                                        |
+| `persistence.enabled`                         | Enable persistence using PVC                                                                                                                                              | `true`                                                        |
+| `persistence.existingClaim`                   | Provide an existing `PersistentVolumeClaim`, the value is evaluated as a template.                                                                                        | `nil`                                                         |
+| `persistence.mountPath`                       | Path to mount the volume at                                                                                                                                               | `/bitnami/postgresql`                                         |
+| `persistence.subPath`                         | Subdirectory of the volume to mount at                                                                                                                                    | `""`                                                          |
+| `persistence.storageClass`                    | PVC Storage Class for PostgreSQL volume                                                                                                                                   | `nil`                                                         |
+| `persistence.accessModes`                     | PVC Access Mode for PostgreSQL volume                                                                                                                                     | `[ReadWriteOnce]`                                             |
+| `persistence.size`                            | PVC Storage Request for PostgreSQL volume                                                                                                                                 | `8Gi`                                                         |
+| `persistence.annotations`                     | Annotations for the PVC                                                                                                                                                   | `{}`                                                          |
+| `master.nodeSelector`                         | Node labels for pod assignment (postgresql master)                                                                                                                        | `{}`                                                          |
+| `master.affinity`                             | Affinity labels for pod assignment (postgresql master)                                                                                                                    | `{}`                                                          |
+| `master.tolerations`                          | Toleration labels for pod assignment (postgresql master)                                                                                                                  | `[]`                                                          |
+| `master.anotations`                           | Map of annotations to add to the statefulset (postgresql master)                                                                                                          | `{}`                                                          |
+| `master.labels`                               | Map of labels to add to the statefulset (postgresql master)                                                                                                               | `{}`                                                          |
+| `master.podAnnotations`                       | Map of annotations to add to the pods (postgresql master)                                                                                                                 | `{}`                                                          |
+| `master.podLabels`                            | Map of labels to add to the pods (postgresql master)                                                                                                                      | `{}`                                                          |
+| `master.priorityClassName`                    | Priority Class to use for each pod (postgresql master)                                                                                                                    | `nil`                                                          |
+| `master.extraInitContainers`                  | Additional init containers to add to the pods (postgresql master)                                                                                                         | `[]`                                                          |
+| `master.extraVolumeMounts`                    | Additional volume mounts to add to the pods (postgresql master)                                                                                                           | `[]`                                                          |
+| `master.extraVolumes`                         | Additional volumes to add to the pods (postgresql master)                                                                                                                 | `[]`                                                          |
+| `master.sidecars`                             | Add additional containers to the pod                                                                                                                                      | `[]`                                                          |
+| `master.service.type`                         | Allows using a different service type for Master                                                                                                                          | `nil`                                                         |
+| `master.service.nodePort`                     | Allows using a different nodePort for Master                                                                                                                              | `nil`                                                         |
+| `master.service.clusterIP`                    | Allows using a different clusterIP for Master                                                                                                                             | `nil`                                                         |
+| `slave.nodeSelector`                          | Node labels for pod assignment (postgresql slave)                                                                                                                         | `{}`                                                          |
+| `slave.affinity`                              | Affinity labels for pod assignment (postgresql slave)                                                                                                                     | `{}`                                                          |
+| `slave.tolerations`                           | Toleration labels for pod assignment (postgresql slave)                                                                                                                   | `[]`                                                          |
+| `slave.anotations`                            | Map of annotations to add to the statefulsets (postgresql slave)                                                                                                          | `{}`                                                          |
+| `slave.labels`                                | Map of labels to add to the statefulsets (postgresql slave)                                                                                                               | `{}`                                                          |
+| `slave.podAnnotations`                        | Map of annotations to add to the pods (postgresql slave)                                                                                                                  | `{}`                                                          |
+| `slave.podLabels`                             | Map of labels to add to the pods (postgresql slave)                                                                                                                       | `{}`                                                          |
+| `slave.priorityClassName`                     | Priority Class to use for each pod (postgresql slave)                                                                                                                     | `nil`                                                          |
+| `slave.extraInitContainers`                   | Additional init containers to add to the pods (postgresql slave)                                                                                                          | `[]`                                                          |
+| `slave.extraVolumeMounts`                     | Additional volume mounts to add to the pods (postgresql slave)                                                                                                            | `[]`                                                          |
+| `slave.extraVolumes`                          | Additional volumes to add to the pods (postgresql slave)                                                                                                                  | `[]`                                                          |
+| `slave.sidecars`                              | Add additional containers to the pod                                                                                                                                      | `[]`                                                          |
+| `slave.service.type`                          | Allows using a different service type for Slave                                                                                                                           | `nil`                                                         |
+| `slave.service.nodePort`                      | Allows using a different nodePort for Slave                                                                                                                               | `nil`                                                         |
+| `slave.service.clusterIP`                     | Allows using a different clusterIP for Slave                                                                                                                              | `nil`                                                         |
+| `terminationGracePeriodSeconds`               | Seconds the pod needs to terminate gracefully                                                                                                                             | `nil`                                                         |
+| `resources`                                   | CPU/Memory resource requests/limits                                                                                                                                       | Memory: `256Mi`, CPU: `250m`                                  |
+| `securityContext.enabled`                     | Enable security context                                                                                                                                                   | `true`                                                        |
+| `securityContext.fsGroup`                     | Group ID for the container                                                                                                                                                | `1001`                                                        |
+| `securityContext.runAsUser`                   | User ID for the container                                                                                                                                                 | `1001`                                                        |
+| `serviceAccount.enabled`                      | Enable service account (Note: Service Account will only be automatically created if `serviceAccount.name` is not set)                                                     | `false`                                                       |
+| `serviceAcccount.name`                        | Name of existing service account                                                                                                                                          | `nil`                                                         |
+| `livenessProbe.enabled`                       | Would you like a livenessProbe to be enabled                                                                                                                              | `true`                                                        |
+| `networkPolicy.enabled`                       | Enable NetworkPolicy                                                                                                                                                      | `false`                                                       |
+| `networkPolicy.allowExternal`                 | Don't require client label for connections                                                                                                                                | `true`                                                        |
+| `networkPolicy.explicitNamespacesSelector`    | A Kubernetes LabelSelector to explicitly select namespaces from which ingress traffic could be allowed                                                                    | `{}`                                                          |
+| `livenessProbe.initialDelaySeconds`           | Delay before liveness probe is initiated                                                                                                                                  | 30                                                            |
+| `livenessProbe.periodSeconds`                 | How often to perform the probe                                                                                                                                            | 10                                                            |
+| `livenessProbe.timeoutSeconds`                | When the probe times out                                                                                                                                                  | 5                                                             |
+| `livenessProbe.failureThreshold`              | Minimum consecutive failures for the probe to be considered failed after having succeeded.                                                                                | 6                                                             |
+| `livenessProbe.successThreshold`              | Minimum consecutive successes for the probe to be considered successful after having failed                                                                               | 1                                                             |
+| `readinessProbe.enabled`                      | would you like a readinessProbe to be enabled                                                                                                                             | `true`                                                        |
+| `readinessProbe.initialDelaySeconds`          | Delay before readiness probe is initiated                                                                                                                                 | 5                                                             |
+| `readinessProbe.periodSeconds`                | How often to perform the probe                                                                                                                                            | 10                                                            |
+| `readinessProbe.timeoutSeconds`               | When the probe times out                                                                                                                                                  | 5                                                             |
+| `readinessProbe.failureThreshold`             | Minimum consecutive failures for the probe to be considered failed after having succeeded.                                                                                | 6                                                             |
+| `readinessProbe.successThreshold`             | Minimum consecutive successes for the probe to be considered successful after having failed                                                                               | 1                                                             |
+| `metrics.enabled`                             | Start a prometheus exporter                                                                                                                                               | `false`                                                       |
+| `metrics.service.type`                        | Kubernetes Service type                                                                                                                                                   | `ClusterIP`                                                   |
+| `service.clusterIP`                           | Static clusterIP or None for headless services                                                                                                                            | `nil`                                                         |
+| `metrics.service.annotations`                 | Additional annotations for metrics exporter pod                                                                                                                           | `{ prometheus.io/scrape: "true", prometheus.io/port: "9187"}` |
+| `metrics.service.loadBalancerIP`              | loadBalancerIP if redis metrics service type is `LoadBalancer`                                                                                                            | `nil`                                                         |
+| `metrics.serviceMonitor.enabled`              | Set this to `true` to create ServiceMonitor for Prometheus operator                                                                                                       | `false`                                                       |
+| `metrics.serviceMonitor.additionalLabels`     | Additional labels that can be used so ServiceMonitor will be discovered by Prometheus                                                                                     | `{}`                                                          |
+| `metrics.serviceMonitor.namespace`            | Optional namespace in which to create ServiceMonitor                                                                                                                      | `nil`                                                         |
+| `metrics.serviceMonitor.interval`             | Scrape interval. If not set, the Prometheus default scrape interval is used                                                                                               | `nil`                                                         |
+| `metrics.serviceMonitor.scrapeTimeout`        | Scrape timeout. If not set, the Prometheus default scrape timeout is used                                                                                                 | `nil`                                                         |
+| `metrics.prometheusRule.enabled`              | Set this to true to create prometheusRules for Prometheus operator                                                                                                        | `false`                                                       |
+| `metrics.prometheusRule.additionalLabels`     | Additional labels that can be used so prometheusRules will be discovered by Prometheus                                                                                    | `{}`                                                          |
+| `metrics.prometheusRule.namespace`            | namespace where prometheusRules resource should be created                                                                                                                | the same namespace as postgresql                              |
+| `metrics.prometheusRule.rules`                | [rules](https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/) to be created, check values for an example.                                            | `[]`                                                          |
+| `metrics.image.registry`                      | PostgreSQL Image registry                                                                                                                                                 | `docker.io`                                                   |
+| `metrics.image.repository`                    | PostgreSQL Image name                                                                                                                                                     | `bitnami/postgres-exporter`                                   |
+| `metrics.image.tag`                           | PostgreSQL Image tag                                                                                                                                                      | `{TAG_NAME}`                                                  |
+| `metrics.image.pullPolicy`                    | PostgreSQL Image pull policy                                                                                                                                              | `IfNotPresent`                                                |
+| `metrics.image.pullSecrets`                   | Specify Image pull secrets                                                                                                                                                | `nil` (does not add image pull secrets to deployed pods)      |
+| `metrics.customMetrics`                       | Additional custom metrics                                                                                                                                                 | `nil`                                                         |
+| `metrics.securityContext.enabled`             | Enable security context for metrics                                                                                                                                       | `false`                                                       |
+| `metrics.securityContext.runAsUser`           | User ID for the container for metrics                                                                                                                                     | `1001`                                                        |
+| `metrics.livenessProbe.initialDelaySeconds`   | Delay before liveness probe is initiated                                                                                                                                  | 30                                                            |
+| `metrics.livenessProbe.periodSeconds`         | How often to perform the probe                                                                                                                                            | 10                                                            |
+| `metrics.livenessProbe.timeoutSeconds`        | When the probe times out                                                                                                                                                  | 5                                                             |
+| `metrics.livenessProbe.failureThreshold`      | Minimum consecutive failures for the probe to be considered failed after having succeeded.                                                                                | 6                                                             |
+| `metrics.livenessProbe.successThreshold`      | Minimum consecutive successes for the probe to be considered successful after having failed                                                                               | 1                                                             |
+| `metrics.readinessProbe.enabled`              | would you like a readinessProbe to be enabled                                                                                                                             | `true`                                                        |
+| `metrics.readinessProbe.initialDelaySeconds`  | Delay before liveness probe is initiated                                                                                                                                  | 5                                                             |
+| `metrics.readinessProbe.periodSeconds`        | How often to perform the probe                                                                                                                                            | 10                                                            |
+| `metrics.readinessProbe.timeoutSeconds`       | When the probe times out                                                                                                                                                  | 5                                                             |
+| `metrics.readinessProbe.failureThreshold`     | Minimum consecutive failures for the probe to be considered failed after having succeeded.                                                                                | 6                                                             |
+| `metrics.readinessProbe.successThreshold`     | Minimum consecutive successes for the probe to be considered successful after having failed                                                                               | 1                                                             |
+| `updateStrategy`                              | Update strategy policy                                                                                                                                                    | `{type: "RollingUpdate"}`                                     |
 
 Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`. For example,
 
 ```console
-$ helm install --name my-release \
+$ helm install my-release \
   --set postgresqlPassword=secretpassword,postgresqlDatabase=my-database \
-    stable/postgresql
+    bitnami/postgresql
 ```
 
 The above command sets the PostgreSQL `postgres` account password to `secretpassword`. Additionally it creates a database named `my-database`.
@@ -192,7 +232,7 @@ The above command sets the PostgreSQL `postgres` account password to `secretpass
 Alternatively, a YAML file that specifies the values for the parameters can be provided while installing the chart. For example,
 
 ```console
-$ helm install --name my-release -f values.yaml stable/postgresql
+$ helm install my-release -f values.yaml bitnami/postgresql
 ```
 
 > **Tip**: You can use the default [values.yaml](values.yaml)
@@ -241,9 +281,13 @@ This chart includes a `values-production.yaml` file where you can find some para
 
 To horizontally scale this chart, you can use the `--replicas` flag to modify the number of nodes in your PostgreSQL deployment. Also you can use the `values-production.yaml` file or modify the parameters shown above.
 
+### Customizing Master and Slave services in a replicated configuration
+
+At the top level, there is a service object which defines the services for both master and slave. For deeper customization, there are service objects for both the master and slave types individually. This allows you to override the values in the top level service object so that the master and slave can be of different service types and with different clusterIPs / nodePorts. Also in the case you want the master and slave to be of type nodePort, you will need to set the nodePorts to different values to prevent a collision. The values that are deeper in the master.service or slave.service objects will take precedence over the top level service object.
+
 ### Change PostgreSQL version
 
-To modify the PostgreSQL version used in this chart you can specify a [valid image tag](https://hub.docker.com/r/bitnami/postgresql/tags/) using the `image.tag` parameter. For example, `image.tag=12.0.0-debian-9-r0`
+To modify the PostgreSQL version used in this chart you can specify a [valid image tag](https://hub.docker.com/r/bitnami/postgresql/tags/) using the `image.tag` parameter. For example, `image.tag=12.0.0`
 
 ### postgresql.conf / pg_hba.conf files as configMap
 
@@ -271,6 +315,31 @@ Alternatively, you can specify custom scripts using the `initdbScripts` paramete
 In addition to these options, you can also set an external ConfigMap with all the initialization scripts. This is done by setting the `initdbScriptsConfigMap` parameter. Note that this will override the two previous options. If your initialization scripts contain sensitive information such as credentials or passwords, you can use the `initdbScriptsSecret` parameter.
 
 The allowed extensions are `.sh`, `.sql` and `.sql.gz`.
+
+### Sidecars
+
+If you need  additional containers to run within the same pod as PostgreSQL (e.g. an additional metrics or logging exporter), you can do so via the `sidecars` config parameter. Simply define your container according to the Kubernetes container spec.
+
+```yaml
+# For the PostgreSQL master
+master:
+  sidecars:
+  - name: your-image-name
+    image: your-image
+    imagePullPolicy: Always
+    ports:
+    - name: portname
+     containerPort: 1234
+# For the PostgreSQL replicas
+slave:
+  sidecars:
+  - name: your-image-name
+    image: your-image
+    imagePullPolicy: Always
+    ports:
+    - name: portname
+     containerPort: 1234
+```
 
 ### Metrics
 
@@ -348,6 +417,7 @@ This label will be displayed in the output of a successful install.
 
 - The Docker Official PostgreSQL image does not support replication. If you pass any replication environment variable, this would be ignored. The only environment variables supported by the Docker Official image are POSTGRES_USER, POSTGRES_DB, POSTGRES_PASSWORD, POSTGRES_INITDB_ARGS, POSTGRES_INITDB_WALDIR and PGDATA. All the remaining environment variables are specific to the Bitnami PostgreSQL image.
 - The Bitnami PostgreSQL image is non-root by default. This requires that you run the pod with `securityContext` and updates the permissions of the volume with an `initContainer`. A key benefit of this configuration is that the pod follows security best practices and is prepared to run on Kubernetes distributions with hard security constraints like OpenShift.
+- For OpenShift, one may either define the runAsUser and fsGroup accordingly, or try this more dynamic option: volumePermissions.securityContext.runAsUser="auto",securityContext.enabled=false,shmVolume.chmod.enabled=false
 
 ### Deploy chart using Docker Official PostgreSQL Image
 
@@ -355,12 +425,10 @@ From chart version 4.0.0, it is possible to use this chart with the Docker Offic
 Besides specifying the new Docker repository and tag, it is important to modify the PostgreSQL data directory and volume mount point. Basically, the PostgreSQL data dir cannot be the mount point directly, it has to be a subdirectory.
 
 ```
-helm install --name postgres \
-             --set image.repository=postgres \
-             --set image.tag=10.6 \
-             --set postgresqlDataDir=/data/pgdata \
-             --set persistence.mountPath=/data/ \
-             stable/postgresql
+image.repository=postgres
+image.tag=10.6
+postgresqlDataDir=/data/pgdata
+persistence.mountPath=/data/
 ```
 
 ## Upgrade
@@ -368,12 +436,22 @@ helm install --name postgres \
 It's necessary to specify the existing passwords while performing an upgrade to ensure the secrets are not updated with invalid randomly generated passwords. Remember to specify the existing values of the `postgresqlPassword` and `replication.password` parameters when upgrading the chart:
 
 ```bash
-$ helm upgrade my-release bitnami/influxdb \
+$ helm upgrade my-release stable/postgresql \
     --set postgresqlPassword=[POSTGRESQL_PASSWORD] \
     --set replication.password=[REPLICATION_PASSWORD]
 ```
 
 > Note: you need to substitute the placeholders _[POSTGRESQL_PASSWORD]_, and _[REPLICATION_PASSWORD]_ with the values obtained from instructions in the installation notes.
+
+## 8.0.0
+
+Prefixes the port names with their protocols to comply with Istio conventions.
+
+If you depend on the port names in your setup, make sure to update them to reflect this change.
+
+## 7.1.0
+
+Adds support for LDAP configuration.
 
 ## 7.0.0
 
@@ -383,13 +461,23 @@ In https://github.com/helm/charts/pull/17281 the `apiVersion` of the statefulset
 
 This major version bump signifies this change.
 
+## 6.5.7
+
+In this version, the chart will use PostgreSQL with the Postgis extension included. The version used with Postgresql version 10, 11 and 12 is Postgis 2.5. It has been compiled with the following dependencies:
+
+- protobuf
+- protobuf-c
+- json-c
+- geos
+- proj
+
 ## 5.0.0
 
 In this version, the **chart is using PostgreSQL 11 instead of PostgreSQL 10**. You can find the main difference and notable changes in the following links: [https://www.postgresql.org/about/news/1894/](https://www.postgresql.org/about/news/1894/) and [https://www.postgresql.org/about/featurematrix/](https://www.postgresql.org/about/featurematrix/).
 
 For major releases of PostgreSQL, the internal data storage format is subject to change, thus complicating upgrades, you can see some errors like the following one in the logs:
 
-```bash
+```console
 Welcome to the Bitnami postgresql container
 Subscribe to project updates by watching https://github.com/bitnami/bitnami-docker-postgresql
 Submit issues and feature requests at https://github.com/bitnami/bitnami-docker-postgresql/issues
@@ -411,6 +499,7 @@ INFO  ==> ** Starting PostgreSQL **
   [1] FATAL:  database files are incompatible with server
   [1] DETAIL:  The data directory was initialized by PostgreSQL version 10, which is not compatible with this version 11.3.
 ```
+
 In this case, you should migrate the data from the old chart to the new one following an approach similar to that described in [this section](https://www.postgresql.org/docs/current/upgrading.html#UPGRADING-VIA-PGDUMPALL) from the official documentation. Basically, create a database dump in the old chart, move and restore it in the new one.
 
 ### 4.0.0
@@ -440,15 +529,15 @@ In order to upgrade from the `0.X.X` branch to `1.X.X`, you should follow the be
 
  - Obtain the service name (`SERVICE_NAME`) and password (`OLD_PASSWORD`) of the existing postgresql chart. You can find the instructions to obtain the password in the NOTES.txt, the service name can be obtained by running
 
- ```console
+```console
 $ kubectl get svc
- ```
+```
 
 - Install (not upgrade) the new version
 
 ```console
 $ helm repo update
-$ helm install --name my-release stable/postgresql
+$ helm install my-release bitnami/postgresql
 ```
 
 - Connect to the new pod (you can obtain the name by running `kubectl get pods`):

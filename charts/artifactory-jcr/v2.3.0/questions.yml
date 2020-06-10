@@ -2,8 +2,39 @@ categories:
 - repository
 labels:
   io.rancher.certified: partner
-  io.cattle.role: project # options are cluster/project
 questions:
+# Advance Settings
+- variable: artifactory.artifactory.masterKey
+  default: "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+  description: "Artifactory master key. For security reasons, we strongly recommend you generate your own master key using this command: 'openssl rand -hex 32'"
+  type: string
+  label: Artifactory master key
+  group: "Security Settings"
+
+# Container Images
+- variable: defaultImage
+  default: "true"
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  show_subquestion_if: false
+  group: "Container Images"
+  subquestions:
+  - variable: artifactory.artifactory.image.repository
+    default: "docker.bintray.io/jfrog/artifactory-jcr"
+    description: "JFrog Container Registry image name"
+    type: string
+    label: JFrog Container Registry Image Name
+  - variable: artifactory.artifactory.image.version
+    default: "7.5.5"
+    description: "JFrog Container Registry image tag"
+    type: string
+    label: JFrog Container Registry Image Tag
+  - variable: artifactory.imagePullSecrets
+    description: "Image Pull Secret"
+    type: string
+    label: Image Pull Secret
+
 # Services and LoadBalancing Settings
 - variable: artifactory.ingress.enabled
   default: false
@@ -52,7 +83,7 @@ questions:
 - variable: artifactory.nginx.tlsSecretName
   default: ""
   description: "Provide SSL Secret name to configure with Nginx"
-  type: secret
+  type: string
   label: Config Nginx SSL Secret
   show_if: "artifactory.nginx.enabled=true&&artifactory.ingress.enabled=false"
   group: "Services and Load Balancing"
@@ -63,200 +94,6 @@ questions:
   label: ConfigMap for Nginx Artifactory Config
   show_if: "artifactory.nginx.enabled=true&&artifactory.ingress.enabled=false"
   group: "Services and Load Balancing"
-- variable: artifactory.nginx.env.skipAutoConfigUpdate
-  default: "false"
-  description: "Skip Nginx Auto Configuration Update"
-  type: string
-  label: Skip Nginx Auto Configuration Update
-  show_if: "artifactory.nginx.enabled=true&&artifactory.ingress.enabled=false"
-  group: "Services and Load Balancing"
-- variable: artifactory.nginx.persistence.enabled
-  default: false
-  description: "enable persistence storage for nginx server"
-  type: boolean
-  label: Enable Persistent Storage for Nginx Service
-  group: "Services and Load Balancing"
-  show_if: "artifactory.nginx.enabled=true&&artifactory.ingress.enabled=false"
-- variable: nginx.persistence.size
-  default: 5Gi
-  description: "Nginx persistent volume size"
-  type: string
-  label: Nginx Persistent Volume Size
-  group: "Services and Load Balancing"
-  show_if: "artifactory.nginx.enabled=true&&artifactory.nginx.persistence.enabled=true&&artifactory.ingress.enabled=false"
-- variable: artifactory.nginx.persistence.storageClass
-  default: ""
-  description: "If undefined or null, uses the default StorageClass. Default to null"
-  type: storageclass
-  label: Default StorageClass for Nginx
-  show_if: "artifactory.nginx.enabled=true&&artifactory.nginx.persistence.enabled=true&&artifactory.ingress.enabled=false"
-  group: "Services and Load Balancing"
-- variable: artifactory.nginx.resources.requests.cpu
-  default: "200m"
-  description: "Nginx initial cpu request"
-  type: string
-  label: Nginx Initial CPU Request
-  show_if: "artifactory.nginx.enabled=true&&artifactory.ingress.enabled=false"
-  group: "Services and Load Balancing"
-- variable: artifactory.nginx.resources.requests.memory
-  default: "500Mi"
-  description: "Nginx initial memory request"
-  type: string
-  label: Nginx Initial Memory Request
-  show_if: "artifactory.nginx.enabled=true&&ingress.enabled=false"
-  group: "Services and Load Balancing"
-- variable: artifactory.nginx.resources.limits.cpu
-  default: "1"
-  description: "Nginx cpu limit"
-  type: string
-  label: Nginx CPU Limit
-  show_if: "artifactory.nginx.enabled=true&&artifactory.ingress.enabled=false"
-  group: "Services and Load Balancing"
-- variable: artifactory.nginx.resources.limits.memory
-  default: "1Gi"
-  description: "Nginx memory limit"
-  type: string
-  label: Nginx Memory Limit
-  show_if: "artifactory.nginx.enabled=true&&artifactory.ingress.enabled=false"
-  group: "Services and Load Balancing"
-
-# Artifactory Storage Settings
-- variable: artifactory.artifactory.persistence.enabled
-  default: false
-  description: "enable persistence storage for Artifactory"
-  type: boolean
-  label: Enable Persistent Storage for Artifactory
-  group: "Artifactory Storage"
-  required: true
-  show_subquestion_if: true
-  subquestions:
-  - variable: artifactory.artifactory.persistence.size
-    default: "50Gi"
-    description: "Artifactory persistent volume size"
-    type: string
-    label: Artifactory Persistent Volume Size
-    required: true
-  - variable: artifactory.artifactory.persistence.type
-    default: "file-system"
-    description: "Artifactory persistent volume size"
-    type: enum
-    label: Artifactory Persistent Storage Type
-    required: true
-    options:
-      - "file-system"
-      - "nfs"
-      - "google-storage"
-      - "aws-s3"
-
-#Storage Type Settings
-- variable: artifactory.artifactory.persistence.nfs.ip
-  default: ""
-  type: string
-  group: "Artifactory Storage"
-  label: NFS Server IP
-  description: "NFS server IP"
-  show_if: "artifactory.artifactory.persistence.enabled=true&&artifactory.artifactory.persistence.type=nfs"
-- variable: artifactory.artifactory.persistence.nfs.haDataMount
-  default: "/data"
-  type: string
-  label: NFS Data Directory
-  description: "NFS data directory"
-  group: "Artifactory Storage"
-  show_if: "artifactory.artifactory.persistence.enabled=true&&artifactory.artifactory.persistence.type=nfs"
-- variable: artifactory.artifactory.persistence.nfs.haBackupMount
-  default: "/backup"
-  type: string
-  label: NFS Backup Directory
-  description: "NFS backup directory"
-  group: "Artifactory Storage"
-  show_if: "artifactory.artifactory.persistence.enabled=true&&artifactory.artifactory.persistence.type=nfs"
-- variable: artifactory.artifactory.persistence.nfs.dataDir
-  default: "/var/opt/jfrog/artifactory-ha"
-  type: string
-  label: HA Data Directory
-  description: "HA data directory"
-  group: "Artifactory Storage"
-  show_if: "artifactory.artifactory.persistence.enabled=true&&artifactory.artifactory.persistence.type=nfs"
-- variable: artifactory.artifactory.persistence.nfs.backupDir
-  default: "/var/opt/jfrog/artifactory-backup"
-  type: string
-  label: HA Backup Directory
-  description: "HA backup directory	"
-  group: "Artifactory Storage"
-  show_if: "artifactory.artifactory.persistence.enabled=true&&artifactory.artifactory.persistence.type=nfs"
-- variable: artifactory.artifactory.persistence.nfs.capacity
-  default: "200Gi"
-  type: string
-  label: NFS PVC Size
-  description: "NFS PVC size	"
-  group: "Artifactory Storage"
-  show_if: "artifactory.artifactory.persistence.enabled=true&&artifactory.artifactory.persistence.type=nfs"
-
-#Google storage settings
-- variable: artifactory.artifactory.persistence.googleStorage.bucketName
-  default: "artifactory-ha-gcp"
-  type: string
-  label: Google Storage Bucket Name
-  description: "Google storage bucket name"
-  group: "Artifactory Storage"
-  show_if: "artifactory.artifactory.persistence.enabled=true&&artifactory.artifactory.persistence.type=google-storage"
-- variable: artifactory.artifactory.persistence.googleStorage.identity
-  default: ""
-  type: string
-  label: Google Storage Service Account ID
-  description: "Google Storage service account id"
-  group: "Artifactory Storage"
-  show_if: "artifactory.artifactory.persistence.enabled=true&&artifactory.artifactory.persistence.type=google-storage"
-- variable: artifactory.artifactory.persistence.googleStorage.credential
-  default: ""
-  type: string
-  label: Google Storage Service Account Key
-  description: "Google Storage service account key"
-  group: "Artifactory Storage"
-  show_if: "artifactory.artifactory.persistence.enabled=true&&artifactory.artifactory.persistence.type=google-storage"
-- variable: artifactory.artifactory.persistence.googleStorage.path
-  default: "artifactory-ha/filestore"
-  type: string
-  label: Google Storage Path In Bucket
-  description: "Google Storage path in bucket"
-  group: "Artifactory Storage"
-  show_if: "artifactory.artifactory.persistence.enabled=true&&artifactory.artifactory.persistence.type=google-storage"
-# awsS3 storage settings
-- variable: artifactory.artifactory.persistence.awsS3.bucketName
-  default: "artifactory-ha-aws"
-  type: string
-  label: AWS S3 Bucket Name
-  description: "AWS S3 bucket name"
-  group: "Artifactory Storage"
-  show_if: "artifactory.artifactory.persistence.enabled=true&&artifactory.artifactory.persistence.type=aws-s3"
-- variable: artifactory.artifactory.persistence.awsS3.region
-  default: ""
-  type: string
-  label: AWS S3 Bucket Region
-  description: "AWS S3 bucket region"
-  group: "Artifactory Storage"
-  show_if: "artifactory.artifactory.persistence.enabled=true&&artifactory.artifactory.persistence.type=aws-s3"
-- variable: artifactory.artifactory.persistence.awsS3.identity
-  default: ""
-  type: string
-  label: AWS S3 AWS_ACCESS_KEY_ID
-  description: "AWS S3 AWS_ACCESS_KEY_ID"
-  group: "Artifactory Storage"
-  show_if: "artifactory.artifactory.persistence.enabled=true&&artifactory.artifactory.persistence.type=aws-s3"
-- variable: artifactory.artifactory.persistence.awsS3.credential
-  default: ""
-  type: string
-  label: AWS S3 AWS_SECRET_ACCESS_KEY
-  description: "AWS S3 AWS_SECRET_ACCESS_KEY"
-  group: "Artifactory Storage"
-  show_if: "artifactory.artifactory.persistence.enabled=true&&artifactory.artifactory.persistence.type=aws-s3"
-- variable: artifactory.artifactory.persistence.awsS3.path
-  default: "artifactory-ha/filestore"
-  type: string
-  label: AWS S3 Path In Bucket
-  description: "AWS S3 path in bucket"
-  group: "Artifactory Storage"
-  show_if: "artifactory.artifactory.persistence.enabled=true&&artifactory.artifactory.persistence.type=aws-s3"
 
 # Database Settings
 - variable: artifactory.postgresql.enabled
@@ -268,23 +105,18 @@ questions:
   group: "Database Settings"
   show_subquestion_if: "true"
   subquestions:
-  - variable: artifactory.postgresql.persistence.enabled
-    default: false
-    description: "enable persistence storage for PostgreSQL"
-    type: boolean
-    label: Enable Persistent Storage for PostgreSQL
-  - variable: artifactory.postgresql.persistence.size
+  - variable: artifactory.artifactory.postgresql.persistence.size
     default: 20Gi
     description: "PostgreSQL persistent volume size"
     type: string
     label: PostgreSQL Persistent Volume Size
-    show_if: "artifactory.postgresql.enabled=true&&artifactory.postgresql.persistence.enabled=true"
+    show_if: "artifactory.postgresql.enabled=true"
   - variable: artifactory.postgresql.persistence.storageClass
     default: ""
     description: "If undefined or null, uses the default StorageClass. Default to null"
     type: storageclass
     label: Default StorageClass for PostgreSQL
-    show_if: "artifactory.postgresql.enabled=true&&artifactory.postgresql.persistence.enabled=true"
+    show_if: "artifactory.postgresql.enabled=true"
   - variable: artifactory.postgresql.resources.requests.cpu
     default: "200m"
     description: "PostgreSQL initial cpu request"
@@ -367,11 +199,6 @@ questions:
   show_subquestion_if: true
   group: "Advanced Options"
   subquestions:
-  - variable: artifactory.artifactory.masterKey
-    default: "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
-    description: "Artifactory master key"
-    type: string
-    label: Artifactory master key
   - variable: artifactory.artifactory.primary.resources.requests.cpu
     default: "500m"
     description: "Artifactory primary node initial cpu request"
@@ -432,11 +259,10 @@ questions:
     description: "Artifactory member node java Xmx size"
     type: string
     label: Artifactory Member Node Java Xmx Size
-  - variable: installerInfo
-    default: "{'productId': 'RancherHelm_artifactory-jcr/7.3.2',  'features': [	{	  'featureId': 'Partner/ACC-007246'	}  ]}"
-    description: "Callhome settings"
-    type: string
-    label: Callhome settings
-    group: "Advanced Options"
-    show_if: "false"
+
+# Internal Settings
+- variable: installerInfo
+  default: '\{\"productId\": \"RancherHelm_artifactory-jcr/7.5.5\", \"features\": \[\{\"featureId\": \"Partner/ACC-007246\"\}\]\}'
+  type: string
+  group: "Internal Settings (Do not modify)"
 

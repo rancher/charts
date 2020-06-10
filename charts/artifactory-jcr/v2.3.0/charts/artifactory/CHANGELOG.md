@@ -1,6 +1,69 @@
 # JFrog Artifactory Chart Changelog
 All changes to this chart will be documented in this file.
 
+## [9.5.0] - Jun 1, 2020
+* Updated Artifactory version to 7.5.5 - https://www.jfrog.com/confluence/display/JFROG/Artifactory+Release+Notes#ArtifactoryReleaseNotes-Artifactory7.5
+* Fixes bootstrap configMap permission issue
+* Update postgresql tag version to `9.6.18-debian-10-r7`
+
+## [9.4.9] - May 27, 2020
+* Added Tomcat maxThreads & acceptCount
+
+## [9.4.8] - May 25, 2020
+* Fixed postgresql README `image` Parameters
+
+## [9.4.7] - May 24, 2020
+* Fixed typo in README regarding migration timeout
+
+## [9.4.6] - May 19, 2020
+* Added metadata maxOpenConnections
+
+## [9.4.5] - May 07, 2020
+* Fix `installerInfo` string format
+
+## [9.4.4] - Apr 27, 2020
+* Updated Artifactory version to 7.4.3
+
+## [9.4.3] - Apr 26, 2020
+* Change order of the customInitContainers to run before the "migration-artifactory" initContainer.
+
+## [9.4.2] - Apr 24, 2020
+* Fix `artifactory.persistence.awsS3V3.useInstanceCredentials` incorrect conditional logic
+* Bump postgresql tag version to `9.6.17-debian-10-r72` in values.yaml
+
+## [9.4.1] - Apr 16, 2020
+* Custom volumes in migration init container.
+
+## [9.4.0] - Apr 14, 2020
+* Updated Artifactory version to 7.4.1
+
+## [9.3.1] - April 13, 2020
+* Update README with helm v3 commands
+
+## [9.3.0] - April 10, 2020
+* Use dependency charts from `https://charts.bitnami.com/bitnami`
+* Bump postgresql chart version to `8.7.3` in requirements.yaml
+* Bump postgresql tag version to `9.6.17-debian-10-r21` in values.yaml
+
+## [9.2.9] - Apr 8, 2020
+* Added recommended ingress annotation to avoid 413 errors
+
+## [9.2.8] - Apr 8, 2020
+* Moved migration scripts under `files` directory
+* Support preStartCommand in migration Init container as `artifactory.migration.preStartCommand`
+
+## [9.2.7] - Apr 6, 2020
+* Fix cache size (should be 5gb instead of 50gb since volume claim is only 20gb).
+
+## [9.2.6] - Apr 1, 2020
+* Support masterKey and joinKey as secrets
+
+## [9.2.5] - Apr 1, 2020
+* Fix readme use to `-hex 32` instead of `-hex 16`
+
+## [9.2.4] - Mar 31, 2020
+* Change the way the artifactory `command:` is set so it will properly pass a SIGTERM to java
+
 ## [9.2.3] - Mar 29, 2020
 * Add Nginx log options: stderr as logfile and log level
 
@@ -277,7 +340,7 @@ All changes to this chart will be documented in this file.
 * Update Artifactory version to 6.11 and add restart to Artifactory when bootstrap.creds file has been modified
 
 ## [7.15.8] - Jun 27, 2019
-* Add the option for changing nginx config using values.yaml and remove outdated reverse proxy documentation  
+* Add the option for changing nginx config using values.yaml and remove outdated reverse proxy documentation
 
 ## [7.15.6] - Jun 24, 2019
 * Update chart maintainers

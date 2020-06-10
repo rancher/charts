@@ -4,7 +4,7 @@ JFrog Container Registry is a free Artifactory edition with Docker and Helm repo
 
 ## Prerequisites Details
 
-* Kubernetes 1.10+
+* Kubernetes 1.12+
 
 ## Chart Details
 This chart will do the following:
@@ -25,7 +25,7 @@ helm repo add jfrog https://charts.jfrog.io
 ### Install Chart
 To install the chart with the release name `jfrog-container-registry`:
 ```bash
-helm install --name jfrog-container-registry --set postgresql.postgresqlPassword=<postgres_password> jfrog/artifactory-jcr
+helm upgrade --install jfrog-container-registry --set postgresql.postgresqlPassword=<postgres_password> --namespace artifactory-jcr jfrog/artifactory-jcr
 ```
 
 ### Accessing JFrog Container Registry
@@ -38,9 +38,17 @@ helm upgrade jfrog-container-registry jfrog/artifactory-jcr
 ```
 
 ### Deleting JFrog Container Registry
+
+On helm v2:
 ```bash
 helm delete --purge jfrog-container-registry
 ```
+
+On helm v3:
+```bash                                                                                                                                                                 
+helm delete jfrog-container-registry --namespace artifactory-jcr                                                                                                                       
+```  
+
 This will delete your JFrog Container Registry deployment.<br>
 **NOTE:** You might have left behind persistent volumes. You should explicitly delete them with
 ```bash
@@ -77,12 +85,12 @@ Specify each parameter using the `--set key=value[,key=value]` argument to `helm
 ### Ingress and TLS
 To get Helm to create an ingress object with a hostname, add these two lines to your Helm command:
 ```bash
-helm install --name artifactory \
+helm upgrade --install jfrog-container-registry \
   --set artifactory.nginx.enabled=false \
   --set artifactory.ingress.enabled=true \
   --set artifactory.ingress.hosts[0]="artifactory.company.com" \
   --set artifactory.artifactory.service.type=NodePort \
-  jfrog/artifactory-jcr
+  --namespace artifactory-jcr jfrog/artifactory-jcr
 ```
 
 To manually configure TLS, first create/retrieve a key & certificate pair for the address(es) you wish to protect. Then create a TLS secret in the namespace:

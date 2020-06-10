@@ -7,13 +7,12 @@ metadata:
     chart: {{ template "postgresql.chart" . }}
     release: {{ .Release.Name | quote }}
     heritage: {{ .Release.Service | quote }}
-{{- with .Values.master.labels }}
-{{ toYaml . | indent 4 }}
-{{- end }}
-{{- with .Values.master.annotations }}
-  annotations:
-{{ toYaml . | indent 4 }}
-{{- end }}
+  {{- with .Values.master.labels }}
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.master.annotations }}
+  annotations: {{ toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   serviceName: {{ template "postgresql.fullname" . }}-headless
   replicas: 1
@@ -36,29 +35,25 @@ spec:
         release: {{ .Release.Name | quote }}
         heritage: {{ .Release.Service | quote }}
         role: master
-{{- with .Values.master.podLabels }}
-{{ toYaml . | indent 8 }}
-{{- end }}
-{{- with .Values.master.podAnnotations }}
-      annotations:
-{{ toYaml . | indent 8 }}
-{{- end }}
+      {{- with .Values.master.podLabels }}
+      {{- toYaml . | indent 8 }}
+      {{- end }}
+      {{- with .Values.master.podAnnotations }}
+      annotations: {{- toYaml . | nindent 8 }}
+      {{- end }}
     spec:
       {{- if .Values.schedulerName }}
       schedulerName: "{{ .Values.schedulerName }}"
       {{- end }}
 {{- include "postgresql.imagePullSecrets" . | indent 6 }}
       {{- if .Values.master.nodeSelector }}
-      nodeSelector:
-{{ toYaml .Values.master.nodeSelector | indent 8 }}
+      nodeSelector: {{- toYaml .Values.master.nodeSelector | nindent 8 }}
       {{- end }}
       {{- if .Values.master.affinity }}
-      affinity:
-{{ toYaml .Values.master.affinity | indent 8 }}
+      affinity: {{- toYaml .Values.master.affinity | nindent 8 }}
       {{- end }}
       {{- if .Values.master.tolerations }}
-      tolerations:
-{{ toYaml .Values.master.tolerations | indent 8 }}
+      tolerations: {{- toYaml .Values.master.tolerations | nindent 8 }}
       {{- end }}
       {{- if .Values.terminationGracePeriodSeconds }}
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
@@ -70,28 +65,55 @@ spec:
       {{- if .Values.serviceAccount.enabled }}
       serviceAccountName: {{ default (include "postgresql.fullname" . ) .Values.serviceAccount.name }}
       {{- end }}
-      {{- if and .Values.volumePermissions.enabled .Values.persistence.enabled }}
+      {{- if or .Values.master.extraInitContainers (and .Values.volumePermissions.enabled (or .Values.persistence.enabled (and .Values.shmVolume.enabled .Values.shmVolume.chmod.enabled))) }}
       initContainers:
+      {{- if and .Values.volumePermissions.enabled (or .Values.persistence.enabled (and .Values.shmVolume.enabled .Values.shmVolume.chmod.enabled)) }}
         - name: init-chmod-data
           image: {{ template "postgresql.volumePermissions.image" . }}
-          imagePullPolicy: "{{ .Values.volumePermissions.image.pullPolicy }}"
+          imagePullPolicy: {{ .Values.volumePermissions.image.pullPolicy | quote }}
           {{- if .Values.resources }}
           resources: {{- toYaml .Values.resources | nindent 12 }}
           {{- end }}
           command:
             - /bin/sh
-            - -c
+            - -cx
             - |
-              mkdir -p {{ .Values.persistence.mountPath }}/data
-              chmod 700 {{ .Values.persistence.mountPath }}/data
-              find {{ .Values.persistence.mountPath }} -mindepth 0 -maxdepth 1 -not -name ".snapshot" -not -name "lost+found" | \
+              {{- if .Values.persistence.enabled }}
+              mkdir -p {{ .Values.persistence.mountPath }}/conf {{ .Values.persistence.mountPath }}/data
+              chmod 700 {{ .Values.persistence.mountPath }}/conf {{ .Values.persistence.mountPath }}/data
+              find {{ .Values.persistence.mountPath }} -mindepth 1 -maxdepth 1 -not -name ".snapshot" -not -name "lost+found" | \
+              {{- if eq ( toString ( .Values.volumePermissions.securityContext.runAsUser )) "auto" }}
+                xargs chown -R `id -u`:`id -G | cut -d " " -f2`
+              {{- else }}
                 xargs chown -R {{ .Values.securityContext.runAsUser }}:{{ .Values.securityContext.fsGroup }}
+              {{- end }}
+              {{- end }}
+              {{- if and .Values.shmVolume.enabled .Values.shmVolume.chmod.enabled }}
+              chmod -R 777 /dev/shm
+              {{- end }}
+          {{- if eq ( toString ( .Values.volumePermissions.securityContext.runAsUser )) "auto" }}
+          securityContext:
+          {{- else }}
           securityContext:
             runAsUser: {{ .Values.volumePermissions.securityContext.runAsUser }}
+          {{- end }}
           volumeMounts:
+            {{- if .Values.persistence.enabled }}
             - name: data
               mountPath: {{ .Values.persistence.mountPath }}
               subPath: {{ .Values.persistence.subPath }}
+            {{- end }}
+            {{- if .Values.shmVolume.enabled }}
+            - name: dshm
+              mountPath: /dev/shm
+            {{- end }}
+      {{- end }}
+      {{- if .Values.master.extraInitContainers }}
+      {{- tpl .Values.master.extraInitContainers . | nindent 8 }}
+      {{- end }}
+      {{- end }}
+      {{- if .Values.master.priorityClassName }}
+      priorityClassName: {{ .Values.master.priorityClassName }}
       {{- end }}
       containers:
         - name: {{ template "postgresql.fullname" . }}
@@ -125,7 +147,7 @@ spec:
             {{- end }}
             {{- if .Values.initdbPassword }}
             - name: POSTGRESQL_INITSCRIPTS_PASSWORD
-              value: .Values.initdbPassword
+              value: {{ .Values.initdbPassword }}
             {{- end }}
             {{- if .Values.persistence.mountPath }}
             - name: PGDATA
@@ -155,6 +177,18 @@ spec:
             - name: POSTGRES_CLUSTER_APP_NAME
               value: {{ .Values.replication.applicationName }}
             {{- end }}
+            {{- if and .Values.postgresqlPostgresPassword (not (eq .Values.postgresqlUsername "postgres")) }}
+            {{- if .Values.usePasswordFile }}
+            - name: POSTGRES_POSTGRES_PASSWORD_FILE
+              value: "/opt/bitnami/postgresql/secrets/postgresql-postgres-password"
+            {{- else }}
+            - name: POSTGRES_POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ template "postgresql.secretName" . }}
+                  key: postgresql-postgres-password
+            {{- end }}
+            {{- end }}
             - name: POSTGRES_USER
               value: {{ include "postgresql.username" . | quote }}
             {{- if .Values.usePasswordFile }}
@@ -174,8 +208,48 @@ spec:
             {{- if .Values.extraEnv }}
             {{- include "postgresql.tplValue" (dict "value" .Values.extraEnv "context" $) | nindent 12 }}
             {{- end }}
+            - name: POSTGRESQL_ENABLE_LDAP
+              value: {{ ternary "yes" "no" .Values.ldap.enabled | quote }}
+            {{- if .Values.ldap.enabled }}
+            - name: POSTGRESQL_LDAP_SERVER
+              value: {{ .Values.ldap.server }}
+            - name: POSTGRESQL_LDAP_PORT
+              value: {{ .Values.ldap.port | quote }}
+            - name: POSTGRESQL_LDAP_SCHEME
+              value: {{ .Values.ldap.scheme }}
+            {{- if .Values.ldap.tls }}
+            - name: POSTGRESQL_LDAP_TLS
+              value: "1"
+            {{- end}}
+            - name: POSTGRESQL_LDAP_PREFIX
+              value: {{ .Values.ldap.prefix | quote }}
+            - name: POSTGRESQL_LDAP_SUFFIX
+              value: {{ .Values.ldap.suffix | quote}}
+            - name: POSTGRESQL_LDAP_BASE_DN
+              value: {{ .Values.ldap.baseDN }}
+            - name: POSTGRESQL_LDAP_BIND_DN
+              value: {{ .Values.ldap.bindDN }}
+            {{- if (not (empty .Values.ldap.bind_password)) }}
+            - name: POSTGRESQL_LDAP_BIND_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ template "postgresql.secretName" . }}
+                  key: postgresql-ldap-password
+            {{- end}}
+            - name: POSTGRESQL_LDAP_SEARCH_ATTR
+              value: {{ .Values.ldap.search_attr }}
+            - name: POSTGRESQL_LDAP_SEARCH_FILTER
+              value: {{ .Values.ldap.search_filter }}
+            - name: POSTGRESQL_LDAP_URL
+              value: {{ .Values.ldap.url }}
+            {{- end}}
+          {{- if .Values.extraEnvVarsCM }}
+          envFrom:
+            - configMapRef:
+                name: {{ tpl .Values.extraEnvVarsCM . }}
+          {{- end }}
           ports:
-            - name: postgresql
+            - name: tcp-postgresql
               containerPort: {{ template "postgresql.port" . }}
           {{- if .Values.livenessProbe.enabled }}
           livenessProbe:
@@ -225,6 +299,10 @@ spec:
             - name: postgresql-password
               mountPath: /opt/bitnami/postgresql/secrets/
             {{- end }}
+            {{- if .Values.shmVolume.enabled }}
+            - name: dshm
+              mountPath: /dev/shm
+            {{- end }}
             {{- if .Values.persistence.enabled }}
             - name: data
               mountPath: {{ .Values.persistence.mountPath }}
@@ -237,6 +315,9 @@ spec:
             {{- if .Values.master.extraVolumeMounts }}
             {{- toYaml .Values.master.extraVolumeMounts | nindent 12 }}
             {{- end }}
+{{- if .Values.master.sidecars }}
+{{- include "postgresql.tplValue" ( dict "value" .Values.master.sidecars "context" $ ) | nindent 8 }}
+{{- end }}
 {{- if .Values.metrics.enabled }}
         - name: metrics
           image: {{ template "postgresql.metrics.image" . }}
@@ -265,7 +346,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /
-              port: metrics
+              port: http-metrics
             initialDelaySeconds: {{ .Values.metrics.livenessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.metrics.livenessProbe.periodSeconds }}
             timeoutSeconds: {{ .Values.metrics.livenessProbe.timeoutSeconds }}
@@ -276,7 +357,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /
-              port: metrics
+              port: http-metrics
             initialDelaySeconds: {{ .Values.metrics.readinessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.metrics.readinessProbe.periodSeconds }}
             timeoutSeconds: {{ .Values.metrics.readinessProbe.timeoutSeconds }}
@@ -288,8 +369,14 @@ spec:
             - name: postgresql-password
               mountPath: /opt/bitnami/postgresql/secrets/
             {{- end }}
+            {{- if .Values.metrics.customMetrics }}
+            - name: custom-metrics
+              mountPath: /conf
+              readOnly: true
+          args: ["--extend.query-path", "/conf/custom-metrics.yaml"]
+            {{- end }}
           ports:
-            - name: metrics
+            - name: http-metrics
               containerPort: 9187
           {{- if .Values.metrics.resources }}
           resources: {{- toYaml .Values.metrics.resources | nindent 12 }}
@@ -323,6 +410,17 @@ spec:
         {{- end }}
         {{- if .Values.master.extraVolumes }}
         {{- toYaml .Values.master.extraVolumes | nindent 8 }}
+        {{- end }}
+        {{- if and .Values.metrics.enabled .Values.metrics.customMetrics }}
+        - name: custom-metrics
+          configMap:
+            name: {{ template "postgresql.metricsCM" . }}
+        {{- end }}
+        {{- if .Values.shmVolume.enabled }}
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi
         {{- end }}
 {{- if and .Values.persistence.enabled .Values.persistence.existingClaim }}
         - name: data
