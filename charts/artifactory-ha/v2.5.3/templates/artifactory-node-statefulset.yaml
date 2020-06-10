@@ -34,7 +34,7 @@ spec:
         checksum/binarystore: {{ include (print $.Template.BasePath "/artifactory-binarystore-secret.yaml") . | sha256sum }}
         checksum/systemyaml: {{ include (print $.Template.BasePath "/artifactory-system-yaml.yaml") . | sha256sum }}
       {{- if .Values.artifactory.persistence.googleStorage.gcpServiceAccount.enabled }}
-        checksum/gcpcredentials: {{ include (print $.Template.BasePath "/artifactory-gcp-credentials.yaml") . | sha256sum }}
+        checksum/gcpcredentials: {{ include (print $.Template.BasePath "/artifactory-gcp-credentials-secret.yaml") . | sha256sum }}
       {{- end }}
       {{- range $key, $value := .Values.artifactory.annotations }}
         {{ $key }}: {{ $value | quote }}
@@ -178,6 +178,9 @@ spec:
 {{ toYaml .Values.initContainers.resources | indent 10 }}
       {{- end }}
     {{- end }}
+    {{- if .Values.artifactory.customInitContainers }}
+{{ tpl .Values.artifactory.customInitContainers . | indent 6 }}
+    {{- end }}
       - name: 'migration-artifactory-ha'
         image: '{{ .Values.artifactory.image.repository }}:{{ default .Chart.AppVersion .Values.artifactory.image.version }}'
         imagePullPolicy: {{ .Values.artifactory.image.pullPolicy }}
@@ -187,6 +190,10 @@ spec:
         - '/bin/bash'
         - '-c'
         - >
+          {{- if .Values.artifactory.migration.preStartCommand }}
+          echo "Running custom preStartCommand command";
+          {{ tpl .Values.artifactory.migration.preStartCommand . }};
+          {{- end }}
           scriptsPath="/opt/jfrog/artifactory/app/bin";
           mkdir -p $scriptsPath;
           echo "Copy migration scripts and Run migration";
@@ -194,7 +201,7 @@ spec:
           cp -fv /tmp/migrationHelmInfo.yaml $scriptsPath/migrationHelmInfo.yaml;
           cp -fv /tmp/migrationStatus.sh $scriptsPath/migrationStatus.sh;
           mkdir -p {{ .Values.artifactory.persistence.mountPath }}/log;
-          bash $scriptsPath/migrationStatus.sh {{ default .Chart.AppVersion .Values.artifactory.image.version }} > >(tee {{ .Values.artifactory.persistence.mountPath }}/log/helm-migration.log) 2>&1;
+          bash $scriptsPath/migrationStatus.sh {{ default .Chart.AppVersion .Values.artifactory.image.version }} {{ .Values.artifactory.migration.timeoutSeconds }} > >(tee {{ .Values.artifactory.persistence.mountPath }}/log/helm-migration.log) 2>&1;
         resources:
 {{ toYaml .Values.artifactory.node.resources | indent 10 }}
         env:
@@ -256,6 +263,9 @@ spec:
           mountPath: "{{ $.Values.artifactory.persistence.fileSystem.existingSharedClaim.backupDir }}"
     {{- end }}
   {{- end }}
+  {{- if .Values.artifactory.customVolumeMounts }}
+{{ tpl .Values.artifactory.customVolumeMounts . | indent 8 }}
+  {{- end }}
   {{- if eq .Values.artifactory.persistence.type "nfs" }}
         - name: artifactory-ha-data
           mountPath: "{{ .Values.artifactory.persistence.nfs.dataDir }}"
@@ -273,9 +283,6 @@ spec:
           mountPath: "/artifactory_bootstrap/gcp.credentials.json"
           subPath: gcp.credentials.json
   {{- end }}
-    {{- if .Values.artifactory.customInitContainers }}
-{{ tpl .Values.artifactory.customInitContainers . | indent 6 }}
-    {{- end }}
       containers:
       - name: {{ .Values.artifactory.name }}
         image: '{{ .Values.artifactory.image.repository }}:{{ default .Chart.AppVersion .Values.artifactory.image.version }}'
@@ -304,7 +311,7 @@ spec:
           postStart:
             exec:
               command:
-              - '/bin/sh'
+              - '/bin/bash'
               - '-c'
               - >
                 echo;

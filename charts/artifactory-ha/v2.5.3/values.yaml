@@ -4,13 +4,13 @@
 # Access the values with {{ .Values.key.subkey }}
 
 # Common
-initContainerImage: "alpine:3.10"
+initContainerImage: "alpine:3.11"
 
 installer:
   type:
   platform:
 
-installerInfo: "{ 'productId': 'Helm_artifactory/{{ .Chart.Version }}', 'features': [ { 'featureId': 'ArtifactoryVersion/{{ default .Chart.AppVersion .Values.artifactory.image.version }}' }, { 'featureId': '{{ if .Values.postgresql.enabled }}postgresql{{ else }}{{ default \"derby\" .Values.database.type }}{{ end }}/0.0.0' }, { 'featureId': 'Platform/{{ default \"kubernetes\" .Values.installer.platform }}' } ] }"
+installerInfo: '{"productId": "Helm_artifactory-ha/{{ .Chart.Version }}", "features": [ { "featureId": "Platform/{{ default "kubernetes" .Values.installer.platform }}"}]}'
 
 # For supporting pulling from private registries
 imagePullSecrets:
@@ -54,6 +54,7 @@ ingress:
   annotations: {}
   # kubernetes.io/ingress.class: nginx
   # kubernetes.io/tls-acme: "true"
+  # nginx.ingress.kubernetes.io/proxy-body-size: "0"
   labels: {}
   # traffic-type: external
   # traffic-type: internal
@@ -94,14 +95,14 @@ networkpolicy:
 waitForDatabase: true
 
 ## Configuration values for the postgresql dependency
-## ref: https://github.com/kubernetes/charts/blob/master/stable/postgresql/README.md
+## ref: https://github.com/bitnami/charts/blob/master/bitnami/postgresql/README.md
 ##
 postgresql:
   enabled: true
   image:
     registry: docker.bintray.io
     repository: bitnami/postgresql
-    tag: 9.6.15-debian-9-r91
+    tag: 9.6.18-debian-10-r7
   postgresqlUsername: artifactory
   postgresqlPassword: ""
   postgresqlDatabase: artifactory
@@ -174,6 +175,10 @@ artifactory:
   deleteDBPropertiesOnStartup: true
   database:
     maxOpenConnections: 80
+  tomcat:
+    connector:
+      maxThreads: 200
+      extraConfig: 'acceptCount="100"'
 
   # This directory is intended for use with NFS eventual configuration for HA
   haDataDir:
@@ -240,6 +245,9 @@ artifactory:
   # Migration support from 6.x to 7.x
   migration:
     timeoutSeconds: 3600
+    ## Extra pre-start command in migration Init Container to install JDBC driver for MySql/MariaDb/Oracle
+    # preStartCommand: "wget -O /opt/jfrog/artifactory/tomcat/lib/mysql-connector-java-5.1.41.jar https://jcenter.bintray.com/mysql/mysql-connector-java/5.1.41/mysql-connector-java-5.1.41.jar"
+
 
   ## Add custom init containers execution before predefined init containers
   customInitContainersBegin: |
@@ -333,7 +341,7 @@ artifactory:
   #  storageClassName:
 
   ## Artifactory HA requires a unique master key. Each Artifactory node must have the same master key!
-  ## You can generate one with the command: "openssl rand -hex 16"
+  ## You can generate one with the command: "openssl rand -hex 32"
   ## Pass it to helm with '--set artifactory.masterKey=${MASTER_KEY}'
   ## Alternatively, you can use a pre-existing secret with a key called master-key by specifying masterKeySecretName
   ## IMPORTANT: You should NOT use the example masterKey for a production deployment!
@@ -483,9 +491,17 @@ artifactory:
     {{- end }}
       database:
         maxOpenConnections: {{ .Values.artifactory.database.maxOpenConnections }}
+      tomcat:
+        connector:
+          maxThreads: {{ .Values.artifactory.tomcat.connector.maxThreads }}
+          extraConfig: {{ .Values.artifactory.tomcat.connector.extraConfig }}
     access:
       database:
-        maxOpenConnections: "{{ .Values.access.database.maxOpenConnections }}"
+        maxOpenConnections: {{ .Values.access.database.maxOpenConnections }}
+      tomcat:
+        connector:
+          maxThreads: {{ .Values.access.tomcat.connector.maxThreads }}
+          extraConfig: {{ .Values.access.tomcat.connector.extraConfig }}
       {{- if .Values.access.database.enabled }}
         type: "{{ .Values.access.database.type }}"
         url: "{{ .Values.access.database.url }}"
@@ -493,6 +509,9 @@ artifactory:
         username: "{{ .Values.access.database.user }}"
         password: "{{ .Values.access.database.password }}"
       {{- end }}
+    metadata:
+      database:
+        maxOpenConnections: {{ .Values.metadata.database.maxOpenConnections }}
 
   ## IMPORTANT: If overriding artifactory.internalPort:
   ## DO NOT use port lower than 1024 as Artifactory runs as non-root and cannot bind to ports lower than 1024!
@@ -745,9 +764,9 @@ artifactory:
               <kmsCryptoMode>{{ . }}</kmsCryptoMode>
             {{- end }}
             {{- if .useInstanceCredentials }}
-              <useInstanceCredentials>{{ .useInstanceCredentials }}</useInstanceCredentials>
-            {{- else }}
               <useInstanceCredentials>true</useInstanceCredentials>
+            {{- else }}
+              <useInstanceCredentials>false</useInstanceCredentials>
             {{- end }}
               <usePresigning>{{ .usePresigning }}</usePresigning>
               <signatureExpirySeconds>{{ .signatureExpirySeconds }}</signatureExpirySeconds>
@@ -920,9 +939,22 @@ artifactory:
       ## When using GCP buckets as your binary store (Available with enterprise license only)
       gcpServiceAccount:
         enabled: false
-        ## Use either an existing secret prepared in advance or put the config in the values
-        customSecretName:
-        config:
+        ## Use either an existing secret prepared in advance or put the config (replace the content) in the values
+        ## ref: https://github.com/jfrog/charts/blob/master/stable/artifactory-ha/README.md#google-storage
+        # customSecretName:
+        # config: |
+        #   {
+        #      "type": "service_account",
+        #      "project_id": "<project_id>",
+        #      "private_key_id": "?????",
+        #      "private_key": "-----BEGIN PRIVATE KEY-----\n????????==\n-----END PRIVATE KEY-----\n",
+        #      "client_email": "???@j<project_id>.iam.gserviceaccount.com",
+        #      "client_id": "???????",
+        #      "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        #      "token_uri": "https://oauth2.googleapis.com/token",
+        #      "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        #      "client_x509_cert_url": "https://www.googleapis.com/robot/v1....."
+        #   }
       endpoint: storage.googleapis.com
       httpsOnly: false
       # Set a unique bucket name
@@ -1112,6 +1144,14 @@ artifactory:
       topologyKey: "kubernetes.io/hostname"
 
 access:
+  database:
+    maxOpenConnections: 80
+  tomcat:
+    connector:
+      maxThreads: 50
+      extraConfig: 'acceptCount="100"'
+
+metadata:
   database:
     maxOpenConnections: 80
 

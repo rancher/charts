@@ -3,6 +3,15 @@ categories:
 labels:
   io.rancher.certified: partner
 questions:
+# Advance Settings
+- variable: artifactory.masterKey
+  default: "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+  description: "Artifactory master key. For security reasons, we strongly recommend you generate your own master key using this command: 'openssl rand -hex 32'"
+  type: string
+  label: Artifactory master key
+  group: "Security Settings"
+
+# Container Images
 - variable: defaultImage
   default: "true"
   description: "Use default Docker image"
@@ -22,7 +31,7 @@ questions:
     type: string
     label: Artifactory Image Name
   - variable: artifactory.image.version
-    default: "7.3.2"
+    default: "7.5.5"
     description: "Artifactory image tag"
     type: string
     label: Artifactory Image Tag
@@ -32,7 +41,7 @@ questions:
     type: string
     label: Nginx Image Name
   - variable: nginx.image.version
-    default: "7.3.2"
+    default: "7.5.5"
     description: "Nginx image tag"
     type: string
     label: Nginx Image Tag
@@ -42,8 +51,15 @@ questions:
     label: Image Pull Secret
 
 # Services and LoadBalancing Settings
+- variable: artifactory.node.replicaCount
+  default: "2"
+  description: "Number of Secondary Nodes"
+  type: string
+  label: Number of Secondary Nodes
+  show_subquestion_if: true
+  group: "Services and Load Balancing"
 - variable: ingress.enabled
-  default: true
+  default: false
   description: "Expose app using Layer 7 Load Balancer - ingress"
   type: boolean
   label: Expose app using Layer 7 Load Balancer
@@ -60,7 +76,7 @@ questions:
 
 # Nginx Settings
 - variable: nginx.enabled
-  default: false
+  default: true
   description: "Enable nginx server"
   type: boolean
   label: Enable Nginx Server
@@ -100,90 +116,27 @@ questions:
   label: ConfigMap for Nginx Artifactory Config
   show_if: "nginx.enabled=true&&ingress.enabled=false"
   group: "Services and Load Balancing"
-- variable: nginx.env.skipAutoConfigUpdate
-  default: "false"
-  description: "Skip Nginx Auto Configuration Update"
-  type: string
-  label: Skip Nginx Auto Configuration Update
-  show_if: "nginx.enabled=true&&ingress.enabled=false"
-  group: "Services and Load Balancing"
-- variable: nginx.persistence.enabled
-  default: false
-  description: "enable persistence storage for nginx server"
-  type: boolean
-  label: Enable Persistent Storage for Nginx Service
-  group: "Services and Load Balancing"
-  show_if: "nginx.enabled=true&&ingress.enabled=false"
-- variable: nginx.persistence.size
-  default: 5Gi
-  description: "Nginx persistent volume size"
-  type: string
-  label: Nginx Persistent Volume Size
-  group: "Services and Load Balancing"
-  show_if: "nginx.enabled=true&&nginx.persistence.enabled=true&&ingress.enabled=false"
-- variable: nginx.persistence.storageClass
-  default: ""
-  description: "If undefined or null, uses the default StorageClass. Default to null"
-  type: storageclass
-  label: Default StorageClass for Nginx
-  show_if: "nginx.enabled=true&&nginx.persistence.enabled=true&&ingress.enabled=false"
-  group: "Services and Load Balancing"
-- variable: nginx.resources.requests.cpu
-  default: "200m"
-  description: "Nginx initial cpu request"
-  type: string
-  label: Nginx Initial CPU Request
-  show_if: "nginx.enabled=true&&ingress.enabled=false"
-  group: "Services and Load Balancing"
-- variable: nginx.resources.requests.memory
-  default: "500Mi"
-  description: "Nginx initial memory request"
-  type: string
-  label: Nginx Initial Memory Request
-  show_if: "nginx.enabled=true&&ingress.enabled=false"
-  group: "Services and Load Balancing"
-- variable: nginx.resources.limits.cpu
-  default: "1"
-  description: "Nginx cpu limit"
-  type: string
-  label: Nginx CPU Limit
-  show_if: "nginx.enabled=true&&ingress.enabled=false"
-  group: "Services and Load Balancing"
-- variable: nginx.resources.limits.memory
-  default: "1Gi"
-  description: "Nginx memory limit"
-  type: string
-  label: Nginx Memory Limit
-  show_if: "nginx.enabled=true&&ingress.enabled=false"
-  group: "Services and Load Balancing"
 
 # Artifactory Storage Settings
-- variable: artifactory.persistence.enabled
-  default: true
-  description: "enable persistence storage for Artifactory"
-  type: boolean
-  label: Enable Persistent Storage for Artifactory
-  group: "Artifactory Storage"
+- variable: artifactory.persistence.size
+  default: "50Gi"
+  description: "Artifactory persistent volume size"
+  type: string
+  label: Artifactory Persistent Volume Size
   required: true
-  show_subquestion_if: true
-  subquestions: 
-  - variable: artifactory.persistence.size
-    default: "50Gi"
-    description: "Artifactory persistent volume size"
-    type: string
-    label: Artifactory Persistent Volume Size
-    required: true
-  - variable: artifactory.persistence.type
-    default: "file-system"
-    description: "Artifactory persistent volume size"
-    type: enum
-    label: Artifactory Persistent Storage Type
-    required: true
-    options:
-      - "file-system"
-      - "nfs"
-      - "google-storage"
-      - "aws-s3"
+  group: "Artifactory Storage"
+- variable: artifactory.persistence.type
+  default: "file-system"
+  description: "Artifactory persistent volume size"
+  type: enum
+  label: Artifactory Persistent Storage Type
+  required: true
+  options:
+    - "file-system"
+    - "nfs"
+    - "google-storage"
+    - "aws-s3"
+  group: "Artifactory Storage"
 
 #Storage Type Settings
 - variable: artifactory.persistence.nfs.ip
@@ -192,42 +145,42 @@ questions:
   group: "Artifactory Storage"
   label: NFS Server IP
   description: "NFS server IP"
-  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=nfs"
+  show_if: "artifactory.persistence.type=nfs"
 - variable: artifactory.persistence.nfs.haDataMount
   default: "/data"
   type: string
   label: NFS Data Directory
   description: "NFS data directory"
   group: "Artifactory Storage"
-  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=nfs"
+  show_if: "artifactory.persistence.type=nfs"
 - variable: artifactory.persistence.nfs.haBackupMount
   default: "/backup"
   type: string
   label: NFS Backup Directory
   description: "NFS backup directory"
   group: "Artifactory Storage"
-  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=nfs"
+  show_if: "artifactory.persistence.type=nfs"
 - variable: artifactory.persistence.nfs.dataDir
   default: "/var/opt/jfrog/artifactory-ha"
   type: string
   label: HA Data Directory
   description: "HA data directory"
   group: "Artifactory Storage"
-  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=nfs"
+  show_if: "artifactory.persistence.type=nfs"
 - variable: artifactory.persistence.nfs.backupDir
   default: "/var/opt/jfrog/artifactory-backup"
   type: string
   label: HA Backup Directory	
   description: "HA backup directory	"
   group: "Artifactory Storage"
-  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=nfs"
+  show_if: "artifactory.persistence.type=nfs"
 - variable: artifactory.persistence.nfs.capacity
   default: "200Gi"
   type: string
   label: NFS PVC Size	
   description: "NFS PVC size	"
   group: "Artifactory Storage"
-  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=nfs"
+  show_if: "artifactory.persistence.type=nfs"
 
 #Google storage settings
 - variable: artifactory.persistence.googleStorage.bucketName
@@ -236,28 +189,28 @@ questions:
   label: Google Storage Bucket Name	
   description: "Google storage bucket name"
   group: "Artifactory Storage"
-  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=google-storage"
+  show_if: "artifactory.persistence.type=google-storage"
 - variable: artifactory.persistence.googleStorage.identity
   default: ""
   type: string
   label: Google Storage Service Account ID	
   description: "Google Storage service account id"
   group: "Artifactory Storage"
-  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=google-storage"
+  show_if: "artifactory.persistence.type=google-storage"
 - variable: artifactory.persistence.googleStorage.credential
   default: ""
   type: string
   label: Google Storage Service Account Key	
   description: "Google Storage service account key"
   group: "Artifactory Storage"
-  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=google-storage"
+  show_if: "artifactory.persistence.type=google-storage"
 - variable: artifactory.persistence.googleStorage.path
   default: "artifactory-ha/filestore"
   type: string
   label: Google Storage Path In Bucket	
   description: "Google Storage path in bucket"
   group: "Artifactory Storage"
-  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=google-storage"
+  show_if: "artifactory.persistence.type=google-storage"
 # awsS3 storage settings
 - variable: artifactory.persistence.awsS3.bucketName
   default: "artifactory-ha-aws"
@@ -265,35 +218,35 @@ questions:
   label: AWS S3 Bucket Name	
   description: "AWS S3 bucket name"
   group: "Artifactory Storage"
-  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=aws-s3"
+  show_if: "artifactory.persistence.type=aws-s3"
 - variable: artifactory.persistence.awsS3.region
   default: ""
   type: string
   label: AWS S3 Bucket Region	
   description: "AWS S3 bucket region"
   group: "Artifactory Storage"
-  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=aws-s3"
+  show_if: "artifactory.persistence.type=aws-s3"
 - variable: artifactory.persistence.awsS3.identity
   default: ""
   type: string
   label: AWS S3 AWS_ACCESS_KEY_ID
   description: "AWS S3 AWS_ACCESS_KEY_ID"
   group: "Artifactory Storage"
-  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=aws-s3"
+  show_if: "artifactory.persistence.type=aws-s3"
 - variable: artifactory.persistence.awsS3.credential
   default: ""
   type: string
   label: AWS S3 AWS_SECRET_ACCESS_KEY	
   description: "AWS S3 AWS_SECRET_ACCESS_KEY"
   group: "Artifactory Storage"
-  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=aws-s3"
+  show_if: "artifactory.persistence.type=aws-s3"
 - variable: artifactory.persistence.awsS3.path
   default: "artifactory-ha/filestore"
   type: string
   label: AWS S3 Path In Bucket	
   description: "AWS S3 path in bucket"
   group: "Artifactory Storage"
-  show_if: "artifactory.persistence.enabled=true&&artifactory.persistence.type=aws-s3"
+  show_if: "artifactory.persistence.type=aws-s3"
 
 # Database Settings
 - variable: postgresql.enabled
@@ -305,23 +258,18 @@ questions:
   group: "Database Settings"
   show_subquestion_if: "true"
   subquestions:
-  - variable: postgresql.persistence.enabled
-    default: false
-    description: "enable persistence storage for PostgreSQL"
-    type: boolean
-    label: Enable Persistent Storage for PostgreSQL
   - variable: postgresql.persistence.size
     default: 20Gi
     description: "PostgreSQL persistent volume size"
     type: string
     label: PostgreSQL Persistent Volume Size
-    show_if: "postgresql.enabled=true&&postgresql.persistence.enabled=true"
+    show_if: "postgresql.enabled=true"
   - variable: postgresql.persistence.storageClass
     default: ""
     description: "If undefined or null, uses the default StorageClass. Default to null"
     type: storageclass
     label: Default StorageClass for PostgreSQL
-    show_if: "postgresql.enabled=true&&postgresql.persistence.enabled=true"
+    show_if: "postgresql.enabled=true"
   - variable: postgresql.resources.requests.cpu
     default: "200m"
     description: "PostgreSQL initial cpu request"
@@ -404,11 +352,6 @@ questions:
   show_subquestion_if: true
   group: "Advanced Options"
   subquestions:
-  - variable: artifactory.masterKey
-    default: "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
-    description: "Artifactory master key"
-    type: string
-    label: Artifactory master key
   - variable: artifactory.primary.resources.requests.cpu
     default: "500m"
     description: "Artifactory primary node initial cpu request"
@@ -469,10 +412,10 @@ questions:
     description: "Artifactory member node java Xmx size"
     type: string
     label: Artifactory Member Node Java Xmx Size
-  - variable: installerInfo
-    default: "{'productId': 'RancherHelm_artifactory-ha/7.3.2',  'features': [  {         'featureId': 'Partner/ACC-007246'     }  ]}"
-    description: "Callhome settings"
-    type: string
-    label: Callhome settings
-    group: "Advanced Options"
-    show_if: "false"
+
+# Internal Settings
+- variable: installerInfo
+  default: '\{\"productId\": \"RancherHelm_artifactory-ha/7.5.5\", \"features\": \[\{\"featureId\": \"Partner/ACC-007246\"\}\]\}'
+  type: string
+  group: "Internal Settings (Do not modify)"
+
