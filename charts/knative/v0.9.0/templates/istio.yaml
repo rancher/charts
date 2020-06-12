@@ -642,7 +642,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: istio-init-service-account
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: istio-init
     istio: init
@@ -678,7 +678,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: istio-init-service-account
-    namespace: istio-system
+    namespace: {{ .Release.Namespace }}
 
 ---
 # Source: istio-init/templates/configmap-crd-certmanager-10.yaml
@@ -754,7 +754,7 @@ spec:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: istio-system
+  name: {{ .Release.Namespace }}
   labels:
     istio-injection: disabled
 # PATCH #1 ends.
@@ -765,7 +765,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: istio
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: istio
     chart: istio
@@ -838,7 +838,7 @@ data:
 
     # The namespace to treat as the administrative root namespace for istio
     # configuration.
-    rootNamespace: istio-system
+    rootnamespace: {{ .Release.Namespace }}
 
     defaultConfig:
       #
@@ -904,7 +904,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: cluster-local-gateway-service-account
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: cluster-local-gateway
     chart: gateways
@@ -915,7 +915,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: istio-ingressgateway-service-account
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: istio-ingressgateway
     chart: gateways
@@ -931,7 +931,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: istio-mixer-service-account
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: mixer
     chart: mixer
@@ -944,7 +944,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: istio-pilot-service-account
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: pilot
     chart: pilot
@@ -957,7 +957,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: istio-multi
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
 
 ---
 # Source: istio/charts/mixer/templates/clusterrole.yaml
@@ -1055,7 +1055,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: istio-mixer-service-account
-    namespace: istio-system
+    namespace: {{ .Release.Namespace }}
 
 ---
 # Source: istio/charts/pilot/templates/clusterrolebinding.yaml
@@ -1075,7 +1075,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: istio-pilot-service-account
-    namespace: istio-system
+    namespace: {{ .Release.Namespace }}
 
 ---
 # Source: istio/templates/clusterrolebinding.yaml
@@ -1092,7 +1092,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: istio-multi
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
 
 ---
 # Source: istio/charts/gateways/templates/role.yaml
@@ -1101,7 +1101,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: istio-ingressgateway-sds
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
 rules:
 - apiGroups: [""]
   resources: ["secrets"]
@@ -1115,7 +1115,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: istio-ingressgateway-sds
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -1132,7 +1132,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: cluster-local-gateway
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   annotations:
   labels:
     chart: gateways
@@ -1161,7 +1161,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: istio-ingressgateway
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   annotations:
   labels:
     chart: gateways
@@ -1194,7 +1194,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: istio-telemetry
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   annotations:
    networking.istio.io/exportTo: "*"
   labels:
@@ -1225,7 +1225,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: istio-pilot
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: pilot
     chart: pilot
@@ -1252,7 +1252,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cluster-local-gateway
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     chart: gateways
     heritage: Tiller
@@ -1423,7 +1423,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: istio-ingressgateway
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     chart: gateways
     heritage: Tiller
@@ -1632,7 +1632,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: istio-telemetry
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: istio-mixer
     chart: mixer
@@ -1809,7 +1809,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: istio-pilot
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   # TODO: default template doesn't have this, which one is right ?
   labels:
     app: pilot
@@ -1943,7 +1943,7 @@ apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
 metadata:
   name: istio-ingressgateway
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     chart: gateways
     heritage: Tiller
@@ -1971,7 +1971,7 @@ apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
 metadata:
   name: istio-telemetry
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: mixer
     chart: mixer
@@ -1998,7 +1998,7 @@ apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
 metadata:
   name: istio-pilot
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: pilot
     chart: pilot
@@ -2062,7 +2062,7 @@ apiVersion: "config.istio.io/v1alpha2"
 kind: attributemanifest
 metadata:
   name: istioproxy
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: mixer
     chart: mixer
@@ -2203,7 +2203,7 @@ apiVersion: "config.istio.io/v1alpha2"
 kind: attributemanifest
 metadata:
   name: kubernetes
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: mixer
     chart: mixer
@@ -2269,7 +2269,7 @@ apiVersion: "config.istio.io/v1alpha2"
 kind: instance
 metadata:
   name: requestcount
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: mixer
     chart: mixer
@@ -2306,7 +2306,7 @@ apiVersion: "config.istio.io/v1alpha2"
 kind: instance
 metadata:
   name: requestduration
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: mixer
     chart: mixer
@@ -2343,7 +2343,7 @@ apiVersion: "config.istio.io/v1alpha2"
 kind: instance
 metadata:
   name: requestsize
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: mixer
     chart: mixer
@@ -2380,7 +2380,7 @@ apiVersion: "config.istio.io/v1alpha2"
 kind: instance
 metadata:
   name: responsesize
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: mixer
     chart: mixer
@@ -2417,7 +2417,7 @@ apiVersion: "config.istio.io/v1alpha2"
 kind: instance
 metadata:
   name: tcpbytesent
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: mixer
     chart: mixer
@@ -2450,7 +2450,7 @@ apiVersion: "config.istio.io/v1alpha2"
 kind: instance
 metadata:
   name: tcpbytereceived
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: mixer
     chart: mixer
@@ -2483,7 +2483,7 @@ apiVersion: "config.istio.io/v1alpha2"
 kind: instance
 metadata:
   name: tcpconnectionsopened
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: mixer
     chart: mixer
@@ -2516,7 +2516,7 @@ apiVersion: "config.istio.io/v1alpha2"
 kind: instance
 metadata:
   name: tcpconnectionsclosed
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: mixer
     chart: mixer
@@ -2549,7 +2549,7 @@ apiVersion: "config.istio.io/v1alpha2"
 kind: handler
 metadata:
   name: prometheus
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: mixer
     chart: mixer
@@ -2755,7 +2755,7 @@ apiVersion: "config.istio.io/v1alpha2"
 kind: rule
 metadata:
   name: promhttp
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: mixer
     chart: mixer
@@ -2775,7 +2775,7 @@ apiVersion: "config.istio.io/v1alpha2"
 kind: rule
 metadata:
   name: promtcp
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: mixer
     chart: mixer
@@ -2793,7 +2793,7 @@ apiVersion: "config.istio.io/v1alpha2"
 kind: rule
 metadata:
   name: promtcpconnectionopen
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: mixer
     chart: mixer
@@ -2810,7 +2810,7 @@ apiVersion: "config.istio.io/v1alpha2"
 kind: rule
 metadata:
   name: promtcpconnectionclosed
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: mixer
     chart: mixer
@@ -2827,7 +2827,7 @@ apiVersion: "config.istio.io/v1alpha2"
 kind: handler
 metadata:
   name: kubernetesenv
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: mixer
     chart: mixer
@@ -2848,7 +2848,7 @@ apiVersion: "config.istio.io/v1alpha2"
 kind: rule
 metadata:
   name: kubeattrgenrulerule
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: mixer
     chart: mixer
@@ -2864,7 +2864,7 @@ apiVersion: "config.istio.io/v1alpha2"
 kind: rule
 metadata:
   name: tcpkubeattrgenrulerule
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: mixer
     chart: mixer
@@ -2881,7 +2881,7 @@ apiVersion: "config.istio.io/v1alpha2"
 kind: instance
 metadata:
   name: attributes
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: mixer
     chart: mixer
@@ -2925,7 +2925,7 @@ apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
 metadata:
   name: istio-telemetry
-  namespace: istio-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: mixer
     chart: mixer

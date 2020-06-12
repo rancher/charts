@@ -4,17 +4,10 @@ kind: Namespace
 metadata:
   annotations:
     "helm.sh/hook": "pre-install"
-  name: knative-build
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  annotations:
-    "helm.sh/hook": "pre-install"
   labels:
     istio-injection: enabled
     serving.knative.dev/release: devel
-  name: knative-serving
+  name: {{ .Release.Namespace | quote }}
 ---
 # Begin the knative serving configuration
 ---
@@ -203,7 +196,7 @@ metadata:
   labels:
     serving.knative.dev/release: "v0.9.0"
   name: controller
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -219,7 +212,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: controller
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -235,7 +228,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: horizontal-pod-autoscaler
-  namespace: kube-system
+  namespace: {{ .Release.Namespace | quote }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -250,7 +243,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: controller
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -259,7 +252,7 @@ metadata:
     autoscaling.knative.dev/metric-provider: custom-metrics
     serving.knative.dev/release: "v0.9.0"
   name: custom-metrics-auth-reader
-  namespace: kube-system
+  namespace: {{ .Release.Namespace | quote }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -267,7 +260,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: controller
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 ---
 apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
@@ -276,7 +269,7 @@ metadata:
     networking.knative.dev/ingress-provider: istio
     serving.knative.dev/release: "v0.9.0"
   name: knative-ingress-gateway
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 spec:
   selector:
     istio: ingressgateway
@@ -295,7 +288,7 @@ metadata:
     networking.knative.dev/ingress-provider: istio
     serving.knative.dev/release: "v0.9.0"
   name: cluster-local-gateway
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 spec:
   selector:
     istio: cluster-local-gateway
@@ -554,7 +547,7 @@ metadata:
     app: activator
     serving.knative.dev/release: "v0.9.0"
   name: activator-service
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 spec:
   ports:
   - name: http
@@ -580,7 +573,7 @@ metadata:
     app: controller
     serving.knative.dev/release: "v0.9.0"
   name: controller
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 spec:
   ports:
   - name: metrics
@@ -597,7 +590,7 @@ metadata:
     role: webhook
     serving.knative.dev/release: "v0.9.0"
   name: webhook
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 spec:
   ports:
   - port: 443
@@ -611,7 +604,7 @@ metadata:
   labels:
     serving.knative.dev/release: "v0.9.0"
   name: queue-proxy
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 spec:
   image: gcr.io/knative-releases/knative.dev/serving/cmd/queue@sha256:9ee46b5f0bd5d3a3dc7af319dafb79e88e18092bd1af6ff835b762fc12ba642a
 ---
@@ -621,7 +614,7 @@ metadata:
   labels:
     serving.knative.dev/release: "v0.9.0"
   name: activator
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 spec:
   selector:
     matchLabels:
@@ -697,7 +690,7 @@ apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
 metadata:
   name: activator
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 spec:
   maxReplicas: 20
   metrics:
@@ -718,7 +711,7 @@ metadata:
     autoscaling.knative.dev/autoscaler-provider: hpa
     serving.knative.dev/release: "v0.9.0"
   name: autoscaler-hpa
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 spec:
   replicas: 1
   selector:
@@ -769,7 +762,7 @@ metadata:
     app: autoscaler
     serving.knative.dev/release: "v0.9.0"
   name: autoscaler
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 spec:
   ports:
   - name: http
@@ -793,7 +786,7 @@ metadata:
   labels:
     serving.knative.dev/release: "v0.9.0"
   name: autoscaler
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 spec:
   replicas: 1
   selector:
@@ -964,7 +957,7 @@ metadata:
   labels:
     serving.knative.dev/release: "v0.9.0"
   name: config-autoscaler
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 ---
 apiVersion: v1
 data:
@@ -1024,7 +1017,7 @@ metadata:
   labels:
     serving.knative.dev/release: "v0.9.0"
   name: config-defaults
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 ---
 apiVersion: v1
 data:
@@ -1050,7 +1043,7 @@ metadata:
   labels:
     serving.knative.dev/release: "v0.9.0"
   name: config-deployment
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 ---
 apiVersion: v1
 data:
@@ -1091,7 +1084,7 @@ metadata:
   labels:
     serving.knative.dev/release: "v0.9.0"
   name: config-domain-example-example
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 ---
 apiVersion: v1
 data:
@@ -1124,7 +1117,7 @@ metadata:
   labels:
     serving.knative.dev/release: "v0.9.0"
   name: config-gc
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 ---
 apiVersion: v1
 data:
@@ -1169,7 +1162,7 @@ metadata:
     networking.knative.dev/ingress-provider: istio
     serving.knative.dev/release: "v0.9.0"
   name: config-istio
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 ---
 apiVersion: v1
 data:
@@ -1223,7 +1216,7 @@ metadata:
   labels:
     serving.knative.dev/release: "v0.9.0"
   name: config-logging
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 ---
 apiVersion: v1
 data:
@@ -1337,7 +1330,7 @@ metadata:
   labels:
     serving.knative.dev/release: "v0.9.0"
   name: config-network
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 ---
 apiVersion: v1
 data:
@@ -1421,7 +1414,7 @@ metadata:
   labels:
     serving.knative.dev/release: "v0.9.0"
   name: config-observability
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 ---
 apiVersion: v1
 data:
@@ -1459,7 +1452,7 @@ metadata:
   labels:
     serving.knative.dev/release: "v0.9.0"
   name: config-tracing
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -1467,7 +1460,7 @@ metadata:
   labels:
     serving.knative.dev/release: "v0.9.0"
   name: controller
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 spec:
   replicas: 1
   selector:
@@ -1524,7 +1517,7 @@ spec:
   insecureSkipTLSVerify: true
   service:
     name: autoscaler
-    namespace: knative-serving
+    namespace: {{ .Release.Namespace | quote }}
   version: v1beta1
   versionPriority: 100
 ---
@@ -1535,7 +1528,7 @@ metadata:
     networking.knative.dev/ingress-provider: istio
     serving.knative.dev/release: "v0.9.0"
   name: networking-istio
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 spec:
   replicas: 1
   selector:
@@ -1584,7 +1577,7 @@ metadata:
   labels:
     serving.knative.dev/release: "v0.9.0"
   name: webhook
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 spec:
   replicas: 1
   selector:
@@ -1835,7 +1828,7 @@ metadata:
   labels:
     serving.knative.dev/release: devel
   name: config-domain
-  namespace: knative-serving
+  namespace: {{ .Release.Namespace | quote }}
 data:
   {{ .Values.domain }}: |
 
