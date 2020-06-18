@@ -1,6 +1,8 @@
 # Rancher Longhorn Chart
 
-Please install Longhorn chart in `longhorn-system` namespace only.
+> **Important**: Please install Longhorn chart in `longhorn-system` namespace only.
+
+> **Warning**: Longhorn doesn't support downgrading from a higher version to a lower version.
 
 The following document pertains to running Longhorn from the Rancher 2.0 chart.
 
@@ -9,8 +11,9 @@ The following document pertains to running Longhorn from the Rancher 2.0 chart.
 Longhorn is 100% open source software. Project source code is spread across a number of repos:
 
 1. Longhorn Engine -- Core controller/replica logic https://github.com/longhorn/longhorn-engine
-2. Longhorn Manager -- Longhorn orchestration, includes CSI driver for Kubernetes https://github.com/longhorn/longhorn-manager
-3. Longhorn UI -- Dashboard https://github.com/longhorn/longhorn-ui
+2. Longhorn Instance Manager -- Controller/replica instance lifecycle management https://github.com/longhorn/longhorn-instance-manager
+3. Longhorn Manager -- Longhorn orchestration, includes CSI driver for Kubernetes https://github.com/longhorn/longhorn-manager
+4. Longhorn UI -- Dashboard https://github.com/longhorn/longhorn-ui
 
 ## Prerequisites
 
@@ -38,8 +41,8 @@ If your CRD instances or the CRDs themselves can't be deleted for whatever reaso
 
 ```
 # Delete CRD instances and definitions
-curl -s https://raw.githubusercontent.com/longhorn/longhorn-manager/master/hack/cleancrds.sh |bash -s v062
-curl -s https://raw.githubusercontent.com/longhorn/longhorn-manager/master/hack/cleancrds.sh |bash -s v070
+curl -s https://raw.githubusercontent.com/longhorn/longhorn/v0.8.1/scripts/cleanup.sh |bash -s v062
+curl -s https://raw.githubusercontent.com/longhorn/longhorn/v0.8.1/scripts/cleanup.sh |bash -s v070
 ```
 
 ---

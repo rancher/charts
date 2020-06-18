@@ -1,0 +1,137 @@
+ # Default values for lightstep.
+ # This is a YAML-formatted file.
+ # Declare variables to be passed into your templates.
+
+
+ # TODO:
+ # Implement statsD as sidecar [[ chose not to do. to be considered if needed by customer.]]
+
+replicaCount: 1
+
+image:
+  repository: lightstep/collector
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: false
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name:
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: NodePort
+  httpPort: 8181
+  plainPort: 8383
+  grpcinsecure: 8184
+
+ingress:
+  enabled: false
+  annotations: {}
+  http_trace_ingress: false
+  plain_trace_ingress: false
+  hosts:
+    - host: chart-example.local
+      paths: []
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+
+  # For details on the Lightstep configuration parameters, please refer to: https://docs.lightstep.com/docs/satellite-configuration-parameters
+
+lightstep:
+  # Input your Satellite API Key
+  satelliteKey: ""
+
+  # If you're using an existing secret, enter the name and key of the secret that stores your satellite API key. Your existing secret should match this pattern:
+  # $ kubectl describe secret collector_satellite_key_secret_name
+  # Name:         collector_satellite_key_secret_name
+  # Namespace:    default
+  # Labels:       <none>
+  # Annotations:  <none>
+
+  # Type: Opaque
+
+  # Data
+  # ====
+  # collector_satellite_key_secret_key:  390 bytes
+  collector_satellite_key_secret_name: ""
+  collector_satellite_key_secret_key: ""
+  collector_pool: rancher-satellite-pool
+  bytes_per_project: "1000000000"
+  bytes_per_project_override:
+  guid:
+  diagnostic_port_enabled: true
+  diagnostic_port: 8000
+  diagnostic_port_node: 30000
+  admin_plain_port_enabled: true
+  admin_plain_port: 8180
+  admin_plain_port_nodes: 30180
+  admin_secure_port_enabled: true
+  admin_secure_port: 9090
+  admin_secure_port_node: 30090
+  http_plain_port_enabled: true
+  http_plain_port: 8181
+  http_plain_port_node: 30181
+  http_secure_port_enabled: true
+  http_secure_port: 9191
+  http_secure_port_nodes: 30191
+  grpc_plain_port_enabled: true
+  grpc_plain_port: 8184
+  grpc_plain_port_node: 30184
+  grpc_secure_port_enabled: true
+  grpc_secure_port: 9292
+  grpc_secure_port_nodes: 30292
+  plain_port_enabled: true
+  plain_port: 8383
+  plain_port_nodes: 30383
+  secure_port_enabled: true
+  secure_port: 9393
+  secure_port_nodes: 30393
+  tls_cert_prefix:
+  collector_ingestion_tags:
+
+resources:
+  limits:
+    memory: 1Gi
+    cpu: 1
+  requests:
+    memory: 1Gi
+    cpu: 1
+
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+statsd:
+  enabled: true
+  host: 127.0.0.1
+  port: 8125
+  export_statsd: true                               # If true, dogStatsD will be ignored
+  prefix: "lightstep.prod.us-west-1"
+  satellite_prefix: "satellite-canary"
+  client_prefix: "client_via_canary"
+  dogStatsD: false                                  # If true, will output dogStatsD instead of statsD
+  dogStatsDTags: "pool:us-west-1,canary:true"

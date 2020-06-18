@@ -15,18 +15,18 @@ spec:
     spec:
       initContainers:
         - name: wait-longhorn-manager
-          image: "{{ .Values.image.longhorn.manager }}:{{ .Values.image.longhorn.managerTag }}"
+          image: {{ printf "%s:%s" .Values.image.longhorn.manager .Values.image.longhorn.managerTag | quote }}
           command: ['sh', '-c', 'while [ $(curl -m 1 -s -o /dev/null -w "%{http_code}" http://longhorn-backend:9500/v1) != "200" ]; do echo waiting; sleep 2; done']
       containers:
         - name: longhorn-driver-deployer
-          image: "{{ .Values.image.longhorn.manager }}:{{ .Values.image.longhorn.managerTag }}"
+          image: {{ printf "%s:%s" .Values.image.longhorn.manager .Values.image.longhorn.managerTag | quote }}
           imagePullPolicy: Always
           command:
           - longhorn-manager
           - -d
           - deploy-driver
           - --manager-image
-          - "{{ .Values.image.longhorn.manager }}:{{ .Values.image.longhorn.managerTag }}"
+          - {{ printf "%s:%s" .Values.image.longhorn.manager .Values.image.longhorn.managerTag | quote }}
           - --manager-url
           - http://longhorn-backend:9500/v1
           env:
@@ -54,16 +54,30 @@ spec:
           - name: CSI_PROVISIONER_IMAGE
             value: {{ .Values.csi.provisionerImage }}
           {{- end }}
-          {{- if .Values.csi.driverRegistrarImage }}
-          - name: CSI_DRIVER_REGISTRAR_IMAGE
-            value: {{ .Values.csi.driverRegistrarImage }}
+          {{- if .Values.csi.nodeDriverRegistrarImage }}
+          - name: CSI_NODE_DRIVER_REGISTRAR_IMAGE
+            value: {{ .Values.csi.nodeDriverRegistrarImage }}
+          {{- end }}
+          {{- if .Values.csi.resizerImage }}
+          - name: CSI_RESIZER_IMAGE
+            value: {{ .Values.csi.resizerImage }}
           {{- end }}
           {{- if .Values.csi.attacherReplicaCount }}
           - name: CSI_ATTACHER_REPLICA_COUNT
-            value: "{{ .Values.csi.attacherReplicaCount }}"
+            value: {{ .Values.csi.attacherReplicaCount | quote }}
           {{- end }}
           {{- if .Values.csi.provisionerReplicaCount }}
           - name: CSI_PROVISIONER_REPLICA_COUNT
-            value: "{{ .Values.csi.provisionerReplicaCount }}"
+            value: {{ .Values.csi.provisionerReplicaCount | quote }}
           {{- end }}
+          {{- if .Values.csi.resizerReplicaCount }}
+          - name: CSI_RESIZER_REPLICA_COUNT
+            value: {{ .Values.csi.resizerReplicaCount | quote }}
+          {{- end }}
+      {{- if .Values.defaultSettings.registrySecret }}
+      imagePullSecrets:
+      - name: {{ .Values.defaultSettings.registrySecret }}
+      {{- end }}
       serviceAccountName: longhorn-service-account
+      securityContext:
+        runAsUser: 0
