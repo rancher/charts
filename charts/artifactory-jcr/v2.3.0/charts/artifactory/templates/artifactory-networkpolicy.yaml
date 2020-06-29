@@ -1,0 +1,34 @@
+{{- range .Values.networkpolicy }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ template "artifactory.fullname" $ }}-{{ .name }}-networkpolicy
+  labels:
+    app: {{ template "artifactory.name" $ }}
+    chart: {{ template "artifactory.chart" $ }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}  
+spec:
+{{- if .podSelector }}
+  podSelector:
+{{ .podSelector | toYaml | trimSuffix "\n" | indent 4 -}}
+{{ else }}
+  podSelector: {}
+{{- end }}
+  policyTypes:
+  {{- if .ingress }}
+  - Ingress
+  {{- end }}
+  {{- if .egress }}
+  - Egress
+  {{- end }}
+{{- if .ingress }}
+  ingress:
+{{ .ingress | toYaml | trimSuffix "\n" | indent 2 -}}
+{{- end }}
+{{- if .egress }}
+  egress:
+{{ .egress | toYaml | trimSuffix "\n" | indent 2 -}}
+{{- end }}
+---
+{{- end -}}
