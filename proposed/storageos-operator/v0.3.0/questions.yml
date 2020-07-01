@@ -5,8 +5,12 @@ labels:
 questions:
 - variable: k8sDistro
   default: rancher
-  description: "Kubernetes Distribution"
-  show_if: false
+  description: "Kubernetes Distribution is used to fine-tune configuration for
+  specific Kubernetes distributions. It is also included in anonymized
+  telemetry data so that we can focus development effort most effectively.
+  Example values: rancher, openshift"
+  type: string
+  label: Kubernetes Distribution
 
 # Operator image configuration.
 - variable: defaultImage
@@ -32,7 +36,7 @@ questions:
     type: string
     label: StorageOS Operator Image Name
   - variable: operator.image.tag
-    default: "1.5.3"
+    default: "v2.1.0"
     description: "StorageOS Operator image tag"
     type: string
     label: StorageOS Operator Image Tag
@@ -46,13 +50,6 @@ questions:
   show_subquestion_if: true
   group: "StorageOS Cluster"
   subquestions:
-
-  # CSI configuration.
-  - variable: cluster.csi.enable
-    default: true
-    description: "Use Container Storage Interface (CSI) driver"
-    label: Use CSI Driver
-    type: boolean
 
   # Cluster metadata.
   - variable: cluster.name
@@ -73,10 +70,17 @@ questions:
     type: string
     label: StorageOS Node Container Image Name
   - variable: cluster.images.node.tag
-    default: "1.5.3"
+    default: "v2.1.0"
     description: "StorageOS Node container image tag"
     type: string
     label: StorageOS Node Container Image Tag
+
+  # Telemetry.
+  - variable: cluster.disableTelemetry
+    default: false
+    type: boolean
+    description: "Disable telemetry data collection.  See https://docs.storageos.com/docs/reference/telemetry for more information."
+    label: Disable Telemetry
 
   # Credentials.
   - variable: cluster.admin.username
@@ -86,29 +90,21 @@ questions:
     label: Username
   - variable: cluster.admin.password
     default: ""
-    description: "Password of the StorageOS administrator account.  If empty, a random password will be generated."
+    description: "Password of the StorageOS administrator account. Must be at
+    least 8 characters long"
     type: password
     label: Password
 
-  # Telemetry.
-  - variable: cluster.disableTelemetry
-    default: false
-    type: boolean
-    description: "Disable telemetry data collection.  See https://docs.storageos.com/docs/reference/telemetry for more information."
-    label: Disable Telemetry
-
   # KV store backend.
-  - variable: cluster.kvBackend.embedded
-    default: true
-    type: boolean
-    description: "Use embedded KV store for testing.  Select false to use external etcd for production deployments."
-    label: "Use embedded KV store"
   - variable: cluster.kvBackend.address
-    default: "10.0.0.1:2379"
-    description: "List of etcd targets, in the form ip[:port], separated by commas.  Prefer multiple direct endpoints over a single load-balanced endpoint.  Only used if not using embedded KV store."
+    required: true
+    default: ""
+    description: "List of etcd targets, in the form ip[:port], separated by
+    commas. Prefer multiple direct endpoints over a single load-balanced
+    endpoint. See https://docs.storageos.com/docs/prerequisites/etcd/ for more
+    information."
     type: string
     label: External etcd address(es)
-    show_if: "cluster.kvBackend.embedded=false"
   - variable: cluster.kvBackend.tls
     default: false
     type: boolean

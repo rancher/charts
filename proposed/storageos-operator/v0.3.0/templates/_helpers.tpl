@@ -41,3 +41,27 @@ Create the name of the service account to use
     {{ default "default" .Values.serviceAccount.name }}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Validate the admin username to be of minimum length
+*/}}
+{{- define "validate-username" -}}
+{{ $length := len .Values.cluster.admin.username }}
+{{- if ge $length 3 -}}
+{{ .Values.cluster.admin.username }}
+{{- else -}}
+{{- fail "Invalid username. Must be at least 3 characters." -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Validate the admin password to be of minimum length
+*/}}
+{{- define "validate-password" -}}
+{{ $length := len .Values.cluster.admin.password }}
+{{- if ge $length 8 -}}
+{{ .Values.cluster.admin.password }}
+{{- else -}}
+{{- fail "Invalid password. Must be at least 8 characters." -}}
+{{- end -}}
+{{- end -}}

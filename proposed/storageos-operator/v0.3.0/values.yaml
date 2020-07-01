@@ -27,7 +27,7 @@ operator:
 
   image:
     repository: storageos/cluster-operator
-    tag: 1.5.3
+    tag: v2.1.0
     pullPolicy: IfNotPresent
 
 # cluster-specific configuation parameters.
@@ -50,8 +50,8 @@ cluster:
     # Username to authenticate to the StorageOS API with.
     username: storageos
 
-    # Password to authenticate to the StorageOS API with. If empty, a random
-    # password will be generated and set in the secretRefName secret.
+    # Password to authenticate to the StorageOS API with. This must be at least
+    # 8 characters long.
     password:
 
   # sharedDir should be set if running kubelet in a container.  This should
@@ -62,7 +62,7 @@ cluster:
 
   # Key-Value store backend.
   kvBackend:
-    embedded: true
+    embedded: false
     address:
     backend: etcd
     tlsSecretName:
@@ -110,6 +110,9 @@ cluster:
     csiV1LivenessProbe:
       repository:
       tag:
+    csiV1ExternalResizer:
+      repository:
+      tag:
     csiV0DriverRegistrar:
       repository:
       tag:
@@ -136,7 +139,7 @@ cleanup:
   images:
     kubectl:
       repository: bitnami/kubectl
-      tag: 1.14.1
+      tag: 1.18.2
   resources:
     - name: daemonset
       command:
@@ -164,6 +167,8 @@ cleanup:
         - "serviceaccount"
         - "storageos-daemonset-sa"
         - "storageos-statefulset-sa"
+        - "storageos-csi-helper-sa"
+        - "storageos-scheduler-sa"
     - name: role
       command:
         - "role"
@@ -190,6 +195,7 @@ cleanup:
         - "storageos:scheduler-extender"
         - "storageos:init"
         - "storageos:nfs-provisioner"
+        - "storageos:csi-resizer"
     - name: clusterrolebinding
       command:
         - "clusterrolebinding"
@@ -201,6 +207,7 @@ cleanup:
         - "storageos:scheduler-extender"
         - "storageos:init"
         - "storageos:nfs-provisioner"
+        - "storageos:csi-resizer"
     - name: storageclass
       command:
         - "storageclass"
