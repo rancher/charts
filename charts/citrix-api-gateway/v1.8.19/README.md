@@ -1,4 +1,9 @@
-# Citrix Ingress Controller  
+# Citrix API Gateway
+
+[Citrix API Gateway](https://github.com/citrix/citrix-k8s-ingress-controller) is an enterprise-class solution that supports access control, rate limiting and analytics in one integrated system. It can be deployed on-prem, on a private cloud or deployed in a hybrid fashion where its components can be distributed and deployed across multiple cloud and on-prem infrastructures.
+Citrix API GW operator secures APIs and provides a management plane and control plane for managing and monitoring APIs.
+
+This Chart bootstraps standalone Citrix Ingress Controller which can be used to configure Citrix MPX or VPX along with the API Gateway features in the form of CRDs.
 
 [Citrix](https://www.citrix.com/en-in/) provides an Ingress Controller for Citrix ADC MPX (hardware), Citrix ADC VPX (virtualized), and [Citrix ADC CPX](https://docs.citrix.com/en-us/citrix-adc-cpx/13/about.html) (containerized) for [bare metal](https://github.com/citrix/citrix-k8s-ingress-controller/tree/master/deployment/baremetal) and [cloud](https://github.com/citrix/citrix-k8s-ingress-controller/tree/master/deployment) deployments. It configures one or more Citrix ADC based on the Ingress resource configuration in [Kubernetes](https://kubernetes.io/) or in [OpenShift](https://www.openshift.com) cluster.
 
