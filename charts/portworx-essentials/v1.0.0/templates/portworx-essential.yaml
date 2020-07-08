@@ -1,0 +1,19 @@
+{{- $essentialSecretID := .Values.essentialID | default "none" }}
+{{- if ne $essentialSecretID "none" -}}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: px-essential
+  namespace: kube-system
+  labels:
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{.Release.Service | quote }}
+    app.kubernetes.io/instance: {{.Release.Name | quote }}
+    chart: "{{.Chart.Name}}-{{.Chart.Version}}"
+type: Opaque
+data:
+    px-essen-user-id: {{ $essentialSecretID | b64enc }}
+    px-osb-endpoint: aHR0cHM6Ly9weGVzc2VudGlhbHMucG9ydHdvcnguY29tL29zYi9iaWxsaW5nL3YxL3JlZ2lzdGVy
+    px-essen-market-place: cmFuY2hlci1tYXJrZXRwbGFjZQ==
+{{- end -}}
