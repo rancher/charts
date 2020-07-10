@@ -19,7 +19,9 @@ metadata:
   {{- end }}
   {{- end }}
 spec:
+  {{- if (not (eq .Values.serviceType "ExternalIP")) }}
   type: {{ .Values.serviceType }}
+  {{- end }}
   {{- if .Values.loadBalancerIP }}
   loadBalancerIP: {{ .Values.loadBalancerIP }}
   {{- end }}
@@ -33,7 +35,7 @@ spec:
     - {{ $cidr }}
     {{- end }}
   {{- end }}
-  {{- if .Values.externalTrafficPolicy }}
+  {{- if (and (eq .Values.serviceType "LoadBalancer") .Values.externalTrafficPolicy) }}
   externalTrafficPolicy: {{ .Values.externalTrafficPolicy }}
   {{- end }}
   selector:
