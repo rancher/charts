@@ -44,6 +44,8 @@ spec:
           optional: true
 {{- end }}
 {{- end }}
+      - name: cpx-conf
+        emptyDir: {}
       containers:
 {{- if eq .Values.metricExporter.required true }}
         - name: exporter
@@ -113,6 +115,9 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.labels['app']
+          securityContext:
+            readOnlyRootFilesystem: true
+            runAsUser: 32024 # UID of istio-adaptor container's user
           volumeMounts:
           - mountPath: /etc/certs
             name: istio-certs
@@ -152,6 +157,9 @@ spec:
             - containerPort: {{ .port }}
 {{- end }}
 {{- end }}
+          volumeMounts:
+          - mountPath: /cpx/conf/
+            name: cpx-conf
           env:
           - name: "EULA"
             value: "{{ .Values.ingressGateway.EULA }}"
@@ -161,6 +169,10 @@ spec:
             value: "{{ .Values.ingressGateway.mgmtHttpsPort }}"
           - name: "NS_CPX_LITE"
             value: "{{ .Values.ingressGateway.lightWeightCPX }}"
+{{- if or .Values.istioAdaptor.coeURL .Values.istioAdaptor.ADMIP }}
+          - name: "NS_ENABLE_NEWNSLOG"
+            value: "1"
+{{- end }}
           - name: "KUBERNETES_TASK_ID"
             value: ""
           - name: "LS_IP"
@@ -279,6 +291,9 @@ spec:
         - -coe-url
         - {{ .Values.istioAdaptor.coeURL }}
 {{- end }}
+        securityContext:
+          readOnlyRootFilesystem: true
+          runAsUser: 32024 # UID of istio-adaptor container's user
         volumeMounts:
         - mountPath: /etc/certs
           name: istio-certs
