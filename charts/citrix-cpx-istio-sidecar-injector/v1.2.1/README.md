@@ -16,12 +16,6 @@ Citrix ADC CPX can be deployed as a sidecar proxy in an application pod in the I
 ## <a name="tldr">TL; DR;</a>
 
     kubectl create namespace citrix-system
-    
-    curl -L https://raw.githubusercontent.com/citrix/citrix-helm-charts/master/citrix-cpx-istio-sidecar-injector/create-certs-for-cpx-istio-chart.sh > create-certs-for-cpx-istio-chart.sh
-
-    chmod +x create-certs-for-cpx-istio-chart.sh
-
-    ./create-certs-for-cpx-istio-chart.sh --namespace citrix-system
 
     helm repo add citrix https://citrix.github.io/citrix-helm-charts/
 
@@ -63,20 +57,7 @@ The following output indicates that the API is enabled:
 
 **Before you Begin**
 
-You must generate a TLS certificate suitable for the Istio webhook service using the `create-certs-for-cpx-istio-chart.sh` script.
-This script is available in the [citrix-cpx-istio-sidecar-injector](../citrix-cpx-istio-sidecar-injector) folder.
-
-To create a suitable certificate for the Istio webhook service, perform the following steps:
-
-
-1. Change the permissions of the `create-certs-for-cpx-istio-chart.sh` script to executable mode.
-        
-        chmod +x citrix-cpx-istio-sidecar-injector/create-certs-for-cpx-istio-chart.sh
-2. Execute the script to generate the certificate. Specify the namespace where you want to deploy sidecar injector for Citrix ADC CPX.
-        
-        . citrix-cpx-istio-sidecar-injector/create-certs-for-cpx-istio-chart.sh --namespace citrix-system
-
- To deploy resources for automatic installation of Citrix ADC CPX as a sidecar in Istio, perform the following step. In this example, release name is specified as `cpx-sidecar-injector`  and namespace is used as `citrix-system`.
+To deploy resources for automatic installation of Citrix ADC CPX as a sidecar in Istio, perform the following step. In this example, release name is specified as `cpx-sidecar-injector`  and namespace is used as `citrix-system`.
 
 
     helm repo add citrix https://citrix.github.io/citrix-helm-charts/
@@ -109,7 +90,7 @@ Zipkin enables users to analyze tracing for East-West service to service communi
 ```
 helm repo add citrix https://citrix.github.io/citrix-helm-charts/
 
-helm install citrix/citrix-cpx-istio-sidecar-injector --name cpx-sidecar-injector --namespace citrix-system --set cpxProxy.EULA=YES --istioAdaptor.coeURL=<coe-service-name>.<namespace>
+helm install citrix/citrix-cpx-istio-sidecar-injector --name cpx-sidecar-injector --namespace citrix-system --set cpxProxy.EULA=YES --set --istioAdaptor.coeURL=<coe-service-name>.<namespace>
 ```
 
 For example, if COE is deployed as `coe` in `citrix-system` namespace, then below helm command will deploy sidecar injector webhook which will be deploying Citrix ADC CPX sidecar proxies in application pods, and these sidecar proxies will be configured to establish communication channels with COE.
@@ -117,7 +98,7 @@ For example, if COE is deployed as `coe` in `citrix-system` namespace, then belo
 ```
 helm repo add citrix https://citrix.github.io/citrix-helm-charts/
 
-helm install citrix/citrix-cpx-istio-sidecar-injector --name cpx-sidecar-injector --namespace citrix-system --set cpxProxy.EULA=YES --istioAdaptor.coeURL=coe.citrix-system
+helm install citrix/citrix-cpx-istio-sidecar-injector --name cpx-sidecar-injector --namespace citrix-system --set cpxProxy.EULA=YES --set --istioAdaptor.coeURL=coe.citrix-system
 ```
 
 *Important*: Apply below mentioned annotations on COE deployment so that Prometheus can scrape data from COE.

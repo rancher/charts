@@ -42,6 +42,13 @@ spec:
         scheduler.alpha.kubernetes.io/critical-pod: ""
     spec:
       serviceAccountName: cpx-sidecar-injector-service-account
+      initContainers:
+        - name: sidecar-certs-generator
+          image: quay.io/citrix/cpx-sidecar-injector-certgen:1.0.0
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+          - name: certs
+            mountPath: /tmp
       containers:
         - name: sidecar-injector-webhook
           image: {{ .Values.sidecarWebHook.webhookImage }}:{{ .Values.sidecarWebHook.webhookImageVersion }}
@@ -92,8 +99,7 @@ spec:
         configMap:
           name: istio
       - name: certs
-        secret:
-          secretName: cpx-sidecar-injector-certs
+        emptyDir: {}
       - name: inject-config
         configMap:
           name: cpx-istio-sidecar-injector

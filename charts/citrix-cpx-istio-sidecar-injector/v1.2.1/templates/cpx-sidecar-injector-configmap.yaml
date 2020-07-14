@@ -80,6 +80,9 @@ data:
         - mountPath: /etc/nslogin 
           name: nslogin
           readOnly: true
+        securityContext:
+          readOnlyRootFilesystem: true
+          runAsUser: 32024 # UID of istio-adaptor container's user
       - name: cpx-proxy
         image: {{ .Values.cpxProxy.image }}:{{ .Values.cpxProxy.tag }}
         imagePullPolicy: IfNotPresent
@@ -98,7 +101,7 @@ data:
           value: ""
         - name: "NS_CPX_LITE"
           value: 1
-{{- if .Values.istioAdaptor.coeURL }}
+{{- if or .Values.istioAdaptor.coeURL .Values.istioAdaptor.ADMIP }}
         - name: "NS_ENABLE_NEWNSLOG"
           value: 1
 {{- end }}
@@ -118,7 +121,12 @@ data:
 {{- end }}
         - name: "LOGSTREAM_COLLECTOR_IP"
           value: {{ .Values.istioAdaptor.ADMIP | default "" }}
+        volumeMounts:
+        - mountPath: /cpx/conf/
+          name: cpx-conf
       volumes:
+      - name: cpx-conf
+        emptyDir: {}
       - name: nslogin
         secret:
           optional: true
@@ -126,5 +134,9 @@ data:
       - name: istio-certs
         secret:
           optional: true
+          {{ "[[ if eq .Spec.ServiceAccountName \"\" -]]" }}
           secretName: istio.default
+          {{ "[[ else -]]" }}
+          secretName: {{ "[[ printf \"istio.%s\" .Spec.ServiceAccountName ]]"  }}
+          {{ "[[ end -]]" }}
 ---
