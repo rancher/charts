@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: longhorn-driver-deployer
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: longhorn-driver-deployer
+  template:
+    metadata:
+      labels:
+        app: longhorn-driver-deployer
+    spec:
+      initContainers:
+        - name: wait-longhorn-manager
+          image: {{ printf "%s:%s" .Values.image.longhorn.manager .Values.image.longhorn.managerTag | quote }}
+          command: ['sh', '-c', 'while [ $(curl -m 1 -s -o /dev/null -w "%{http_code}" http://longhorn-backend:9500/v1) != "200" ]; do echo waiting; sleep 2; done']
+      containers:
+        - name: longhorn-driver-deployer
+          image: {{ printf "%s:%s" .Values.image.longhorn.manager .Values.image.longhorn.managerTag | quote }}
+          imagePullPolicy: Always
+          command:
+          - longhorn-manager
+          - -d
+          - deploy-driver
+          - --manager-image
+          - {{ printf "%s:%s" .Values.image.longhorn.manager .Values.image.longhorn.managerTag | quote }}
+          - --manager-url
+          - http://longhorn-backend:9500/v1
+          env:
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          - name: SERVICE_ACCOUNT
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.serviceAccountName
+          {{- if .Values.csi.kubeletRootDir }}
+          - name: KUBELET_ROOT_DIR
+            value: {{ .Values.csi.kubeletRootDir }}
+          {{- end }}
+          {{- if .Values.csi.attacherImage }}
+          - name: CSI_ATTACHER_IMAGE
+            value: {{ .Values.csi.attacherImage }}
+          {{- end }}
+          {{- if .Values.csi.provisionerImage }}
+          - name: CSI_PROVISIONER_IMAGE
+            value: {{ .Values.csi.provisionerImage }}
+          {{- end }}
+          {{- if .Values.csi.nodeDriverRegistrarImage }}
+          - name: CSI_NODE_DRIVER_REGISTRAR_IMAGE
+            value: {{ .Values.csi.nodeDriverRegistrarImage }}
+          {{- end }}
+          {{- if .Values.csi.resizerImage }}
+          - name: CSI_RESIZER_IMAGE
+            value: {{ .Values.csi.resizerImage }}
+          {{- end }}
+          {{- if .Values.csi.attacherReplicaCount }}
+          - name: CSI_ATTACHER_REPLICA_COUNT
+            value: {{ .Values.csi.attacherReplicaCount | quote }}
+          {{- end }}
+          {{- if .Values.csi.provisionerReplicaCount }}
+          - name: CSI_PROVISIONER_REPLICA_COUNT
+            value: {{ .Values.csi.provisionerReplicaCount | quote }}
+          {{- end }}
+          {{- if .Values.csi.resizerReplicaCount }}
+          - name: CSI_RESIZER_REPLICA_COUNT
+            value: {{ .Values.csi.resizerReplicaCount | quote }}
+          {{- end }}
+      {{- if .Values.defaultSettings.registrySecret }}
+      imagePullSecrets:
+      - name: {{ .Values.defaultSettings.registrySecret }}
+      {{- end }}
+      serviceAccountName: longhorn-service-account
+      securityContext:
+        runAsUser: 0
