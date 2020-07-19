@@ -1,0 +1,17 @@
+{{- $fullName := include "zookeeper-fullname" . -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullName }}
+  labels:
+    app: {{ template "zookeeper.name" . }}
+    chart: {{ template "splice.subchart" . }}
+    release: {{ .Release.Name }}
+    frameworkId: {{ include "frameworkId" . }}
+spec:
+  ports:
+  - port: {{ .Values.global.zookeeper.configuration.clientPort }}
+    name: client
+  selector:
+    app: {{ template "zookeeper.name" . }}
+    release: {{ .Release.Name }}

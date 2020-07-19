@@ -1,0 +1,31 @@
+{{- if .Values.olap.ingress.enabled -}}
+{{- $fullName := include "hbase.olap.fullname" . -}}
+{{- $hostName := include "hbase.olap.sparkIngress.hosts.0" . -}}
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: olap-ingress
+  {{- if .Values.olap.ingress.annotations }}
+  annotations:
+    {{- range $key, $value := .Values.olap.ingress.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+spec:
+  rules:
+    {{- range $host := .Values.olap.ingress.hosts }}
+    - host: {{ $hostName | quote }}
+      http:
+        paths:
+          - path: {{ $.Values.olap.ingress.pathSuffix }}
+            backend:
+              serviceName: {{ $fullName }}
+              servicePort: 16040
+    {{- end }}
+  {{ if .Values.global.tls.enabled }}
+  {{- if .Values.olap.ingress.tls }}
+  tls:
+    {{- include "hbase.olap.sparkIngress.tls.0" . | nindent 4 }}
+  {{- end }}
+  {{ end }}
+{{- end }}

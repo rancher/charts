@@ -1,0 +1,31 @@
+{{- if .Values.master.ingress.enabled -}}
+{{- $fullName := include "hbase.hmaster.fullname" . -}}
+{{- $hostName := include "hbase.master.ingress.hosts.0" . -}}
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: hbase-ingress
+  {{- if .Values.master.ingress.annotations }}
+  annotations:
+    {{- range $key, $value := .Values.master.ingress.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+spec:
+  rules:
+    {{- range $host := .Values.master.ingress.hosts }}
+    - host: {{ $hostName | quote }}
+      http:
+        paths:
+          - path: {{ $.Values.master.ingress.pathSuffix }}
+            backend:
+              serviceName: {{ $fullName }}
+              servicePort: 16010
+    {{- end }}
+  {{ if .Values.global.tls.enabled }}
+  {{- if .Values.master.ingress.tls }}
+  tls:
+    {{- include "hbase.master.ingress.tls.0" . | nindent 4 }}
+  {{- end }}
+  {{ end }}
+{{- end }}

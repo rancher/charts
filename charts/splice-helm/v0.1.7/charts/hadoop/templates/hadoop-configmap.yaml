@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "hadoop.config.name" . }}
+  labels:
+    app: {{ include "hadoop.name" . }}
+    chart: {{ include "hadoop.chart" . }}
+    release: {{ .Release.Name }}
+    frameworkId: {{ include "frameworkId" . }}
+    dnsprefix: {{ .Values.global.dnsPrefix }}
+data:
+  core-site.xml: |
+    <?xml version="1.0"?>
+    <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+    <configuration>
+{{- range $property := .Values.configmap.coresitexml }}
+      <property>
+{{- if regexFind "{{" $property.name }}
+          <name>{{ tpl $property.name $ }}</name>
+{{- else }}
+          <name>{{ $property.name }}</name>
+{{- end }}
+{{- if regexFind "{{" $property.value }}
+          <value>{{ tpl $property.value $ }}</value>
+{{- else }}
+          <value>{{ $property.value }}</value>
+{{- end }}
+{{- if $property.final }}
+          <final>{{ $property.final }}</final>
+{{- end }}
+      </property>
+{{- end }}
+{{- range $i, $value := .Values.global.aws.buckets }}
+      <property>
+        <name>fs.s3a.bucket.{{ $value.name }}.access.key</name>
+        <value>{{ $value.key }}</value>
+      </property>
+      <property>
+        <name>fs.s3a.bucket.{{ $value.name }}.secret.key</name>
+        <value>{{ $value.secret }}</value>
+      </property>
+{{- end }}
+{{- range $i, $value := .Values.global.azure.storageAccount }}
+      <property>
+        <name>fs.azure.account.key.{{ $value.name }}.blob.core.windows.net</name>
+        <value>{{ $value.key }}</value>
+      </property>
+{{- end }}
+    </configuration>
+
+  hdfs-site.xml: |
+    <?xml version="1.0"?>
+    <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+    <configuration>
+{{- range $property := .Values.configmap.hdfssitexml }}
+      <property>
+{{- if regexFind "{{" $property.name }}
+        <name>{{ tpl $property.name $ }}</name>
+{{- else }}
+        <name>{{ $property.name }}</name>
+{{- end }}
+{{- if regexFind "{{" $property.value }}
+        <value>{{ tpl $property.value $ }}</value>
+{{- else }}
+        <value>{{ $property.value }}</value>
+{{- end }}
+{{- if $property.final }}
+        <final>{{ $property.final }}</final>
+{{- end }}
+      </property>
+{{- end }}
+{{- range $i, $value := .Values.global.azure.storageAccount }}
+      <property>
+        <name>fs.azure.account.key.{{ $value.name }}.blob.core.windows.net</name>
+        <value>{{ $value.key }}</value>
+      </property>
+{{- end }}
+    </configuration>

@@ -1,0 +1,120 @@
+{{- $fullName := include "zookeeper-fullname" . -}}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $fullName }}
+  labels:
+    app: {{ template "zookeeper.name" . }}
+    chart: {{ template "splice.subchart" . }}
+    release: {{ .Release.Name }}
+    frameworkId: {{ include "frameworkId" . }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ template "zookeeper.name" . }}
+      release: {{ .Release.Name }}
+      dnsprefix: {{ .Values.global.dnsPrefix }}
+  serviceName: {{ $fullName }}-headless
+  replicas: {{ .Values.replicaCount }}
+  podManagementPolicy: "Parallel"
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: {{ template "zookeeper.name" . }}
+        chart: {{ template "splice.subchart" . }}
+        release: {{ .Release.Name }}
+        dnsprefix: {{ .Values.global.dnsPrefix }}
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - topologyKey: "kubernetes.io/hostname"
+            labelSelector:
+              matchLabels:
+                app:  {{ include "zookeeper.name" . }}
+                release: {{ .Release.Name | quote }}
+                dnsprefix: {{ .Values.global.dnsPrefix }}
+      imagePullSecrets:
+      - name: {{ .Values.image.pullSecrets | quote }}
+      {{- if .Values.global.nodeSelector.enabled }}
+      nodeSelector:
+        components: {{ .Values.global.nodeSelector.meta }}
+      {{- end }}
+      containers:
+      - name: zookeeper
+        imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+        image: {{ template "zookeeper.image" . }}
+        env:
+          - name: RELEASE_NAME
+            value: {{ .Release.Name }}
+          - name: FRAMEWORKID
+            value: {{ include "frameworkId" . }}
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: TZ
+            value: "{{ .Values.global.timezoneFlag }}"
+        ports:
+        - containerPort: {{ .Values.global.zookeeper.configuration.clientPort }}
+          name: client
+        - containerPort: {{ .Values.global.zookeeper.configuration.serverPort }}
+          name: server
+        - containerPort: {{ .Values.global.zookeeper.configuration.leaderElectionPort }}
+          name: leader-election
+        command:
+        - sh
+        - -c
+        - "start-zookeeper \
+          --servers={{ .Values.replicaCount }} \
+          --data_dir=/var/lib/zookeeper/data \
+          --data_log_dir=/var/lib/zookeeper/data/log \
+          --conf_dir=/opt/zookeeper/conf \
+          --client_port={{ .Values.global.zookeeper.configuration.clientPort }} \
+          --election_port={{ .Values.global.zookeeper.configuration.leaderElectionPort }} \
+          --server_port={{ .Values.global.zookeeper.configuration.serverPort }} \
+          --tick_time=2000 \
+          --init_limit=30 \
+          --sync_limit=15 \
+          --heap=512M \
+          --max_client_cnxns=0 \
+          --snap_retain_count=3 \
+          --purge_interval=12 \
+          --max_session_timeout=120000 \
+          --min_session_timeout=4000 \
+          --cnx_timeout=30 \
+          --log_level=INFO"
+
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - "zookeeper-ready {{ .Values.global.zookeeper.configuration.clientPort }}"
+{{ toYaml .Values.readinessProbe | indent 10 }}
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - "zookeeper-ready {{ .Values.global.zookeeper.configuration.clientPort }}"
+{{ toYaml .Values.livenessProbe | indent 10 }}
+        resources:
+{{ toYaml .Values.resources | indent 10 }}
+        volumeMounts:
+        - name: datadir
+          mountPath: {{ .Values.dataDirMountPath }}
+      securityContext:
+        runAsUser: 1002
+        fsGroup: 1000
+  volumeClaimTemplates:
+  - metadata:
+      name: datadir
+    spec:
+      accessModes:
+{{ toYaml .Values.persistence.accessMode | indent 8 }}
+      resources:
+        requests:
+          storage: {{ .Values.persistence.size }}

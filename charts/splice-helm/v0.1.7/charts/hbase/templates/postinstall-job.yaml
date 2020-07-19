@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ template "hbase.postinstall.fullname" . }}
+  labels:
+    app: {{ template "hbase.name" . }}
+    chart: {{ template "hbase.chart" . }}
+    release: {{ .Release.Name }}
+    component: {{ include "hbase.postinstall.component" . }}
+    frameworkId: {{ include "frameworkId" . }}
+    dnsprefix: {{ .Values.global.dnsPrefix }}
+spec:
+  template:
+    spec:
+      {{- if .Values.global.nodeSelector.enabled }}
+      nodeSelector:
+        components: {{  .Values.global.nodeSelector.meta  }}
+      {{- end }}
+      initContainers:
+      - name: check-db-ready
+        image: {{ template "base-image" . }}
+        command:
+          - "sh"
+          - "-c"
+          - "until /usr/bin/curl -kLs -X GET http://{{ template "splice.fullname" . }}-hregion-hl.{{ template "svc-domain" . }}:16030/jmx?qry=com.splicemachine.version:type=DatabaseVersion | grep -q Release; do echo waiting for database; sleep 2; done;"
+      containers:
+      - name: postinstall
+        image: {{ template "hbase.image" . }}
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
+        env:
+          - name: DB_HOST
+            value: {{ template "splice.fullname" . }}-hregion.{{ template "svc-domain" . }}
+          - name: DB_PASSWORD
+            value: {{ .Values.global.splice.password }}
+          - name: DB_ML_PASSWORD
+            value: {{ .Values.global.mlmanager.password }}
+        command:
+           - "/bin/bash"
+           - "/usr/lib/hbase/bin/splice/postinstall.sh"
+      restartPolicy: Never

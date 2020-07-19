@@ -1,0 +1,32 @@
+{{- if .Values.region.ingress.enabled -}}
+{{- $fullName := include "hbase.hregion.fullname" . -}}
+{{- $hostName := include "hbase.region.ingress.hosts.0" . -}}
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: splicedb-ingress
+  {{- if .Values.region.ingress.annotations }}
+  annotations:
+    kubernetes.io/ingress.class: {{ .Release.Namespace }}-{{ .Values.region.ingress.class }}
+    {{- range $key, $value := .Values.region.ingress.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+spec:
+  rules:
+    {{- range $host := .Values.region.ingress.hosts }}
+    - host: {{ $hostName | quote }}
+      http:
+        paths:
+          - path: {{ $.Values.region.ingress.pathSuffix }}
+            backend:
+              serviceName: {{ $fullName }}
+              servicePort: 1527
+    {{- end }}
+  {{ if .Values.global.tls.enabled }}
+  {{- if .Values.region.ingress.tls }}
+  tls:
+    {{- include "hbase.master.ingress.tls.0" . | nindent 4 }}
+  {{- end }}
+  {{ end }}
+{{- end }}

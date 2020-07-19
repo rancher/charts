@@ -1,0 +1,19 @@
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ template "hbase.hmaster.fullname" . }}
+  labels:
+    app: {{ template "hbase.name" . }}
+    chart: {{ template "hbase.chart" . }}
+    release: {{ .Release.Name }}
+    component: {{ include "hbase.hmaster.component" . }}
+    frameworkId: {{ include "frameworkId" . }}
+    dnsprefix: {{ .Values.global.dnsPrefix }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ include "hbase.name" . }}
+      release: {{ .Release.Name }}
+      component: {{ include "hbase.hmaster.component" . }}
+      dnsprefix: {{ .Values.global.dnsPrefix }}
+  minAvailable: {{ .Values.master.pdbMinAvailable }}

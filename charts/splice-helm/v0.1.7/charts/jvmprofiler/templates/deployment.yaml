@@ -1,0 +1,63 @@
+{{- $fullName := include "jvmprofiler.fullname" . -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullName }}
+  labels:
+    app: {{ template "jvmprofiler.name" . }}
+    chart: {{ template "splice.subchart" . }}
+    release: {{ .Release.Name }}
+    frameworkId: {{ include "frameworkId" . }}
+    dnsprefix: {{ .Values.global.dnsPrefix }}
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: {{ template "jvmprofiler.name" . }}
+      release: {{ .Release.Name }}
+      dnsprefix: {{ .Values.global.dnsPrefix }}
+  replicas: {{ .Values.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "jvmprofiler.name" . }}
+        chart: {{ template "splice.subchart" . }}
+        release: {{ .Release.Name }}
+        dnsprefix: {{ .Values.global.dnsPrefix }}
+    spec:
+      imagePullSecrets:
+      - name: {{ .Values.image.pullSecrets | quote }}
+      {{- if .Values.global.nodeSelector.enabled }}
+      nodeSelector:
+        components: {{ .Values.global.nodeSelector.meta }}
+      {{- end }}
+      containers:
+      - name: jvmprofiler
+        image: {{ template "jvmprofiler.image" . }}
+        imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+        command: ["/opt/jdk/bin/java", "-jar", "/opt/tools/lib/jscpServer.jar", {{ .Values.container.port | quote }}, "jscp"]
+        env:
+          - name: JSCOPE_ZKSERVERS
+            value: "{{ include "zookeeper-quorum" . }}"
+          - name: TZ
+            value: {{ .Values.global.timezoneFlag }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.service.port }}
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+{{ toYaml .Values.livenessProbe | indent 10 }}
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+{{ toYaml .Values.readinessProbe | indent 10 }}
+        resources:
+{{ toYaml .Values.resources | indent 10 }}
+      securityContext:
+        runAsUser: 1001
+        fsGroup: 1000
+

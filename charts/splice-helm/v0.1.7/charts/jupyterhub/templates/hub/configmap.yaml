@@ -1,0 +1,170 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: hub-config
+  labels:
+    {{- include "jupyterhub.labels" . | nindent 4 }}
+data:
+{{- $values := pick .Values "auth" "cull" "custom" "debug" "hub" "scheduling"  }}
+{{- $sgextraenv := pick .Values.singleuser "extraEnv"  }}
+{{- $_ := set $values "global" (merge dict .Values.global)}}
+{{- $_ := set $values.global "nodeSelectorComposed" (dict)}}
+{{- $_ := set $values.global.nodeSelectorComposed "nodeSelector" (dict)}}
+{{- if .Values.global.nodeSelector.enabled }}
+  {{- $_ := set $values.global.nodeSelectorComposed "nodeSelector" (dict "components" "meta")}}
+{{- end }}
+{{- /* trim secret values. Update here if new secrets are added! */ -}}
+{{- /* make a copy of values.auth to avoid modifying the original */ -}}
+{{- $_ := set $values "auth" (merge dict .Values.auth) }}
+{{- $_ := set $values.auth "state" (omit $values.auth.state "cryptoKey") }}
+{{- range $key, $auth := .Values.auth }}
+  {{- if typeIs "map[string]interface {}" $auth }}
+    {{- if (or $auth.clientSecret $auth.password) }}
+      {{- $_ := set $values.auth $key (omit $auth "clientSecret" "password") }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- $_ := set $values "hub" (omit $values.hub "cookieSecret" "extraEnv" "extraConfigMap") -}}
+{{- $_ := set $values.hub "services" dict }}
+{{- range $key, $service := .Values.hub.services }}
+  {{- if $service.apiToken }}
+    {{- $_ := set $values.hub.services $key (omit $service "apiToken") }}
+  {{- end }}
+{{- end }}
+{{- /* preserve behavior of deprecated hub.extraConfigMap */ -}}
+{{- $_ := set $values "custom" (merge dict $values.custom .Values.hub.extraConfigMap) }}
+{{- /* passthrough subset of Chart / Release */ -}}
+{{- $_ := set $values "Chart" (dict "Name" .Chart.Name "Version" .Chart.Version) }}
+{{- $_ := set $values "Release" (pick .Release "Name" "Namespace" "Service") }}
+  values.yaml: |
+    {{- $values | toYaml | nindent 4 }}
+    singleuser:
+      {{- $values.global.nodeSelectorComposed | toYaml | nindent 6 }}
+      extraTolerations: []
+      extraNodeAffinity:
+        required: []
+        preferred: []
+      extraPodAffinity:
+        required: []
+        preferred: []
+      extraPodAntiAffinity:
+        required: []
+        preferred: []
+      networkTools:
+        image:
+          name: {{ .Values.singleuser.networkTools.image.name }}
+          tag: {{ .Values.singleuser.networkTools.image.tag }}
+      cloudMetadata:
+        enabled: false
+        ip: {{ .Values.singleuser.cloudMetadata.ip }}
+      networkPolicy:
+        enabled: false
+        egress:
+          # Required egress is handled by other rules so it's safe to modify this
+          - to:
+              - ipBlock:
+                  cidr: 0.0.0.0/0
+                  except:
+                    - 169.254.169.254/32
+      events: true
+      extraAnnotations: {}
+      extraLabels:
+        hub.jupyter.org/network-access-hub: 'true'
+        dnsprefix: "{{ .Values.global.dnsPrefix }}"
+      {{- $sgextraenv | toYaml | nindent 6  }}
+        SPARK_OPTS: >-
+          --deploy-mode=client
+          --master k8s://https://kubernetes.default.svc.cluster.local:443
+          --conf spark.executor.instances=2
+          --conf spark.dynamicAllocation.enabled=false
+          --conf spark.kubernetes.container.image={{ .Values.singleuser.extraEnv.SPARK_DOCKER_IMAGE }}
+          --conf spark.kubernetes.authenticate.driver.serviceAccountName=spark
+        JDBC_HOST: {{ template "splice.fullname" . }}-hregion.{{ template "svc-domain" . }}
+        SPLICE_REL_NAME: "{{ .Release.Name }}"
+        SPLICE_NAMESPACE: "{{ .Release.Namespace }}"
+        MLFLOW_URL:  http://{{ template "mlflow.fullname" . }}-0.{{ template "mlflow.fullname" . }}-headless.{{ template "svc-domain" . }}:{{ .Values.global.mlflow.port.mlflow }}
+        TZ: {{ .Values.global.timezoneFlag }}
+        JUPYTER_CONFIG_DIR: /splice/beakerx/conf
+      lifecycleHooks:
+        postStart:
+          exec:
+            command:
+              - "/bin/sh"
+              - "-c"
+              - |
+                {{ if .Values.global.nodeSelector.enabled }}sed -i -e"$ a spark.kubernetes.node.selector.components\tJUPYTER_SPARK_NODE_SELECTOR_VAR" $SPARK_HOME/conf/spark-defaults.conf;{{ end }}
+                sed -i -e"s|JUPYTER_HOST_VAR|$(hostname -i)|g" $SPARK_HOME/conf/spark-defaults.conf;
+                sed -i -e"s|JUPYTER_HOST_NAME_VAR|$(hostname)|g" $SPARK_HOME/conf/spark-defaults.conf;
+                sed -i -e"s|SPLICE_REL_NAME_VAR|$SPLICE_REL_NAME|g" $SPARK_HOME/conf/spark-defaults.conf;
+                sed -i -e"s|SPLICE_NAMESPACE_VAR|$SPLICE_NAMESPACE|g" $SPARK_HOME/conf/spark-defaults.conf;
+                sed -i -e"s|SPARK_DOCKER_IMAGE_VAR|$SPARK_DOCKER_IMAGE|g" $SPARK_HOME/conf/spark-defaults.conf;
+                sed -i -e"s|SPARK_EXECUTOR_COUNT_VAR|$SPARK_EXECUTOR_COUNT|g" $SPARK_HOME/conf/spark-defaults.conf;
+                sed -i -e"s|JUPYTER_SPARK_NODE_SELECTOR_VAR|$JUPYTER_SPARK_NODE_SELECTOR|g" $SPARK_HOME/conf/spark-defaults.conf;
+                sed -i -e"s|TIME_ZONE_VAR|$TZ|g" $SPARK_HOME/conf/spark-defaults.conf;
+                cp /tmp/jupyter_beakerx.json $JUPYTER_CONFIG_DIR/beakerx.json;
+                {{ if .Values.global.nodeSelector.enabled }}sed -i -e'/TIME_ZONE_VAR/ a \\t\},\n\t\{\n\t\t"name": "spark.kubernetes.node.selector.components",\n\t\t"value": "JUPYTER_SPARK_NODE_SELECTOR_VAR" ' $JUPYTER_CONFIG_DIR/beakerx.json;{{ end }}
+                sed -i -e"s|JUPYTER_HOST_VAR|$(hostname -i)|g" $JUPYTER_CONFIG_DIR/beakerx.json;
+                sed -i -e"s|JUPYTER_HOST_NAME_VAR|$(hostname)|g" $JUPYTER_CONFIG_DIR/beakerx.json;
+                sed -i -e"s|SPLICE_REL_NAME_VAR|$SPLICE_REL_NAME|g" $JUPYTER_CONFIG_DIR/beakerx.json;
+                sed -i -e"s|SPLICE_NAMESPACE_VAR|$SPLICE_NAMESPACE|g" $JUPYTER_CONFIG_DIR/beakerx.json;
+                sed -i -e"s|SPARK_DOCKER_IMAGE_VAR|$SPARK_DOCKER_IMAGE|g" $JUPYTER_CONFIG_DIR/beakerx.json;
+                sed -i -e"s|SPARK_EXECUTOR_COUNT_VAR|$SPARK_EXECUTOR_COUNT|g" $JUPYTER_CONFIG_DIR/beakerx.json;
+                sed -i -e"s|TIME_ZONE_VAR|$TZ|g" $JUPYTER_CONFIG_DIR/beakerx.json;
+                sed -i -e"s|JUPYTER_SPARK_NODE_SELECTOR_VAR|$JUPYTER_SPARK_NODE_SELECTOR|g" $JUPYTER_CONFIG_DIR/beakerx.json;
+                cp /tmp/hbase-config/* /etc/hbase/conf/;
+                cp /tmp/hdfs-config/* /etc/hadoop/conf/;
+                /tmp/copy_notebooks.sh;
+                /tmp/start_monitor.sh;
+                cp /tmp/notebook.json /splice/beakerx/conf/nbconfig/notebook.json;
+      initContainers: []
+      extraContainers: []
+      uid: 1000
+      fsGid: 100
+      serviceAccountName: spark
+      storage:
+        type: dynamic
+        extraLabels: {}
+        extraVolumes:
+          - name: hbase-config
+            configMap:
+              name: {{ include "hbase.config.name" . }}
+          - name: hdfs-config
+            configMap:
+              name: {{ include "hadoop.config.name" . }}
+        extraVolumeMounts:
+          - name: hbase-config
+            mountPath: /tmp/hbase-config
+          - name: hdfs-config
+            mountPath: /tmp/hdfs-config
+        static:
+          pvcName:
+          subPath: '{username}'
+        capacity: 10Gi
+        homeMountPath: /home/jovyan
+        dynamic:
+          storageClass:
+          pvcNameTemplate: claim-{username}{servername}
+          volumeNameTemplate: volume-{username}{servername}
+          storageAccessModes: [ReadWriteOnce]
+      image:
+        name: {{ .Values.singleuser.image.name }}
+        pullPolicy: IfNotPresent
+      imagePullSecret:
+        enabled: false
+        registry:
+        username:
+        email:
+        password:
+      startTimeout: 300
+      cpu:
+        limit:
+        guarantee:
+      memory:
+        limit:
+        guarantee: 1G
+      extraResource:
+        limits: {}
+        guarantees: {}
+      cmd: jupyterhub-singleuser
+      defaultUrl:
+

@@ -1,0 +1,25 @@
+{{- if .Values.olap.service.externaIPEnabled -}}
+# A service for the hbase olap user interface
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "hbase.olap.fullname" . }}-public
+  labels:
+    app: {{ template "hbase.name" . }}
+    chart: {{ template "hbase.chart" . }}
+    release: {{ .Release.Name }}
+    component: {{ include "hbase.olap.component" . }}
+    frameworkId: {{ include "frameworkId" . }}
+    dnsprefix: {{ .Values.global.dnsPrefix }}
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 16040
+    name: olap
+  selector:
+    app: {{ template "hbase.name" . }}
+    release: {{ .Release.Name }}
+    component: {{ include "hbase.olap.component" . }}
+    dnsprefix: {{ .Values.global.dnsPrefix }}
+  sessionAffinity: ClientIP
+{{- end }}

@@ -1,0 +1,20 @@
+# A service for the job tracker (bobby) user interface
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "bobby.fullname" . }}-headless
+  labels:
+    app: {{ template "bobby.name" . }}
+    chart: {{ template "splice.subchart" . }}
+    release: {{ .Release.Name }}
+    frameworkId: {{ include "frameworkId" . }}
+    dnsprefix: {{ .Values.global.dnsPrefix }}
+spec:
+  ports:
+  - port: {{ $.Values.mlflow.port.bobby }}
+    name: bobby
+  clusterIP: None
+  selector:
+    app: {{ template "bobby.name" . }}
+    release: {{ .Release.Name }}
+    dnsprefix: {{ .Values.global.dnsPrefix }}

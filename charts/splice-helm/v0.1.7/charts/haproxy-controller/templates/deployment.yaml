@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: haproxy-ingress
+    component: controller
+    release: {{ .Release.Name }}
+    run: {{ template "kubernetes-ingress.fullname" . }}
+  name: {{ template "kubernetes-ingress.fullname" . }}
+spec:
+  replicas: {{ .Values.controller.replicaCount }}
+  selector:
+    matchLabels:
+      app: haproxy-ingress
+      component: controller
+      release: {{ .Release.Name }}
+      run: {{ template "kubernetes-ingress.fullname" . }}
+  template:
+    metadata:
+      labels:
+        app: haproxy-ingress
+        component: controller
+        release: {{ .Release.Name }}
+        run: {{ template "kubernetes-ingress.fullname" . }}
+    spec:
+      serviceAccountName: {{ template "kubernetes-ingress.fullname" . }}
+      {{- if .Values.global.nodeSelector.enabled }}
+      nodeSelector:
+        components: {{ .Values.global.nodeSelector.meta }}
+      {{- end }}
+      initContainers:
+      - name: check-db-ready
+        image: {{ template "base-image" . }}
+        command:
+          - "sh"
+          - "-c"
+          - "until /usr/bin/curl -kLs -X GET http://{{ template "hbase.hregion.fullname" . }}-hl:16030/jmx?qry=com.splicemachine.version:type=DatabaseVersion | grep -q Release; do echo waiting for database; sleep 2; done;"
+      containers:
+      - name: {{ template "kubernetes-ingress.name" . }}-{{ .Values.controller.name }}
+        image: "{{ .Values.controller.image.repository }}:{{ tpl .Values.controller.image.tag . }}"
+        imagePullPolicy: {{ .Values.controller.image.pullPolicy }}
+        args:
+{{ if .Values.global.tls.enabled }}
+{{- if .Values.global.certificateName }}
+          - --default-ssl-certificate={{ .Release.Namespace }}/{{ .Values.global.certificateName }}
+{{- else }}
+          - --default-ssl-certificate={{ .Release.Namespace }}/{{ template "kubernetes-ingress.defaultTLSSecret.fullname" . }}
+{{- end }}
+{{ else }}
+          - --default-ssl-certificate={{ .Release.Namespace }}/{{ template "kubernetes-ingress.defaultTLSSecret.fullname" . }}
+{{ end }}
+          - --configmap={{ .Release.Namespace }}/{{ template "kubernetes-ingress.fullname" . }}
+          - --configmap-tcp-services={{ .Release.Namespace }}/{{ template "kubernetes-ingress.fullname" . }}-tcp
+          - --namespace-whitelist={{ .Release.Namespace }}
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "50Mi"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 1042
+        ports:
+        - name: stat
+          containerPort: 1024
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: TZ
+          value: {{ .Values.global.timezoneFlag }}
+

@@ -1,0 +1,31 @@
+{{- if .Values.mlflow.jobtrackerIngress.enabled -}}
+{{- $fullName := include "mlflow.fullname" . -}}
+{{- $hostName := include "mlmanager.mlflow.jobtracker.ingress.hosts.0" . -}}
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: jobtracker-ingress
+  {{- if .Values.mlflow.jobtrackerIngress.annotations }}
+  annotations:
+    {{- range $key, $value := .Values.mlflow.jobtrackerIngress.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+spec:
+  rules:
+    {{- range $host := .Values.mlflow.jobtrackerIngress.hosts }}
+    - host: {{ $hostName | quote }}
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: {{ $fullName }}
+              servicePort: {{ $.Values.mlflow.port.dash }}
+    {{- end }}
+  {{ if .Values.global.tls.enabled }}
+  {{- if .Values.mlflow.jobtrackerIngress.tls }}
+  tls:
+    {{- include "mlmanager.mlflow.jobtracker.ingress.tls.0" . | nindent 4 }}
+  {{- end }}
+  {{ end }}
+{{- end }}

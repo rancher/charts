@@ -1,0 +1,47 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: {{ template "hbase.dbbackup.fullname" . }}
+  labels:
+    app: {{ template "hbase.name" . }}
+    chart: {{ template "hbase.chart" . }}
+    release: {{ .Release.Name }}
+    component: {{ include "hbase.dbbackup.component" . }}
+    frameworkId: {{ include "frameworkId" . }}
+    dnsprefix: {{ .Values.global.dnsPrefix }}
+spec:
+  replicas: {{ .Values.dbbackup.replicas }}
+  schedule: {{ .Values.dbbackup.schedule | quote}}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: dbbackup
+            image: {{ template "hbase.image" . }}
+            imagePullPolicy: {{ .Values.imagePullPolicy }}
+            env:
+              - name: DB_HOST
+                value: {{ template "splice.fullname" . }}-hregion.{{ template "svc-domain" . }}
+              - name: DB_PASSWORD
+                value: {{ .Values.global.splice.password }}
+              - name: DB_PORT
+                value: "1527"
+              - name: ENABLERETENTION
+                value: {{ .Values.dbbackup.retention | quote }}
+              - name: BACKUPWINDOW
+                value: {{ .Values.dbbackup.window | quote }}
+              - name: BACKUPTYPE
+                value: {{ .Values.dbbackup.type }}
+              - name: ENTERPRISECODE
+                value: {{ .Values.dbbackup.enterprisecode }}
+              - name: DESTINATIONPATH
+                value: {{ .Values.dbbackup.destinationpath }}
+              - name: DEBUG
+                value: {{ .Values.dbbackup.debug | quote }}
+            command:
+               - "/bin/bash"
+               - "/usr/lib/hbase/bin/splice/run-backup.sh"
+

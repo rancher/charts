@@ -1,0 +1,27 @@
+{{- if .Values.dashboard.enabled }}
+{{- if not .Values.controller.customTemplate.configMapName }}
+{{- $hostName := include "dashboard.ingress.hosts.0" . -}}
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: dashboard-ingress
+  namespace: kube-system
+  annotations:
+    {{- range $key, $value := .Values.ingress.annotations }}
+      {{ $key }}: {{ $value | quote }}
+    {{- end }}
+spec:
+  tls:
+  - hosts:
+    - {{ $hostName }}
+    secretName: {{ .Values.dashboard.certificate }}
+  rules:
+  - host: {{ $hostName | quote }}
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: kubernetes-dashboard
+          servicePort: 80
+{{ end }}
+{{ end }}

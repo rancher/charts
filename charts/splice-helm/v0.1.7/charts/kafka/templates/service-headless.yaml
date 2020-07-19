@@ -1,0 +1,23 @@
+# A headless service to create DNS records
+# Do not change the name of this service
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "kafka.fullname" . }}-headless
+  labels:
+    app: {{ template "kafka.name" . }}
+    chart: {{ template "kafka.chart" . }}
+    release: {{ .Release.Name }}
+    component: {{ include "kafka.component" . }}
+    frameworkId: {{ include "frameworkId" . }}
+    dnsprefix: {{ .Values.global.dnsPrefix }}
+spec:
+  ports:
+  - port: 9092
+    name: broker
+  clusterIP: None
+  selector:
+    app: {{ template "kafka.name" . }}
+    release: {{ .Release.Name }}
+    component: {{ include "kafka.component" . }}
+    dnsprefix: {{ .Values.global.dnsPrefix }}

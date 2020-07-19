@@ -1,0 +1,24 @@
+{{- if .Values.nameNode.service.externaIPEnabled -}}
+# A headless service to create DNS records
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "hdfs.namenode.fullname" . }}-public
+  labels:
+    app: {{ include "hadoop.name" . }}
+    chart: {{ include "hadoop.chart" . }}
+    release: {{ .Release.Name }}
+    component: {{ include "hdfs.namenode.component" . }}
+    frameworkId: {{ include "frameworkId" . }}
+    dnsprefix: {{ .Values.global.dnsPrefix }}
+spec:
+  type: LoadBalancer
+  ports:
+  - name: webhdfs
+    port: {{ .Values.nameNode.ports.webhdfs }}
+  selector:
+    app: {{ include "hadoop.name" . }}
+    release: {{ .Release.Name }}
+    dnsprefix: {{ .Values.global.dnsPrefix }}
+    component: {{ include "hdfs.namenode.component" . }}
+{{- end }}

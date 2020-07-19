@@ -1,0 +1,179 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ template "hbase.hmaster.fullname" . }}
+  labels:
+    app: {{ template "hbase.name" . }}
+    chart: {{ template "hbase.chart" . }}
+    release: {{ .Release.Name }}
+    component: {{ include "hbase.hmaster.component" . }}
+    frameworkId: {{ include "frameworkId" . }}
+    dnsprefix: {{ .Values.global.dnsPrefix }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ include "hbase.name" . }}
+      release: {{ .Release.Name }}
+      component: {{ include "hbase.hmaster.component" . }}
+      dnsprefix: {{ .Values.global.dnsPrefix }}
+  serviceName: {{ include "hbase.hmaster.fullname" . }}
+  podManagementPolicy: "OrderedReady"
+  updateStrategy:
+    type: RollingUpdate
+  replicas: {{ .Values.master.replicas }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "hbase.name" . }}
+        release: {{ .Release.Name }}
+        component: {{ include "hbase.hmaster.component" . }}
+        dnsprefix: {{ .Values.global.dnsPrefix }}
+        version: "v1"
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+                matchLabels:
+                  app:  {{ template "hbase.name" . }}
+                  release: {{ .Release.Name | quote }}
+                  component: {{ include "hbase.hmaster.component" . }}
+                  dnsprefix: {{ .Values.global.dnsPrefix }}
+            topologyKey: "kubernetes.io/hostname"
+      terminationGracePeriodSeconds: 0
+      {{- if .Values.global.nodeSelector.enabled }}
+      nodeSelector:
+        components: {{ .Values.global.nodeSelector.meta }}
+      {{- end }}
+      initContainers:
+      - name: wait-zk
+        image: {{ template "hdfs-image" . }}
+        command:
+           - "/bin/bash"
+           - "/usr/lib/hadoop/bin/splice/wait-for-zk.sh"
+           - "{{ include "zookeeper-fullname" . }}"
+           - "{{ include "zookeeper-fullname" . }}-headless"
+           - "{{ include "svc-domain" . }}"
+      - name: wait-nn
+        image: {{ template "hdfs-image" . }}
+        command:
+           - "/bin/bash"
+           - "/usr/lib/hadoop/bin/splice/wait-for-nn.sh"
+           - "{{ include "hdfs.namenode.fullname" . }}"
+           - "{{ include "svc-domain" . }}"
+      containers:
+      - name: hbase-master
+        image: {{ template "hbase.image" . }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+          - name: HBASE_COMPONENT
+            value: master
+          - name: RELEASE_NAME
+            value: {{ .Release.Name }}
+          - name: FRAMEWORKID
+            value: {{ include "frameworkId" . }}
+          - name: SERVICE_NAME
+            value: {{ include "hbase.hmaster.fullname" . }}
+          - name: DOMAIN_NAME
+            value: {{ include "svc-domain" . }}
+          - name: HBASE_DEBUG
+            value: "{{ .Values.debug }}"
+          - name: JAVASCOPE
+            value: "{{ .Values.global.jscpEnabled }}"
+          - name: ZOOKEEPER_QUORUM
+            value: "{{ include "zookeeper-quorum" . }}"
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: TZ
+            value: {{ .Values.global.timezoneFlag }}
+        command:
+        - "/bin/bash"
+        - "/usr/lib/hbase/bin/splice/start-hbase-component.sh"
+        lifecycle:
+          preStop:
+            exec:
+              command: [
+                "/bin/bash",
+                "/usr/lib/hbase/bin/hbase",
+                "stop",
+                "master",
+                "$HOSTNAME"
+              ]
+        startupProbe:
+          exec:
+            command:
+              - sh
+              - -c
+              - "/usr/lib/hbase/bin/splice/hmaster-ready.sh"
+{{ toYaml .Values.region.startupProbe | indent 10 }}
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - "/usr/lib/hbase/bin/splice/hmaster-liveness.sh"
+{{ toYaml .Values.master.livenessProbe | indent 10 }}
+        resources:
+{{ toYaml .Values.master.resources | indent 10 }}
+        volumeMounts:
+        - name: hbase-config
+          mountPath: /tmp/hbase-config
+        - name: spark-config
+          mountPath: /tmp/spark-config
+        - name: hdfs-config
+          mountPath: /tmp/hdfs-config
+        - name: spark1
+          mountPath: /spark/tmp0
+        - name: spark2
+          mountPath: /spark/tmp1
+        - name: logdir
+          mountPath: /var/log/hbase
+      - name: active-master
+        image: {{ template "hbase.image" . }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+          - name: POD_NAMESPACE
+            value: {{ .Release.Namespace }}
+          - name: SERVICE_NAME
+            value: {{ include "hbase.hmaster.fullname" . }}
+          - name: DOMAIN_NAME
+            value: {{ include "svc-domain" . }}
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+        command:
+          - "sh"
+          - "-c"
+          - "while true; do '/usr/lib/hbase/bin/splice/update-active-master.sh'; sleep 30; done;"
+      securityContext:
+        runAsUser: 1004
+        fsGroup: 1000
+      volumes:
+      - name: hbase-config
+        configMap:
+          name: {{ include "hbase.config.name" . }}
+      - name: spark-config
+        configMap:
+          name: {{ include "spark.config.name" . }}
+      - name: hdfs-config
+        configMap:
+          name: {{ template "hadoop.config.name" . }}
+      - name: spark1
+        emptyDir: {}
+      - name: spark2
+        emptyDir: {}
+  volumeClaimTemplates:
+  - metadata:
+      name: logdir
+    spec:
+      accessModes:
+      {{ toYaml $.Values.master.persistence.accessMode | indent 8 }}
+      resources:
+        requests:
+          storage: {{ $.Values.master.persistence.size }}
+      storageClassName: {{ $.Values.master.persistence.storageClassName }}
+
+

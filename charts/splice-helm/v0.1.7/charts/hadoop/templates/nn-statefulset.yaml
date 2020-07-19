@@ -1,0 +1,190 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "hdfs.namenode.fullname" . }}
+  annotations:
+  labels:
+    app: {{ include "hadoop.name" . }}
+    chart: {{ include "hadoop.chart" . }}
+    release: {{ .Release.Name }}
+    component: {{ include "hdfs.namenode.component" . }}
+    frameworkId: {{ include "frameworkId" . }}
+    dnsprefix: {{ .Values.global.dnsPrefix }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ include "hadoop.name" . }}
+      release: {{ .Release.Name }}
+      component: {{ include "hdfs.namenode.component" . }}
+      dnsprefix: {{ .Values.global.dnsPrefix }}
+  serviceName: {{ include "hdfs.namenode.fullname" . }}
+  podManagementPolicy: "Parallel"
+  updateStrategy:
+    type: RollingUpdate
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: {{ include "hadoop.name" . }}
+        release: {{ .Release.Name }}
+        component: {{ include "hdfs.namenode.component" . }}
+        dnsprefix: {{ .Values.global.dnsPrefix }}
+        version: "v1"
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - topologyKey: "kubernetes.io/hostname"
+            labelSelector:
+              matchLabels:
+                app:  {{ include "hadoop.name" . }}
+                release: {{ .Release.Name | quote }}
+                component: {{ include "hdfs.namenode.component" . }}
+                dnsprefix: {{ .Values.global.dnsPrefix }}
+      terminationGracePeriodSeconds: 0
+      {{- if .Values.global.nodeSelector.enabled }}
+      nodeSelector:
+        components: {{ .Values.global.nodeSelector.meta }}
+      {{- end }}
+      initContainers:
+      - name: wait-journal
+        image: {{ template "hdfs-image" . }}
+        command:
+           - "/bin/bash"
+           - "/usr/lib/hadoop/bin/splice/wait-for-jn.sh"
+           - "{{ include "hdfs.journalnode.fullname" . }}"
+           - "{{ include "svc-domain" . }}"
+      - name: wait-zk
+        image: {{ template "hdfs-image" . }}
+        command:
+           - "/bin/bash"
+           - "/usr/lib/hadoop/bin/splice/wait-for-zk.sh"
+           - "{{ include "zookeeper-fullname" . }}"
+           - "{{ include "zookeeper-fullname" . }}-headless"
+           - "{{ include "svc-domain" . }}"
+      - name: {{ include "hdfs.namenode.component" . }}-init
+        image: {{ template "hdfs-image" . }}
+        imagePullPolicy: {{ .Values.global.image.pullPolicy | quote }}
+        env:
+          - name: HADOOP_COMPONENT
+            value: initnamenode
+          - name: RELEASE_NAME
+            value: {{ .Release.Name }}
+          - name: FRAMEWORKID
+            value: {{ include "frameworkId" . }}
+          - name: NAMENODE_DATA_DIR
+            value: {{ include "hdfs.namenode.datadir" . }}
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+        command:
+           - "/bin/bash"
+           - "/usr/lib/hadoop/bin/splice/start-hadoop-component.sh"
+        volumeMounts:
+        - name: hadoop-config
+          mountPath: /tmp/hadoop-config
+        - name: dfs
+          mountPath: {{ include "hdfs.namenode.datadir" . }}
+      - name: {{ include "hdfs.namenode.component" . }}-zk-init
+        image: {{ template "hdfs-image" . }}
+        imagePullPolicy: {{ .Values.global.image.pullPolicy | quote }}
+        env:
+          - name: HADOOP_COMPONENT
+            value: initzkfc
+          - name: RELEASE_NAME
+            value: {{ .Release.Name }}
+          - name: FRAMEWORKID
+            value: {{ include "frameworkId" . }}
+          - name: NAMENODE_DATA_DIR
+            value: {{ include "hdfs.namenode.datadir" . }}
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+        command:
+           - "/bin/bash"
+           - "/usr/lib/hadoop/bin/splice/start-hadoop-component.sh"
+        volumeMounts:
+        - name: hadoop-config
+          mountPath: /tmp/hadoop-config
+        - name: dfs
+          mountPath: {{ include "hdfs.namenode.datadir" . }}
+      containers:
+      - name: {{ include "hdfs.namenode.component" . }}
+        image: {{ template "hdfs-image" . }}
+        imagePullPolicy: {{ .Values.global.image.pullPolicy | quote }}
+        env:
+          - name: HADOOP_COMPONENT
+            value: namenode
+          - name: RELEASE_NAME
+            value: {{ .Release.Name }}
+          - name: FRAMEWORKID
+            value: {{ include "frameworkId" . }}
+          - name: SERVICE_NAME
+            value: {{ include "hdfs.namenode.fullname" . }}
+          - name: DOMAIN_NAME
+            value: {{ include "svc-domain" . }}
+          - name: NAMENODE_DATA_DIR
+            value: {{ include "hdfs.namenode.datadir" . }}
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: TZ
+            value: {{ .Values.global.timezoneFlag }}
+        command:
+           - "/bin/bash"
+           - "/usr/lib/hadoop/bin/splice/start-hadoop-component.sh"
+        resources:
+{{ toYaml .Values.nameNode.resources | indent 10 }}
+        livenessProbe:
+          exec:
+            command:
+              - "/bin/bash"
+              - "/usr/lib/hadoop/bin/splice/nn-liveness.sh"
+{{ toYaml .Values.nameNode.livenessProbe | indent 10 }}
+        volumeMounts:
+        - name: hadoop-config
+          mountPath: /tmp/hadoop-config
+        - name: dfs
+          mountPath: {{ include "hdfs.namenode.datadir" . }}
+      - name: {{ include "hdfs.namenode.component" . }}-zkfc
+        image: {{ template "hdfs-image" . }}
+        imagePullPolicy: {{ .Values.global.image.pullPolicy | quote }}
+        env:
+          - name: HADOOP_COMPONENT
+            value: zkfc
+          - name: NAMENODE_DATA_DIR
+            value: {{ include "hdfs.namenode.datadir" . }}
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: HADOOP_OPTS
+            value: {{ .Values.nameNode.javaopts | quote }}
+        command:
+           - "/bin/bash"
+           - "/usr/lib/hadoop/bin/splice/start-hadoop-component.sh"
+        resources:
+{{ toYaml .Values.nameNode.resources | indent 10 }}
+        volumeMounts:
+        - name: hadoop-config
+          mountPath: /tmp/hadoop-config
+        - name: dfs
+          mountPath: {{ include "hdfs.namenode.datadir" . }}
+      volumes:
+      - name: hadoop-config
+        configMap:
+          name: {{ include "hadoop.config.name" . }}
+  volumeClaimTemplates:
+  - metadata:
+      name: dfs
+    spec:
+      accessModes:
+{{ toYaml .Values.nameNode.persistence.accessMode | indent 8 }}
+      resources:
+        requests:
+          storage: {{ .Values.nameNode.persistence.size }}
+
+
