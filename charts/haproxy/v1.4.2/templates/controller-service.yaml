@@ -42,26 +42,32 @@ spec:
   healthCheckNodePort: {{ .Values.controller.service.healthCheckNodePort }}
   {{- end }}
   ports:
+  {{- if .Values.controller.service.enablePorts.http }}
     - name: http
       port: {{ .Values.controller.service.ports.http }}
       protocol: TCP
       targetPort: {{ .Values.controller.service.targetPorts.http }}
-  {{- if .Values.controller.service.nodePorts.http }}
+    {{- if .Values.controller.service.nodePorts.http }}
       nodePort: {{ .Values.controller.service.nodePorts.http }}
+    {{- end }}
   {{- end }}
+  {{- if .Values.controller.service.enablePorts.https }}
     - name: https
       port: {{ .Values.controller.service.ports.https }}
       protocol: TCP
       targetPort: {{ .Values.controller.service.targetPorts.https }}
-  {{- if .Values.controller.service.nodePorts.https }}
+    {{- if .Values.controller.service.nodePorts.https }}
       nodePort: {{ .Values.controller.service.nodePorts.https }}
+    {{- end }}
   {{- end }}
+  {{- if .Values.controller.service.enablePorts.stat }}
     - name: stat
       port: {{ .Values.controller.service.ports.stat }}
       protocol: TCP
       targetPort: {{ .Values.controller.service.targetPorts.stat }}
-  {{- if .Values.controller.service.nodePorts.stat }}
+    {{- if .Values.controller.service.nodePorts.stat }}
       nodePort: {{ .Values.controller.service.nodePorts.stat }}
+    {{- end }}
   {{- end }}
   {{- range .Values.controller.service.tcpPorts }}
     - name: {{ .name }}-tcp
@@ -75,6 +81,9 @@ spec:
   selector:
     app.kubernetes.io/name: {{ template "kubernetes-ingress.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
+  {{- if .Values.controller.service.sessionAffinity }}
+  sessionAffinity: {{ .Values.controller.service.sessionAffinity }}
+  {{- end }}
   externalIPs:
 {{- if .Values.controller.service.externalIPs }}
 {{ toYaml .Values.controller.service.externalIPs | indent 4 }}

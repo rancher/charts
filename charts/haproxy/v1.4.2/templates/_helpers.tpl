@@ -111,4 +111,13 @@ Users can provide an override for an explicit service they want to use via `.Val
 {{- print $servicePath | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
+{{/*
+Construct the syslog-server annotation
+*/}}
+{{- define "kubernetes-ingress.syslogServer" -}}
+{{- range $key, $val := .Values.controller.logging.traffic -}}
+{{- printf "%s:%s, " $key $val }}
+{{- end -}}
+{{- end -}}
+
 {{/* vim: set filetype=mustache: */}}

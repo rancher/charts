@@ -26,7 +26,9 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/version: {{ .Chart.AppVersion }}
 spec:
+  {{- if not (kindIs "invalid" .Values.defaultBackend.replicaCount) }}
   replicas: {{ .Values.defaultBackend.replicaCount }}
+  {{- end }}
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ template "kubernetes-ingress.defaultBackend.fullname" . }}
@@ -39,6 +41,10 @@ spec:
         {{- if .Values.defaultBackend.podLabels }}
 {{ toYaml .Values.defaultBackend.podLabels | indent 8 }}
         {{- end }}
+      {{- if .Values.defaultBackend.podAnnotations }}
+      annotations:
+{{ toYaml .Values.defaultBackend.podAnnotations | indent 8 }}
+      {{- end }}
     spec:
       containers:
         - name: {{ template "kubernetes-ingress.name" . }}-{{ .Values.defaultBackend.name }}

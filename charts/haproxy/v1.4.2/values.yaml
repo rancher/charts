@@ -53,7 +53,7 @@ controller:
   ## ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
   ## ref: https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/
   kind: Deployment    # can be 'Deployment' or 'DaemonSet'
-  replicaCount: 2   # used only for Deployment mode
+  replicaCount: 2   # used only for Deployment mode. Unset if also using an HPA
 
   ## Init Containers
   ## ref: https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
@@ -113,6 +113,11 @@ controller:
   podLabels: {}
   #  key: value
 
+  ## Additional annotations to add to the pod container metadata
+  ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  podAnnotations: {}
+  #  key: value
+
   ## Ingress TLS secret, if enabled is true and secret is null then controller will use auto-generated secret otherwise provided secret is used
   ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#tls
   defaultTLSSecret:
@@ -162,7 +167,19 @@ controller:
   #   rate-limit-expire: "1m"
   #   rate-limit-interval: "10s"
   #   rate-limit-size: "100k"
-  #   syslogServer: "port:514, address:192.168.122.1, facility:local0"
+
+  ## Controller Logging configuration
+  logging:
+    ## Controller logging level
+    ## This only relevant to Controller logs
+    level: info
+
+    ## HAProxy traffic logs
+    ## ref: https://github.com/haproxytech/kubernetes-ingress/tree/master/documentation#logging
+    traffic: {}
+      #      address:  "stdout"
+      #      format:   "raw"
+      #      facility: "daemon"
 
   ## Mirrors the address of the service's endpoints to the
   ## load-balancer status of all Ingress objects it satisfies.
@@ -205,6 +222,15 @@ controller:
       https: 443
       stat: 1024
 
+    ## The controller service ports for http, https and stat can be disabled by
+    ## setting below to false - this could be useful when only deploying haproxy
+    ## as a TCP loadbalancer
+    ## Note: At least one port (http, https, stat or from tcpPorts) has to be enabled
+    enablePorts:
+      http: true
+      https: true
+      stat: true
+
     ## Target port mappings for http, https and stat
     ## ref: https://kubernetes.io/docs/concepts/services-networking/service/
     targetPorts:
@@ -212,9 +238,9 @@ controller:
       https: https
       stat: stat
 
-    # Additional tcp ports to expose
-    # This is especially useful for TCP services:
-    # https://github.com/haproxytech/kubernetes-ingress/blob/master/documentation/controller.md
+    ## Additional tcp ports to expose
+    ## This is especially useful for TCP services:
+    ## https://github.com/haproxytech/kubernetes-ingress/blob/master/documentation/controller.md
     tcpPorts: []
     #  - name: http-alt
     #    port: 8080
@@ -241,20 +267,33 @@ controller:
     ## ref: https://kubernetes.io/docs/concepts/services-networking/service/
     # clusterIP: ""
 
+    ## Service session affinity
+    ## ref: https://kubernetes.io/docs/concepts/services-networking/service/
+    # sessionAffinity: ""
+
   ## Controller DaemonSet configuration
   ## ref: https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/
   daemonset:
+    useHostNetwork: false
     useHostPort: false
     hostPorts:
       http: 80
       https: 443
       stat: 1024
 
+  ## Controller deployment strategy definition
+  ## ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy
+  strategy: {}
+  #  rollingUpdate:
+  #    maxSurge: 25%
+  #    maxUnavailable: 25%
+  #  type: RollingUpdate
+
 
 ## Default 404 backend
 defaultBackend:
   name: default-backend
-  replicaCount: 2
+  replicaCount: 2    # unset if also using an HPA
 
   image:
     repository: k8s.gcr.io/defaultbackend-amd64
@@ -295,6 +334,11 @@ defaultBackend:
   ## Additional labels to add to the pod container metadata
   ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
   podLabels: {}
+  #  key: value
+
+  ## Additional annotations to add to the pod container metadata
+  ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  podAnnotations: {}
   #  key: value
 
   service:

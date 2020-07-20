@@ -15,6 +15,7 @@ limitations under the License.
 */}}
 
 {{- if and .Values.rbac.create .Values.podSecurityPolicy.enabled }}
+{{- $useHostNetwork := .Values.controller.daemonset.useHostNetwork }}
 {{- $useHostPort := .Values.controller.daemonset.useHostPort }}
 {{- $hostPorts := .Values.controller.daemonset.hostPorts -}}
 apiVersion: policy/v1beta1
@@ -41,8 +42,10 @@ spec:
     - max: 65535
       min: 1
     rule: MustRunAs
-{{- if $useHostPort }}
+{{- if $useHostNetwork }}
   hostNetwork: true
+{{- end }}
+{{- if or $useHostPort $useHostNetwork }}
   hostPorts:
 {{- range $key, $value := .Values.controller.containerPort }}
   - min: {{ $value }}

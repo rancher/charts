@@ -15,6 +15,7 @@ limitations under the License.
 */}}
 
 {{- if eq .Values.controller.kind "DaemonSet" }}
+{{- $useHostNetwork := .Values.controller.daemonset.useHostNetwork -}}
 {{- $useHostPort := .Values.controller.daemonset.useHostPort -}}
 {{- $hostPorts := .Values.controller.daemonset.hostPorts -}}
 apiVersion: apps/v1
@@ -46,9 +47,13 @@ spec:
         {{- if .Values.controller.podLabels }}
 {{ toYaml .Values.controller.podLabels | indent 8 }}
         {{- end }}
+      {{- if .Values.controller.podAnnotations }}
+      annotations:
+{{ toYaml .Values.controller.podAnnotations | indent 8 }}
+      {{- end }}
     spec:
       serviceAccountName: {{ template "kubernetes-ingress.serviceAccountName" . }}
-      {{- if $useHostPort }}
+      {{- if $useHostNetwork }}
       hostNetwork: true
       {{- end }}
 {{- if .Values.controller.imageCredentials.registry }}
@@ -74,6 +79,9 @@ spec:
 {{- end }}
 {{- if .Values.controller.publishService.enabled }}
           - --publish-service={{ template "kubernetes-ingress.publishServicePath" . }}
+{{- end }}
+{{- if .Values.controller.logging.level }}
+          - --log={{ .Values.controller.logging.level }}
 {{- end }}
 {{- range .Values.controller.extraArgs }}
           - {{ . }}

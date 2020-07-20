@@ -27,11 +27,17 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/version: {{ .Chart.AppVersion }}
 spec:
+  {{- if not ( kindIs "invalid" .Values.controller.replicaCount) }}
   replicas: {{ .Values.controller.replicaCount }}
+  {{- end }}
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ template "kubernetes-ingress.name" . }}
       app.kubernetes.io/instance: {{ .Release.Name }}
+  {{- with .Values.controller.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   template:
     metadata:
       labels:
@@ -40,6 +46,10 @@ spec:
         {{- if .Values.controller.podLabels }}
 {{ toYaml .Values.controller.podLabels | indent 8 }}
         {{- end }}
+      {{- if .Values.controller.podAnnotations }}
+      annotations:
+{{ toYaml .Values.controller.podAnnotations | indent 8 }}
+      {{- end }}
     spec:
       serviceAccountName: {{ template "kubernetes-ingress.serviceAccountName" . }}
 {{- if .Values.controller.imageCredentials.registry }}
@@ -63,6 +73,9 @@ spec:
 {{- end }}
 {{- if .Values.controller.publishService.enabled }}
           - --publish-service={{ template "kubernetes-ingress.publishServicePath" . }}
+{{- end }}
+{{- if .Values.controller.logging.level }}
+          - --log={{ .Values.controller.logging.level }}
 {{- end }}
 {{- range .Values.controller.extraArgs }}
           - {{ . }}
