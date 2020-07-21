@@ -1,0 +1,291 @@
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/Chart.yaml packages/rancher-gatekeeper/charts/Chart.yaml
+--- packages/rancher-gatekeeper/charts-original/Chart.yaml
++++ packages/rancher-gatekeeper/charts/Chart.yaml
+@@ -1,10 +1,15 @@
+ apiVersion: v1
+ description: A Helm chart for Gatekeeper
+-name: gatekeeper-operator
++name: rancher-gatekeeper
+ keywords:
+   - open policy agent
+-version: v3.1.0-beta.7
++version: 0.1.0
+ home: https://github.com/open-policy-agent/gatekeeper
+ sources:
+   - https://github.com/open-policy-agent/gatekeeper.git
+ appVersion: v3.1.0-beta.7
++annotations:
++  catalog.rancher.io/certified: rancher
++  catalog.rancher.io/experimental: true
++  catalog.rancher.io/namespace: gatekeeper-system
++  catalog.rancher.io/release-name: rancher-gatekeeper
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/helm-modifications/helm-modifications.yaml packages/rancher-gatekeeper/charts/helm-modifications/helm-modifications.yaml
+--- packages/rancher-gatekeeper/charts-original/helm-modifications/helm-modifications.yaml
++++ packages/rancher-gatekeeper/charts/helm-modifications/helm-modifications.yaml
+@@ -1,61 +0,0 @@
+-apiVersion: v1
+-kind: Service
+-metadata:
+-  name: gatekeeper-webhook-service
+-  namespace: gatekeeper-system
+-spec:
+-  selector:
+-    app: GATEKEEPER_APP_LABEL
+----
+-apiVersion: apiextensions.k8s.io/v1beta1
+-kind: CustomResourceDefinition
+-metadata:
+-  name: configs.config.gatekeeper.sh
+-  annotations:
+-    helm.sh/hook: crd-install
+-    helm.sh/hook-delete-policy: before-hook-creation
+-status: null
+-spec:
+-  names:
+-    shortNames:
+-      - config # add shortName to CRD until https://github.com/kubernetes-sigs/kubebuilder/issues/404 is solved
+----
+-apiVersion: apiextensions.k8s.io/v1beta1
+-kind: CustomResourceDefinition
+-metadata:
+-  name: constrainttemplates.templates.gatekeeper.sh
+-  annotations:
+-    helm.sh/hook: crd-install
+-    helm.sh/hook-delete-policy: before-hook-creation
+-status: null
+-spec:
+-  names:
+-    shortNames:
+-      - constraints # add shortName to CRD until https://github.com/kubernetes-sigs/kubebuilder/issues/404 is solved
+----
+-apiVersion: apps/v1
+-kind: Deployment
+-metadata:
+-  name: gatekeeper-controller-manager
+-  namespace: gatekeeper-system
+-spec:
+-  replicas: HELMSUBST_DEPLOYMENT_REPLICAS
+-  selector:
+-    matchLabels:
+-      app: gatekeeper-operator
+-      release: RELEASE_NAME
+-  template:
+-    spec:
+-      containers:
+-        - name: manager
+-          args:
+-            - --audit-interval={{ .Values.auditInterval }}
+-            - --port=8443
+-            - --logtostderr
+-            - --constraint-violations-limit={{ .Values.constraintViolationsLimit }}
+-            - --audit-from-cache={{ .Values.auditFromCache }}
+-            - --exempt-namespace=gatekeeper-system
+-          imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+-          image: "{{ .Values.image.repository }}:{{ .Values.image.release }}"
+-          resources: HELMSUBST_DEPLOYMENT_CONTAINER_RESOURCES
+-      nodeSelector: HELMSUBST_DEPLOYMENT_POD_SCHEDULING
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/helm-modifications/kustomization.yaml packages/rancher-gatekeeper/charts/helm-modifications/kustomization.yaml
+--- packages/rancher-gatekeeper/charts-original/helm-modifications/kustomization.yaml
++++ packages/rancher-gatekeeper/charts/helm-modifications/kustomization.yaml
+@@ -1,9 +0,0 @@
+-commonLabels:
+-  app: '{{ template "gatekeeper-operator.name" . }}'
+-  chart: '{{ template "gatekeeper-operator.name" . }}'
+-  release: '{{ .Release.Name }}'
+-  heritage: '{{ .Release.Service }}'
+-resources:
+-  - _temp.yaml
+-patchesStrategicMerge:
+-  - helm-modifications.yaml
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/templates/allowedrepos.yaml packages/rancher-gatekeeper/charts/templates/allowedrepos.yaml
+--- packages/rancher-gatekeeper/charts-original/templates/allowedrepos.yaml
++++ packages/rancher-gatekeeper/charts/templates/allowedrepos.yaml
+@@ -0,0 +1,35 @@
++apiVersion: templates.gatekeeper.sh/v1beta1
++kind: ConstraintTemplate
++metadata:
++  name: k8sallowedrepos
++spec:
++  crd:
++    spec:
++      names:
++        kind: K8sAllowedRepos
++      validation:
++        # Schema for the `parameters` field
++        openAPIV3Schema:
++          properties:
++            repos:
++              type: array
++              items:
++                type: string
++  targets:
++    - target: admission.k8s.gatekeeper.sh
++      rego: |
++        package k8sallowedrepos
++
++        violation[{"msg": msg}] {
++          container := input.review.object.spec.containers[_]
++          satisfied := [good | repo = input.parameters.repos[_] ; good = startswith(container.image, repo)]
++          not any(satisfied)
++          msg := sprintf("container <%v> has an invalid image repo <%v>, allowed repos are %v", [container.name, container.image, input.parameters.repos])
++        }
++
++        violation[{"msg": msg}] {
++          container := input.review.object.spec.initContainers[_]
++          satisfied := [good | repo = input.parameters.repos[_] ; good = startswith(container.image, repo)]
++          not any(satisfied)
++          msg := sprintf("container <%v> has an invalid image repo <%v>, allowed repos are %v", [container.name, container.image, input.parameters.repos])
++        }
+\ No newline at end of file
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/templates/gatekeeper.yaml packages/rancher-gatekeeper/charts/templates/gatekeeper.yaml
+--- packages/rancher-gatekeeper/charts-original/templates/gatekeeper.yaml
++++ packages/rancher-gatekeeper/charts/templates/gatekeeper.yaml
+@@ -485,7 +485,7 @@
+           valueFrom:
+             fieldRef:
+               fieldPath: metadata.name
+-        image: '{{ .Values.image.repository }}:{{ .Values.image.release }}'
++        image: '{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}'
+         imagePullPolicy: '{{ .Values.image.pullPolicy }}'
+         livenessProbe:
+           httpGet:
+@@ -517,7 +517,7 @@
+         - mountPath: /certs
+           name: cert
+           readOnly: true
+-      nodeSelector: 
++      nodeSelector:
+ {{ toYaml .Values.nodeSelector | indent 8 }}
+       affinity:
+ {{ toYaml .Values.affinity | indent 8 }}
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/templates/_helpers.tpl packages/rancher-gatekeeper/charts/templates/_helpers.tpl
+--- packages/rancher-gatekeeper/charts-original/templates/_helpers.tpl
++++ packages/rancher-gatekeeper/charts/templates/_helpers.tpl
+@@ -42,3 +42,11 @@
+ {{- end }}
+ app.kubernetes.io/managed-by: {{ .Release.Service }}
+ {{- end -}}
++
++{{- define "system_default_registry" -}}
++{{- if .Values.global.systemDefaultRegistry -}}
++{{- printf "%s/" .Values.global.systemDefaultRegistry -}}
++{{- else -}}
++{{- "" -}}
++{{- end -}}
++{{- end -}}
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/templates/job-constraints-crd.yaml packages/rancher-gatekeeper/charts/templates/job-constraints-crd.yaml
+--- packages/rancher-gatekeeper/charts-original/templates/job-constraints-crd.yaml
++++ packages/rancher-gatekeeper/charts/templates/job-constraints-crd.yaml
+@@ -0,0 +1,19 @@
++apiVersion: batch/v1
++kind: Job
++metadata:
++  namespace: {{ .Release.Namespace }}
++  name: gatekeeper-delete-constraints-crd-job
++  annotations:
++    "helm.sh/hook": "pre-delete"
++    "helm.sh/hook-delete-policy": "hook-succeeded, before-hook-creation, hook-failed"
++spec:
++  template:
++    spec:
++      serviceAccountName: gatekeeper-admin
++      containers:
++      - name: gatekeeper-delete-constraints-crd
++        image: "{{ template "system_default_registry" . }}{{ .Values.global.kubectl.repository }}:{{ .Values.global.kubectl.tag }}"
++        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
++        command: ["kubectl",  "delete", "constrainttemplates", "--all"]
++      restartPolicy: Never
++  backoffLimit: 1
+\ No newline at end of file
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/templates/requiredlabels.yaml packages/rancher-gatekeeper/charts/templates/requiredlabels.yaml
+--- packages/rancher-gatekeeper/charts-original/templates/requiredlabels.yaml
++++ packages/rancher-gatekeeper/charts/templates/requiredlabels.yaml
+@@ -0,0 +1,57 @@
++apiVersion: templates.gatekeeper.sh/v1beta1
++kind: ConstraintTemplate
++metadata:
++  name: k8srequiredlabels
++spec:
++  crd:
++    spec:
++      names:
++        kind: K8sRequiredLabels
++      validation:
++        # Schema for the `parameters` field
++        openAPIV3Schema:
++          properties:
++            message:
++              type: string
++            labels:
++              type: array
++              items:
++                type: object
++                properties:
++                  key:
++                    type: string
++                  allowedRegex:
++                    type: string
++  targets:
++    - target: admission.k8s.gatekeeper.sh
++      rego: |
++        package k8srequiredlabels
++
++        get_message(parameters, _default) = msg {
++          not parameters.message
++          msg := _default
++        }
++
++        get_message(parameters, _default) = msg {
++          msg := parameters.message
++        }
++
++        violation[{"msg": msg, "details": {"missing_labels": missing}}] {
++          provided := {label | input.review.object.metadata.labels[label]}
++          required := {label | label := input.parameters.labels[_].key}
++          missing := required - provided
++          count(missing) > 0
++          def_msg := sprintf("you must provide labels: %v", [missing])
++          msg := get_message(input.parameters, def_msg)
++        }
++
++        violation[{"msg": msg}] {
++          value := input.review.object.metadata.labels[key]
++          expected := input.parameters.labels[_]
++          expected.key == key
++          # do not match if allowedRegex is not defined, or is an empty string
++          expected.allowedRegex != ""
++          not re_match(expected.allowedRegex, value)
++          def_msg := sprintf("Label <%v: %v> does not satisfy allowed regex: %v", [key, value, expected.allowedRegex])
++          msg := get_message(input.parameters, def_msg)
++        }
+\ No newline at end of file
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/values.yaml packages/rancher-gatekeeper/charts/values.yaml
+--- packages/rancher-gatekeeper/charts-original/values.yaml
++++ packages/rancher-gatekeeper/charts/values.yaml
+@@ -1,12 +1,12 @@
+ replicas: 1
+-auditInterval: 60
++auditInterval: 300
+ constraintViolationsLimit: 20
+ auditFromCache: false
+ image:
+-  repository: quay.io/open-policy-agent/gatekeeper
+-  release: v3.1.0-beta.7
++  repository: rancher/opa-gatekeeper
++  tag: v3.1.0-beta.7
+   pullPolicy: IfNotPresent
+-nodeSelector: {}
++nodeSelector: {"beta.kubernetes.io/os": "linux"}
+ tolerations: []
+ resources:
+   limits:
+@@ -15,3 +15,8 @@
+   requests:
+     cpu: 100m
+     memory: 256Mi
++global:
++  systemDefaultRegistry: ""
++  kubectl:
++    repository: rancher/istio-kubectl
++    tag: 1.4.6
+\ No newline at end of file

@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -e
+set -x
+
+function remove_timestamp_from_diff {
+	prefix="[-\+]\{3\}"
+	filename_format="packages\/$(basename -- ${f})\/[^[:space:]]*"
+	# https://www.gnu.org/software/diffutils/manual/html_node/Example-Unified.html#Example-Unified
+	# Example timestamp: 2002-02-21 23:30:39.942229878 -0800
+	date="[[:digit:]]\{4\}-[[:digit:]]\{2\}-[[:digit:]]\{2\}"
+	time="[[:digit:]]\{2\}:[[:digit:]]\{2\}:[[:digit:]]\{2\}.[[:digit:]]\{9\}"
+	timezone="[-\+][[:digit:]]\{4\}"
+	timestamp_format="${date}[[:space:]]${time}[[:space:]]${timezone}"
+	sed -i "s/\(${prefix} ${filename_format}\)[[:space:]]${timestamp_format}/\1/g" ${f}/$(basename -- ${f}).patch
+}
+
+for f in packages/*; do
+  if [[ -f ${f}/package.yaml ]]; then
+  	if [[ -z $CHART || $CHART == $(basename -- ${f}) ]]; then
+			url=$(cat ${f}/package.yaml | yq r - url)
+			subdirectory=$(cat ${f}/package.yaml | yq r - subdirectory)
+			type=$(cat ${f}/package.yaml | yq r - type)
+			commit=$(cat ${f}/package.yaml | yq r - commit)
+			fields=$(echo ${subdirectory} | awk -F'/' '{print NF}')
+			if [[ $fields -eq '0' ]]; then
+				fields='1'
+			fi
+			if [[ $type == 'git' ]]; then
+				mkdir -p /tmp/tmp-charts
+				git clone --depth=1 --no-tags $url /tmp/tmp-charts
+                git fetch origin $commit
+				pwd=$(pwd)
+				cd /tmp/tmp-charts
+				git checkout $commit
+				cd $pwd
+				cp -r /tmp/tmp-charts/${subdirectory} ${f}/charts-original
+				rm -rf /tmp/tmp-charts
+			else
+				mkdir -p ${f}/charts-original
+				curl -sLf ${url} | tar xvzf - -C ${f}/charts-original --strip ${fields} ${subdirectory} > /dev/null 2>&1
+			fi
+			if [[ -d ${f}/charts ]]; then
+				diff -x *.tgz -x *.lock -uNr ${f}/charts-original ${f}/charts > ${f}/$(basename -- ${f}).patch || true
+				remove_timestamp_from_diff
+			fi
+			rm -rf ${f}/charts-original
+		fi
+  fi
+done

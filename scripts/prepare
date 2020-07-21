@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -e
+
+# rebase the patch with upsteam charts defined in package.yaml. Make sure patches still apply
+# for the latest upsteam charts. If there is conflits commiter should solve it.
+
+for f in packages/*; do
+  if [[ -f ${f}/package.yaml ]]; then
+  	if [[ -z $CHART || $CHART == $(basename -- ${f}) ]]; then
+			url=$(cat ${f}/package.yaml | yq r - url)
+			subdirectory=$(cat ${f}/package.yaml | yq r - subdirectory)
+			type=$(cat ${f}/package.yaml | yq r - type)
+			fields=$(echo ${subdirectory} | awk -F'/' '{print NF}')
+			commit=$(cat ${f}/package.yaml | yq r - commit)
+			if [[ $fields -eq '0' ]]; then
+				fields='1'
+			fi
+			rm -rf ${f}/charts
+			mkdir -p ${f}/charts
+			if [[ $type == 'git' ]]; then
+				mkdir -p /tmp/tmp-charts
+				git clone --depth=1 --no-tags $url /tmp/tmp-charts
+				pwd=$(pwd)
+				cd /tmp/tmp-charts
+                git fetch origin $commit
+				git checkout $commit
+				cd $pwd
+				rm -rf ${f}/charts
+				cp -r /tmp/tmp-charts/${subdirectory} ${f}/charts
+				rm -rf /tmp/tmp-charts
+			else
+				curl -sLf ${url} | tar xvzf - -C ${f}/charts --strip ${fields} ${subdirectory} > /dev/null 2>&1
+			fi
+			for file in $(find ./${f} -type f -name "*.patch"); do
+				basename=$(basename -- ${file})
+				patch -p3 -d ${f}/charts < ${f}/$basename
+			done
+			copied_dependencies=()
+			if [[ -f ${f}/charts/requirements.yaml ]]; then
+				repos=$(cat ${f}/charts/requirements.yaml | yq r - "dependencies.*.repository")
+				while IFS= read -r repo; do
+					if [[ ${repo} == file://* ]]; then
+						charts_path=${repo/file:\/\//${f}/charts/}
+						overlay_path=${repo/file:\/\//${f}/overlay/}
+						if [[ ! -d $charts_path ]] && [[ -d $overlay_path ]]; then
+							cp -R $overlay_path $charts_path
+							copied_dependencies+=("${charts_path}")
+						fi
+					fi
+				done < <(echo "${repos}")
+			fi
+			pwd=$(pwd)
+			cd ${f}/charts
+			helm dependency update
+			cd $pwd
+			for dep in "${copied_dependencies[@]}"; do
+				rm -rf $dep
+			done
+		fi
+  fi
+done
