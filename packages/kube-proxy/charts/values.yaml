@@ -1,0 +1,222 @@
+---
+
+# image for kubeproxy
+image: ranchertest/kube-proxy
+
+# image tag for kubeproxy
+imageTag: v1.18.4
+
+# The IP address for the proxy server to serve on 
+# (set to '0.0.0.0' for all IPv4 interfaces and '::' for all IPv6 interfaces)
+bindAddress: 0.0.0.0
+
+# If true cleanup iptables and ipvs rules and exit.
+cleanup: 
+
+# The CIDR range of pods in the cluster. 
+# When configured, traffic sent to a Service cluster IP from outside this range 
+# will be masqueraded and traffic sent from pods to an external 
+# LoadBalancer IP will be directed to the respective cluster IP instead
+clusterCIDR: 10.42.0.0/16
+
+# The path to the configuration file.
+config: 
+
+# How often configuration from the apiserver is refreshed. Must be greater than 0.
+configSyncPeriod: 15m0s
+
+conntrack:
+  # Maximum number of NAT connections to track per CPU core (0 to leave the limit as-is and ignore conntrack-min).
+  maxPerCore: 32768
+  # Minimum number of conntrack entries to allocate, regardless of conntrack-max-per-core (set conntrack-max-per-core=0 to leave the limit as-is).
+  min: 131072
+  # NAT timeout for TCP connections in the CLOSE_WAIT state
+  tcpTimeoutCloseWait: 1h0m0s
+  # Idle timeout for established TCP connections (0 to leave as-is)
+  tcpTimeoutEstablished: 24h0m0s
+
+# Mode to use to detect local traffic
+detectLocalMode: 
+
+# A set of key=value pairs that describe feature gates for alpha/experimental features:
+featureGates: 
+  APIListChunking: true
+  APIPriorityAndFairness: false
+  APIResponseCompression: true
+  AllAlpha: false
+  AllBeta: false
+  AllowInsecureBackendProxy: true
+  AnyVolumeDataSource: false
+  AppArmor: true
+  BalanceAttachedNodeVolumes: false
+  BoundServiceAccountTokenVolume: false
+  CPUManager: true
+  CRIContainerLogRotation: true
+  CSIInlineVolume: true
+  CSIMigration: true
+  CSIMigrationAWS: false
+  CSIMigrationAWSComplete: false
+  CSIMigrationAzureDisk: false
+  CSIMigrationAzureDiskComplete: false
+  CSIMigrationAzureFile: false
+  CSIMigrationAzureFileComplete: false
+  CSIMigrationGCE: false
+  CSIMigrationGCEComplete: false
+  CSIMigrationOpenStack: false
+  CSIMigrationOpenStackComplete: false
+  ConfigurableFSGroupPolicy: false
+  CustomCPUCFSQuotaPeriod: false
+  DefaultIngressClass: true
+  DevicePlugins: true
+  DryRun: true
+  DynamicAuditing: false
+  DynamicKubeletConfig: true
+  EndpointSlice: true
+  EndpointSliceProxying: false
+  EphemeralContainers: false
+  EvenPodsSpread: true
+  ExpandCSIVolumes: true
+  ExpandInUsePersistentVolumes: true
+  ExpandPersistentVolumes: true
+  ExperimentalHostUserNamespaceDefaulting: false
+  HPAScaleToZero: false
+  HugePageStorageMediumSize: false
+  HyperVContainer: false
+  IPv6DualStack: false
+  ImmutableEphemeralVolumes: false
+  KubeletPodResources: true
+  LegacyNodeRoleBehavior: true
+  LocalStorageCapacityIsolation: true
+  LocalStorageCapacityIsolationFSQuotaMonitoring: false
+  NodeDisruptionExclusion: false
+  NonPreemptingPriority: false
+  PodDisruptionBudget: true
+  PodOverhead: true
+  ProcMountType: false
+  QOSReserved: false
+  RemainingItemCount: true
+  RemoveSelfLink: false
+  ResourceLimitsPriorityFunction: false
+  RotateKubeletClientCertificate: true
+  RotateKubeletServerCertificate: true
+  RunAsGroup: true
+  RuntimeClass: true
+  SCTPSupport: false
+  SelectorIndex: false
+  ServerSideApply: true
+  ServiceAccountIssuerDiscovery: false
+  ServiceAppProtocol: false
+  ServiceNodeExclusion: false
+  ServiceTopology: false
+  StartupProbe: true
+  StorageVersionHash: true
+  SupportNodePidsLimit: true
+  SupportPodPidsLimit: true
+  Sysctls: true
+  TTLAfterFinished: false
+  TokenRequest: true
+  TokenRequestProjection: true
+  TopologyManager: true
+  ValidateProxyRedirects: true
+  VolumeSnapshotDataSource: true
+  WinDSR: false
+  WinOverlay: false
+
+# The IP address with port for the health check server to serve on
+# (set to '0.0.0.0:10256' for all IPv4 interfaces and '[::]:10256' for all IPv6 interfaces). Set empty to disable.
+healthzBindAddress: 0.0.0.0:10256
+
+# help for kube-proxy
+help: 
+
+# If non-empty, will use this string as identification instead of the actual hostname.
+hostnameOverride: 
+
+iptables:
+  # If using the pure iptables proxy, SNAT all traffic sent via Service cluster IPs (this not commonly needed)
+  masqueradeAll: 
+  # If using the pure iptables proxy, the bit of the fwmark space to mark packets requiring SNAT with. Must be within the range [0, 31].
+  masqueradeBit: 14
+  # The minimum interval of how often the iptables rules can be refreshed as endpoints and services change (e.g. '5s', '1m', '2h22m').
+  minSyncPeriod: 
+  # The maximum interval of how often iptables rules are refreshed (e.g. '5s', '1m', '2h22m'). Must be greater than 0.
+  syncPeriod: 30s
+
+ipvs:
+  # A comma-separated list of CIDR's which the ipvs proxier should not touch when cleaning up IPVS rules.
+  excludeCidrs:
+  # The minimum interval of how often the ipvs rules can be refreshed as endpoints and services change (e.g. '5s', '1m', '2h22m').
+  minSyncPeriod: 
+  # The ipvs scheduler type when proxy mode is ipvs
+  scheduler:
+  # Enable strict ARP by setting arp_ignore to 1 and arp_announce to 2
+  strictArp: 
+  # The maximum interval of how often ipvs rules are refreshed (e.g. '5s', '1m', '2h22m'). Must be greater than 0.
+  syncPeriod: 30s
+  # The timeout for idle IPVS TCP connections, 0 to leave as-is. (e.g. '5s', '1m', '2h22m').
+  tcpTimeout: 
+  # The timeout for IPVS TCP connections after receiving a FIN packet, 0 to leave as-is. (e.g. '5s', '1m', '2h22m').
+  tcpfinTimeout:
+  # The timeout for IPVS UDP packets, 0 to leave as-is. (e.g. '5s', '1m', '2h22m').
+  udpTimeout:
+
+
+clientConnection:        
+  # Burst to use while talking with kubernetes apiserver
+  apiBurst: 10
+  # Content type of requests sent to apiserver.
+  apiContentType:
+  # QPS to use while talking with kubernetes apiserver
+  qps: 5
+  # Path to kubeconfig file with authorization information (the master location is set by the master flag).
+  kubeconfig: /var/lib/rancher/rke2/agent/kubeproxy.kubeconfig
+
+# Maximum number of seconds between log flushes
+logFlushFrequency: 5s
+
+
+
+# The address of the Kubernetes API server (overrides any value in kubeconfig)
+master: 
+
+# The IP address with port for the metrics server to serve on 
+# (set to '0.0.0.0:10249' for all IPv4 interfaces and '[::]:10249' for all IPv6 interfaces). Set empty to disable.
+metricsBindAddress: 127.0.0.1:10249
+
+# A string slice of values which specify the addresses to use for NodePorts. 
+# Values may be valid IP blocks (e.g. 1.2.3.0/24, 1.2.3.4/32). The default empty string slice ([]) means to use all local addresses.
+nodeportAddresses:
+
+# The oom-score-adj value for kube-proxy process. Values must be within the range [-1000, 1000]
+oomScoreAdj: -999
+
+# If true enables profiling via web interface on /debug/pprof handler.
+profiling:
+
+proxy:
+  # Which proxy mode to use: 'userspace' (older) or 'iptables' (faster) or 'ipvs'. 
+  # If blank, use the best-available proxy (currently iptables). 
+  # If the iptables proxy is selected, regardless of how, but the system's 
+  # kernel or iptables versions are insufficient, this always falls back to the userspace proxy.
+  mode:
+# Range of host ports (beginPort-endPort, single port or beginPort+offset, inclusive) 
+# that may be consumed in order to proxy service traffic. 
+# If (unspecified, 0, or 0-0) then ports will be randomly chosen.
+  portRange:
+
+# The previous version for which you want to show hidden metrics. 
+# Only the previous minor version is meaningful, other values will not be allowed.
+# The format is <major>.<minor>, e.g.: '1.16'. The purpose of this format is make 
+# sure you have the opportunity to notice if the next release hides additional metrics, 
+# rather than being surprised when they are permanently removed in the release after that.
+showHiddenMetricsForVersion:
+
+# How long an idle UDP connection will be kept open (e.g. '250ms', '2s'). 
+# Must be greater than 0. Only applicable for proxy-mode=userspace
+udpTimeout: 250ms
+
+# Print version information and quit
+version: 
+
+# If set, write the default configuration values to this file and exit.
+writeConfigTo:

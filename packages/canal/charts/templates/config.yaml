@@ -1,0 +1,67 @@
+---
+# Source: calico/templates/calico-config.yaml
+# This ConfigMap is used to configure a self-hosted Canal installation.
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ .Release.Name }}-config
+  namespace: kube-system
+data:
+  # Typha is disabled.
+  typha_service_name: {{ .Values.calico.typhaServiceName | quote }}
+  # The interface used by canal for host <-> host communication.
+  # If left blank, then the interface is chosen using the node's
+  # default route.
+  canal_iface: {{ .Values.flannel.iface | quote }}
+
+  # Whether or not to masquerade traffic to destinations not within
+  # the pod network.
+  masquerade: {{ .Values.calico.masquerade | quote }}
+
+  # Configure the MTU to use
+  veth_mtu: {{ .Values.calico.vethuMTU | quote }}
+
+  # The CNI network configuration to install on each node.  The special
+  # values in this config will be automatically populated.
+  cni_network_config: |-
+    {
+      "name": "k8s-pod-network",
+      "cniVersion": "0.3.1",
+      "plugins": [
+        {
+          "type": "calico",
+          "log_level": "info",
+          "datastore_type": "kubernetes",
+          "nodename": "__KUBERNETES_NODE_NAME__",
+          "mtu": __CNI_MTU__,
+          "ipam": {
+              "type": "host-local",
+              "subnet": "usePodCidr"
+          },
+          "policy": {
+              "type": "k8s"
+          },
+          "kubernetes": {
+              "kubeconfig": "__KUBECONFIG_FILEPATH__"
+          }
+        },
+        {
+          "type": "portmap",
+          "snat": true,
+          "capabilities": {"portMappings": true}
+        },
+        {
+          "type": "bandwidth",
+          "capabilities": {"bandwidth": true}
+        }
+      ]
+    }
+
+  # Flannel network configuration. Mounted into the flannel container.
+  net-conf.json: |
+    {
+      "Network": {{ .Values.podCidr | quote }},
+      "Backend": {
+        "Type": {{ .Values.flannel.backend | quote }}
+      }
+    }

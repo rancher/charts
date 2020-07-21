@@ -1,0 +1,49 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: istioctl-installer
+  namespace: istio-system
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "-5"
+    # Todo: use following line instead
+    # "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      containers:
+        - name: istioctl-installer
+          image: rancher/istio-installer:0.1.1
+          env:
+          - name: RELEASE_NAME
+            value: {{ .Release.Name }}
+          - name: REVISION_NAME
+            value: {{ .Chart.Version }}
+          {{- if .Values.overlayFile }}
+          - name: APPLY_OVERLAY_CONFIG
+            value: true
+          {{ end }}
+          command: ["/bin/sh","-c"]
+          args: ["/usr/local/app/scripts/run.sh"]
+          volumeMounts:
+          - name: config-volume
+            mountPath: /app/istio-base.yaml
+            subPath: istio-base.yaml
+          {{- if .Values.overlayFile }}
+          - name: overlay-volume
+            mountPath: /app/overlay-config.yaml
+            subPath: overlay-config.yaml
+          {{ end }}
+      volumes:
+        - name: config-volume
+          configMap:
+            name: istio-installer-base
+        {{- if .Values.overlayFile }}
+        - name: overlay-volume
+          configMap:
+            name: istio-installer-overlay
+        {{ end }}
+      serviceAccountName: serviceaccount
+      restartPolicy: Never

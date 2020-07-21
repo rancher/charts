@@ -1,0 +1,49 @@
+diff -x '*.tgz' -x '*.lock' -uNr packages/coredns/charts-original/templates/_helpers.tpl packages/coredns/charts/templates/_helpers.tpl
+--- packages/coredns/charts-original/templates/_helpers.tpl
++++ packages/coredns/charts/templates/_helpers.tpl
+@@ -137,6 +137,7 @@
+     {{- end -}}
+ {{- end -}}
+ 
++
+ {{/*
+ Create the name of the service account to use
+ */}}
+diff -x '*.tgz' -x '*.lock' -uNr packages/coredns/charts-original/templates/configmap.yaml packages/coredns/charts/templates/configmap.yaml
+--- packages/coredns/charts-original/templates/configmap.yaml
++++ packages/coredns/charts/templates/configmap.yaml
+@@ -19,7 +19,7 @@
+     {{- if .port }}:{{ .port }} {{ end -}}
+     {
+       {{- range .plugins }}
+-        {{ .name }}{{ if .parameters }} {{ .parameters }}{{ end }}{{ if .configBlock }} {
++        {{ .name }} {{ if .parameters }} {{if eq .name "kubernetes" }} {{ (lookup "v1" "ConfigMap" "kube-system" "cluster-dns").data.clusterDomain }} {{ end }} {{.parameters}}{{ end }}{{ if .configBlock }} {
+ {{ .configBlock | indent 12 }}
+         }{{ end }}
+       {{- end }}
+diff -x '*.tgz' -x '*.lock' -uNr packages/coredns/charts-original/templates/service.yaml packages/coredns/charts/templates/service.yaml
+--- packages/coredns/charts-original/templates/service.yaml
++++ packages/coredns/charts/templates/service.yaml
+@@ -26,6 +26,8 @@
+     app.kubernetes.io/name: {{ template "coredns.name" . }}
+   {{- if .Values.service.clusterIP }}
+   clusterIP: {{ .Values.service.clusterIP }}
++  {{ else }}
++  clusterIP: {{ (lookup "v1" "ConfigMap" "kube-system" "cluster-dns").data.clusterDNS }}
+   {{- end }}
+   {{- if .Values.service.externalTrafficPolicy }}
+   externalTrafficPolicy: {{ .Values.service.externalTrafficPolicy }}
+diff -x '*.tgz' -x '*.lock' -uNr packages/coredns/charts-original/values.yaml packages/coredns/charts/values.yaml
+--- packages/coredns/charts-original/values.yaml
++++ packages/coredns/charts/values.yaml
+@@ -3,8 +3,8 @@
+ # Declare variables to be passed into your templates.
+ 
+ image:
+-  repository: coredns/coredns
+-  tag: "1.6.9"
++  repository: ranchertest/coredns
++  tag: "v1.6.9"
+   pullPolicy: IfNotPresent
+ 
+ replicaCount: 1

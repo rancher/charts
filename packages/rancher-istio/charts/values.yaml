@@ -1,0 +1,173 @@
+grafana:
+    enabled: false
+    repository: grafana/grafana
+    tag: 6.7.4
+
+istiocoredns:
+    enabled: false
+    image:
+      repository: coredns/coredns
+      tag: 1.6.2
+    pluginImage: istio/coredns-plugin:0.2-istio-1.1
+
+kiali:
+    hub: quay.io/kiali
+    tag: v1.18
+    contextPath: /
+    dashboard:
+      jaegerInClusterURL: http://tracing.istio-system:80
+      # grafanaInClusterURL: http://access-grafana.cattle-prometheus:80
+      auth:
+        strategy: anonymous
+    enabled: true
+    # prometheusAddr: http://access-prometheus.cattle-prometheus:80
+
+prometheus:
+    enabled: true
+    hub: docker.io/prom
+    tag: v2.15.1
+
+tracing:
+    enabled: false
+    jaeger:
+      hub: docker.io/jaegertracing
+      tag: "1.16"
+    zipkin:
+      hub: docker.io/openzipkin
+      tag: 2.20.0
+
+base:
+    enabled: true
+
+citadel:
+    enabled: true
+
+cni:
+    enabled: false
+
+egressGateways:
+    enabled: true
+
+ingressGateways:
+    enabled: true
+
+istiodRemote:
+    enabled: false
+
+pilot:
+    enabled: true
+    image: pilot
+
+policy:
+    enabled: true
+    image: mixer
+
+telemetry:
+    enabled: true
+    image: mixer
+
+sidecarInjectorWebhook:
+  enableNamespacesByDefault: false
+  objectSelector:
+    enabled: true
+    autoInject: true
+
+global:
+  overlayFile: ""
+  accessLogFile: ""
+  disablePolicyChecks: true
+  defaultConfig:
+    proxyMetadata: {}
+  enableAutoMtls: true
+  arch:
+    amd64: 2
+    ppc64le: 2
+    s390x: 2
+  configValidation: true
+  controlPlaneSecurityEnabled: false
+  defaultNodeSelector: {}
+  defaultPodDisruptionBudget:
+    enabled: true
+  defaultResources:
+    requests:
+      cpu: 10m
+  enableHelmTest: false
+  imagePullPolicy: IfNotPresent
+  imagePullSecrets: []
+  istiod:
+    enableAnalysis: false
+    enabled: true
+  logging:
+    level: "default:info"
+  meshExpansion:
+    enabled: false
+    useILB: false
+  meshNetworks: {}
+  mountMtlsCerts: true
+  multiCluster:
+    enabled: false
+    clusterName: ""
+  network: ""
+  oneNamespace: false
+  operatorManageWebhooks: false
+  pilotCertProvider: istiod
+  priorityClassName: ""
+  proxy:
+    autoInject: enabled
+    clusterDomain: cluster.local
+    componentLogLevel: misc:error
+    enableCoreDump: false
+    envoyStatsd:
+      enabled: false
+    excludeIPRanges: ""
+    excludeInboundPorts: ""
+    excludeOutboundPorts: ""
+    image: proxyv2
+    includeIPRanges: '*'
+    logLevel: warning
+    privileged: false
+    readinessFailureThreshold: 30
+    readinessInitialDelaySeconds: 1
+    readinessPeriodSeconds: 2
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 1024Mi
+      requests:
+        cpu: 10m
+        memory: 40Mi
+    statusPort: 15020
+    tracer: zipkin
+  proxy_init:
+    image: proxyv2
+    resources:
+      limits:
+        cpu: 100m
+        memory: 50Mi
+      requests:
+        cpu: 10m
+        memory: 10Mi
+  sds:
+    enabled: false
+    udsPath: ""
+    token:
+      aud: istio-ca
+  sts:
+    servicePort: 0
+  tracer:
+    datadog:
+      address: $(HOST_IP):8126
+    lightstep:
+      accessToken: ""
+      address: ""
+      secure: true
+      cacertPath: ""
+    stackdriver:
+      debug: false
+      maxNumberOfAnnotations: 200
+      maxNumberOfAttributes: 200
+      maxNumberOfMessageEvents: 200
+    zipkin:
+      address: ""
+  trustDomain: cluster.local
+  useMCP: false
