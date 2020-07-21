@@ -1,6 +1,6 @@
 # aws-event-sources
 
-Installs Triggermesh AWS event sources controller. The following event sources are currently supported by the controller
+Installs TriggerMesh AWS event sources controller. The following event sources are currently supported by the controller
 
 - Amazon CodeCommit (`kind: AWSCodeCommitSource`)
 - Amazon Cognito Identity (`kind: AWSCognitoIdentitySource`)
@@ -32,7 +32,7 @@ This chart installs the [aws-event-sources](https://github.com/triggermesh/aws-e
 
 ## Installing the Chart
 
-Add the Triggermesh chart repository to Helm:
+Add the TriggerMesh chart repository to Helm:
 
 ```console
 $ helm repo add triggermesh https://storage.googleapis.com/triggermesh-charts
