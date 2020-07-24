@@ -1,0 +1,251 @@
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  addonComponents:
+    grafana:
+      enabled: {{ .Values.grafana.enabled }}
+    istiocoredns:
+      enabled: {{ .Values.istiocoredns.enabled }}
+    kiali:
+      enabled: {{ .Values.kiali.enabled }}
+    prometheus:
+      enabled: {{ .Values.prometheus.enabled }}
+    tracing:
+      enabled: {{ .Values.tracing.enabled }}
+  components:
+    base:
+      enabled: {{ .Values.base.enabled }}
+    citadel:
+      enabled: {{ .Values.citadel.enabled }}
+    cni:
+      enabled: {{ .Values.cni.enabled }}
+    egressGateways:
+    - enabled: {{ .Values.egressGateways.enabled }}
+      name: istio-egressgateway
+    ingressGateways:
+    - enabled: {{ .Values.ingressGateways.enabled }}
+      name: istio-ingressgateway
+    istiodRemote:
+      enabled: {{ .Values.istiodRemote.enabled }}
+    pilot:
+      enabled: {{ .Values.pilot.enabled }}
+    policy:
+      enabled: {{ .Values.policy.enabled }}
+    telemetry:
+      enabled: {{ .Values.telemetry.enabled }}
+  hub: docker.io/istio
+  meshConfig:
+    {{- if .Values.global.accessLogFile }}
+    accessLogFile: "{{ .Values.global.accessLogFile }}"
+    {{- end }}
+    {{- if .Values.global.disablePolicyChecks }}
+    disablePolicyChecks: {{ .Values.global.disablePolicyChecks }}
+    {{- end }}
+    defaultConfig:
+      proxyMetadata: {}
+    {{- if .Values.global.enableAutoMtls }}
+    enableAutoMtls: {{ .Values.global.enableAutoMtls }}
+    {{- end }}
+  profile: default
+  tag: 1.6.5
+  values:
+    global:
+      arch:
+        {{- if .Values.global.arch.amd64 }}
+        amd64: {{ .Values.global.arch.amd64 }}
+        {{- end }}
+        {{- if .Values.global.arch.ppc64le }}
+        ppc64le: {{ .Values.global.arch.ppc64le }}
+        {{- end }}
+        {{- if .Values.global.arch.s390x }}
+        s390x: {{ .Values.global.arch.s390x }}
+        {{- end }}
+      {{- if .Values.global.configValidation }}
+      configValidation: {{ .Values.global.configValidation }}
+      {{- end }}
+      {{- if .Values.global.controlPlaneSecurityEnabled }}
+      controlPlaneSecurityEnabled: {{ .Values.global.controlPlaneSecurityEnabled }}
+      {{- end }}
+      {{- if .Values.global.defaultNodeSelector }}
+      defaultNodeSelector: {{ .Values.global.defaultNodeSelector | toJson | indent 4 }}
+      {{- end }}
+      {{- if .Values.global.defaultPodDisruptionBudget.enabled }}
+      defaultPodDisruptionBudget:
+        enabled: {{ .Values.global.defaultPodDisruptionBudget.enabled }}
+      {{- end }}
+      defaultResources:
+        requests:
+          {{- if .Values.global.defaultResources.requests.cpu }}
+          cpu: {{ .Values.global.defaultResources.requests.cpu }}
+          {{- end }}
+      {{- if .Values.global.enableHelmTest }}
+      enableHelmTest: {{ .Values.global.enableHelmTest}}
+      {{- end }}
+      {{- if .Values.global.imagePullPolicy }}
+      imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+      {{- end }}
+      imagePullSecrets: []
+      istioNamespace: istio-system
+      {{- if .Values.global.istiod.enabled }}
+      istiod:
+        enableAnalysis: {{ .Values.global.istiod.enableAnalysis }}
+        enabled: {{ .Values.global.istiod.enabled }}
+      {{- end }}
+      logging:
+        {{- if .Values.global.logging.level }}
+        level: "{{ .Values.global.logging.level }}"
+        {{- end }}
+      {{- if .Values.global.meshExpansion.enabled }}
+      meshExpansion:
+        enabled: {{ .Values.global.meshExpansion.enabled }}
+        useILB: {{ .Values.global.meshExpansion.useILB }}
+      {{- end }}
+      meshNetworks: {}
+      {{- if .Values.global.mountMtlsCerts }}
+      mountMtlsCerts: {{ .Values.global.mountMtlsCerts }}
+      {{- end }}
+      {{- if .Values.global.multiCluster.enabled }}
+      multiCluster:
+        clusterName: "{{ .Values.global.multiCluster.clusterName }}"
+        enabled: {{ .Values.global.multiCluster.enabled }}
+      {{- end }}
+      {{- if .Values.global.network }}
+      network: "{{ .Values.global.network }}"
+      {{- end }}
+      {{- if .Values.global.oneNamespace}}
+      oneNamespace: {{ .Values.global.oneNamespace }}
+      {{- end }}
+      {{- if .Values.global.operatorManageWebhooks }}
+      operatorManageWebhooks: {{ .Values.global.operatorManageWebhooks }}
+      {{- end }}
+      {{- if .Values.global.pilotCertProvider }}
+      pilotCertProvider: {{ .Values.global.pilotCertProvider }}
+      {{- end }}
+      {{- if .Values.global.priorityClassName }}
+      priorityClassName: {{ .Values.global.priorityClassName }}
+      {{- end }}
+      proxy:
+        autoInject: {{ .Values.global.proxy.autoInject }}
+        clusterDomain: {{ .Values.global.proxy.clusterDomain }}
+        protocolDetectionTimeout: "{{ .Values.global.proxy.protocolDetectionTimeout }}"
+        componentLogLevel: {{ .Values.global.proxy.componentLogLevel }}
+        enableCoreDump: {{ .Values.global.proxy.enableCoreDump }}
+        enableCoreDumpImage: "{{ .Values.global.proxy.enableCoreDumpImage }}"
+        envoyStatsd:
+          enabled: {{ .Values.global.proxy.enableCoreDump }}
+        excludeIPRanges: "{{ .Values.global.proxy.excludeIPRanges }}"
+        excludeInboundPorts: "{{ .Values.global.proxy.excludeInboundPorts }}"
+        excludeOutboundPorts: "{{ .Values.global.proxy.excludeOutboundPorts }}"
+        image: {{ .Values.global.proxy.image }}
+        includeIPRanges: '*'
+        logLevel: {{ .Values.global.proxy.logLevel }}
+        privileged: {{ .Values.global.proxy.privileged }}
+        readinessFailureThreshold: {{ .Values.global.proxy.readinessFailureThreshold }}
+        readinessInitialDelaySeconds: {{ .Values.global.proxy.readinessInitialDelaySeconds }}
+        readinessPeriodSeconds: {{ .Values.global.proxy.readinessPeriodSeconds }}
+        resources:
+          limits:
+            cpu: {{ .Values.global.proxy.resources.limits.cpu }}
+            memory: {{ .Values.global.proxy.resources.limits.memory }}
+          requests:
+            cpu: {{ .Values.global.proxy.resources.requests.cpu }}
+            memory: {{ .Values.global.proxy.resources.requests.memory }}
+        statusPort: {{ .Values.global.proxy.statusPort }}
+        tracer: {{ .Values.global.proxy.tracer }}
+      proxy_init:
+        image: {{ .Values.global.proxy_init.image}}
+        resources:
+          limits:
+            cpu: {{ .Values.global.proxy_init.resources.limits.cpu }}
+            memory: {{ .Values.global.proxy_init.resources.limits.memory }}
+          requests:
+            cpu: {{ .Values.global.proxy_init.resources.requests.cpu }}
+            memory: {{ .Values.global.proxy_init.resources.requests.memory }}
+      sds:
+        udsPath: "{{ .Values.global.sds.udsPath }}"
+        enabled: {{ .Values.global.sds.enabled }}
+        token:
+          aud: {{ .Values.global.sds.token.aud }}
+      tracer:
+        {{- if eq $.Values.global.proxy.tracer "datadog" }}
+        datadog:
+          address: {{ .Values.global.tracer.datadog.address }}
+        {{- end }}
+        {{- if eq $.Values.global.proxy.tracer "lightstep" }}
+        lightstep:
+          accessToken: "{{ .Values.global.tracer.lightstep.accessToken }}"
+          address: "{{ .Values.global.tracer.lightstep.address }}"
+          secure: {{ .Values.global.tracer.lightstep.secure }}
+          cacertPath: "{{ .Values.global.tracer.lightstep.cacertPath }}"
+        {{- end }}
+        {{- if eq $.Values.global.proxy.tracer "stackdriver" }}
+        stackdriver:
+          debug: {{ .Values.global.tracer.stackdriver.debug }}
+          maxNumberOfAnnotations: {{ .Values.global.tracer.stackdriver.maxNumberOfAnnotations }}
+          maxNumberOfAttributes: {{ .Values.global.tracer.stackdriver.maxNumberOfAttributes }}
+          maxNumberOfMessageEvents: {{ .Values.global.tracer.stackdriver.maxNumberOfMessageEvents }}
+        {{- end }}
+        {{- if eq $.Values.global.proxy.tracer "zipkin" }}
+        zipkin:
+          address: "{{ .Values.global.tracer.zipkin.address }}"
+        {{- end }}
+      trustDomain: {{ .Values.global.trustDomain }}
+      useMCP: {{ .Values.global.useMCP }}
+    {{- if .Values.grafana.enabled }}
+    grafana:
+      image:
+        repository: {{ .Values.grafana.repository }}
+        tag: {{ .Values.grafana.tag }}
+    {{- end }}
+    {{- if .Values.istiocoredns.enabled }}
+    istiocoredns:
+      coreDNSImage: {{ .Values.istiocoredns.image.repository }}
+      coreDNSPluginImage: {{ .Values.istiocoredns.pluginImage }}
+      coreDNSTag: {{ .Values.istiocoredns.image.tag }}
+    {{- end }}
+    {{- if .Values.kiali.enabled }}
+    kiali:
+      contextPath: {{ .Values.kiali.contextPath }}
+      dashboard:
+        auth:
+          strategy: {{ .Values.kiali.dashboard.auth.strategy }}
+        grafanaInClusterURL: {{ .Values.kiali.dashboard.grafanaInClusterURL }}
+        jaegerInClusterURL: {{ .Values.kiali.dashboard.jaegerInClusterURL }}
+      hub: {{ .Values.kiali.hub }}
+      tag: {{ .Values.kiali.tag }}
+      prometheusAddr: {{ .Values.kiali.prometheusAddr }}
+    {{- end }}
+    mixer:
+      {{- if .Values.policy.enabled }}
+      policy:
+        image: {{ .Values.policy.image }}
+      {{- end }}
+      {{- if .Values.telemetry.enabled }}
+      telemetry:
+        image: {{ .Values.telemetry.image }}
+      {{- end }}
+    {{- if .Values.pilot.enabled }}
+    pilot:
+      image: {{ .Values.pilot.image }}
+    {{- end }}
+    {{- if .Values.prometheus.enabled }}
+    prometheus:
+      hub: {{ .Values.prometheus.hub }}
+      tag: {{ .Values.prometheus.tag }}
+    {{- end }}
+    sidecarInjectorWebhook:
+      enableNamespacesByDefault:
+        {{ .Values.sidecarInjectorWebhook.enableNamespacesByDefault }}
+      injectLabel: istio-injection
+      objectSelector:
+        autoInject:
+          {{ .Values.sidecarInjectorWebhook.objectSelector.autoInject }}
+        enabled: {{ .Values.sidecarInjectorWebhook.objectSelector.enabled }}
+    tracing:
+      jaeger:
+        hub: {{ .Values.tracing.jaeger.hub }}
+        tag: "{{ .Values.tracing.jaeger.tag }}"
+      zipkin:
+        hub: {{ .Values.tracing.zipkin.hub }}
+        tag: {{ .Values.tracing.zipkin.tag }}
+    version: ""

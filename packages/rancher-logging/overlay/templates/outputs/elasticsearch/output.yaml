@@ -1,0 +1,43 @@
+{{- if .Values.elasticsearch.enabled }}
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: ClusterOutput
+metadata:
+  name: {{ .Release.Name }}-elasticsearch
+spec:
+  elasticsearch:
+    host: {{ .Values.elasticsearch.host }}
+    port: {{ .Values.elasticsearch.port }}
+    scheme: {{ .Values.elasticsearch.scheme }}
+    index_name: {{ .Values.elasticsearch.index_name }}
+  {{- if .Values.elasticsearch.user }}
+user: {{ .Values.elasticsearch.user }}
+  {{- end}}
+  {{- if .Values.elasticsearch.password }}
+password:
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Release.Name }}-elasticsearch
+      key: "password"
+  {{- end}}
+  {{- if .Values.elasticsearch.client_cert }}
+client_cert:
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Release.Name }}-elasticsearch
+      key: "client_cert"
+  {{- end}}
+  {{- if .Values.elasticsearch.client_key }}
+client_key:
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Release.Name }}-elasticsearch
+      key: "client_key"
+  {{- end}}
+  {{- if .Values.elasticsearch.client_key_pass }}
+client_key_pass:
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Release.Name }}-elasticsearch
+      key: "client_key_pass"
+  {{- end}}
+  {{- end }}
