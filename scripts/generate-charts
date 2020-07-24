@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -e
+
+add=0
+for f in packages/*; do
+	if [[ -z $CHART || $CHART == $(basename -- ${f}) ]]; then
+		mkdir -p docs/$(basename -- ${f})
+		if [[ -d ${f}/overlay ]]; then
+			cp -R ${f}/overlay/* ${f}/charts
+		fi
+		if [[ -f ${f}/package.yaml ]]; then
+			version=$(yq r ${f}/charts/Chart.yaml version)
+			packageVersion=$(yq r ${f}/package.yaml packageVersion)
+			yq w -i ${f}/charts/Chart.yaml 'version' "${version}${packageVersion}"
+		fi
+		helm package ${f}/charts --destination docs/$(basename -- ${f})
+		git checkout docs/$(basename -- ${f})/"$(basename -- ${f})-$(yq r ${f}/charts/Chart.yaml version).tgz" || true
+	fi
+done
+
+if [[ -n $(git ls-files --other | grep "tgz") ]]; then
+	helm repo index --merge ./docs/index.yaml --url https://charts.rancher.io docs
+fi

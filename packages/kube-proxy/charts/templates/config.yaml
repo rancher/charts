@@ -1,0 +1,69 @@
+---
+apiVersion: v1
+data:
+  config.conf: |-
+    apiVersion: kubeproxy.config.k8s.io/v1alpha1
+    bindAddress: {{ .Values.bindAddress | quote }}
+    clientConnection:
+      acceptContentTypes: {{ .Values.clientConnection.acceptContentTypes | quote }}
+      burst: {{ .Values.clientConnection.burst }}
+      contentType: {{ .Values.clientConnection.contentType | quote }}
+      kubeconfig: {{ .Values.clientConnection.kubeconfig | quote }}
+      qps: {{ .Values.clientConnection.qps }} 
+    clusterCIDR: {{ .Values.clusterCIDR | quote }} 
+    configSyncPeriod: {{ .Values.configSyncPeriod }}
+    conntrack:
+      maxPerCore: {{ .Values.conntrack.maxPerCore }}
+      min: {{ .Values.conntrack.min }}
+      tcpCloseWaitTimeout: {{ .Values.conntrack.tcpCloseWaitTimeout | quote }}
+      tcpEstablishedTimeout: {{ .Values.conntrack.tcpEstablishedTimeout | quote }}
+    detectLocalMode: {{ .Values.detectLocalMode | quote }}
+    enableProfiling: {{ .Values.enableProfiling | quote }}
+    healthzBindAddress: {{ .Values.healthzBindAddress | quote }}
+    hostnameOverride: {{ .Values.hostnameOverride | quote }}
+    iptables:
+      masqueradeAll: {{ .Values.iptables.masqueradeAll | quote }}
+      masqueradeBit: {{ .Values.iptables.masqueradeBit }}
+      {{ if .Values.iptables.minSyncPeriod }}
+      minSyncPeriod: {{ .Values.iptables.minSyncPeriod }}
+      {{ end }}
+      syncPeriod: {{ .Values.iptables.syncPeriod }}
+    ipvs:
+      excludeCIDRs: {{ .Values.ipvs.excludeCIDRs | quote }}
+      {{ if .Values.ipvs.minSyncPeriod }}
+      minSyncPeriod: {{ .Values.ipvs.minSyncPeriod }}
+      {{ end }}
+      scheduler: {{ .Values.ipvs.scheduler | quote }}
+      strictARP: {{ .Values.ipvs.strictARP | quote }}
+      syncPeriod: {{ .Values.ipvs.syncPeriod }}
+      {{ if .Values.ipvs.tcpFinTimeout }}
+      tcpFinTimeout: {{ .Values.ipvs.tcpFinTimeout }}
+      {{ end }}
+      {{ if .Values.ipvs.tcpTimeout }}
+      tcpTimeout: {{ .Values.ipvs.tcpTimeout }}
+      {{ end }}
+      {{ if .Values.ipvs.udpTimeout }}
+      udpTimeout: {{ .Values.ipvs.udpTimeout }}
+      {{ end }}
+    kind: KubeProxyConfiguration
+    metricsBindAddress: {{ .Values.metricsBindAddresses | quote }}
+    mode: {{ .Values.proxy.mode | quote }}
+    nodePortAddresses: null
+    oomScoreAdj: {{ .Values.oomScoreAdj }}
+    portRange: {{ .Values.proxy.portRange | quote }}
+    showHiddenMetricsForVersion: {{ .Values.showHiddenMetricsForVersion | quote }}
+    udpIdleTimeout: {{ .Values.udpTimeout | quote }}
+    featureGates:
+    {{- range  $key, $value := .Values.featureGates }}
+      {{ $key }}: {{ $value }}
+    {{- end }}
+    winkernel:
+      enableDSR: false
+      networkName: ""
+      sourceVip: ""
+kind: ConfigMap
+metadata:
+  labels:
+    app: kube-proxy
+  name: kube-proxy
+  namespace: kube-system
