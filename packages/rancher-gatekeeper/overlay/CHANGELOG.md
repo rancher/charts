@@ -11,3 +11,4 @@ All notable changes from the upstream OPA Gatekeeper chart will be added to this
 - Removed the following files as the `gatekeeper-webhook-service` was removed in our previous version of the chart
     - `gatekeeper-validating-webhook-configuration-validatingwebhookconfiguration.yaml`
     - `gatekeeper-webhook-service-service.yaml`
+- Removed `gatekeeper-system-namespace.yaml` as Rancher handles namespaces for chart installation
