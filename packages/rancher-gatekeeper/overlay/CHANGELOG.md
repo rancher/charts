@@ -12,3 +12,8 @@ All notable changes from the upstream OPA Gatekeeper chart will be added to this
     - `gatekeeper-validating-webhook-configuration-validatingwebhookconfiguration.yaml`
     - `gatekeeper-webhook-service-service.yaml`
 - Removed `gatekeeper-system-namespace.yaml` as Rancher handles namespaces for chart installation
+- Removed the following crds as they will reside in a separate chart
+    - `config-customresourcedefinition.yaml`                                          
+    - `constraintpodstatus-customresourcedefinition.yaml`                             
+    - `constrainttemplate-customresourcedefinition.`                              
+    - `constrainttemplatepodstatus-customresourcedefinition.yaml`
