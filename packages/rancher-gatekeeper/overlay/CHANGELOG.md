@@ -17,3 +17,4 @@ All notable changes from the upstream OPA Gatekeeper chart will be added to this
     - `constraintpodstatus-customresourcedefinition.yaml`                             
     - `constrainttemplate-customresourcedefinition.`                              
     - `constrainttemplatepodstatus-customresourcedefinition.yaml`
+- Removed unnecessary `index.yaml` as we package and host our charts
