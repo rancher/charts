@@ -3,6 +3,7 @@ All notable changes from the upstream OPA Gatekeeper chart will be added to this
 
 ## [Package Version 00] - 2020-07-27
 ### Added
+- Added `validate_crds_installed.yaml` to validate crds are installed before installing racher-gatekeeper
 
 ### Modified
 - Updated chart version in `Chart.yaml` to follow the upstream's format `v3.1.0-beta.X`
