@@ -11,6 +11,7 @@ All notable changes from the upstream OPA Gatekeeper chart will be added to this
 ### Modified
 - Updated chart version in `Chart.yaml` to follow the upstream's format `v3.1.0-beta.X`
 - Updated namespace to `cattle-gatekeeper-system`
+- Updated `rancher/istio-kubectl` image to `1.5.8`
 
 ### Removed
 - Removed the following files as the `gatekeeper-webhook-service` was removed in our previous version of the chart
