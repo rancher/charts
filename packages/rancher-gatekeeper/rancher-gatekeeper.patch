@@ -17,7 +17,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/Cha
 +annotations:
 +  catalog.cattle.io/certified: rancher
 +  catalog.cattle.io/experimental: true
-+  catalog.cattle.io/namespace: gatekeeper-system
++  catalog.cattle.io/namespace: cattle-gatekeeper-system
 +  catalog.cattle.io/release-name: rancher-gatekeeper
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/templates/_helpers.tpl packages/rancher-gatekeeper/charts/templates/_helpers.tpl
 --- packages/rancher-gatekeeper/charts-original/templates/_helpers.tpl
@@ -73,9 +73,27 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/tem
 +          not any(satisfied)
 +          msg := sprintf("container <%v> has an invalid image repo <%v>, allowed repos are %v", [container.name, container.image, input.parameters.repos])
 +        }
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/templates/gatekeeper-admin-serviceaccount.yaml packages/rancher-gatekeeper/charts/templates/gatekeeper-admin-serviceaccount.yaml
+--- packages/rancher-gatekeeper/charts-original/templates/gatekeeper-admin-serviceaccount.yaml
++++ packages/rancher-gatekeeper/charts/templates/gatekeeper-admin-serviceaccount.yaml
+@@ -8,4 +8,4 @@
+     heritage: '{{ .Release.Service }}'
+     release: '{{ .Release.Name }}'
+   name: gatekeeper-admin
+-  namespace: gatekeeper-system
++  namespace: '{{ .Release.Namespace }}'
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/templates/gatekeeper-audit-deployment.yaml packages/rancher-gatekeeper/charts/templates/gatekeeper-audit-deployment.yaml
 --- packages/rancher-gatekeeper/charts-original/templates/gatekeeper-audit-deployment.yaml
 +++ packages/rancher-gatekeeper/charts/templates/gatekeeper-audit-deployment.yaml
+@@ -10,7 +10,7 @@
+     heritage: '{{ .Release.Service }}'
+     release: '{{ .Release.Name }}'
+   name: gatekeeper-audit
+-  namespace: gatekeeper-system
++  namespace: '{{ .Release.Namespace }}'
+ spec:
+   replicas: 1
+   selector:
 @@ -58,7 +58,7 @@
            valueFrom:
              fieldRef:
@@ -88,6 +106,15 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/tem
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/templates/gatekeeper-controller-manager-deployment.yaml packages/rancher-gatekeeper/charts/templates/gatekeeper-controller-manager-deployment.yaml
 --- packages/rancher-gatekeeper/charts-original/templates/gatekeeper-controller-manager-deployment.yaml
 +++ packages/rancher-gatekeeper/charts/templates/gatekeeper-controller-manager-deployment.yaml
+@@ -10,7 +10,7 @@
+     heritage: '{{ .Release.Service }}'
+     release: '{{ .Release.Name }}'
+   name: gatekeeper-controller-manager
+-  namespace: gatekeeper-system
++  namespace: '{{ .Release.Namespace }}'
+ spec:
+   replicas: {{ .Values.replicas }}
+   selector:
 @@ -67,7 +67,7 @@
            valueFrom:
              fieldRef:
@@ -97,6 +124,91 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/tem
          imagePullPolicy: '{{ .Values.image.pullPolicy }}'
          livenessProbe:
            httpGet:
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/templates/gatekeeper-manager-role-role.yaml packages/rancher-gatekeeper/charts/templates/gatekeeper-manager-role-role.yaml
+--- packages/rancher-gatekeeper/charts-original/templates/gatekeeper-manager-role-role.yaml
++++ packages/rancher-gatekeeper/charts/templates/gatekeeper-manager-role-role.yaml
+@@ -9,7 +9,7 @@
+     heritage: '{{ .Release.Service }}'
+     release: '{{ .Release.Name }}'
+   name: gatekeeper-manager-role
+-  namespace: gatekeeper-system
++  namespace: '{{ .Release.Namespace }}'
+ rules:
+ - apiGroups:
+   - ""
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/templates/gatekeeper-manager-rolebinding-clusterrolebinding.yaml packages/rancher-gatekeeper/charts/templates/gatekeeper-manager-rolebinding-clusterrolebinding.yaml
+--- packages/rancher-gatekeeper/charts-original/templates/gatekeeper-manager-rolebinding-clusterrolebinding.yaml
++++ packages/rancher-gatekeeper/charts/templates/gatekeeper-manager-rolebinding-clusterrolebinding.yaml
+@@ -15,4 +15,4 @@
+ subjects:
+ - kind: ServiceAccount
+   name: gatekeeper-admin
+-  namespace: gatekeeper-system
++  namespace: '{{ .Release.Namespace }}'
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/templates/gatekeeper-manager-rolebinding-rolebinding.yaml packages/rancher-gatekeeper/charts/templates/gatekeeper-manager-rolebinding-rolebinding.yaml
+--- packages/rancher-gatekeeper/charts-original/templates/gatekeeper-manager-rolebinding-rolebinding.yaml
++++ packages/rancher-gatekeeper/charts/templates/gatekeeper-manager-rolebinding-rolebinding.yaml
+@@ -8,7 +8,7 @@
+     heritage: '{{ .Release.Service }}'
+     release: '{{ .Release.Name }}'
+   name: gatekeeper-manager-rolebinding
+-  namespace: gatekeeper-system
++  namespace: '{{ .Release.Namespace }}'
+ roleRef:
+   apiGroup: rbac.authorization.k8s.io
+   kind: Role
+@@ -16,4 +16,4 @@
+ subjects:
+ - kind: ServiceAccount
+   name: gatekeeper-admin
+-  namespace: gatekeeper-system
++  namespace: '{{ .Release.Namespace }}'
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/templates/gatekeeper-system-namespace.yaml packages/rancher-gatekeeper/charts/templates/gatekeeper-system-namespace.yaml
+--- packages/rancher-gatekeeper/charts-original/templates/gatekeeper-system-namespace.yaml
++++ packages/rancher-gatekeeper/charts/templates/gatekeeper-system-namespace.yaml
+@@ -1,12 +0,0 @@
+-apiVersion: v1
+-kind: Namespace
+-metadata:
+-  labels:
+-    admission.gatekeeper.sh/ignore: no-self-managing
+-    app: '{{ template "gatekeeper.name" . }}'
+-    chart: '{{ template "gatekeeper.name" . }}'
+-    control-plane: controller-manager
+-    gatekeeper.sh/system: "yes"
+-    heritage: '{{ .Release.Service }}'
+-    release: '{{ .Release.Name }}'
+-  name: gatekeeper-system
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/templates/gatekeeper-validating-webhook-configuration-validatingwebhookconfiguration.yaml packages/rancher-gatekeeper/charts/templates/gatekeeper-validating-webhook-configuration-validatingwebhookconfiguration.yaml
+--- packages/rancher-gatekeeper/charts-original/templates/gatekeeper-validating-webhook-configuration-validatingwebhookconfiguration.yaml
++++ packages/rancher-gatekeeper/charts/templates/gatekeeper-validating-webhook-configuration-validatingwebhookconfiguration.yaml
+@@ -15,7 +15,7 @@
+     caBundle: Cg==
+     service:
+       name: gatekeeper-webhook-service
+-      namespace: gatekeeper-system
++      namespace: '{{ .Release.Namespace }}'
+       path: /v1/admit
+   failurePolicy: Ignore
+   name: validation.gatekeeper.sh
+@@ -41,7 +41,7 @@
+     caBundle: Cg==
+     service:
+       name: gatekeeper-webhook-service
+-      namespace: gatekeeper-system
++      namespace: '{{ .Release.Namespace }}'
+       path: /v1/admitlabel
+   failurePolicy: Fail
+   name: check-ignore-label.gatekeeper.sh
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/templates/gatekeeper-webhook-server-cert-secret.yaml packages/rancher-gatekeeper/charts/templates/gatekeeper-webhook-server-cert-secret.yaml
+--- packages/rancher-gatekeeper/charts-original/templates/gatekeeper-webhook-server-cert-secret.yaml
++++ packages/rancher-gatekeeper/charts/templates/gatekeeper-webhook-server-cert-secret.yaml
+@@ -8,4 +8,4 @@
+     heritage: '{{ .Release.Service }}'
+     release: '{{ .Release.Name }}'
+   name: gatekeeper-webhook-server-cert
+-  namespace: gatekeeper-system
++  namespace: '{{ .Release.Namespace }}'
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/templates/gatekeeper-webhook-service-service.yaml packages/rancher-gatekeeper/charts/templates/gatekeeper-webhook-service-service.yaml
 --- packages/rancher-gatekeeper/charts-original/templates/gatekeeper-webhook-service-service.yaml
 +++ packages/rancher-gatekeeper/charts/templates/gatekeeper-webhook-service-service.yaml
