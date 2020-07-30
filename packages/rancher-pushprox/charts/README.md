@@ -2,7 +2,7 @@
 
 A Rancher chart based on Rancher [PushProx](https://github.com/rancher/PushProx) that sets up a Deployment of a PushProx proxy and a DaemonSet of PushProx clients on a Kubernetes cluster.
 
-Installs [rancher-pushprox](https://github.com/rancher/dev-charts/tree/master/packages/rancher-pushprox) to create PushProx clients that can access their host's network and register with a PushProx proxy. A [Prometheus Operator](https://github.com/coreos/prometheus-operator) ServiceMonitor CR is also included that is configured to scrape the metrics from each of the clients through the proxy.
+Installs [rancher-pushprox](https://github.com/rancher/charts/tree/gh-pages/packages/rancher-pushprox) to create PushProx clients that can access their host's network and register with a PushProx proxy. A [Prometheus Operator](https://github.com/coreos/prometheus-operator) ServiceMonitor CR is also included that is configured to scrape the metrics from each of the clients through the proxy.
 
 Using an instance of this chart is suitable for the following scenarios:
 - You need to scrape metrics from a port that should not be accessible outside of the host (e.g. scraping `etcd` metrics in a hardened cluster)
@@ -51,4 +51,4 @@ The following tables list the configurable parameters of the rancher-pushprox ch
 
 *Tip: The filepaths set in `clients.https.<cert|key|caCert>File` can include wildcard characters*. 
 
-See [rancher-monitoring](https://github.com/rancher/dev-charts/tree/master/packages/rancher-monitoring) for examples of how this chart can be used.
+See [rancher-monitoring](https://github.com/rancher/charts/tree/gh-pages/packages/rancher-monitoring) for examples of how this chart can be used.
