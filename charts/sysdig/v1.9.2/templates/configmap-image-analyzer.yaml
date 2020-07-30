@@ -1,0 +1,34 @@
+{{- if .Values.nodeImageAnalyzer.deploy }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "sysdig.fullname" . }}-image-analyzer
+  labels:
+{{ include "sysdig.labels" . | indent 4 }}
+data:
+  debug: "{{ .Values.nodeImageAnalyzer.settings.debug | default false }}"
+  {{- if .Values.nodeImageAnalyzer.settings.imagePeriod }}
+  image_period: {{ .Values.nodeImageAnalyzer.settings.imagePeriod }}
+  {{- end }}
+  {{- if .Values.nodeImageAnalyzer.settings.imageCacheTTL }}
+  image_cache_ttl: {{ .Values.nodeImageAnalyzer.settings.imageCacheTTL }}
+  {{- end }}
+  {{- if .Values.nodeImageAnalyzer.settings.reportPeriod }}
+  report_period: {{ .Values.nodeImageAnalyzer.settings.reportPeriod }}
+  {{- end }}
+  {{- if .Values.nodeImageAnalyzer.settings.dockerSocketPath }}
+  docker_socket_path: {{ .Values.nodeImageAnalyzer.settings.dockerSocketPath }}
+  {{- end }}
+  {{- if .Values.nodeImageAnalyzer.settings.criSocketPath }}
+  cri_socket_path: {{ .Values.nodeImageAnalyzer.settings.criSocketPath }}
+  {{- end }}
+  {{- if .Values.nodeImageAnalyzer.settings.collectorEndpoint }}
+  collector_endpoint: {{ .Values.nodeImageAnalyzer.settings.collectorEndpoint }}
+  {{- end }}
+  {{- if .Values.nodeImageAnalyzer.settings.checkCertificate }}
+  check_certificate: {{ .Values.nodeImageAnalyzer.settings.checkCertificate }}
+  {{- end }}
+  {{- if .Values.nodeImageAnalyzer.settings.collectorTimeout }}
+  collector_timeout: {{ .Values.nodeImageAnalyzer.settings.collectorTimeout }}
+  {{- end }}
+{{- end }}

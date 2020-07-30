@@ -1,0 +1,148 @@
+{{- if .Values.nodeImageAnalyzer.deploy }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ template "sysdig.fullname" . }}-image-analyzer
+  labels:
+    app.kubernetes.io/name: {{ include "sysdig.name" . }}-image-analyzer
+{{ include "sysdig.labels" . | indent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "sysdig.name" . }}-image-analyzer
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      name: {{ template "sysdig.fullname" . }}-image-analyzer
+      labels:
+        app.kubernetes.io/name: {{ include "sysdig.name" . }}-image-analyzer
+{{ include "sysdig.labels" . | indent 8 }}
+    spec:
+      volumes:
+        # Needed for cri-o image inspection.
+        # cri-o and especially OCP 4.x by default use containers/storage to handle images, and this makes sure that the
+        # analyzer has access to the configuration. This file is mounted read-only.
+        - name: etc-containers-storage-vol
+          hostPath:
+            path: /etc/containers/storage.conf
+        # Needed for cri-o image inspection.
+        # This is the directory where image data is stored by default when using cri-o and OCP 4.x and the analyzer
+        # uses it to get the data to scan. This directory must be mounted r/w because proper access to its files through
+        # the containers/storage library is always regulated with a lockfile.
+        - name: var-lib-containers-vol
+          hostPath:
+            path: /var/lib/containers
+        # Needed for socket access
+        - name: varrun-vol
+          hostPath:
+            path: /var/run
+        # Add custom volume here
+        - name: sysdig-image-analyzer-config
+          configMap:
+            name: {{ template "sysdig.fullname" . }}-image-analyzer
+            optional: true
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+      # The following line is necessary for RBAC
+      serviceAccount: {{ template "sysdig.serviceAccountName" .}}
+      {{- if .Values.nodeImageAnalyzer.image.pullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.nodeImageAnalyzer.image.pullSecrets | indent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: 5
+      containers:
+      - name: sysdig-image-analyzer
+        image: {{ template "sysdig.image.nodeImageAnalyzer" . }}
+        securityContext:
+          # The privileged flag is necessary for OCP 4.x and other Kubernetes setups that deny host filesystem access to
+          # running containers by default regardless of volume mounts. In those cases, access to the CRI socket would fail.
+          privileged: true
+        imagePullPolicy: {{ .Values.nodeImageAnalyzer.image.pullPolicy }}
+        resources:
+{{ toYaml .Values.nodeImageAnalyzer.resources | indent 10 }}
+        volumeMounts:
+          - mountPath: /var/run
+            name: varrun-vol
+          - mountPath: /etc/containers/storage.conf
+            name: etc-containers-storage-vol
+            readOnly: true
+          - mountPath: /var/lib/containers
+            name: var-lib-containers-vol
+        env:
+        - name: ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ template "sysdig.fullname" . }}
+              key: access-key
+        - name: IMAGE_PERIOD
+          valueFrom:
+            configMapKeyRef:
+              name: {{ template "sysdig.fullname" . }}-image-analyzer
+              key: image_period
+              optional: true
+        - name: IMAGE_CACHE_TTL
+          valueFrom:
+            configMapKeyRef:
+              name: {{ template "sysdig.fullname" . }}-image-analyzer
+              key: image_cache_ttl
+              optional: true
+        - name: REPORT_PERIOD
+          valueFrom:
+            configMapKeyRef:
+              name: {{ template "sysdig.fullname" . }}-image-analyzer
+              key: report_period
+              optional: true
+        - name: DOCKER_SOCKET_PATH
+          valueFrom:
+            configMapKeyRef:
+              name: {{ template "sysdig.fullname" . }}-image-analyzer
+              key: docker_socket_path
+              optional: true
+        - name: CRI_SOCKET_PATH
+          valueFrom:
+            configMapKeyRef:
+              name: {{ template "sysdig.fullname" . }}-image-analyzer
+              key: cri_socket_path
+              optional: true
+        #TODO: Get from agent config instead?
+        - name: AM_COLLECTOR_ENDPOINT
+          valueFrom:
+            configMapKeyRef:
+              name: {{ template "sysdig.fullname" . }}-image-analyzer
+              key: collector_endpoint
+              optional: true
+        #TODO: Get from agent config instead?
+        - name: AM_COLLECTOR_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: {{ template "sysdig.fullname" . }}-image-analyzer
+              key: collector_timeout
+              optional: true
+        - name: CHECK_CERTIFICATE
+          valueFrom:
+            configMapKeyRef:
+              name: {{ template "sysdig.fullname" . }}-image-analyzer
+              key: check_certificate
+              optional: true
+        - name: K8S_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: K8S_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: K8S_POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: DEBUG
+          valueFrom:
+            configMapKeyRef:
+              name: {{ template "sysdig.fullname" . }}-image-analyzer
+              key: debug
+              optional: true
+{{- end }}

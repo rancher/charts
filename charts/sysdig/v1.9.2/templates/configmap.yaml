@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "sysdig.fullname" . }}
+  labels:
+{{ include "sysdig.labels" . | indent 4 }}
+data:
+  dragent.yaml: |
+    new_k8s: true
+{{- $clusterName := include "get_or_fail_if_in_settings" (dict "root" . "key" "clusterName" "setting" "k8s_cluster_name")}}
+{{- if $clusterName }}
+    k8s_cluster_name: {{ $clusterName }}
+{{- end }}
+{{- if or .Values.secure.enabled .Values.auditLog.enabled }}
+    security:
+  {{- if .Values.auditLog.enabled }}
+      k8s_audit_server_url: {{ .Values.auditLog.auditServerUrl }}
+      k8s_audit_server_port: {{ .Values.auditLog.auditServerPort }}
+  {{- end }}
+  {{- if .Values.secure.enabled }}
+      enabled: true
+    commandlines_capture:
+      enabled: true
+    memdump:
+      enabled: true
+  {{- end }}
+{{- end }}
+{{- $disableCaptures := include "get_or_fail_if_in_settings" (dict "root" . "key" "sysdig.disableCaptures" "setting" "sysdig_capture_enabled")}}
+{{- if eq $disableCaptures "true" }}
+    sysdig_capture_enabled: false 
+{{- end }}
+{{- $collectorHost := include "get_or_fail_if_in_settings" (dict "root" . "key" "collectorSettings.collectorHost" "setting" "collector")}}
+{{- if $collectorHost }}
+    collector: {{ $collectorHost }}
+{{- end }}
+{{- $collectorPort := include "get_or_fail_if_in_settings" (dict "root" . "key" "collectorSettings.collectorPort" "setting" "collector_port")}}
+{{- if $collectorPort }}
+    collector_port: {{ $collectorPort }}
+{{- end }}
+{{- $ssl := include "get_or_fail_if_in_settings" (dict "root" . "key" "collectorSettings.ssl" "setting" "ssl")}}
+{{- if $ssl }}
+    ssl: {{ $ssl }}
+{{- end }}
+{{- $sslVerifyCertificate := include "get_or_fail_if_in_settings" (dict "root" . "key" "collectorSettings.sslVerifyCertificate" "setting" "ssl_verify_certificate")}}
+{{- if $sslVerifyCertificate }}
+    ssl_verify_certificate: {{ $sslVerifyCertificate }}
+{{- end }}
+{{- if .Values.sysdig.settings }}
+{{ toYaml .Values.sysdig.settings | indent 4 }}
+{{- end }}
+{{- if .Values.prometheus.file }}
+  prometheus.yaml: |
+{{ toYaml .Values.prometheus.yaml | indent 4 }}
+{{- end }}
