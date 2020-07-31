@@ -1,0 +1,921 @@
+categories:
+- storage
+namespace: kube-system
+labels:
+  io.rancher.certified: partner
+questions:
+
+################################### KVDB options ################################
+- variable: etcdType
+  label: "Select ETCD"
+  type: enum
+  required: true
+  group: "Key value store parameters (Required)"
+  options:
+    - "Provide your own etcd"
+    - "Built-in"
+
+# ------ "Provide your own etcd" ------
+- variable: ownEtcdOption
+  show_if: "etcdType=Provide your own etcd"
+  label: "Select one of 2 options for your ETCD cluster"
+  type: enum
+  required: true
+  group: "Key value store parameters (Required)"
+  options:
+      - "Your etcd details"
+      - "Portworx hosted (for PoCs only)"
+
+- variable: etcdAuth
+  show_if: "ownEtcdOption=Your etcd details&&etcdType=Provide your own etcd"
+  label: "Select an auth option for your ETCD cluster"
+  type: enum
+  default: "Disable HTTPS"
+  required: true
+  group: "Key value store parameters (Required)"
+  options:
+    - "Disable HTTPS"
+    - "Certificate Auth"
+    - "Password Auth"
+
+- variable: region
+  show_if: "ownEtcdOption=Portworx hosted (for PoCs only)"
+  label: "Select region"
+  type: enum
+  required: true
+  group: "Key value store parameters (Required)"
+  options:
+    - "US region"
+    - "EU region"
+
+# kvdb endpoint
+- variable: kvdb
+  show_if: "ownEtcdOption=Your etcd details"
+  description: "Enter your etcd or Consul endpoints separated by semicolons. Use the following as an example: etcd://myetc1.company.com:2379;etcd://myetc2.company.com.2379. Note: If the `etcdAuth` key is set to 'Disable HTTPS', you must provide HTTP endpoints."
+  type: string
+  label: "Endpoint address"
+  required: true
+  group: "Key value store parameters (Required)"
+
+- variable: etcd.ca
+  show_if: "etcdAuth=Certificate Auth"
+  description: "Name of CA file for ETCD authentication. Example: etcd-ca.crt. Follow https://docs.portworx.com/scheduler/kubernetes/etcd-certs-using-secrets.html to create a Kubernetes secret for the etcd certs."
+  type: string
+  required: true
+  label: "ETCD CA file"
+  group: "Key value store security Parameters (Details in README)"
+
+- variable: etcd.cert
+  show_if: "etcdAuth=Certificate Auth"
+  description: "Name of certificate for ETCD authentication. Example: etcd.crt"
+  type: string
+  required: true
+  label: "ETCD cert file"
+  group: "Key value store security Parameters (Details in README)"
+
+- variable: etcd.key
+  show_if: "etcdAuth=Certificate Auth"
+  description: "Name of certificate key for ETCD authentication Example: etcd.key"
+  type: string
+  required: true
+  label: "ETCD cert key file"
+  group: "Key value store security Parameters (Details in README)"
+
+- variable: etcd.credentials
+  show_if: "etcdAuth=Password Auth"
+  description: "Username and password for ETCD authentication in the form user:password. Not needed if using certificates."
+  type: string
+  required: true
+  label: "ETCD credentials"
+  group: "Key value store security Parameters (Details in README)"
+
+################################### Storage options ################################
+- variable: environment
+  description: "Select your environment"
+  label: "Environment"
+  type: enum
+  default: "OnPrem"
+  required: true
+  group: "Storage Parameters"
+  options:
+    - "OnPrem"
+    - "Cloud"
+
+- variable: provider
+  show_if: "environment=Cloud"
+  description: "Select cloud platform"
+  label: "Cloud provider"
+  type: enum
+  required: true
+  group: "Storage Parameters"
+  options:
+    - "AWS"
+    - "Google cloud/GKE"
+
+- variable: onpremStorage
+  show_if: "environment=OnPrem"
+  type: enum
+  default: "Automatically scan disks"
+  label: "Select type of OnPrem storage"
+  group: "Storage Parameters"
+  required: true
+  options:
+    - "Automatically scan disks"
+    - "Manually specify disks"
+
+- variable: deviceConfig
+  show_if: "environment=Cloud"
+  description: "If you plan to use EC2 instance storage or plan to manage EBS volumes your own way, select 'Consume unused' or 'Use Existing disks'."
+  label: "Select a type of disk"
+  type: enum
+  default: "Create Using a Spec"
+  required: true
+  group: "Storage Parameters"
+  options:
+    - "Create Using a Spec"
+    - "Consume Unused"
+    - "Use Existing Disks"
+    -
+- variable: journalDevice
+  description: "This allows PX to create it’s own journal partition on the best drive to absorb PX metadata writes. Journal writes are small with frequent syncs and hence a separate journal partition will enable better performance. Use value 'auto' if you want Portworx to create it's own journal partition."
+  type: string
+  label: "Journal Device"
+  group: "Storage Parameters"
+
+############ Consume unused ##############
+- variable: usedrivesAndPartitions
+  show_if: "deviceConfig=Consume Unused||onpremStorage=Automatically scan disks"
+  label: "Use unmounted drives and partitions"
+  descrition: "Use unmounted disks even if they have a partition or filesystem on it. PX will never use a drive or partition that is mounted."
+  type: boolean
+  default: false
+  group: "Storage Parameters"
+
+
+############ Use Exising Disks ##############
+- variable: existingDisk1
+  show_if: "deviceConfig=Use Existing Disks||onpremStorage=Manually specify disks"
+  label: "Drive/Device1"
+  description: "Enter the block/device name; eg: /dev/sda"
+  type: string
+  required: true
+  group: "Storage Parameters"
+
+- variable: addExistingDisk2
+  show_if: "deviceConfig=Use Existing Disks||onpremStorage=Manually specify disks"
+  label: "Add another drive?"
+  type: boolean
+  default: false
+  group: "Storage Parameters"
+
+- variable: existingDisk2
+  show_if: "addExistingDisk2=true"
+  label: "Drive/Device2"
+  description: "Enter the block/device name; eg: /dev/sda"
+  type: string
+  required: true
+  group: "Storage Parameters"
+
+- variable: addExistingDisk3
+  show_if: "addExistingDisk2=true"
+  label: "Add another drive?"
+  type: boolean
+  default: false
+  group: "Storage Parameters"
+
+- variable: existingDisk3
+  show_if: "addExistingDisk3=true"
+  label: "Drive/Device3"
+  description: "Enter the block/device name; eg: /dev/sda"
+  type: string
+  required: true
+  group: "Storage Parameters"
+
+- variable: addExistingDisk4
+  show_if: "addExistingDisk3=true"
+  label: "Add another drive?"
+  type: boolean
+  default: false
+  group: "Storage Parameters"
+
+- variable: existingDisk4
+  show_if: "addExistingDisk4=true"
+  label: "Drive/Device4"
+  description: "Enter the block/device name; eg: /dev/sda"
+  type: string
+  required: true
+  group: "Storage Parameters"
+
+- variable: addExistingDisk5
+  show_if: "addExistingDisk4=true"
+  label: "Add another drive?"
+  type: boolean
+  default: false
+  group: "Storage Parameters"
+
+- variable: existingDisk5
+  show_if: "addExistingDisk5=true"
+  label: "Drive/Device5"
+  description: "Enter the block/device name; eg: /dev/sda"
+  type: string
+  required: true
+  group: "Storage Parameters"
+
+##################################################### Cloud ################################
+
+##################################################### AWS ################################
+
+### Section 1 AWS
+- variable: drive_1.aws.type
+  show_if: "provider=AWS&&deviceConfig=Create Using a Spec"
+  description: "Select the type of EBS volume"
+  label: "EBS volume"
+  type: enum
+  default: "GP2"
+  required: true
+  show_subquestion_if: "IO1"
+  group: "Storage Parameters"
+  options:
+  - "GP2"
+  - "IO1"
+  subquestions:
+  - variable: drive_1.aws.iops
+    required: true
+    description: "*IOPS required from EBS volume"
+    type: int
+    label: IOPS
+
+- variable: drive_1.aws.size
+  show_if: "provider=AWS&&deviceConfig=Create Using a Spec"
+  description: "Volume size"
+  label: "Size"
+  type: int
+  default: 150
+  required: true
+  group: "Storage Parameters"
+
+### Section 2 AWS
+- variable: addEBSDrive_2
+  show_if: "provider=AWS&&deviceConfig=Create Using a Spec"
+  label: "Add another drive?"
+  type: boolean
+  default: false
+  group: "Storage Parameters"
+
+- variable: drive_2.aws.type
+  show_if: "addEBSDrive_2=true"
+  description: "Select the type of EBS volume"
+  label: "EBS volume"
+  type: enum
+  required: true
+  show_subquestion_if: "IO1"
+  group: "Storage Parameters"
+  options:
+    - "GP2"
+    - "IO1"
+  subquestions:
+    - variable: drive_2.aws.iops
+      required: true
+      description: "*IOPS required from EBS volume"
+      type: int
+      label: IOPS
+
+- variable: drive_2.aws.size
+  show_if: "addEBSDrive_2=true"
+  description: "Volume size"
+  label: "Size"
+  type: int
+  required: true
+  group: "Storage Parameters"
+
+  ### Section 3 AWS
+- variable: addEBSDrive_3
+  show_if: "addEBSDrive_2=true"
+  label: "Add another drive?"
+  type: boolean
+  default: false
+  group: "Storage Parameters"
+
+- variable: drive_3.aws.type
+  show_if: "addEBSDrive_3=true"
+  description: "Select the type of EBS volume"
+  label: "EBS volume"
+  type: enum
+  required: true
+  show_subquestion_if: "IO1"
+  group: "Storage Parameters"
+  options:
+    - "GP2"
+    - "IO1"
+  subquestions:
+    - variable: drive_3.aws.iops
+      required: true
+      description: "*IOPS required from EBS volume"
+      type: int
+      label: IOPS
+
+- variable: drive_3.aws.size
+  show_if: "addEBSDrive_3=true"
+  description: "Volume size"
+  label: "Size"
+  type: int
+  required: true
+  group: "Storage Parameters"
+
+### Section 4 AWS
+- variable: addEBSDrive_4
+  show_if: "addEBSDrive_3=true"
+  label: "Add another drive?"
+  type: boolean
+  default: false
+  group: "Storage Parameters"
+
+- variable: drive_4.aws.type
+  show_if: "addEBSDrive_4=true"
+  description: "Select the type of EBS volume"
+  label: "EBS volume"
+  type: enum
+  required: true
+  show_subquestion_if: "IO1"
+  group: "Storage Parameters"
+  options:
+    - "GP2"
+    - "IO1"
+  subquestions:
+    - variable: drive_4.aws.iops
+      required: true
+      description: "*IOPS required from EBS volume"
+      type: int
+      label: IOPS
+
+- variable: drive_4.aws.size
+  show_if: "addEBSDrive_4=true"
+  description: "Volume size"
+  label: "Size"
+  required: true
+  type: int
+  group: "Storage Parameters"
+
+### Section 5 AWS
+- variable: addEBSDrive_5
+  show_if: "addEBSDrive_4=true"
+  label: "Add another drive?"
+  type: boolean
+  default: false
+  group: "Storage Parameters"
+
+- variable: drive_5.aws.type
+  show_if: "addEBSDrive_5=true"
+  description: "Select the type of EBS volume"
+  label: "EBS volume"
+  type: enum
+  required: true
+  show_subquestion_if: "IO1"
+  group: "Storage Parameters"
+  options:
+    - "GP2"
+    - "IO1"
+  subquestions:
+    - variable: drive_5.aws.iops
+      required: true
+      description: "*IOPS required from EBS volume"
+      type: int
+      label: IOPS
+
+- variable: drive_5.aws.size
+  show_if: "addEBSDrive_5=true"
+  description: "Volume size"
+  label: "Size"
+  required: true
+  type: int
+  group: "Storage Parameters"
+
+### Section 6 AWS
+- variable: addEBSDrive_6
+  show_if: "addEBSDrive_5=true"
+  label: "Add another drive?"
+  type: boolean
+  default: false
+  group: "Storage Parameters"
+
+- variable: drive_6.aws.type
+  show_if: "addEBSDrive_6=true"
+  description: "Select the type of EBS volume"
+  label: "EBS volume"
+  type: enum
+  required: true
+  show_subquestion_if: "IO1"
+  group: "Storage Parameters"
+  options:
+    - "GP2"
+    - "IO1"
+  subquestions:
+    - variable: drive_6.aws.iops
+      required: true
+      description: "*IOPS required from EBS volume"
+      type: int
+      label: IOPS
+
+- variable: drive_6.aws.size
+  show_if: "addEBSDrive_6=true"
+  description: "Volume size"
+  label: "Size"
+  required: true
+  type: int
+  group: "Storage Parameters"
+
+### Section 7 AWS
+- variable: addEBSDrive_7
+  show_if: "addEBSDrive_6=true"
+  label: "Add another drive?"
+  type: boolean
+  default: false
+  group: "Storage Parameters"
+
+- variable: drive_7.aws.type
+  show_if: "addEBSDrive_7=true"
+  description: "Select the type of EBS volume"
+  label: "EBS volume"
+  type: enum
+  required: true
+  show_subquestion_if: "IO1"
+  group: "Storage Parameters"
+  options:
+    - "GP2"
+    - "IO1"
+  subquestions:
+    - variable: drive_7.aws.iops
+      required: true
+      description: "*IOPS required from EBS volume"
+      type: int
+      label: IOPS
+
+- variable: drive_7.aws.size
+  show_if: "addEBSDrive_7=true"
+  description: "Volume size"
+  label: "Size"
+  required: true
+  type: int
+  group: "Storage Parameters"
+
+### Section 8 AWS
+- variable: addEBSDrive_8
+  show_if: "addEBSDrive_7=true"
+  label: "Add another drive?"
+  type: boolean
+  default: false
+  group: "Storage Parameters"
+
+- variable: drive_8.aws.type
+  show_if: "addEBSDrive_8=true"
+  description: "Select the type of EBS volume"
+  label: "EBS volume"
+  type: enum
+  required: true
+  show_subquestion_if: "IO1"
+  group: "Storage Parameters"
+  options:
+    - "GP2"
+    - "IO1"
+  subquestions:
+    - variable: drive_8.aws.iops
+      required: true
+      description: "*IOPS required from EBS volume"
+      type: int
+      label: IOPS
+
+- variable: drive_8.aws.size
+  show_if: "addEBSDrive_8=true"
+  description: "Volume size"
+  label: "Size"
+  required: true
+  type: int
+  group: "Storage Parameters"
+
+### Section 9 AWS
+- variable: addEBSDrive_9
+  show_if: "addEBSDrive_8=true"
+  label: "Add another drive?"
+  type: boolean
+  default: false
+  group: "Storage Parameters"
+
+- variable: drive_9.aws.type
+  show_if: "addEBSDrive_9=true"
+  description: "Select the type of EBS volume"
+  label: "EBS volume"
+  type: enum
+  required: true
+  show_subquestion_if: "IO1"
+  group: "Storage Parameters"
+  options:
+    - "GP2"
+    - "IO1"
+  subquestions:
+    - variable: drive_9.aws.iops
+      required: true
+      description: "*IOPS required from EBS volume"
+      type: int
+      label: IOPS
+
+- variable: drive_9.aws.size
+  show_if: "addEBSDrive_9=true"
+  description: "Volume size"
+  label: "Size"
+  required: true
+  type: int
+  group: "Storage Parameters"
+
+### Section 10 AWS
+- variable: addEBSDrive_10
+  show_if: "addEBSDrive_9=true"
+  label: "Add another drive?"
+  type: boolean
+  default: false
+  group: "Storage Parameters"
+
+- variable: drive_10.aws.type
+  show_if: "addEBSDrive_10=true"
+  description: "Select the type of EBS volume"
+  label: "EBS volume"
+  type: enum
+  required: true
+  show_subquestion_if: "IO1"
+  group: "Storage Parameters"
+  options:
+    - "GP2"
+    - "IO1"
+  subquestions:
+    - variable: drive_10.aws.iops
+      required: true
+      description: "*IOPS required from EBS volume"
+      type: int
+      label: IOPS
+
+- variable: drive_10.aws.size
+  show_if: "addEBSDrive_10=true"
+  description: "Volume size"
+  label: "Size"
+  required: true
+  type: int
+  group: "Storage Parameters"
+
+##################################################### GOOGLE CLOUD ################################
+
+#### Section 1 GC
+- variable: drive_1.gc.type
+  show_if: "provider=Google cloud/GKE&&deviceConfig=Create Using a Spec"
+  description: "Select volume type"
+  label: "Volume"
+  type: enum
+  default: "standard"
+  required: true
+  group: "Storage Parameters"
+  options:
+    - "standard"
+    - "ssd"
+
+- variable: drive_1.gc.size
+  show_if: "provider=Google cloud/GKE&&deviceConfig=Create Using a Spec"
+  description: "Volume size"
+  label: "Size"
+  type: int
+  default: 150
+  required: true
+  group: "Storage Parameters"
+
+#### Section 2 GC
+- variable: addGCDrive_2
+  show_if: "provider=Google cloud/GKE&&deviceConfig=Create Using a Spec"
+  label: "Add another drive?"
+  type: boolean
+  default: false
+  group: "Storage Parameters"
+
+- variable: drive_2.gc.type
+  show_if: "addGCDrive_2=true"
+  description: "Select volume type"
+  label: "Volume"
+  type: enum
+  required: true
+  group: "Storage Parameters"
+  options:
+    - "standard"
+    - "ssd"
+
+- variable: drive_2.gc.size
+  show_if: "addGCDrive_2=true"
+  description: "Volume size"
+  label: "Size"
+  type: int
+  required: true
+  group: "Storage Parameters"
+
+#### Section 3 GC
+- variable: addGCDrive_3
+  show_if: "addGCDrive_2=true"
+  label: "Add another drive?"
+  type: boolean
+  default: false
+  group: "Storage Parameters"
+
+- variable: drive_3.gc.type
+  show_if: "addGCDrive_3=true"
+  description: "Select volume type"
+  label: "Volume"
+  type: enum
+  required: true
+  group: "Storage Parameters"
+  options:
+    - "standard"
+    - "ssd"
+
+- variable: drive_3.gc.size
+  show_if: "addGCDrive_3=true"
+  description: "Volume size"
+  label: "Size"
+  type: int
+  required: true
+  group: "Storage Parameters"
+
+#### Section 4 GC
+- variable: addGCDrive_4
+  show_if: "addGCDrive_3=true"
+  label: "Add another drive?"
+  type: boolean
+  default: false
+  group: "Storage Parameters"
+
+- variable: drive_4.gc.type
+  show_if: "addGCDrive_4=true"
+  description: "Select volume type"
+  label: "Volume"
+  type: enum
+  required: true
+  group: "Storage Parameters"
+  options:
+    - "standard"
+    - "ssd"
+
+- variable: drive_4.gc.size
+  show_if: "addGCDrive_4=true"
+  description: "Volume size"
+  label: "Size"
+  type: int
+  required: true
+  group: "Storage Parameters"
+
+#### Section 5 GC
+- variable: addGCDrive_5
+  show_if: "addGCDrive_4=true"
+  label: "Add another drive?"
+  type: boolean
+  default: false
+  group: "Storage Parameters"
+
+- variable: drive_5.gc.type
+  show_if: "addGCDrive_5=true"
+  description: "Select volume type"
+  label: "Volume"
+  type: enum
+  required: true
+  group: "Storage Parameters"
+  options:
+    - "standard"
+    - "ssd"
+
+- variable: drive_5.gc.size
+  show_if: "addGCDrive_5=true"
+  description: "Volume size"
+  label: "Size"
+  type: int
+  required: true
+  group: "Storage Parameters"
+
+#### Section 6 GC
+- variable: addGCDrive_6
+  show_if: "addGCDrive_5=true"
+  label: "Add another drive?"
+  type: boolean
+  default: false
+  group: "Storage Parameters"
+
+- variable: drive_6.gc.type
+  show_if: "addGCDrive_6=true"
+  description: "Select volume type"
+  label: "Volume"
+  type: enum
+  required: true
+  group: "Storage Parameters"
+  options:
+    - "standard"
+    - "ssd"
+
+- variable: drive_6.gc.size
+  show_if: "addGCDrive_6=true"
+  description: "Volume size"
+  label: "Size"
+  type: int
+  required: true
+  group: "Storage Parameters"
+
+#### Section 7 GC
+- variable: addGCDrive_7
+  show_if: "addGCDrive_6=true"
+  label: "Add another drive?"
+  type: boolean
+  default: false
+  group: "Storage Parameters"
+
+- variable: drive_7.gc.type
+  show_if: "addGCDrive_6=true"
+  description: "Select volume type"
+  label: "Volume"
+  type: enum
+  required: true
+  group: "Storage Parameters"
+  options:
+    - "standard"
+    - "ssd"
+
+- variable: drive_7.gc.size
+  show_if: "addGCDrive_7=true"
+  description: "Volume size"
+  label: "Size"
+  type: int
+  required: true
+  group: "Storage Parameters"
+
+#### Section 8 GC
+- variable: addGCDrive_8
+  show_if: "addGCDrive_7=true"
+  label: "Add another drive?"
+  type: boolean
+  default: false
+  group: "Storage Parameters"
+
+- variable: drive_8.gc.type
+  show_if: "addGCDrive_8=true"
+  description: "Select volume type"
+  label: "Volume"
+  type: enum
+  required: true
+  group: "Storage Parameters"
+  options:
+    - "standard"
+    - "ssd"
+
+- variable: drive_8.gc.size
+  show_if: "addGCDrive_8=true"
+  description: "Volume size"
+  label: "Size"
+  type: int
+  required: true
+  group: "Storage Parameters"
+
+#### Section 9 GC
+- variable: addGCDrive_9
+  show_if: "addGCDrive_8=true"
+  label: "Add another drive?"
+  type: boolean
+  default: false
+  group: "Storage Parameters"
+
+- variable: drive_9.gc.type
+  show_if: "addGCDrive_9=true"
+  description: "Select volume type"
+  label: "Volume"
+  type: enum
+  required: true
+  group: "Storage Parameters"
+  options:
+    - "standard"
+    - "ssd"
+
+- variable: drive_9.gc.size
+  show_if: "addGCDrive_9=true"
+  description: "Volume size"
+  label: "Size"
+  type: int
+  required: true
+  group: "Storage Parameters"
+
+#### Section 10 GC
+- variable: addGCDrive_10
+  show_if: "addGCDrive_9=true"
+  label: "Add another drive?"
+  type: boolean
+  default: false
+  group: "Storage Parameters"
+
+- variable: drive_10.gc.type
+  show_if: "addGCDrive_10=true"
+  description: "Select volume type"
+  label: "Volume"
+  type: enum
+  required: true
+  group: "Storage Parameters"
+  options:
+    - "standard"
+    - "ssd"
+
+- variable: drive_10.gc.size
+  show_if: "addGCDrive_10=true"
+  description: "Volume size"
+  label: "Size"
+  type: int
+  required: true
+  group: "Storage Parameters"
+
+- variable: maxStorageNodes
+  show_if: "environment=Cloud&&deviceConfig=Create Using a Spec"
+  description: "Max storage nodes per availability zone"
+  label: "Max storage nodes (Optional)"
+  type: int
+  group: "Storage Parameters"
+
+################################### Network options ################################
+- variable: dataInterface
+  description: "Specify your data network interface (example: `eth1`). If set to `auto`, Portworx will automatically select the first routable interface."
+  type: string
+  label: "Data Network Interface"
+  default: auto
+  group: "Network Parameters"
+- variable: managementInterface
+  description: "Specify your management network interface (example: `eth1`). If set to `auto`, Portworx will automatically select the first routable interface."
+  type: string
+  default: auto
+  label: "Management Network Interface"
+  group: "Network Parameters"
+
+################################### Platform options ################################
+- variable: platformOptions
+  type: enum
+  label: "Platform"
+  group: "Platform Parameters"
+  options:
+    - "AKS"
+    - "EKS"
+    - "GKE"
+
+################################### Registry settings options ################################
+- variable: customRegistry
+  label: "Use a custom container registry?"
+  type: boolean
+  default: false
+  group: "Container Registry Parameters"
+
+- variable: registrySecret
+  show_if: "customRegistry=true"
+  description: "Specify a custom Kubernetes secret that will be used to authenticate with a container registry. Must be defined in kube-system namespace. (example: regcred)"
+  type: string
+  label: "Registry Kubernetes Secret"
+  group: "Container Registry Parameters"
+- variable: customRegistryURL
+  show_if: "customRegistry=true"
+  description: "Specify a custom container registry server (including repository) that will be used instead of index.docker.io to download Docker images. (example: dockerhub.acme.net:5443 or myregistry.com/myrepository/)"
+  label: "Custom Registry URL"
+  type: string
+  group: "Container Registry Parameters"
+
+
+
+################################## Optional features ############################
+# TODO: Once we have a stable CSI release, we will default this to enabled
+#- variable: csi
+#  description: "Select if you want to enable CSI (Container Storage Interface). CSI is still in ALPHA."
+#  type: boolean
+#  label: "Enable CSI"
+#  default: false
+#  required: false
+#  group: "Advanced parameters"
+
+- variable: storkVersion
+  default: "2.4.2.1"
+  label: "Stork version"
+  type: string
+  group: "Advanced parameters"
+
+- variable: lighthouseVersion
+  default: "2.0.7"
+  type: string
+  label: "Lighthouse version"
+  group: "Advanced parameters"
+
+- variable: envVars
+  label: "Environment variables"
+  description: "Enter your environment variables separated by semicolons (example: API_SERVER=http://lighthouse-new.portworx.com;MYENV1=val1;MYENV2=val2). These environment variables will be exported to Portworx."
+  type: string
+  group: "Advanced parameters"
+
+- variable: imageVersion
+  default: "2.5.5"
+  type: string
+  label: Portworx version to be deployed.
+  group: "Advanced parameters"
+
+- variable: clusterName
+  type: string
+  label: Portworx cluster name
+  default: mycluster
+  group: "Advanced parameters"
