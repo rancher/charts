@@ -26,8 +26,11 @@ spec:
       {{- end }}
       containers:
       - name: pushprox-client
-        image: arvindiyengar/pushprox-linux-amd64:add_flag_for_token_path
-        command: [ "/app/pushprox-client" ]
+        image: {{ .Values.clients.image.repository }}:{{ .Values.clients.image.tag }}
+        command:
+        {{- range .Values.clients.command }}
+          - {{ . | quote }}
+        {{- end }}
         args:
         - --fqdn=$(HOST_IP)
         - --proxy-url=$(PROXY_URL)
