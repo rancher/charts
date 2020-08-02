@@ -4,9 +4,13 @@ All notable changes from the upstream OPA Gatekeeper chart will be added to this
 ## [Package Version 00] - 2020-07-27
 ### Added
 - Added `validate_crds_installed.yaml` to validate crds are installed before installing racher-gatekeeper
+- Added the following crd annotations for `rancher-gatekeeper-crd` chart dependency:
+    - `catalog.cattle.io/requires-gvr: configs.config.gatekeeper.sh/v1alpha1`
+    - `catalog.cattle.io/auto-install-gvr: configs.config.gatekeeper.sh/v1alpha1`
 
 ### Modified
 - Updated chart version in `Chart.yaml` to follow the upstream's format `v3.1.0-beta.X`
+- Updated namespace to `cattle-gatekeeper-system`
 
 ### Removed
 - Removed the following files as the `gatekeeper-webhook-service` was removed in our previous version of the chart
