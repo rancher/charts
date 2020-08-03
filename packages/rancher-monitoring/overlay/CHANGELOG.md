@@ -33,3 +33,4 @@ All notable changes from the upstream Prometheus Operator chart will be added to
     - `kube-etcd` metrics exporter
     - `kube-scheduler` metrics exporter
     - `kube-proxy` metrics exporter
+- Updated default Grafana `deploymentStrategy` to `Recreate` to prevent deployments from being stuck on upgrade if a PV is attached to Grafana

@@ -1570,7 +1570,17 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
      ## Pod anti-affinity can prevent the scheduler from placing Prometheus replicas on the same node.
      ## The default value "soft" means that the scheduler should *prefer* to not schedule two replica pods onto the same node but no guarantee is provided.
-@@ -529,6 +736,7 @@
+@@ -486,6 +693,9 @@
+   enabled: true
+   namespaceOverride: ""
+ 
++  deploymentStrategy:
++    type: Recreate
++
+   ## Deploy default dashboards.
+   ##
+   defaultDashboardsEnabled: true
+@@ -529,6 +739,7 @@
      dashboards:
        enabled: true
        label: grafana_dashboard
@@ -1578,7 +1588,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
        ## Annotations for Grafana dashboard configmaps
        ##
-@@ -547,6 +755,7 @@
+@@ -547,6 +758,7 @@
        ## ref: https://git.io/fjaBS
        createPrometheusReplicasDatasources: false
        label: grafana_datasource
@@ -1586,7 +1596,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    extraConfigmapMounts: []
    # - name: certs-configmap
-@@ -574,6 +783,19 @@
+@@ -574,6 +786,19 @@
    ##
    service:
      portName: service
@@ -1606,7 +1616,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    ## If true, create a serviceMonitor for grafana
    ##
-@@ -599,6 +821,14 @@
+@@ -599,6 +824,14 @@
      #   targetLabel: nodename
      #   replacement: $1
      #   action: replace
@@ -1621,7 +1631,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
  ## Component scraping the kube api server
  ##
-@@ -755,7 +985,7 @@
+@@ -755,7 +988,7 @@
  ## Component scraping the kube controller manager
  ##
  kubeControllerManager:
@@ -1630,7 +1640,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    ## If your kube controller manager is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -888,7 +1118,7 @@
+@@ -888,7 +1121,7 @@
  ## Component scraping etcd
  ##
  kubeEtcd:
@@ -1639,7 +1649,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    ## If your etcd is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -948,7 +1178,7 @@
+@@ -948,7 +1181,7 @@
  ## Component scraping kube scheduler
  ##
  kubeScheduler:
@@ -1648,7 +1658,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    ## If your kube scheduler is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1001,7 +1231,7 @@
+@@ -1001,7 +1234,7 @@
  ## Component scraping kube proxy
  ##
  kubeProxy:
@@ -1657,7 +1667,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    ## If your kube proxy is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1075,6 +1305,13 @@
+@@ -1075,6 +1308,13 @@
      create: true
    podSecurityPolicy:
      enabled: true
@@ -1671,7 +1681,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
  ## Deploy node exporter as a daemonset to all nodes
  ##
-@@ -1124,6 +1361,16 @@
+@@ -1124,6 +1364,16 @@
    extraArgs:
      - --collector.filesystem.ignored-mount-points=^/(dev|proc|sys|var/lib/docker/.+)($|/)
      - --collector.filesystem.ignored-fs-types=^(autofs|binfmt_misc|cgroup|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|mqueue|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|sysfs|tracefs)$
@@ -1688,7 +1698,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
  ## Manages Prometheus and Alertmanager components
  ##
-@@ -1280,13 +1527,13 @@
+@@ -1280,13 +1530,13 @@
  
    ## Resource limits & requests
    ##
@@ -1709,7 +1719,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    # Required for use in managed kubernetes clusters (such as AWS EKS) with custom CNI (such as calico),
    # because control-plane managed by AWS cannot communicate with pods' IP CIDR and admission webhooks are not working
-@@ -1628,6 +1875,11 @@
+@@ -1628,6 +1878,11 @@
      ##
      externalUrl: ""
  
@@ -1721,7 +1731,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
      ## Define which Nodes the Pods are scheduled on.
      ## ref: https://kubernetes.io/docs/user-guide/node-selection/
      ##
-@@ -1802,9 +2054,13 @@
+@@ -1802,9 +2057,13 @@
  
      ## Resource limits & requests
      ##
