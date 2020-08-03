@@ -20,7 +20,7 @@ All notable changes from the upstream Prometheus Operator chart will be added to
 - Updated the chart name from `prometheus-operator` to `rancher-monitoring` and added the `io.rancher.certified: rancher` annotation to `Chart.yaml`
 - Modified the default `node-exporter` port from `9100` to `9796`
 - Modified the default `nameOverride` to `rancher-monitoring`. This change is necessary as the Prometheus Adapter's default URL (`http://{{ .Values.nameOverride }}-prometheus.{{ .Values.namespaceOverride }}.svc`) is based off of the value used here; if modified, the default Adapter URL must also be modified
-- Modified the default `namespaceOverride` to `monitoring-system`. This change is necessary as the Prometheus Adapter's default URL (`http://{{ .Values.nameOverride }}-prometheus.{{ .Values.namespaceOverride }}.svc`) is based off of the value used here; if modified, the default Adapter URL must also be modified
+- Modified the default `namespaceOverride` to `cattle-monitoring-system`. This change is necessary as the Prometheus Adapter's default URL (`http://{{ .Values.nameOverride }}-prometheus.{{ .Values.namespaceOverride }}.svc`) is based off of the value used here; if modified, the default Adapter URL must also be modified
 - Configured some default values for `grafana.service` values and exposed them in the default README.md
 - The default namespaces the following ServiceMonitors were changed from the deployment namespace to allow them to continue to monitor metrics when `prometheus.prometheusSpec.ignoreNamespaceSelectors` is enabled:
     - `core-dns`: `kube-system`
