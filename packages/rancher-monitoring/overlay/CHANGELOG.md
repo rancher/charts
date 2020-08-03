@@ -34,3 +34,4 @@ All notable changes from the upstream Prometheus Operator chart will be added to
     - `kube-scheduler` metrics exporter
     - `kube-proxy` metrics exporter
 - Updated default Grafana `deploymentStrategy` to `Recreate` to prevent deployments from being stuck on upgrade if a PV is attached to Grafana
+- Modified the default `<serviceMonitor|podMonitor|rule>SelectorNilUsesHelmValues` to default to `false`. As a result, we look for all CRs with any labels in all namespaces by default rather than just the ones tagged with the label `release: rancher-monitoring`.
