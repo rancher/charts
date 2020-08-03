@@ -43,62 +43,60 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/Cha
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/README.md packages/rancher-monitoring/charts/README.md
 --- packages/rancher-monitoring/charts-original/README.md
 +++ packages/rancher-monitoring/charts/README.md
-@@ -33,7 +33,7 @@
+@@ -2,6 +2,8 @@
  
- ## Prerequisites
-   - Kubernetes 1.10+ with Beta APIs
--  - Helm 2.12+ (If using Helm < 2.14, [see below for CRD workaround](#Helm-fails-to-create-CRDs))
-+  - Helm 2.12+
+ Installs [prometheus-operator](https://github.com/coreos/prometheus-operator) to create/configure/manage Prometheus clusters atop Kubernetes. This chart includes multiple components and is suitable for a variety of use-cases.
  
- ## Installing the Chart
++You must install the Prometheus Operator CRDs first using the `rancher-monitoring-crd` chart before installing this chart.
++
+ The default installation is intended to suit monitoring a kubernetes cluster the chart is deployed onto. It closely matches the kube-prometheus project.
+ - [prometheus-operator](https://github.com/coreos/prometheus-operator)
+ - [prometheus](https://prometheus.io/)
+@@ -9,6 +11,12 @@
+ - [node-exporter](https://github.com/helm/charts/tree/master/stable/prometheus-node-exporter)
+ - [kube-state-metrics](https://github.com/helm/charts/tree/master/stable/kube-state-metrics)
+ - [grafana](https://github.com/helm/charts/tree/master/stable/grafana)
++- [prometheus-adapter](https://github.com/helm/charts/tree/master/stable/prometheus-adapter)
++- [rancher-pushprox](https://github.com/rancher/dev-charts/tree/master/packages/rancher-pushprox) charts to monitor internal kubernetes components for k3s, rke, and kubeAdm clusters
++  - kube-scheduler
++  - kube-controller-manager
++  - kube-proxy
++  - kube-etcd (only rke and kubeAdm)
+ - service monitors to scrape internal kubernetes components
+   - kube-apiserver
+   - kube-scheduler
+@@ -136,6 +144,30 @@
  
-@@ -57,17 +57,6 @@
+ The following tables list the configurable parameters of the prometheus-operator chart and their default values.
  
- The command removes all the Kubernetes components associated with the chart and deletes the release.
- 
--CRDs created by this chart are not removed by default and should be manually cleaned up:
--
--```console
--kubectl delete crd prometheuses.monitoring.coreos.com
--kubectl delete crd prometheusrules.monitoring.coreos.com
--kubectl delete crd servicemonitors.monitoring.coreos.com
--kubectl delete crd podmonitors.monitoring.coreos.com
--kubectl delete crd alertmanagers.monitoring.coreos.com
--kubectl delete crd thanosrulers.monitoring.coreos.com
--```
--
- ## Work-Arounds for Known Issues
- 
- ### Running on private GKE clusters
-@@ -77,27 +66,6 @@
- 
- Alternatively, you can disable the hooks by setting `prometheusOperator.admissionWebhooks.enabled=false`.
- 
--### Helm fails to create CRDs
--You should upgrade to Helm 2.14 + in order to avoid this issue. However, if you are stuck with an earlier Helm release you should instead use the following approach: Due to a bug in helm, it is possible for the 5 CRDs that are created by this chart to fail to get fully deployed before Helm attempts to create resources that require them. This affects all versions of Helm with a [potential fix pending](https://github.com/helm/helm/pull/5112). In order to work around this issue when installing the chart you will need to make sure all 5 CRDs exist in the cluster first and disable their previsioning by the chart:
--
--1. Create CRDs
--```console
--kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/release-0.38/example/prometheus-operator-crd/monitoring.coreos.com_alertmanagers.yaml
--kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/release-0.38/example/prometheus-operator-crd/monitoring.coreos.com_podmonitors.yaml
--kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/release-0.38/example/prometheus-operator-crd/monitoring.coreos.com_prometheuses.yaml
--kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/release-0.38/example/prometheus-operator-crd/monitoring.coreos.com_prometheusrules.yaml
--kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/release-0.38/example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml
--kubectl apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/release-0.38/example/prometheus-operator-crd/monitoring.coreos.com_thanosrulers.yaml
--
--```
--
--2. Wait for CRDs to be created, which should only take a few seconds
--
--3. Install the chart, but disable the CRD provisioning by setting `prometheusOperator.createCustomResource=false`
--```console
--$ helm install --name my-release stable/prometheus-operator --set prometheusOperator.createCustomResource=false
--```
--
- ## Upgrading an existing Release to a new major version
- 
- A major chart version change (like v1.2.3 -> v2.0.0) indicates that there is an
-@@ -195,16 +163,14 @@
++### Rancher Monitoring Configuration
++| Parameter | Description | Default |
++| ----- | ----------- | ------ |
++| `prometheus-adapter.enabled` | Whether to install [prometheus-adapter](https://github.com/helm/charts/tree/master/stable/prometheus-adapter) within the cluster | `true` |
++| `prometheus-adapter.prometheus.url` | A URL pointing to the Prometheus deployment within your cluster. The default value is set based on the assumption that you plan to deploy the default Prometheus instance from this chart where `.Values.namespaceOverride=monitoring-system` and `.Values.nameOverride=rancher-monitoring` | `http://rancher-monitoring-prometheus.monitoring-system.svc` |
++| `prometheus-adapter.prometheus.port` | The port on the Prometheus deployment that Prometheus Adapter can make requests to | `9090` |
++
++The following values are enabled for different distributions via [rancher-pushprox](https://github.com/rancher/dev-charts/tree/master/packages/rancher-pushprox). See the rancher-pushprox `README.md` for more information on what all values can be configured for the PushProxy chart.
++
++| Parameter | Description | Default |
++| ----- | ----------- | ------ |
++| `rkeControllerManager.enabled` | Create a PushProx installation for monitoring kube-controller-manager metrics in RKE clusters | `false` |
++| `rkeScheduler.enabled` | Create a PushProx installation for monitoring kube-scheduler metrics in RKE clusters | `false` |
++| `rkeProxy.enabled` | Create a PushProx installation for monitoring kube-proxy metrics in RKE clusters | `false` |
++| `rkeEtcd.enabled` | Create a PushProx installation for monitoring etcd metrics in RKE clusters | `false` |
++| `k3sControllerManager.enabled` | Create a PushProx installation for monitoring kube-controller-manager metrics in k3s clusters | `false` |
++| `k3sScheduler.enabled` | Create a PushProx installation for monitoring kube-scheduler metrics in k3s clusters | `false` |
++| `k3sProxy.enabled` | Create a PushProx installation for monitoring kube-proxy metrics in k3s clusters | `false` |
++| `kubeAdmControllerManager.enabled` | Create a PushProx installation for monitoring kube-controller-manager metrics in kubeAdm clusters | `false` |
++| `kubeAdmScheduler.enabled` | Create a PushProx installation for monitoring kube-scheduler metrics in kubeAdm clusters | `false` |
++| `kubeAdmProxy.enabled` | Create a PushProx installation for monitoring kube-proxy metrics in kubeAdm clusters | `false` |
++| `kubeAdmEtcd.enabled` | Create a PushProx installation for monitoring etcd metrics in kubeAdm clusters | `false` |
++
++
+ ### General
+ | Parameter | Description | Default |
+ | ----- | ----------- | ------ |
+@@ -195,16 +227,14 @@
  | `prometheusOperator.admissionWebhooks.patch.podAnnotations` | Annotations for the webhook job pods | `nil` |
  | `prometheusOperator.admissionWebhooks.patch.priorityClassName` | Priority class for the webhook integration jobs | `nil` |
  | `prometheusOperator.affinity` | Assign custom affinity rules to the prometheus operator https://kubernetes.io/docs/concepts/configuration/assign-pod-node/ | `{}` |
@@ -116,7 +114,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/REA
  | `prometheusOperator.denyNamespaces` | Namespaces not to scope the interaction of the Prometheus Operator (deny list). This is mutually exclusive with `namespaces` | `[]` |
  | `prometheusOperator.enabled` | Deploy Prometheus Operator. Only one of these should be deployed into the cluster | `true` |
  | `prometheusOperator.hyperkubeImage.pullPolicy` | Image pull policy for hyperkube image used to perform maintenance tasks | `IfNotPresent` |
-@@ -291,6 +257,7 @@
+@@ -291,6 +321,7 @@
  | `prometheus.prometheusSpec.evaluationInterval` | Interval between consecutive evaluations. | `""` |
  | `prometheus.prometheusSpec.externalLabels` | The labels to add to any time series or alerts when communicating with external systems (federation, remote storage, Alertmanager). | `{}` |
  | `prometheus.prometheusSpec.externalUrl` | The external URL the Prometheus instances will be available under. This is necessary to generate correct URLs. This is necessary if Prometheus is not served from root of a DNS name. | `""` |
@@ -124,7 +122,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/REA
  | `prometheus.prometheusSpec.image.repository` | Base image to use for a Prometheus deployment. | `quay.io/prometheus/prometheus` |
  | `prometheus.prometheusSpec.image.tag` | Tag of Prometheus container image to be deployed. | `v2.18.1` |
  | `prometheus.prometheusSpec.listenLocal` | ListenLocal makes the Prometheus server listen on loopback, so that it does not bind against the Pod IP. | `false` |
-@@ -465,17 +432,23 @@
+@@ -465,17 +496,23 @@
  | `grafana.namespaceOverride` | Override the deployment namespace of grafana | `""` (`Release.Namespace`) |
  | `grafana.rbac.pspUseAppArmor` | Enforce AppArmor in created PodSecurityPolicy (requires rbac.pspEnabled) | `true` |
  | `grafana.service.portName` | Allow to customize Grafana service portname. Will be used by servicemonitor as well | `service` |
@@ -148,7 +146,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/REA
  
  ### Exporters
  | Parameter | Description | Default |
-@@ -649,7 +622,7 @@
+@@ -649,7 +686,7 @@
  The Grafana chart is more feature-rich than this chart - it contains a sidecar that is able to load data sources and dashboards from configmaps deployed into the same cluster. For more information check out the [documentation for the chart](https://github.com/helm/charts/tree/master/stable/grafana)
  
  ### Coreos CRDs
