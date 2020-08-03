@@ -35,6 +35,10 @@ for f in packages/*; do
 				basename=$(basename -- ${file})
 				patch -E -p3 -d ${f}/charts < ${f}/$basename
 			done
+			split_crds=$(cat ${f}/package.yaml | yq r - generateCRDChart.enabled)
+			if [[ "${split_crds}" == "true" ]]; then
+				./scripts/prepare-crds ${f}
+			fi
 			copied_dependencies=()
 			if [[ -f ${f}/charts/requirements.yaml ]]; then
 				repos=$(cat ${f}/charts/requirements.yaml | yq r - "dependencies.*.repository")

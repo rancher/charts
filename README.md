@@ -70,14 +70,62 @@ The step includes:
    
 5. Run `make CHART={CHART_NAME} clean`
    
-   This will clean up the `charts` directory so that it won't committed.
+   This will clean up the `charts` directory so that it won't be committed.
 
 This repo provides a [workflow](./.github/workflows) that automatically uploads patch files and tarball of charts. Commit will only need to update `package/${chart-name}/charts` and make sure patches are 
 up-to-date with the latest chart. It also automatically build github pages to serve `index.yaml` and artifacts of charts.
 
+### Experimental: Splitting CRDs from an upstream package into a separate package
+
+There are cases in which upstream charts import CRDs into a cluster using the Helm 3 `crd/` directory, which allows a user to first install the CRDs before rendering the templates created by the chart. However, using this approach has certain caveats [as documented by Helm](https://helm.sh/docs/chart_best_practices/custom_resource_definitions/), such as an inability to upgrade / delete those CRDs and or use the `--dry-run` flag on the package before installing the CRDs. As a result, it may be advised to move those CRDs into a separate chart under the `templates/` directory so that the lifecycle of those CRDs can continue to be managed by Helm.
+
+However, in the current `rancher/charts` model, this would require deleting the CRDs from the upstream chart (which introduces significant changes to the package's patch) and maintaining a separate CRD chart that also needs to be kept up to date with the upstream chart. This poses several challenges, including but not limited to:
+- Keeping the version of the Rancher chart and the CRD chart consistent
+- Keeping the annotations added to the CRD chart in line with those added to the Rancher chart
+- Adding a validation YAML to the Rancher chart to direct the user to install the CRD chart before installing the Rancher chart if CRDs do not currently exist on the server
+- Viewing the patch between the CRDs introduced by the upstream chart and the CRDs within the CRD chart
+
+To resolve this, `rancher/charts` has a flag that can be added to the `package.yaml` of any Rancher chart that allows you to specify `generateCRDChart.enabled=true` and `generateCRDChart.providesGVR={{.spec.names.plural }}.{{ .spec.group }}/{{ .spec.version }}` (i.e. `prometheuses.monitoring.coreos.com/v1`). When this mode is enabled, the following changes are applied during each step of the `rancher/charts` developer workflow:
+
+1. On running `make CHART={CHART_NAME} prepare:
+
+   After running the default prepare script to pull the chart from upstream and apply the patch, a new directory called `charts-crd` is also created alongside `charts`. This will represent your new CRD chart. Any CRDs located within the Rancher chart in `charts/crd/` will be relocated to `charts-crd/templates/` and a new `charts-crd/Chart.yaml` (with chart names `{CHART_NAME}-crd`) and `charts-crd/README.md` will be generated. The `charts-crd/Chart.yaml` and `charts/Chart.yaml` will also be updated with the relevant annotations used by Rancher to auto-install the CRD chart from Dashboard.
+   
+   In addition, a new file `charts/templates/validate-install-${CHART_NAME}-crd.yaml` will be added to your Rancher chart that is automatically configured to validate whether the CRDs that have been moved to the CRD chart are installed onto your cluster before trying to render the Rancher chart. For example, here is an error you might encounter if you try to install the Rancher chart first:
+
+   ```
+   Error: execution error at ({CHART_NAME}/templates/validate-install-{CHART_NAME}-crd.yaml:15:5): Required CRDs are missing. Please install the {CHART_NAME}-crd chart before installing this chart.
+   ```
+
+   See `scripts/prepare-crds` for more information on the default templates used for generating these files.
+
+2. On making modification to either chart or running `make CHART={CHART_NAME} patch`
+ 
+   The experience of modifying values within the `charts` directory and making a new patch is unchanged. The same workflow also applies to the `charts-crd` directory with two caveats:
+   - Changes to `charts/templates/validate-install-${CHART_NAME}-crd.yaml`, `charts-crd/Chart.yaml`, and `charts-crd/README.md` will be ignored / not be shown in the patch as they are not expected to be updated
+   - Any changes to `charts-crd/templates/*` will show up in the patch as if you had changed the relevant file within `charts/crd/*`.
+
+   Files added to the `overlay` directory will only overlay onto the Rancher chart, not the CRD chart.
+   
+3. On running `make CHART={CHART_NAME} clean`
+   
+   This will clean up both the `charts` directory and the `charts-crd` directory so that either directory won't be committed.
+
+4. On running `make CHART={CHART_NAME} charts`
+
+   A tarball for both the original chart and the CRD chart will be generated.
+
+Some more considerations when migrating to using this flag:
+- After adding this flag to a chart, you will have to look through the upstream chart and manually remove any CRD build specific code from the upstream chart (i.e. removing `helm.sh/hook: crd-install` from the CRD files, removing any cleanup Jobs introduced by the upstream chart to automatically delete CRDs on uninstall, etc.)
+- The CRDs moved to their own chart must not contain any code that was pulled from helper templates located within the main chart. If it is found that this is necessary for any chart, please submit a feature request.
+- The `generateCRDChart.providesGVR` flag should pick one CRD that is installed by the chart (even if multiple exist) that will be used to annotate the chart and configure auto-installing the CRD chart on the Rancher Dashboard UI when installing the main chart.
+
+See `packages/rancher-monitoring` for an example of a chart that currently uses this flag.
+
+
 ### Override existing Chart
 
-By defauly CI script doesn't allow changes to be made against existing chart. In order to make changes you have to bump chart version. There is a backdoor method to make changes to your existing chart without having to bump version. You can delete the tar.gz file you want to override and commit the change. Here is an example of [commit](https://github.com/rancher/charts/commit/8be888076487e23a24121a532d25b9bf9ea936f3).
+By default CI script doesn't allow changes to be made against existing chart. In order to make changes you have to bump chart version. There is a backdoor method to make changes to your existing chart without having to bump version. You can delete the tar.gz file you want to override and commit the change. Here is an example of [commit](https://github.com/rancher/charts/commit/8be888076487e23a24121a532d25b9bf9ea936f3).
 
 ### Helm repo index
 

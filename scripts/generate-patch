@@ -14,6 +14,24 @@ function remove_timestamp_from_diff {
 	sed -i "s/\(${prefix} ${filename_format}\)[[:space:]]${timestamp_format}/\1/g" ${f}/$(basename -- ${f}).patch
 }
 
+function revert_crd_changes {
+	if [[ -z $1 ]]; then
+		echo "No directory provided to revert charts-crd changes within"
+		exit 1
+	fi
+	# Move charts-crd/templates back into charts/crd/
+	mkdir -p ${f}/charts/crds/
+	mv ${f}/charts-crd/templates/* ${f}/charts/crds/
+	# Remove the validate-install-${name}-crd.yaml
+	name=$(cat ${f}/charts/Chart.yaml | yq r - 'name')
+	rm ${f}/charts/templates/validate-install-${name}-crd.yaml
+	# Remove additional annotations added to original chart
+	yq d -i ${f}/charts/Chart.yaml "annotations[catalog.cattle.io/auto-install-gvr]"
+	# Remove charts-crd
+	rm -rf ${f}/charts-crd
+}
+
+
 for f in packages/*; do
   if [[ -f ${f}/package.yaml ]]; then
   	if [[ -z $CHART || $CHART == $(basename -- ${f}) ]]; then
@@ -40,8 +58,15 @@ for f in packages/*; do
 				curl -sLf ${url} | tar xvzf - -C ${f}/charts-original --strip ${fields} ${subdirectory} > /dev/null 2>&1
 			fi
 			if [[ -d ${f}/charts ]]; then
+				split_crds=$(cat ${f}/package.yaml | yq r - generateCRDChart.enabled)
+				if [[ "${split_crds}" == "true" ]]; then
+					revert_crd_changes ${f}
+				fi
 				diff -x *.tgz -x *.lock -uNr ${f}/charts-original ${f}/charts > ${f}/$(basename -- ${f}).patch || true
 				remove_timestamp_from_diff
+				if [[ "${split_crds}" == "true" ]]; then
+					./scripts/prepare-crds ${f}
+				fi
 			fi
 			rm -rf ${f}/charts-original
 		fi
