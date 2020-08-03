@@ -122,33 +122,21 @@ release: {{ .Release.Name | quote }}
 Create the name of the service account to use for hooks
 */}}
 {{- define "px.hookServiceAccount" -}}
-{{- if .Values.serviceAccount.hook.create -}}
     {{- printf "%s-hook" .Chart.Name | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
-{{- else -}}
-    {{ default "default" .Values.serviceAccount.hook.name }}
-{{- end -}}
 {{- end -}}
 
 {{/*
 Create the name of the cluster role to use for hooks
 */}}
 {{- define "px.hookClusterRole" -}}
-{{- if .Values.serviceAccount.hook.create -}}
     {{- printf "%s-hook" .Chart.Name | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
-{{- else -}}
-    {{ default "default" .Values.serviceAccount.hook.name }}
-{{- end -}}
 {{- end -}}
 
 {{/*
 Create the name of the cluster role binding to use for hooks
 */}}
 {{- define "px.hookClusterRoleBinding" -}}
-{{- if .Values.serviceAccount.hook.create -}}
     {{- printf "%s-hook" .Chart.Name | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
-{{- else -}}
-    {{ default "default" .Values.serviceAccount.hook.name }}
-{{- end -}}
 {{- end -}}
 
 {{/*
