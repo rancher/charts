@@ -4,6 +4,7 @@ All notable changes from the upstream Prometheus Operator chart will be added to
 ## [Package Version 00] - 2020-07-19
 ### Added
 - Added [Prometheus Adapter](https://github.com/helm/charts/tree/master/stable/prometheus-adapter) as a dependency to the upstream Prometheus Operator chart to allow users to expose custom metrics from the default Prometheus instance deployed by this chart
+- Remove `prometheus-operator/cleanup-crds.yaml` and `prometheus-operator/crds.yaml` from the Prometheus Operator upstream chart in favor of just using the CRD directory to install the CRDs.
 - Added support for `rkeControllerManager`, `rkeScheduler`, `rkeProxy`, and `rkeEtcd` PushProx exporters for monitoring k8s components within RKE clusters
 - Added support for `k3sControllerManager`, `k3sScheduler`, and `k3sProxy` PushProx exporters for monitoring k8s components within k3s clusters
 - Added support for `kubeAdmControllerManager`, `kubeAdmScheduler`, `kubeAdmProxy`, and `kubeAdmEtcd` PushProx exporters for monitoring k8s components within kubeAdm clusters
