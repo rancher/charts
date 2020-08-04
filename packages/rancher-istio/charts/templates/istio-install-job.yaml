@@ -2,13 +2,11 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: istioctl-installer
-  namespace: istio-system
+  namespace: {{ template "istio.namespace" . }}
   annotations:
     "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-weight": "-5"
-    # Todo: use following line instead
-    # "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
-    "helm.sh/hook-delete-policy": before-hook-creation
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
   backoffLimit: 1
   template:
@@ -23,6 +21,10 @@ spec:
           - name: CANARY_REVISION
             value: {{ .Values.revision }}
           {{- end }}
+          - name: ISTIO_NAMESPACE
+            value: {{ template "istio.namespace" . }}
+          - name: FORCE_INSTALL
+            value: {{ .Values.forceInstall | default "false" | quote }}
           command: ["/bin/sh","-c"]
           args: ["/usr/local/app/scripts/run.sh"]
           volumeMounts:
