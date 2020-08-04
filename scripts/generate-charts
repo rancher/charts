@@ -15,6 +15,14 @@ for f in packages/*; do
 		fi
 		helm package ${f}/charts --destination assets/$(basename -- ${f})
 		git checkout assets/$(basename -- ${f})/"$(basename -- ${f})-$(yq r ${f}/charts/Chart.yaml version).tgz" 2>/dev/null || true
+		if [[ -d ${f}/charts-crd ]]; then
+			version=$(yq r ${f}/charts/Chart.yaml version)
+			packageVersion=$(yq r ${f}/package.yaml packageVersion)
+			yq w -i ${f}/charts-crd/Chart.yaml 'version' "${version}${packageVersion}"
+
+			helm package ${f}/charts-crd --destination docs/$(basename -- ${f})
+			git checkout docs/$(basename -- ${f})/"$(basename -- ${f})-crd-$(yq r ${f}/charts/Chart.yaml version).tgz" || true
+		fi
 	fi
 done
 

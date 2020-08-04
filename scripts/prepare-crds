@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+set -e
+
+# Split the provided package into a charts and charts-crd package
+
+if [[ -z $1 ]]; then
+	echo "No directory provided to initialize charts-crd within"
+	exit 1
+fi
+
+f=$1
+
+if ! [[ -f ${f}/package.yaml ]]; then
+	echo "Could not find ${f}/package.yaml"
+	exit 1
+fi
+
+if [[ -d ${f}/charts-crd ]]; then
+	rm -rf ${f}/charts-crd
+fi
+
+if ! [[ -d ${f}/charts ]]; then
+	echo "Could not find ${f}/charts"
+    exit 1
+fi
+
+if ! [[ -f ${f}/charts/Chart.yaml ]]; then
+	echo "Could not find ${f}/charts/Chart.yaml"
+	exit 1
+fi
+
+if ! [[ -d ${f}/charts/crds ]] || [[ $(ls ${f}/charts/crds | wc -l) -eq 0 ]]; then
+	echo "Chart does not have any crds within a crd/ directory"
+	exit 1
+fi
+
+# Create directory and move CRDs
+mkdir -p ${f}/charts-crd/templates
+mv ${f}/charts/crds/* ${f}/charts-crd/templates
+rm -rf ${f}/charts/crds
+
+# Collect information on chart
+name=$(cat ${f}/charts/Chart.yaml | yq r - 'name')
+api_version=$(cat ${f}/charts/Chart.yaml | yq r - 'apiVersion')
+chart_version=$(cat ${f}/charts/Chart.yaml | yq r - 'version')
+
+# Collect information on CRDs
+crd_apis=()
+for crd_yaml in ${f}/charts-crd/templates/*; do
+	crd_group=$(yq r ${crd_yaml} 'spec.group')
+	crd_version=$(yq r ${crd_yaml} 'spec.version')
+	crd_kind=$(yq r ${crd_yaml} 'spec.names.kind')
+	crd_apis+=("${crd_group}/${crd_version}/${crd_kind}")
+done
+
+# Init Chart.yaml for CRD chart
+cat << EOF > ${f}/charts-crd/Chart.yaml
+apiVersion: ${api_version}
+version: ${chart_version}
+description: A Rancher chart that creates ${name} CRDs within a cluster.
+name: ${name}-crd
+type: application
+EOF
+
+# Add providesGVR annotation
+providesGVR="$(cat ${f}/package.yaml | yq r - generateCRDChart.providesGVR)"
+if ! [[ -z ${providesGVR} ]]; then
+	yq w -i ${f}/charts/Chart.yaml "annotations[catalog.cattle.io/auto-install-gvr]" "${providesGVR}"
+	yq w -i ${f}/charts-crd/Chart.yaml "annotations[catalog.cattle.io/provides-gvr]" "${providesGVR}"
+	yq w -i ${f}/charts-crd/Chart.yaml "annotations[catalog.cattle.io/hidden]" "true"
+fi
+
+# Add annotations to charts-crd/Chart.yaml
+copyAnnotations=(catalog.cattle.io/release-name catalog.cattle.io/certified catalog.cattle.io/experimental catalog.cattle.io/namespace)
+for a in ${copyAnnotations[@]}; do
+	v=$(yq r ${f}/charts/Chart.yaml "annotations[${a}]")
+	if [[ ${a} == "catalog.cattle.io/release-name" ]]; then
+		v="${v}-crd"
+	fi
+	if ! [[ -z ${v} ]]; then
+		yq w -i ${f}/charts-crd/Chart.yaml "annotations[${a}]" "${v}"
+	fi
+done
+
+# Init README.yaml for CRD chart
+cat << EOF > ${f}/charts-crd/README.md
+# ${name}-crd
+A Rancher chart that installs the CRDs used by [${name}](https://github.com/rancher/dev-charts/tree/master/packages/${name}).
+EOF
+
+# Copy a YAML that triggers a failure on the original chart if the CRDs that are copied don't exist
+cat << EOF > ${f}/charts/templates/validate-install-${name}-crd.yaml
+# {{- \$found := dict -}}
+$(
+for crd in ${crd_apis[@]}; do
+echo "# {{- set \$found \"${crd}\" false -}}"
+done
+)
+# {{- range .Capabilities.APIVersions -}}
+# {{- if hasKey \$found (toString .) -}}
+# 	{{- set \$found (toString .) true -}}
+# {{- end -}}
+# {{- end -}}
+# {{- range \$_, \$exists := \$found -}}
+# {{- if (eq \$exists false) -}}
+# 	{{- required "Required CRDs are missing. Please install the ${name}-crd chart before installing this chart." "" -}}
+# {{- end -}}
+# {{- end -}}
+EOF
