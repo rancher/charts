@@ -11,6 +11,9 @@ the webhook service was removed. Ideally, we would like to remove the validation
 but setting this flag achieves the same results without cluttering the patch.
 - Updated namespace to `cattle-gatekeeper-system`
 - Updated `rancher/istio-kubectl` image to `1.5.8`
+- Updated for Helm 3 compatibility
+    - Moved crds to `crds` directory
+    - Removed `crd-install` hooks and templates from crds
 
 ### Removed
 - Removed `gatekeeper-webhook-service-service.yaml` as the `gatekeeper-webhook-service` 
