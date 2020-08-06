@@ -3,6 +3,7 @@ All notable changes from the upstream OPA Gatekeeper chart will be added to this
 
 ## [Package Version 00] - 2020-07-27
 ### Added
+- Enabled the CRD chart generator in `package.yaml`
 
 ### Modified
 - Updated chart version in `Chart.yaml` to follow the upstream's format `v3.1.0-beta.X`
