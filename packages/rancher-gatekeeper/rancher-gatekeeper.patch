@@ -19,28 +19,6 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/Cha
 +  catalog.cattle.io/experimental: true
 +  catalog.cattle.io/namespace: cattle-gatekeeper-system
 +  catalog.cattle.io/release-name: rancher-gatekeeper
-diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/index.yaml packages/rancher-gatekeeper/charts/index.yaml
---- packages/rancher-gatekeeper/charts-original/index.yaml
-+++ packages/rancher-gatekeeper/charts/index.yaml
-@@ -1,18 +0,0 @@
--apiVersion: v1
--entries:
--  gatekeeper:
--  - apiVersion: v1
--    appVersion: v3.1.0-beta.11
--    created: "2020-07-24T16:56:23.670543818-07:00"
--    description: A Helm chart for Gatekeeper
--    digest: 937aeddadbeac8fa1b71169c4fcde5229fa8445b0caec6339dc7cae2ac10d43f
--    home: https://github.com/open-policy-agent/gatekeeper
--    keywords:
--    - open policy agent
--    name: gatekeeper
--    sources:
--    - https://github.com/open-policy-agent/gatekeeper.git
--    urls:
--    - https://raw.githubusercontent.com/open-policy-agent/gatekeeper/v3.1.0-beta.11/charts/gatekeeper/gatekeeper-v3.1.0-beta.11.tgz
--    version: v3.1.0-beta.11
--generated: "2020-07-24T16:56:23.669766565-07:00"
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/crds/config-customresourcedefinition.yaml packages/rancher-gatekeeper/charts/crds/config-customresourcedefinition.yaml
 --- packages/rancher-gatekeeper/charts-original/crds/config-customresourcedefinition.yaml
 +++ packages/rancher-gatekeeper/charts/crds/config-customresourcedefinition.yaml
@@ -459,6 +437,28 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/crd
 +    plural: ""
 +  conditions: []
 +  storedVersions: []
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/index.yaml packages/rancher-gatekeeper/charts/index.yaml
+--- packages/rancher-gatekeeper/charts-original/index.yaml
++++ packages/rancher-gatekeeper/charts/index.yaml
+@@ -1,18 +0,0 @@
+-apiVersion: v1
+-entries:
+-  gatekeeper:
+-  - apiVersion: v1
+-    appVersion: v3.1.0-beta.11
+-    created: "2020-07-24T16:56:23.670543818-07:00"
+-    description: A Helm chart for Gatekeeper
+-    digest: 937aeddadbeac8fa1b71169c4fcde5229fa8445b0caec6339dc7cae2ac10d43f
+-    home: https://github.com/open-policy-agent/gatekeeper
+-    keywords:
+-    - open policy agent
+-    name: gatekeeper
+-    sources:
+-    - https://github.com/open-policy-agent/gatekeeper.git
+-    urls:
+-    - https://raw.githubusercontent.com/open-policy-agent/gatekeeper/v3.1.0-beta.11/charts/gatekeeper/gatekeeper-v3.1.0-beta.11.tgz
+-    version: v3.1.0-beta.11
+-generated: "2020-07-24T16:56:23.669766565-07:00"
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/templates/_helpers.tpl packages/rancher-gatekeeper/charts/templates/_helpers.tpl
 --- packages/rancher-gatekeeper/charts-original/templates/_helpers.tpl
 +++ packages/rancher-gatekeeper/charts/templates/_helpers.tpl
@@ -474,54 +474,6 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/tem
 +{{- "" -}}
 +{{- end -}}
 +{{- end -}}
-diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/templates/allowedrepos.yaml packages/rancher-gatekeeper/charts/templates/allowedrepos.yaml
---- packages/rancher-gatekeeper/charts-original/templates/allowedrepos.yaml
-+++ packages/rancher-gatekeeper/charts/templates/allowedrepos.yaml
-@@ -0,0 +1,35 @@
-+apiVersion: templates.gatekeeper.sh/v1beta1
-+kind: ConstraintTemplate
-+metadata:
-+  name: k8sallowedrepos
-+spec:
-+  crd:
-+    spec:
-+      names:
-+        kind: K8sAllowedRepos
-+      validation:
-+        # Schema for the `parameters` field
-+        openAPIV3Schema:
-+          properties:
-+            repos:
-+              type: array
-+              items:
-+                type: string
-+  targets:
-+    - target: admission.k8s.gatekeeper.sh
-+      rego: |
-+        package k8sallowedrepos
-+
-+        violation[{"msg": msg}] {
-+          container := input.review.object.spec.containers[_]
-+          satisfied := [good | repo = input.parameters.repos[_] ; good = startswith(container.image, repo)]
-+          not any(satisfied)
-+          msg := sprintf("container <%v> has an invalid image repo <%v>, allowed repos are %v", [container.name, container.image, input.parameters.repos])
-+        }
-+
-+        violation[{"msg": msg}] {
-+          container := input.review.object.spec.initContainers[_]
-+          satisfied := [good | repo = input.parameters.repos[_] ; good = startswith(container.image, repo)]
-+          not any(satisfied)
-+          msg := sprintf("container <%v> has an invalid image repo <%v>, allowed repos are %v", [container.name, container.image, input.parameters.repos])
-+        }
-diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/templates/gatekeeper-admin-serviceaccount.yaml packages/rancher-gatekeeper/charts/templates/gatekeeper-admin-serviceaccount.yaml
---- packages/rancher-gatekeeper/charts-original/templates/gatekeeper-admin-serviceaccount.yaml
-+++ packages/rancher-gatekeeper/charts/templates/gatekeeper-admin-serviceaccount.yaml
-@@ -8,4 +8,4 @@
-     heritage: '{{ .Release.Service }}'
-     release: '{{ .Release.Name }}'
-   name: gatekeeper-admin
--  namespace: gatekeeper-system
-+  namespace: '{{ .Release.Namespace }}'
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/templates/config-customresourcedefinition.yaml packages/rancher-gatekeeper/charts/templates/config-customresourcedefinition.yaml
 --- packages/rancher-gatekeeper/charts-original/templates/config-customresourcedefinition.yaml
 +++ packages/rancher-gatekeeper/charts/templates/config-customresourcedefinition.yaml
@@ -942,6 +894,15 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/tem
 -    plural: ""
 -  conditions: []
 -  storedVersions: []
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/templates/gatekeeper-admin-serviceaccount.yaml packages/rancher-gatekeeper/charts/templates/gatekeeper-admin-serviceaccount.yaml
+--- packages/rancher-gatekeeper/charts-original/templates/gatekeeper-admin-serviceaccount.yaml
++++ packages/rancher-gatekeeper/charts/templates/gatekeeper-admin-serviceaccount.yaml
+@@ -8,4 +8,4 @@
+     heritage: '{{ .Release.Service }}'
+     release: '{{ .Release.Name }}'
+   name: gatekeeper-admin
+-  namespace: gatekeeper-system
++  namespace: '{{ .Release.Namespace }}'
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/templates/gatekeeper-audit-deployment.yaml packages/rancher-gatekeeper/charts/templates/gatekeeper-audit-deployment.yaml
 --- packages/rancher-gatekeeper/charts-original/templates/gatekeeper-audit-deployment.yaml
 +++ packages/rancher-gatekeeper/charts/templates/gatekeeper-audit-deployment.yaml
@@ -1096,90 +1057,6 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/tem
 -    gatekeeper.sh/system: "yes"
 -    heritage: '{{ .Release.Service }}'
 -    release: '{{ .Release.Name }}'
-diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/templates/job-constraints-crd.yaml packages/rancher-gatekeeper/charts/templates/job-constraints-crd.yaml
---- packages/rancher-gatekeeper/charts-original/templates/job-constraints-crd.yaml
-+++ packages/rancher-gatekeeper/charts/templates/job-constraints-crd.yaml
-@@ -0,0 +1,19 @@
-+apiVersion: batch/v1
-+kind: Job
-+metadata:
-+  namespace: {{ .Release.Namespace }}
-+  name: gatekeeper-delete-constraints-crd-job
-+  annotations:
-+    "helm.sh/hook": "pre-delete"
-+    "helm.sh/hook-delete-policy": "hook-succeeded, before-hook-creation, hook-failed"
-+spec:
-+  template:
-+    spec:
-+      serviceAccountName: gatekeeper-admin
-+      containers:
-+      - name: gatekeeper-delete-constraints-crd
-+        image: "{{ template "system_default_registry" . }}{{ .Values.global.kubectl.repository }}:{{ .Values.global.kubectl.tag }}"
-+        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
-+        command: ["kubectl",  "delete", "constrainttemplates", "--all"]
-+      restartPolicy: Never
-+  backoffLimit: 1
-diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/templates/requiredlabels.yaml packages/rancher-gatekeeper/charts/templates/requiredlabels.yaml
---- packages/rancher-gatekeeper/charts-original/templates/requiredlabels.yaml
-+++ packages/rancher-gatekeeper/charts/templates/requiredlabels.yaml
-@@ -0,0 +1,57 @@
-+apiVersion: templates.gatekeeper.sh/v1beta1
-+kind: ConstraintTemplate
-+metadata:
-+  name: k8srequiredlabels
-+spec:
-+  crd:
-+    spec:
-+      names:
-+        kind: K8sRequiredLabels
-+      validation:
-+        # Schema for the `parameters` field
-+        openAPIV3Schema:
-+          properties:
-+            message:
-+              type: string
-+            labels:
-+              type: array
-+              items:
-+                type: object
-+                properties:
-+                  key:
-+                    type: string
-+                  allowedRegex:
-+                    type: string
-+  targets:
-+    - target: admission.k8s.gatekeeper.sh
-+      rego: |
-+        package k8srequiredlabels
-+
-+        get_message(parameters, _default) = msg {
-+          not parameters.message
-+          msg := _default
-+        }
-+
-+        get_message(parameters, _default) = msg {
-+          msg := parameters.message
-+        }
-+
-+        violation[{"msg": msg, "details": {"missing_labels": missing}}] {
-+          provided := {label | input.review.object.metadata.labels[label]}
-+          required := {label | label := input.parameters.labels[_].key}
-+          missing := required - provided
-+          count(missing) > 0
-+          def_msg := sprintf("you must provide labels: %v", [missing])
-+          msg := get_message(input.parameters, def_msg)
-+        }
-+
-+        violation[{"msg": msg}] {
-+          value := input.review.object.metadata.labels[key]
-+          expected := input.parameters.labels[_]
-+          expected.key == key
-+          # do not match if allowedRegex is not defined, or is an empty string
-+          expected.allowedRegex != ""
-+          not re_match(expected.allowedRegex, value)
-+          def_msg := sprintf("Label <%v: %v> does not satisfy allowed regex: %v", [key, value, expected.allowedRegex])
-+          msg := get_message(input.parameters, def_msg)
-+        }
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/values.yaml packages/rancher-gatekeeper/charts/values.yaml
 --- packages/rancher-gatekeeper/charts-original/values.yaml
 +++ packages/rancher-gatekeeper/charts/values.yaml
