@@ -1,0 +1,30 @@
+{{- if .Values.syslog.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-fluentbit-syslog-forwarder
+  labels:
+    output: syslog
+{{ include "logging-operator.labels" . | indent 4 }}
+spec:
+  selector:
+    matchLabels:
+      output: syslog
+  template:
+    metadata:
+      labels:
+        output: syslog
+    spec:
+      containers:
+      - name: fluentbit
+        image: paynejacob/fluent-bit-out-syslog:latest
+        ports:
+          - containerPort: 24224
+        volumeMounts:
+          - mountPath: "/fluent-bit/etc/"
+            name: configuration
+      volumes:
+      - name: configuration
+        secret:
+          secretName: "{{ .Release.Name }}-syslog"
+{{- end }}
