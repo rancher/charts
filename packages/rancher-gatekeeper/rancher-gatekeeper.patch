@@ -1033,43 +1033,26 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/tem
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/templates/gatekeeper-webhook-service-service.yaml packages/rancher-gatekeeper/charts/templates/gatekeeper-webhook-service-service.yaml
 --- packages/rancher-gatekeeper/charts-original/templates/gatekeeper-webhook-service-service.yaml
 +++ packages/rancher-gatekeeper/charts/templates/gatekeeper-webhook-service-service.yaml
-@@ -1,23 +0,0 @@
--apiVersion: v1
--kind: Service
--metadata:
--  labels:
--    app: '{{ template "gatekeeper.name" . }}'
--    chart: '{{ template "gatekeeper.name" . }}'
--    gatekeeper.sh/system: "yes"
--    heritage: '{{ .Release.Service }}'
--    release: '{{ .Release.Name }}'
--  name: gatekeeper-webhook-service
+@@ -8,7 +8,7 @@
+     heritage: '{{ .Release.Service }}'
+     release: '{{ .Release.Name }}'
+   name: gatekeeper-webhook-service
 -  namespace: gatekeeper-system
--spec:
--  ports:
--  - port: 443
--    targetPort: 8443
--  selector:
--    app: '{{ template "gatekeeper.name" . }}'
--    chart: '{{ template "gatekeeper.name" . }}'
--    control-plane: controller-manager
--    gatekeeper.sh/operation: webhook
--    gatekeeper.sh/system: "yes"
--    heritage: '{{ .Release.Service }}'
--    release: '{{ .Release.Name }}'
++  namespace: '{{ .Release.Namespace }}'
+ spec:
+   ports:
+   - port: 443
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-gatekeeper/charts-original/values.yaml packages/rancher-gatekeeper/charts/values.yaml
 --- packages/rancher-gatekeeper/charts-original/values.yaml
 +++ packages/rancher-gatekeeper/charts/values.yaml
-@@ -1,15 +1,15 @@
+@@ -1,5 +1,5 @@
  replicas: 3
 -auditInterval: 60
 +auditInterval: 300
  constraintViolationsLimit: 20
  auditFromCache: false
--disableValidatingWebhook: false
-+disableValidatingWebhook: true
- auditChunkSize: 0
- logLevel: INFO
+ disableValidatingWebhook: false
+@@ -8,8 +8,8 @@
  emitAdmissionEvents: false
  emitAuditEvents: false
  image:
