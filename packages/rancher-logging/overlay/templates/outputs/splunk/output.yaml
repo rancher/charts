@@ -1,0 +1,30 @@
+{{- if .Values.splunk.enabled }}
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: ClusterOutput
+metadata:
+  name: {{ .Release.Name }}-splunk
+spec:
+  splunkHec:
+    hec_host: {{ .Values.splunk.host }}
+    hec_port: {{ .Values.splunk.port }}
+    protocol: {{ .Values.splunk.protocol }}
+{{- if .Values.splunk.index }}
+    hec_token:
+      valueFrom:
+        secretKeyRef:
+          name: {{ .Release.Name }}-splunk
+          key: "hec_token"
+  {{- end }}
+{{- if .Values.splunk.index }}
+    index: {{ .Values.splunk.index }}
+{{- end }}
+{{- if .Values.splunk.client_cert }}
+    client_cert: {{ .Values.splunk.client_cert }}
+{{- end }}
+{{- if .Values.splunk.client_key }}
+    client_key: {{ .Values.splunk.client_key }}
+{{- end }}
+{{- if .Values.splunk.insecure_ssl }}
+    insecure_ssl: {{ .Values.splunk.insecure_ssl }}
+{{- end }}
+{{- end }}
