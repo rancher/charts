@@ -1,0 +1,19 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: gatekeeper-delete-constraints-crd-job
+  annotations:
+    "helm.sh/hook": "pre-delete"
+    "helm.sh/hook-delete-policy": "hook-succeeded, before-hook-creation, hook-failed"
+spec:
+  template:
+    spec:
+      serviceAccountName: gatekeeper-admin
+      containers:
+      - name: gatekeeper-delete-constraints-crd
+        image: "{{ template "system_default_registry" . }}{{ .Values.global.kubectl.repository }}:{{ .Values.global.kubectl.tag }}"
+        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+        command: ["kubectl",  "delete", "constrainttemplates", "--all"]
+      restartPolicy: Never
+  backoffLimit: 1
