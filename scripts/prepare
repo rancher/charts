@@ -39,38 +39,34 @@ for f in packages/*; do
 			if [[ "${split_crds}" == "true" ]]; then
 				./scripts/prepare-crds ${f}
 			fi
-			copied_dependencies=()
-			if [[ -f ${f}/charts/requirements.yaml ]]; then
-				repos=$(cat ${f}/charts/requirements.yaml | yq r - "dependencies.*.repository")
-				while IFS= read -r repo; do
-					if [[ ${repo} == file://* ]]; then
-						charts_path=${repo/file:\/\//${f}/charts/}
-						overlay_path=${repo/file:\/\//${f}/overlay/}
-						if [[ ! -d $charts_path ]] && [[ -d $overlay_path ]]; then
-							cp -R $overlay_path $charts_path
-							copied_dependencies+=("${charts_path}")
-						fi
-					fi
-				done < <(echo "${repos}")
-			fi
-			pwd=$(pwd)
-			cd ${f}/charts
-			helm dependency update
-			cd $pwd
-			for dep in "${copied_dependencies[@]}"; do
-				rm -rf $dep
-			done
 		fi
 	fi
 done
 
-# if any sub-charts were prepared pull them in
+# Loop through packages again and copy dependencies over
+# If sub-charts existed as package.yaml they will now be vendored into parent
 for f in packages/*; do
-	if [[ ! -f ${f}/package.yaml && -f ${f}/charts/requirements.yaml ]]; then
-		ls ${f}/charts/requirements.yaml
+	if [[ -z $CHART || $CHART == $(basename -- ${f}) ]]; then
+		copied_dependencies=()
+		if [[ -f ${f}/charts/requirements.yaml ]]; then
+			repos=$(cat ${f}/charts/requirements.yaml | yq r - "dependencies.*.repository")
+			while IFS= read -r repo; do
+				if [[ ${repo} == file://* ]]; then
+					charts_path=${repo/file:\/\//${f}/charts/}
+					overlay_path=${repo/file:\/\//${f}/overlay/}
+					if [[ ! -d $charts_path ]] && [[ -d $overlay_path ]]; then
+						cp -R $overlay_path $charts_path
+						copied_dependencies+=("${charts_path}")
+					fi
+				fi
+			done < <(echo "${repos}")
+		fi
 		pwd=$(pwd)
 		cd ${f}/charts
 		helm dependency update
 		cd $pwd
+		for dep in "${copied_dependencies[@]}"; do
+			rm -rf $dep
+		done
 	fi
 done
