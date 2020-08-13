@@ -1,0 +1,155 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: nfsservers.storageos.com
+  annotations:
+    "helm.sh/hook": crd-install
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .status.phase
+    description: Status of the NFS server.
+    name: status
+    type: string
+  - JSONPath: .spec.resources.requests.storage
+    description: Capacity of the NFS server.
+    name: capacity
+    type: string
+  - JSONPath: .status.remoteTarget
+    description: Remote target address of the NFS server.
+    name: target
+    type: string
+  - JSONPath: .status.accessModes
+    description: Access modes supported by the NFS server.
+    name: access modes
+    type: string
+  - JSONPath: .spec.storageClassName
+    description: StorageClass used for creating the NFS volume.
+    name: storageclass
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: age
+    type: date
+  group: storageos.com
+  names:
+    kind: NFSServer
+    listKind: NFSServerList
+    plural: nfsservers
+    shortNames:
+    - nfsserver
+    singular: nfsserver
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            annotations:
+              additionalProperties:
+                type: string
+              description: The annotations-related configuration to add/set on each
+                Pod related object.
+              type: object
+            export:
+              description: The parameters to configure the NFS export
+              properties:
+                name:
+                  description: Name of the export
+                  type: string
+                persistentVolumeClaim:
+                  description: PVC from which the NFS daemon gets storage for sharing
+                  type: object
+                server:
+                  description: The NFS server configuration
+                  properties:
+                    accessMode:
+                      description: Reading and Writing permissions on the export Valid
+                        values are "ReadOnly", "ReadWrite" and "none"
+                      type: string
+                    squash:
+                      description: This prevents the root users connected remotely
+                        from having root privileges Valid values are "none", "rootid",
+                        "root", and "all"
+                      type: string
+                  type: object
+              type: object
+            mountOptions:
+              description: PV mount options. Not validated - mount of the PVs will
+                simply fail if one is invalid.
+              items:
+                type: string
+              type: array
+            nfsContainer:
+              description: NFSContainer is the container image to use for the NFS
+                server.
+              type: string
+            persistentVolumeClaim:
+              description: PersistentVolumeClaim is the PVC source of the PVC to be
+                used with the NFS Server. If not specified, a new PVC is provisioned
+                and used.
+              type: object
+            persistentVolumeReclaimPolicy:
+              description: Reclamation policy for the persistent volume shared to
+                the user's pod.
+              type: string
+            resources:
+              description: Resources represents the minimum resources required
+              type: object
+            storageClassName:
+              description: StorageClassName is the name of the StorageClass used by
+                the NFS volume.
+              type: string
+            tolerations:
+              description: Tolerations is to set the placement of NFS server pods
+                using pod toleration.
+              items:
+                type: object
+              type: array
+          type: object
+        status:
+          properties:
+            accessModes:
+              description: AccessModes is the access modes supported by the NFS server.
+              type: string
+            phase:
+              description: 'Phase is a simple, high-level summary of where the NFS
+                Server is in its lifecycle. Phase will be set to Ready when the NFS
+                Server is ready for use.  It is intended to be similar to the PodStatus
+                Phase described at: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#podstatus-v1-core  There
+                are five possible phase values:   - Pending: The NFS Server has been
+                accepted by the Kubernetes system,     but one or more of the components
+                has not been created. This includes     time before being scheduled
+                as well as time spent downloading images     over the network, which
+                could take a while.   - Running: The NFS Server has been bound to
+                a node, and all of the     dependencies have been created.   - Succeeded:
+                All NFS Server dependencies have terminated in success,     and will
+                not be restarted.   - Failed: All NFS Server dependencies in the pod
+                have terminated, and     at least one container has terminated in
+                failure. The container     either exited with non-zero status or was
+                terminated by the system.   - Unknown: For some reason the state of
+                the NFS Server could not be     obtained, typically due to an error
+                in communicating with the host of     the pod.'
+              type: string
+            remoteTarget:
+              description: RemoteTarget is the connection string that clients can
+                use to access the shared filesystem.
+              type: string
+          type: object
+  version: v1
+  versions:
+  - name: v1
+    served: true
+    storage: true
