@@ -21,7 +21,7 @@ fi
 
 if ! [[ -d ${f}/charts ]]; then
 	echo "Could not find ${f}/charts"
-    exit 1
+	exit 1
 fi
 
 if ! [[ -f ${f}/charts/Chart.yaml ]]; then
@@ -48,8 +48,11 @@ chart_version=$(cat ${f}/charts/Chart.yaml | yq r - 'version')
 crd_apis=()
 for crd_yaml in ${f}/charts-crd/templates/*; do
 	crd_group=$(yq r ${crd_yaml} 'spec.group')
-	crd_version=$(yq r ${crd_yaml} 'spec.version')
 	crd_kind=$(yq r ${crd_yaml} 'spec.names.kind')
+	crd_version=$(yq r ${crd_yaml} 'spec.version')
+	if [[ -z "$crd_version" ]]; then
+		crd_version=$(yq r ${crd_yaml} 'spec.versions[0].name')
+	fi
 	crd_apis+=("${crd_group}/${crd_version}/${crd_kind}")
 done
 
@@ -65,19 +68,25 @@ EOF
 # Add providesGVR annotation
 providesGVR="$(cat ${f}/package.yaml | yq r - generateCRDChart.providesGVR)"
 if ! [[ -z ${providesGVR} ]]; then
-	yq w -i ${f}/charts/Chart.yaml "annotations[catalog.cattle.io/auto-install-gvr]" "${providesGVR}"
-	yq w -i ${f}/charts-crd/Chart.yaml "annotations[catalog.cattle.io/provides-gvr]" "${providesGVR}"
-	yq w -i ${f}/charts-crd/Chart.yaml "annotations[catalog.cattle.io/hidden]" "true"
+	if [[ -z "$(yq r ${f}/charts/Chart.yaml 'annotations[catalog.cattle.io/auto-install-gvr]')" ]]; then
+		yq w -i ${f}/charts/Chart.yaml "annotations[catalog.cattle.io/auto-install-gvr]" "${providesGVR}"
+	fi
+	if [[ -z "$(yq r ${f}/charts/Chart.yaml 'annotations[catalog.cattle.io/provides-gvr]')" ]]; then
+		yq w -i ${f}/charts-crd/Chart.yaml "annotations[catalog.cattle.io/provides-gvr]" "${providesGVR}"
+	fi
+	if [[ -z "$(yq r ${f}/charts/Chart.yaml 'annotations[catalog.cattle.io/hidden]')" ]]; then
+		yq w -i ${f}/charts-crd/Chart.yaml "annotations[catalog.cattle.io/hidden]" "true"
+	fi
 fi
 
 # Add annotations to charts-crd/Chart.yaml
 copyAnnotations=(catalog.cattle.io/release-name catalog.cattle.io/certified catalog.cattle.io/experimental catalog.cattle.io/namespace)
 for a in ${copyAnnotations[@]}; do
 	v=$(yq r ${f}/charts/Chart.yaml "annotations[${a}]")
-	if [[ ${a} == "catalog.cattle.io/release-name" ]]; then
-		v="${v}-crd"
-	fi
 	if ! [[ -z ${v} ]]; then
+		if [[ ${a} == "catalog.cattle.io/release-name" ]]; then
+			v="${v}-crd"
+		fi
 		yq w -i ${f}/charts-crd/Chart.yaml "annotations[${a}]" "${v}"
 	fi
 done
