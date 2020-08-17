@@ -42,20 +42,22 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
+      description: NFSServer is the Schema for the nfsservers API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
             of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         kind:
           description: 'Kind is a string value representing the REST resource this
             object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
         spec:
+          description: NFSServerSpec defines the desired state of NFSServer
           properties:
             annotations:
               additionalProperties:
@@ -71,6 +73,18 @@ spec:
                   type: string
                 persistentVolumeClaim:
                   description: PVC from which the NFS daemon gets storage for sharing
+                  properties:
+                    claimName:
+                      description: 'ClaimName is the name of a PersistentVolumeClaim
+                        in the same namespace as the pod using this volume. More info:
+                        https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims'
+                      type: string
+                    readOnly:
+                      description: Will force the ReadOnly setting in VolumeMounts.
+                        Default false.
+                      type: boolean
+                  required:
+                  - claimName
                   type: object
                 server:
                   description: The NFS server configuration
@@ -100,6 +114,17 @@ spec:
               description: PersistentVolumeClaim is the PVC source of the PVC to be
                 used with the NFS Server. If not specified, a new PVC is provisioned
                 and used.
+              properties:
+                claimName:
+                  description: 'ClaimName is the name of a PersistentVolumeClaim in
+                    the same namespace as the pod using this volume. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims'
+                  type: string
+                readOnly:
+                  description: Will force the ReadOnly setting in VolumeMounts. Default
+                    false.
+                  type: boolean
+              required:
+              - claimName
               type: object
             persistentVolumeReclaimPolicy:
               description: Reclamation policy for the persistent volume shared to
@@ -107,6 +132,29 @@ spec:
               type: string
             resources:
               description: Resources represents the minimum resources required
+              properties:
+                limits:
+                  additionalProperties:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  description: 'Limits describes the maximum amount of compute resources
+                    allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
+                  type: object
+                requests:
+                  additionalProperties:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  description: 'Requests describes the minimum amount of compute resources
+                    required. If Requests is omitted for a container, it defaults
+                    to Limits if that is explicitly specified, otherwise to an implementation-defined
+                    value. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
+                  type: object
               type: object
             storageClassName:
               description: StorageClassName is the name of the StorageClass used by
@@ -116,38 +164,75 @@ spec:
               description: Tolerations is to set the placement of NFS server pods
                 using pod toleration.
               items:
+                description: The pod this Toleration is attached to tolerates any
+                  taint that matches the triple <key,value,effect> using the matching
+                  operator <operator>.
+                properties:
+                  effect:
+                    description: Effect indicates the taint effect to match. Empty
+                      means match all taint effects. When specified, allowed values
+                      are NoSchedule, PreferNoSchedule and NoExecute.
+                    type: string
+                  key:
+                    description: Key is the taint key that the toleration applies
+                      to. Empty means match all taint keys. If the key is empty, operator
+                      must be Exists; this combination means to match all values and
+                      all keys.
+                    type: string
+                  operator:
+                    description: Operator represents a key's relationship to the value.
+                      Valid operators are Exists and Equal. Defaults to Equal. Exists
+                      is equivalent to wildcard for value, so that a pod can tolerate
+                      all taints of a particular category.
+                    type: string
+                  tolerationSeconds:
+                    description: TolerationSeconds represents the period of time the
+                      toleration (which must be of effect NoExecute, otherwise this
+                      field is ignored) tolerates the taint. By default, it is not
+                      set, which means tolerate the taint forever (do not evict).
+                      Zero and negative values will be treated as 0 (evict immediately)
+                      by the system.
+                    format: int64
+                    type: integer
+                  value:
+                    description: Value is the taint value the toleration matches to.
+                      If the operator is Exists, the value should be empty, otherwise
+                      just a regular string.
+                    type: string
                 type: object
               type: array
           type: object
         status:
+          description: NFSServerStatus defines the observed state of NFSServer
           properties:
             accessModes:
               description: AccessModes is the access modes supported by the NFS server.
               type: string
             phase:
-              description: 'Phase is a simple, high-level summary of where the NFS
+              description: "Phase is a simple, high-level summary of where the NFS
                 Server is in its lifecycle. Phase will be set to Ready when the NFS
                 Server is ready for use.  It is intended to be similar to the PodStatus
-                Phase described at: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#podstatus-v1-core  There
-                are five possible phase values:   - Pending: The NFS Server has been
-                accepted by the Kubernetes system,     but one or more of the components
-                has not been created. This includes     time before being scheduled
-                as well as time spent downloading images     over the network, which
-                could take a while.   - Running: The NFS Server has been bound to
-                a node, and all of the     dependencies have been created.   - Succeeded:
-                All NFS Server dependencies have terminated in success,     and will
-                not be restarted.   - Failed: All NFS Server dependencies in the pod
-                have terminated, and     at least one container has terminated in
-                failure. The container     either exited with non-zero status or was
-                terminated by the system.   - Unknown: For some reason the state of
-                the NFS Server could not be     obtained, typically due to an error
-                in communicating with the host of     the pod.'
+                Phase described at: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#podstatus-v1-core
+                \n There are five possible phase values:   - Pending: The NFS Server
+                has been accepted by the Kubernetes system,     but one or more of
+                the components has not been created. This includes     time before
+                being scheduled as well as time spent downloading images     over
+                the network, which could take a while.   - Running: The NFS Server
+                has been bound to a node, and all of the     dependencies have been
+                created.   - Succeeded: All NFS Server dependencies have terminated
+                in success,     and will not be restarted.   - Failed: All NFS Server
+                dependencies in the pod have terminated, and     at least one container
+                has terminated in failure. The container     either exited with non-zero
+                status or was terminated by the system.   - Unknown: For some reason
+                the state of the NFS Server could not be     obtained, typically due
+                to an error in communicating with the host of     the pod."
               type: string
             remoteTarget:
               description: RemoteTarget is the connection string that clients can
                 use to access the shared filesystem.
               type: string
           type: object
+      type: object
   version: v1
   versions:
   - name: v1

@@ -16,20 +16,22 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
+      description: Job is the Schema for the jobs API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
             of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         kind:
           description: 'Kind is a string value representing the REST resource this
             object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
         spec:
+          description: JobSpec defines the desired state of Job
           properties:
             args:
               description: Args is an array of strings passed as an argument to the
@@ -59,27 +61,130 @@ spec:
               description: NodeSelectorTerms is the set of placement of the job pods
                 using node affinity requiredDuringSchedulingIgnoredDuringExecution.
               items:
+                description: A null or empty node selector term matches no objects.
+                  The requirements of them are ANDed. The TopologySelectorTerm type
+                  implements a subset of the NodeSelectorTerm.
+                properties:
+                  matchExpressions:
+                    description: A list of node selector requirements by node's labels.
+                    items:
+                      description: A node selector requirement is a selector that
+                        contains values, a key, and an operator that relates the key
+                        and values.
+                      properties:
+                        key:
+                          description: The label key that the selector applies to.
+                          type: string
+                        operator:
+                          description: Represents a key's relationship to a set of
+                            values. Valid operators are In, NotIn, Exists, DoesNotExist.
+                            Gt, and Lt.
+                          type: string
+                        values:
+                          description: An array of string values. If the operator
+                            is In or NotIn, the values array must be non-empty. If
+                            the operator is Exists or DoesNotExist, the values array
+                            must be empty. If the operator is Gt or Lt, the values
+                            array must have a single element, which will be interpreted
+                            as an integer. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                  matchFields:
+                    description: A list of node selector requirements by node's fields.
+                    items:
+                      description: A node selector requirement is a selector that
+                        contains values, a key, and an operator that relates the key
+                        and values.
+                      properties:
+                        key:
+                          description: The label key that the selector applies to.
+                          type: string
+                        operator:
+                          description: Represents a key's relationship to a set of
+                            values. Valid operators are In, NotIn, Exists, DoesNotExist.
+                            Gt, and Lt.
+                          type: string
+                        values:
+                          description: An array of string values. If the operator
+                            is In or NotIn, the values array must be non-empty. If
+                            the operator is Exists or DoesNotExist, the values array
+                            must be empty. If the operator is Gt or Lt, the values
+                            array must have a single element, which will be interpreted
+                            as an integer. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
                 type: object
               type: array
             tolerations:
               description: Tolerations is to set the placement of storageos pods using
                 pod toleration.
               items:
+                description: The pod this Toleration is attached to tolerates any
+                  taint that matches the triple <key,value,effect> using the matching
+                  operator <operator>.
+                properties:
+                  effect:
+                    description: Effect indicates the taint effect to match. Empty
+                      means match all taint effects. When specified, allowed values
+                      are NoSchedule, PreferNoSchedule and NoExecute.
+                    type: string
+                  key:
+                    description: Key is the taint key that the toleration applies
+                      to. Empty means match all taint keys. If the key is empty, operator
+                      must be Exists; this combination means to match all values and
+                      all keys.
+                    type: string
+                  operator:
+                    description: Operator represents a key's relationship to the value.
+                      Valid operators are Exists and Equal. Defaults to Equal. Exists
+                      is equivalent to wildcard for value, so that a pod can tolerate
+                      all taints of a particular category.
+                    type: string
+                  tolerationSeconds:
+                    description: TolerationSeconds represents the period of time the
+                      toleration (which must be of effect NoExecute, otherwise this
+                      field is ignored) tolerates the taint. By default, it is not
+                      set, which means tolerate the taint forever (do not evict).
+                      Zero and negative values will be treated as 0 (evict immediately)
+                      by the system.
+                    format: int64
+                    type: integer
+                  value:
+                    description: Value is the taint value the toleration matches to.
+                      If the operator is Exists, the value should be empty, otherwise
+                      just a regular string.
+                    type: string
                 type: object
               type: array
           required:
-          - image
           - args
-          - mountPath
-          - hostPath
           - completionWord
+          - hostPath
+          - image
+          - mountPath
           type: object
         status:
+          description: JobStatus defines the observed state of Job
           properties:
             completed:
               description: Completed indicates the complete status of job.
               type: boolean
           type: object
+      type: object
   version: v1
   versions:
   - name: v1

@@ -30,20 +30,22 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
+      description: StorageOSCluster is the Schema for the storageosclusters API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
             of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         kind:
           description: 'Kind is a string value representing the REST resource this
             object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
         spec:
+          description: StorageOSClusterSpec defines the desired state of StorageOSCluster
           properties:
             csi:
               description: CSI defines the configurations for CSI.
@@ -85,43 +87,43 @@ spec:
               description: Debug is to set debug mode of the cluster.
               type: boolean
             disableFencing:
-              description: 'Disable Pod Fencing.  With StatefulSets, Pods are only
+              description: "Disable Pod Fencing.  With StatefulSets, Pods are only
                 re-scheduled if the Pod has been marked as killed.  In practice this
-                means that failover of a StatefulSet pod is a manual operation.  By
-                enabling Pod Fencing and setting the `storageos.com/fenced=true` label
-                on a Pod, StorageOS will enable automated Pod failover (by killing
+                means that failover of a StatefulSet pod is a manual operation. \n
+                By enabling Pod Fencing and setting the `storageos.com/fenced=true`
+                label on a Pod, StorageOS will enable automated Pod failover (by killing
                 the application Pod on the failed node) if the following conditions
-                exist:  - Pod fencing has not been explicitly disabled. - StorageOS
+                exist: \n - Pod fencing has not been explicitly disabled. - StorageOS
                 has determined that the node the Pod is running on is   offline.  StorageOS
                 uses Gossip and TCP checks and will retry for 30   seconds.  At this
                 point all volumes on the failed node are marked   offline (irrespective
                 of whether fencing is enabled) and volume   failover starts. - The
                 Pod has the label `storageos.com/fenced=true` set. - The Pod has at
                 least one StorageOS volume attached. - Each StorageOS volume has at
-                least 1 healthy replica.  When Pod Fencing is disabled, StorageOS
+                least 1 healthy replica. \n When Pod Fencing is disabled, StorageOS
                 will not perform any interaction with Kubernetes when it detects that
                 a node has gone offline. Additionally, the Kubernetes permissions
-                required for Fencing will not be added to the StorageOS role.'
+                required for Fencing will not be added to the StorageOS role."
               type: boolean
             disableScheduler:
               description: Disable StorageOS scheduler extender.
               type: boolean
             disableTCMU:
-              description: Disable TCMU can be set to true to disable the TCMU storage
+              description: "Disable TCMU can be set to true to disable the TCMU storage
                 driver.  This is required when there are multiple storage systems
                 running on the same node and you wish to avoid conflicts.  Only one
-                TCMU-based storage system can run on a node at a time.  Disabling
-                TCMU will degrade performance.
+                TCMU-based storage system can run on a node at a time. \n Disabling
+                TCMU will degrade performance."
               type: boolean
             disableTelemetry:
               description: Disable Telemetry.
               type: boolean
             forceTCMU:
-              description: Force TCMU can be set to true to ensure that TCMU is enabled
-                or cause StorageOS to abort startup.  At startup, StorageOS will automatically
-                fallback to non-TCMU mode if another TCMU-based storage system is
-                running on the node.  Since non-TCMU will degrade performance, this
-                may not always be desired.
+              description: "Force TCMU can be set to true to ensure that TCMU is enabled
+                or cause StorageOS to abort startup. \n At startup, StorageOS will
+                automatically fallback to non-TCMU mode if another TCMU-based storage
+                system is running on the node.  Since non-TCMU will degrade performance,
+                this may not always be desired."
               type: boolean
             images:
               description: Images defines the various container images used in the
@@ -169,15 +171,15 @@ spec:
               description: Join is the join token used for service discovery.
               type: string
             k8sDistro:
-              description: 'K8sDistro is the name of the Kubernetes distribution where
+              description: "K8sDistro is the name of the Kubernetes distribution where
                 the operator is being deployed.  It should be in the format: `name[-1.0]`,
-                where the version is optional and should only be appended if known.  Suitable
-                names include: `openshift`, `rancher`, `aks`, `gke`, `eks`, or the
-                deployment method if using upstream directly, e.g `minishift` or `kubeadm`.  Setting
-                k8sDistro is optional, and will be used to simplify cluster configuration
-                by setting appropriate defaults for the distribution.  The distribution
-                information will also be included in the product telemetry (if enabled),
-                to help focus development efforts.'
+                where the version is optional and should only be appended if known.
+                \ Suitable names include: `openshift`, `rancher`, `aks`, `gke`, `eks`,
+                or the deployment method if using upstream directly, e.g `minishift`
+                or `kubeadm`. \n Setting k8sDistro is optional, and will be used to
+                simplify cluster configuration by setting appropriate defaults for
+                the distribution.  The distribution information will also be included
+                in the product telemetry (if enabled), to help focus development efforts."
               type: string
             kvBackend:
               description: KVBackend defines the key-value store backend used in the
@@ -196,6 +198,72 @@ spec:
               description: NodeSelectorTerms is to set the placement of storageos
                 pods using node affinity requiredDuringSchedulingIgnoredDuringExecution.
               items:
+                description: A null or empty node selector term matches no objects.
+                  The requirements of them are ANDed. The TopologySelectorTerm type
+                  implements a subset of the NodeSelectorTerm.
+                properties:
+                  matchExpressions:
+                    description: A list of node selector requirements by node's labels.
+                    items:
+                      description: A node selector requirement is a selector that
+                        contains values, a key, and an operator that relates the key
+                        and values.
+                      properties:
+                        key:
+                          description: The label key that the selector applies to.
+                          type: string
+                        operator:
+                          description: Represents a key's relationship to a set of
+                            values. Valid operators are In, NotIn, Exists, DoesNotExist.
+                            Gt, and Lt.
+                          type: string
+                        values:
+                          description: An array of string values. If the operator
+                            is In or NotIn, the values array must be non-empty. If
+                            the operator is Exists or DoesNotExist, the values array
+                            must be empty. If the operator is Gt or Lt, the values
+                            array must have a single element, which will be interpreted
+                            as an integer. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                  matchFields:
+                    description: A list of node selector requirements by node's fields.
+                    items:
+                      description: A node selector requirement is a selector that
+                        contains values, a key, and an operator that relates the key
+                        and values.
+                      properties:
+                        key:
+                          description: The label key that the selector applies to.
+                          type: string
+                        operator:
+                          description: Represents a key's relationship to a set of
+                            values. Valid operators are In, NotIn, Exists, DoesNotExist.
+                            Gt, and Lt.
+                          type: string
+                        values:
+                          description: An array of string values. If the operator
+                            is In or NotIn, the values array must be non-empty. If
+                            the operator is Exists or DoesNotExist, the values array
+                            must be empty. If the operator is Gt or Lt, the values
+                            array must have a single element, which will be interpreted
+                            as an integer. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
                 type: object
               type: array
             pause:
@@ -204,6 +272,29 @@ spec:
             resources:
               description: Resources is to set the resource requirements of the storageos
                 containers.
+              properties:
+                limits:
+                  additionalProperties:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  description: 'Limits describes the maximum amount of compute resources
+                    allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
+                  type: object
+                requests:
+                  additionalProperties:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  description: 'Requests describes the minimum amount of compute resources
+                    required. If Requests is omitted for a container, it defaults
+                    to Limits if that is explicitly specified, otherwise to an implementation-defined
+                    value. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
+                  type: object
               type: object
             secretRefName:
               description: SecretRefName is the name of the secret object that contains
@@ -220,10 +311,8 @@ spec:
                     type: string
                   type: object
                 externalPort:
-                  format: int64
                   type: integer
                 internalPort:
-                  format: int64
                   type: integer
                 name:
                   type: string
@@ -255,6 +344,41 @@ spec:
               description: Tolerations is to set the placement of storageos pods using
                 pod toleration.
               items:
+                description: The pod this Toleration is attached to tolerates any
+                  taint that matches the triple <key,value,effect> using the matching
+                  operator <operator>.
+                properties:
+                  effect:
+                    description: Effect indicates the taint effect to match. Empty
+                      means match all taint effects. When specified, allowed values
+                      are NoSchedule, PreferNoSchedule and NoExecute.
+                    type: string
+                  key:
+                    description: Key is the taint key that the toleration applies
+                      to. Empty means match all taint keys. If the key is empty, operator
+                      must be Exists; this combination means to match all values and
+                      all keys.
+                    type: string
+                  operator:
+                    description: Operator represents a key's relationship to the value.
+                      Valid operators are Exists and Equal. Defaults to Equal. Exists
+                      is equivalent to wildcard for value, so that a pod can tolerate
+                      all taints of a particular category.
+                    type: string
+                  tolerationSeconds:
+                    description: TolerationSeconds represents the period of time the
+                      toleration (which must be of effect NoExecute, otherwise this
+                      field is ignored) tolerates the taint. By default, it is not
+                      set, which means tolerate the taint forever (do not evict).
+                      Zero and negative values will be treated as 0 (evict immediately)
+                      by the system.
+                    format: int64
+                    type: integer
+                  value:
+                    description: Value is the taint value the toleration matches to.
+                      If the operator is Exists, the value should be empty, otherwise
+                      just a regular string.
+                    type: string
                 type: object
               type: array
           required:
@@ -262,8 +386,11 @@ spec:
           - secretRefNamespace
           type: object
         status:
+          description: StorageOSClusterStatus defines the observed state of StorageOSCluster
           properties:
             members:
+              description: MembersStatus stores the status details of cluster member
+                nodes.
               properties:
                 ready:
                   description: Ready are the storageos cluster members that are ready
@@ -280,6 +407,7 @@ spec:
               type: object
             nodeHealthStatus:
               additionalProperties:
+                description: NodeHealth contains health status of a node.
                 properties:
                   directfsInitiator:
                     type: string
@@ -302,10 +430,13 @@ spec:
                 type: string
               type: array
             phase:
+              description: ClusterPhase is the phase of the storageos cluster at a
+                given point in time.
               type: string
             ready:
               type: string
           type: object
+      type: object
   version: v1
   versions:
   - name: v1
