@@ -1,0 +1,107 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: restores.resources.cattle.io
+spec:
+  group: resources.cattle.io
+  names:
+    kind: Restore
+    plural: restores
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      properties:
+        spec:
+          properties:
+            backupFilename:
+              type: string
+            deleteTimeout:
+              maximum: 5
+              type: integer
+            encryptionConfigName:
+              type: string
+            prune:
+              nullable: true
+              type: boolean
+            storageLocation:
+              anyOf:
+              - nullable: true
+                properties:
+                  bucketName:
+                    type: string
+                  credentialSecretName:
+                    type: string
+                  endpoint:
+                    type: string
+                  endpointCA:
+                    type: string
+                  folder:
+                    type: string
+                  insecureTLSSkipVerify:
+                    type: boolean
+                  region:
+                    type: string
+                type: object
+              - type: string
+              nullable: true
+              properties:
+                local:
+                  type: string
+                s3:
+                  nullable: true
+                  properties:
+                    bucketName:
+                      type: string
+                    credentialSecretName:
+                      type: string
+                    endpoint:
+                      type: string
+                    endpointCA:
+                      type: string
+                    folder:
+                      type: string
+                    insecureTLSSkipVerify:
+                      type: boolean
+                    region:
+                      type: string
+                  type: object
+              type: object
+          required:
+          - backupFilename
+          - storageLocation
+          type: object
+        status:
+          properties:
+            conditions:
+              items:
+                properties:
+                  lastTransitionTime:
+                    type: string
+                  lastUpdateTime:
+                    type: string
+                  message:
+                    type: string
+                  reason:
+                    type: string
+                  status:
+                    type: string
+                  type:
+                    type: string
+                type: object
+              nullable: true
+              type: array
+            observedGeneration:
+              type: integer
+            restoreCompletionTs:
+              type: string
+            summary:
+              type: string
+          type: object
+      type: object
+  version: v1
+  versions:
+  - name: v1
+    served: true
+    storage: true
