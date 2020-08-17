@@ -7,6 +7,15 @@ metadata:
 {{ include "logging-operator.labels" . | indent 4 }}
 spec:
   controlNamespace: {{ .Release.Namespace }}
-  fluentbit: {}
+  fluentbit:
+    image:
+      repository: {{ template "system_default_registry" . }}{{ .Values.images.fluentbit.repository }}
+      tag: {{ .Values.images.fluentbit.tag }}
   fluentd:
+    image:
+      repository: {{ template "system_default_registry" . }}{{ .Values.images.fluentd.repository }}
+      tag: {{ .Values.images.fluentd.tag }}
+    configReloaderImage:
+      repository: {{ template "system_default_registry" . }}{{ .Values.images.config_reloader.repository }}
+      tag: {{ .Values.images.config_reloader.tag }}
     disablePvc: {{ .Values.disablePvc }}

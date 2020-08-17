@@ -37,3 +37,62 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-kiali-server/charts-original/C
 +  catalog.cattle.io/requires-gvr: prometheuses.monitoring.coreos.com/v1
 +  catalog.rancher.io/namespace: cattle-istio-system
 +  catalog.rancher.io/release-name: rancher-kiali-server
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-kiali-server/charts-original/templates/deployment.yaml packages/rancher-kiali-server/charts/templates/deployment.yaml
+--- packages/rancher-kiali-server/charts-original/templates/deployment.yaml
++++ packages/rancher-kiali-server/charts/templates/deployment.yaml
+@@ -89,6 +89,11 @@
+             fieldRef:
+               fieldPath: metadata.namespace
+         volumeMounts:
++        {{- if .Values.web_root_override }}
++        - name: kiali-console
++          subPath: env.js
++          mountPath: /opt/kiali/console/env.js
++        {{- end }}
+         - name: {{ include "kiali-server.fullname" . }}-configuration
+           mountPath: "/kiali-configuration"
+         - name: {{ include "kiali-server.fullname" . }}-cert
+@@ -104,6 +109,14 @@
+         {{- toYaml .Values.deployment.resources | nindent 10 }}
+         {{- end }}
+       volumes:
++      {{- if .Values.web_root_override }}
++      - name: kiali-console
++        configMap:
++          name: kiali-console
++          items:
++          - key: env.js
++            path: env.js
++      {{- end }}
+       - name: {{ include "kiali-server.fullname" . }}-configuration
+         configMap:
+           name: {{ include "kiali-server.fullname" . }}
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-kiali-server/charts-original/templates/web-root-configmap.yaml packages/rancher-kiali-server/charts/templates/web-root-configmap.yaml
+--- packages/rancher-kiali-server/charts-original/templates/web-root-configmap.yaml
++++ packages/rancher-kiali-server/charts/templates/web-root-configmap.yaml
+@@ -0,0 +1,12 @@
++{{- if .Values.web_root_override }}
++apiVersion: v1
++kind: ConfigMap
++metadata:
++  name: kiali-console
++  namespace: {{ .Release.Namespace }}
++  labels:
++    {{- include "kiali-server.labels" . | nindent 4 }}
++data:
++  env.js: |
++    window.WEB_ROOT='/api/v1/namespaces/{{ .Release.Namespace }}/services/http:rancher-istio-kiali:20001/proxy';
++{{- end }}
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-kiali-server/charts-original/values.yaml packages/rancher-kiali-server/charts/values.yaml
+--- packages/rancher-kiali-server/charts-original/values.yaml
++++ packages/rancher-kiali-server/charts/values.yaml
+@@ -9,6 +9,9 @@
+ # do this, a PR would be welcome.
+ kiali_route_url: ""
+ 
++# rancher specific override that allows proxy access to kiali url
++web_root_override: true
++
+ #
+ # Settings that mimic the Kiali CR which are placed in the ConfigMap
+ #
