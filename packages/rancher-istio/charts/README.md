@@ -16,5 +16,5 @@ http://{{ .Values.nameOverride }}-prometheus.{{ .Values.namespaceOverride }}.svc
 
 ### Installation
 ```
-helm install rancher-istio ./ --create-namespace -n istio-system
+helm install rancher-istio ./ --create-namespace -n cattle-istio-system
 ```
