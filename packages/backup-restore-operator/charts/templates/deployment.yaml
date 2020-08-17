@@ -1,0 +1,26 @@
+apiVersion: apps/v1 
+kind: Deployment
+metadata:
+  name: backup-restore-operator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    resources.cattle.io/operator: backup-restore
+spec:
+  selector:
+    matchLabels:
+      resources.cattle.io/operator: backup-restore
+  template:
+    metadata:
+      labels:
+        resources.cattle.io/operator: backup-restore
+    spec:
+      serviceAccountName: backup-restore-operator-serviceaccount
+      containers:
+      - name: backup-restore-operator
+        image: "{{ .Values.image }}:{{ .Values.tag }}"
+        imagePullPolicy: Always
+        env:
+        - name: CHART_NAMESPACE
+          value: {{ .Release.Namespace }}
+        - name: DEFAULT_BACKUP_STORAGE_LOCATION
+          value: {{ .Values.defaultBackupStorageLocation }}
