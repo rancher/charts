@@ -11,8 +11,7 @@ function remove_timestamp_from_diff {
 	time="[[:digit:]]\{2\}:[[:digit:]]\{2\}:[[:digit:]]\{2\}.[[:digit:]]\{9\}"
 	timezone="[-\+][[:digit:]]\{4\}"
 	timestamp_format="${date}[[:space:]]${time}[[:space:]]${timezone}"
-	sed -i.bak "s/\(${prefix} ${filename_format}\)[[:space:]]${timestamp_format}/\1/g" ${f}/$(basename -- ${f}).patch
-	rm ${f}/$(basename -- ${f}).patch.bak
+	sed -i '' "s/\(${prefix} ${filename_format}\)[[:space:]]${timestamp_format}/\1/g" ${f}/$(basename -- ${f}).patch
 }
 
 function revert_crd_changes {
@@ -64,10 +63,10 @@ for f in packages/*; do
 					revert_crd_changes ${f}
 				fi
 				diff -x *.tgz -x *.lock -uNr ${f}/charts-original ${f}/charts > ${f}/$(basename -- ${f}).patch || true
+				remove_timestamp_from_diff
 				if [[ "${split_crds}" == "true" ]]; then
 					./scripts/prepare-crds ${f}
 				fi
-				remove_timestamp_from_diff
 			fi
 			rm -rf ${f}/charts-original
 		fi
