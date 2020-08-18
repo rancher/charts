@@ -21,8 +21,11 @@ spec:
 {{- end }}
       containers:
       - name: pushprox-proxy
-        image: arvindiyengar/pushprox-linux-amd64:add_flag_for_token_path
-        command: [ "/app/pushprox-proxy" ]
+        image: {{ .Values.proxy.image.repository }}:{{ .Values.proxy.image.tag }}
+        command:
+        {{- range .Values.proxy.command }}
+          - {{ . | quote }}
+        {{- end }}
         {{- if .Values.proxy.resources }}
         resources: {{ toYaml .Values.proxy.resources | nindent 10 }}
         {{- end }}
