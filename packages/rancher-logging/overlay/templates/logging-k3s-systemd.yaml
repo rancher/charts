@@ -1,0 +1,20 @@
+{{- if .Values.additionalLoggingSources.k3s-systemd.enabled }}
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: Logging
+metadata:
+  name: {{ .Release.Name }}-k3s-systemd
+  namespace: {{ .Release.Namespace }}
+  labels: {{ include "logging-operator.labels" . | indent 4 }}
+spec:
+  controlNamespace: {{ .Release.Namespace }}
+  fluentbit:
+    inputTail:
+      Tag: "k3s"
+      Path: "/var/log/syslog"
+      Parser: "syslog"
+    extraVolumeMounts:
+      - source: "/var/log/"
+        destination: "/var/log"
+        readOnly: true
+  fluentd: {}
+{{- end }}
