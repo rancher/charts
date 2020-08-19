@@ -1,0 +1,19 @@
+{{- if .Values.additionalLoggingSources.k3s-openrc.enabled }}
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: Logging
+metadata:
+  name: {{ .Release.Name }}-k3s-openrc
+  namespace: {{ .Release.Namespace }}
+  labels: {{ include "logging-operator.labels" . | indent 4 }}
+spec:
+  controlNamespace: {{ .Release.Namespace }}
+  fluentbit:
+    inputTail:
+      Tag: "k3s"
+      Path: "/var/log/k3s.log"
+    extraVolumeMounts:
+      - source: "/var/log/"
+        destination: "/var/log"
+        readOnly: true
+  fluentd: {}
+{{- end }}
