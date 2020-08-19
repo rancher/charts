@@ -125,7 +125,7 @@ See `packages/rancher-monitoring` for an example of a chart that currently uses 
 
 ### Override existing Chart
 
-By default CI script doesn't allow changes to be made against existing chart. In order to make changes you have to bump chart version. There is a backdoor method to make changes to your existing chart without having to bump version. You can delete the tar.gz file you want to override and commit the change. Here is an example of [commit](https://github.com/rancher/charts/commit/8be888076487e23a24121a532d25b9bf9ea936f3).
+By default CI script doesn't allow changes to be made against existing chart. In order to make changes you have to bump chart version. There is a backdoor method to make changes to your existing chart without having to bump version. You can delete the tar.gz file you want to override and commit the change. Here is an example of [commit](https://github.com/rancher/charts/commit/3ec3d344c7e20eda6d2c6e0e9d33a4e00a33edfc#diff-db2aa3c5b9630208bd8568672c84f408).
 
 ### Helm repo index
 
