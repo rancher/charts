@@ -1,10 +1,11 @@
-{{- if .Values.additionalLoggingSources.k3s-systemd.enabled }}
+{{- if and .Values.additionalLoggingSources.k3s.enabled (eq .Values.additionalLoggingSources.k3s.container_engine "systemd")}}
 apiVersion: logging.banzaicloud.io/v1beta1
 kind: Logging
 metadata:
-  name: {{ .Release.Name }}-k3s-systemd
+  name: {{ .Release.Name }}-k3s
   namespace: {{ .Release.Namespace }}
-  labels: {{ include "logging-operator.labels" . | indent 4 }}
+  labels:
+{{ include "logging-operator.labels" . | indent 4 }}
 spec:
   controlNamespace: {{ .Release.Namespace }}
   fluentbit:
