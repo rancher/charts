@@ -221,8 +221,8 @@ The following table lists the mandatory and optional parameters that you can con
 | Parameters | Mandatory or Optional | Default value | Description |
 | --------- | --------------------- | ------------- | ----------- |
 | license.accept | Mandatory | no | Set `yes` to accept the CIC end user license agreement. |
-| image | Mandatory | `quay.io/citrix/citrix-k8s-ingress-controller:1.7.46` | The CIC image. |
-| pullPolicy | Mandatory | Always | The CIC image pull policy. |
+| image | Mandatory | `quay.io/citrix/citrix-k8s-ingress-controller:1.8.28` | The CIC image. |
+| pullPolicy | Mandatory | IfNotPresent | The CIC image pull policy. |
 | loginFileName | Mandatory | N/A | The secret key to log on to the Citrix ADC VPX or MPX. For information on how to create the secret keys, see [Prerequisites](#prerequistes). |
 | nsIP | Mandatory | N/A | The IP address of the Citrix ADC device. For details, see [Prerequisites](#prerequistes). |
 | nsVIP | Optional | N/A | The Virtual IP address on the Citrix ADC device. |
@@ -238,12 +238,25 @@ The following table lists the mandatory and optional parameters that you can con
 | logProxy | Optional | N/A | Provide Elasticsearch or Kafka or Zipkin endpoint for Citrix observability exporter. |
 | nsNamespace | Optional | k8s | The prefix for the resources on the Citrix ADC VPX/MPX. |
 | exporter.required | Optional | false | Use the argument, if you want to run the [Exporter for Citrix ADC Stats](https://github.com/citrix/citrix-adc-metrics-exporter) along with CIC to pull metrics for the Citrix ADC VPX or MPX|
-| exporter.image    | Optional | `quay.io/citrix/citrix-adc-metrics-exporter:1.4.3` | The Exporter image. |
-| exporter.pullPolicy | Optional | Always | The Exporter image pull policy. |
+| exporter.image    | Optional | `quay.io/citrix/citrix-adc-metrics-exporter:1.4.5` | The Exporter image. |
+| exporter.pullPolicy | Optional | IfNotPresent | The Exporter image pull policy. |
 | exporter.ports.containerPort | Optional | 8888 | The Exporter container port. |
 | openshift | Optional | false | Set this argument if OpenShift environment is being used. |
+| nodeSelector.key | Optional | N/A | Node label key to be used for nodeSelector option in CIC deployment. |
+| nodeSelector.value | Optional | N/A | Node label value to be used for nodeSelector option in CIC deployment. |
 | crds.install | Optional | true | Unset this argument if you don't want to install CustomResourceDefinitions which are consumed by CIC. |
 | crds.retainOnDelete | Optional | false | Set this argument if you want to retain CustomResourceDefinitions even after uninstalling CIC. This will avoid data-loss of Custom Resource Objects created before uninstallation. |
+| coeConfig.required | Mandatory | false | Set this to true if you want to configure Citrix ADC to send metrics and transaction records to COE. |
+| coeConfig.distributedTracing.enable | Optional | false | Set this value to true to enable OpenTracing in Citrix ADC. |
+| coeConfig.distributedTracing.samplingrate | Optional | 100 | Specifies the OpenTracing sampling rate in percentage. |
+| coeConfig.endpoint.server | Optional | N/A | Set this value as the IP address or DNS address of the  analytics server. |
+| coeConfig.timeseries.port | Optional | 30002 | Specify the port used to expose COE service outside cluster for timeseries endpoint. |
+| coeConfig.timeseries.metrics.enable | Optional | Set this value to true to enable sending metrics from Citrix ADC. |
+| coeConfig.timeseries.metrics.mode | Optional | avro |  Specifies the mode of metric endpoint. |
+| coeConfig.timeseries.auditlogs.enable | Optional | false | Set this value to true to export audit log data from Citrix ADC. |
+| coeConfig.timeseries.events.enable | Optional | false | Set this value to true to export events from the Citrix ADC. |
+| coeConfig.transactions.enable | Optional | false | Set this value to true to export transactions from Citrix ADC. |
+| coeConfig.transactions.port | Optional | 30001 | Specify the port used to expose COE service outside cluster for transaction endpoint. |
 
 Alternatively, you can define a YAML file with the values for the parameters and pass the values while installing the chart.
 

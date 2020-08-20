@@ -16,8 +16,13 @@ questions:
   description: "openshift is set to true if charts are being deployed in OpenShift environment"
   label: Openshift flag
   group: "Deployment Settings"
+- variable: ipam
+  default: false
+  type: boolean
+  description: "Set this argument if you want to use the IPAM controller"
+  label: IPAM flag
+  group: "Deployment Settings"
 - variable: loginFileName
-  default: ""
   type: string
   description: "loginFileName is secret file for NetScaler login"
   label: Login File Name
@@ -54,11 +59,11 @@ questions:
   label: CIC Loglevel
   group: "Deployment Settings"
   options:
+  - "TRACE"
   - "DEBUG"
   - "INFO"
   - "WARNING"
   - "ERROR"
-  - "TRACE"
 - variable: nsNamespace
   required: false
   type: string
@@ -90,13 +95,23 @@ questions:
   description: "nodeWatch is used for automatic route configuration on NetScaler towards the pod network"
   label: NodeWatch
   group: "ADC Settings"
-- variable: cic.image
+- variable: nodeSelector.key
+  required: false
   type: string
-  default: "quay.io/citrix/citrix-k8s-ingress-controller:1.7.6"
+  label: NodeSelector Key
+  group: "Deployment Settings"
+- variable: nodeSelector.value
+  required: false
+  type: string
+  label: NodeSelector Value
+  group: "Deployment Settings"
+- variable: image
+  type: string
+  default: "quay.io/citrix/citrix-k8s-ingress-controller:1.8.28"
   label: CIC Image
   group: "CIC Image Settings"
-- variable: cic.pullpolicy
-  default: "Always"
+- variable: pullpolicy
+  default: "IfNotPresent"
   type: enum
   label: CIC Image Pullpolicy
   group: "CIC Image Settings"
@@ -111,7 +126,7 @@ questions:
   label: Enable Exporter
   group: "Exporter Settings"
 - variable: exporter.image
-  default: "quay.io/citrix/citrix-adc-metrics-exporter:1.4.0"
+  default: "quay.io/citrix/citrix-adc-metrics-exporter:1.4.5"
   required: false
   type: string
   description: "Exporter Image"
@@ -119,7 +134,7 @@ questions:
   group: "Exporter Settings"
 - variable: exporter.pullPolicy
   required: false
-  default: Always
+  default: "IfNotPresent"
   type: string
   description: "Exporter Image pull policy"
   label: Exporter Image PullPolicy
@@ -144,3 +159,63 @@ questions:
   description: "Set this argument to true if you want to retain CustomResourceDefinitions even after uninstalling CIC. This will avoid data-loss of Custom Resource Objects created before uninstallation."
   label: CRD retainOnDelete flag
   group: "Deployment Settings"
+- variable: coeConfig.distributedTracing.enable
+  required: false
+  default: false
+  type: boolean
+  label: Enable distributedTracing
+  group: "COE Settings"
+- variable: coeConfig.distributedTracing.samplingrate
+  required: false
+  default: "100"
+  type: string
+  label: COE Sampling Rate
+  group: "COE Settings"
+- variable: coeConfig.endpoint.server
+  required: false
+  default: ""
+  type: string
+  label: COE Endpoint Server
+  group: "COE Settings"
+- variable: coeConfig.timeseries.port
+  required: false
+  default: "5563"
+  type: string
+  label: COE timeseries port
+  group: "COE Settings"
+- variable: coeConfig.timeseries.metrics.enable
+  required: false
+  default: false
+  type: boolean
+  label: Enable timeseries metrics
+  group: "COE Settings"
+- variable: coeConfig.timeseries.metrics.mode
+  required: false
+  default: "avro"
+  type: string
+  label: COE timeseries metrics Mode
+  group: "COE Settings"
+- variable: coeConfig.timeseries.auditlogs.enable
+  required: false
+  default: false
+  type: boolean
+  label: Enable timeseries auditlogs
+  group: "COE Settings"
+- variable: coeConfig.timeseries.events.enable
+  required: false
+  default: false
+  type: boolean
+  label: Enable timeseries events
+  group: "COE Settings"
+- variable: coeConfig.transactions.enable
+  required: false
+  default: false
+  type: boolean
+  label: Enable transactions
+  group: "COE Settings"
+- variable: coeConfig.transactions.port
+  required: false
+  default: "5557"
+  type: string
+  label: COE transactions port
+  group: "COE Settings"
