@@ -26,17 +26,53 @@ spec:
             value: "{{ .Values.license.accept }}"
           - name: "KUBERNETES_TASK_ID"
             value: ""
-{{- if .Values.lsIP }}
+{{- if .Values.ADMSettings.licenseServerIP }}
           - name: "LS_IP"
-            value: {{ .Values.lsIP }}
+            value: {{ .Values.ADMSettings.licenseServerIP | quote }}
 {{- end }}
-{{- if .Values.lsPort }}
+{{- if .Values.ADMSettings.licenseServerPort }}
           - name: "LS_PORT"
-            value: {{ .Values.lsPort }}
+            value: {{ .Values.ADMSettings.licenseServerPort | quote }}
 {{- end }}
-{{- if .Values.platform }}
-          - name: "PLATFORM"
-            value: {{ .Values.platform }}
+          - name: "MGMT_HTTP_PORT"
+            value: {{ .Values.mgmtHttpPort | quote }}
+          - name: "MGMT_HTTPS_PORT"
+            value: {{ .Values.mgmtHttpsPort | quote }}
+{{- if .Values.ADMSettings.ADMIP }}
+          - name: "NS_MGMT_SERVER"
+            value: {{ .Values.ADMSettings.ADMIP | quote }}
+          - name: "NS_MGMT_FINGER_PRINT"
+            value: {{ .Values.ADMSettings.ADMFingerPrint | quote }}
+          - name: "NS_HTTP_PORT"
+            value: {{ .Values.mgmtHttpPort | quote }}
+          - name: "NS_HTTPS_PORT"
+            value: {{ .Values.mgmtHttpsPort | quote }}
+          - name: "LOGSTREAM_COLLECTOR_IP"
+            value: {{ .Values.ADMSettings.ADMIP | quote }}
+{{- end }}
+#To povision bandwidth based licensing to Citrix ADC CPX from ADM, needs bandwidth
+{{- if and ( .Values.ADMSettings.licenseServerIP ) (eq .Values.ADMSettings.bandWidthLicense true) }}
+          - name: "BANDWIDTH"
+            value: {{ required "Mention bandwidth for bandwidth based licensing" .Values.ADMSettings.bandWidth | quote }}
+{{- end }}
+#for multiple-PE support, need to set CPX_CORES
+{{- if .Values.ADMSettings.licenseServerIP }}
+{{- if or (eq .Values.ADMSettings.vCPULicense true) (eq .Values.ADMSettings.bandWidthLicense true) }}
+          - name: "CPX_CORES"
+            value: {{ .Values.ADMSettings.cpxCores | default 1 | quote }}
+{{- end }}
+{{- end }}
+{{- if or (.Values.ADMSettings.ADMIP) (.Values.ADMSettings.licenseServerIP) }}
+          - name: NS_MGMT_USER
+            valueFrom:
+              secretKeyRef:
+                name: {{ required "Provide Secret for ADM/LicenseServer credentials" .Values.ADMSettings.loginSecret }}
+                key: username
+          - name: NS_MGMT_PASS
+            valueFrom:
+              secretKeyRef:
+                name: {{ required "Provide Secret for ADM/LicenseServer credentials" .Values.ADMSettings.loginSecret }}
+                key: password
 {{- end }}
           volumeMounts:
             - mountPath: /cpx/conf/
@@ -62,12 +98,12 @@ spec:
           - name: "NS_USER"
             valueFrom:
              secretKeyRef:
-              name: {{ .Values.loginFileName }}
+              name: cpxlogin
               key: username
           - name: "NS_PASSWORD"
             valueFrom:
              secretKeyRef:
-              name: {{ .Values.loginFileName }}
+              name: cpxlogin
               key: password
 {{- if .Values.logProxy }}
           - name: "NS_LOGPROXY"
@@ -111,9 +147,15 @@ spec:
             - "--port={{ .Values.exporter.ports.containerPort }}"
           env:
           - name: "NS_USER"
-            value: "nsroot"
+            valueFrom:
+             secretKeyRef:
+              name: cpxlogin
+              key: username
           - name: "NS_PASSWORD"
-            value: "nsroot"
+            valueFrom:
+             secretKeyRef:
+              name: cpxlogin
+              key: password
           securityContext:
             readOnlyRootFilesystem: true
 {{- end }}
@@ -122,6 +164,11 @@ spec:
           emptyDir: {}
         - name: cpx-volume2
           emptyDir: {}
+{{- if and .Values.nodeSelector.key .Values.nodeSelector.value }}
+      nodeSelector:
+        {{ .Values.nodeSelector.key }}: {{ .Values.nodeSelector.value }}
+{{- end }}
+
 ---
 
 apiVersion: v1
