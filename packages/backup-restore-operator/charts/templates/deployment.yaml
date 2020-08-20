@@ -22,5 +22,12 @@ spec:
         env:
         - name: CHART_NAMESPACE
           value: {{ .Release.Namespace }}
-        - name: DEFAULT_BACKUP_STORAGE_LOCATION
-          value: {{ .Values.defaultBackupStorageLocation }}
+        - name: DEFAULT_PVC_BACKUP_STORAGE
+          value: {{ .Values.pvcClaimName }}
+        volumeMounts:
+        - mountPath: "/var/lib/backups"
+          name: pv-storage
+      volumes:
+        - name: pv-storage
+          persistentVolumeClaim:
+            claimName: {{ .Values.pvcClaimName }}
