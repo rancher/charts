@@ -3,8 +3,8 @@
 # Declare variables to be passed into your templates.
 
 # image contains information needed to fetch CIC image
-image: quay.io/citrix/citrix-k8s-ingress-controller:1.8.19
-pullPolicy: Always
+image: quay.io/citrix/citrix-k8s-ingress-controller:1.8.28
+pullPolicy: IfNotPresent
 # openshift is set to true if charts are being deployed in OpenShift environment.
 openshift: false
 # loginFileName is secret file for NetScaler login
@@ -37,11 +37,16 @@ logProxy:
 nodeWatch: false
 # Set to ON to enables HTTP2 for Citrix ADC service group configurations
 http2ServerSide: "OFF"
+nodeSelector:
+   key:
+   value:
+
 # exporter conatins information of prometheus-exporter
+
 exporter:
    required: false
-   image: quay.io/citrix/citrix-adc-metrics-exporter:1.4.3
-   pullPolicy: Always
+   image: quay.io/citrix/citrix-adc-metrics-exporter:1.4.5
+   pullPolicy: IfNotPresent
    ports:
       containerPort: 8888
 crds:
@@ -49,3 +54,23 @@ crds:
    install: true
 # if set to true, then CustomResourceDefinitions will not be deleted during helm delete. This way, CustomResourceObjects will not be deleted from the database.
    retainOnDelete: false
+
+coeConfig:
+   required: false
+   distributedTracing:
+     enable: false
+     samplingrate: 100
+   endpoint:
+     server:
+   timeseries:
+     port: 30002
+     metrics:
+        enable: false
+        mode: 'avro'
+     auditlogs:
+        enable: false
+     events:
+        enable: false
+   transactions:
+     enable: false
+     port: 30001
