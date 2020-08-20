@@ -1,24 +1,21 @@
+revision: "" # leave blank for no canary deployment, or set to given revision, eg: "1-7-2"
 overlayFile: ""
-tag: 1.6.7
-installerVersion: 1.6.7-rancher1
+tag: 1.6.8
+installerVersion: 0.1.6
 forceInstall: false
 
 istiocoredns:
     enabled: false
     image:
-      repository: rancher/coredns-coredns
+      repository: coredns/coredns
       tag: 1.6.2
-    pluginImage:
-      repository: rancher/istio-coredns-plugin
-      tag: 0.2-istio-1.1
+    pluginImage: istio/coredns-plugin:0.2-istio-1.1
 
 base:
     enabled: true
 
 cni:
     enabled: false
-    repository: rancher/istio-install-cni
-    tag: 1.6.7
 
 egressGateways:
     enabled: false
@@ -33,18 +30,15 @@ istiodRemote:
 
 pilot:
     enabled: true
-    repository: rancher/istio-pilot
-    tag: 1.6.7
+    image: pilot
 
 policy:
     enabled: true
-    repository: rancher/istio-mixer
-    tag: 1.6.7
+    image: mixer
 
 telemetry:
     enabled: true
-    repository: rancher/istio-mixer
-    tag: 1.6.7
+    image: mixer
 
 sidecarInjectorWebhook:
   enableNamespacesByDefault: false
@@ -54,19 +48,10 @@ sidecarInjectorWebhook:
   rewriteAppHTTPProbe: true
 
 global:
-  systemDefaultRegistry: ""
   proxy:
-    repository: rancher/istio-proxyv2
-    tag: 1.6.7
+    image: proxyv2
   proxy_init:
-    repository: rancher/istio-proxyv2
-<<<<<<< HEAD
-    tag: 1.6.7
-=======
-    tag: 1.6.8
-  defaultPodDisruptionBudget:
-    enabled: true
->>>>>>> Add default podDisruptionBudget
+    image: proxyv2
 
 # this can be removed in 1.7 as it is default
 meshConfig:
@@ -76,15 +61,18 @@ meshConfig:
 kiali:
   enabled: true
   auth:
+    # todo: what auth strategy ?
+    # strategy: token # this is default, you can use a service-account or kubeconfig token
     strategy: anonymous
   deployment:
-    ##TODO: update kiali to allow for repository and image
     ingress_enabled: false
-    image_name: docker.io/rancher/kiali-kiali
-    image_version: v1.22.1
   external_services:
     prometheus:
-      custom_metrics_url: "http://rancher-monitoring-prometheus.cattle-monitoring-system.svc:9090"
-      url: "http://rancher-monitoring-prometheus.cattle-monitoring-system.svc:9090"
+      custom_metrics_url: "http://rancher-monitoring-prometheus.monitoring-system.svc:9090"
+      url: "http://rancher-monitoring-prometheus.monitoring-system.svc:9090"
     tracing:
       enabled: false
+  # TODO : update images
+  # deployment:
+  #   image_name: "rancher..."
+  #   image_version: v1.....
