@@ -26,7 +26,7 @@ spec:
       {{- end }}
       containers:
       - name: pushprox-client
-        image: {{ .Values.clients.image.repository }}:{{ .Values.clients.image.tag }}
+        image: {{ template "system_default_registry" . }}{{ .Values.clients.image.repository }}:{{ .Values.clients.image.tag }}
         command:
         {{- range .Values.clients.command }}
           - {{ . | quote }}
@@ -72,7 +72,7 @@ spec:
       {{- if and .Values.clients.https.enabled .Values.clients.https.certDir }}
       initContainers:
       - name: copy-certs
-        image: alpine:latest
+        image: {{ template "system_default_registry" . }}{{ .Values.clients.copyCertsImage.repository }}:{{ .Values.clients.copyCertsImage.tag }}
         command:
         - sh
         - -c
