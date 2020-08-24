@@ -214,6 +214,90 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/REA
  
  ### Kubelet Service
  Because the kubelet service has a new name in the chart, make sure to clean up the old kubelet service in the `kube-system` namespace to prevent counting container metrics twice.
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/charts/grafana/templates/_pod.tpl packages/rancher-monitoring/charts/charts/grafana/templates/_pod.tpl
+--- packages/rancher-monitoring/charts-original/charts/grafana/templates/_pod.tpl
++++ packages/rancher-monitoring/charts/charts/grafana/templates/_pod.tpl
+@@ -15,7 +15,7 @@
+ {{- end }}
+ {{- if ( and .Values.persistence.enabled .Values.initChownData.enabled ) }}
+   - name: init-chown-data
+-    image: "{{ .Values.initChownData.image.repository }}:{{ .Values.initChownData.image.tag }}"
++    image: "{{ template "system_default_registry" . }}{{ .Values.initChownData.image.repository }}:{{ .Values.initChownData.image.tag }}"
+     imagePullPolicy: {{ .Values.initChownData.image.pullPolicy }}
+     securityContext:
+       runAsUser: 0
+@@ -31,7 +31,7 @@
+ {{- end }}
+ {{- if .Values.dashboards }}
+   - name: download-dashboards
+-    image: "{{ .Values.downloadDashboardsImage.repository }}:{{ .Values.downloadDashboardsImage.tag }}"
++    image: "{{ template "system_default_registry" . }}{{ .Values.downloadDashboardsImage.repository }}:{{ .Values.downloadDashboardsImage.tag }}"
+     imagePullPolicy: {{ .Values.downloadDashboardsImage.pullPolicy }}
+     command: ["/bin/sh"]
+     args: [ "-c", "mkdir -p /var/lib/grafana/dashboards/default && /bin/sh /etc/grafana/download_dashboards.sh" ]
+@@ -59,7 +59,7 @@
+ {{- end }}
+ {{- if .Values.sidecar.datasources.enabled }}
+   - name: {{ template "grafana.name" . }}-sc-datasources
+-    image: "{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}"
++    image: "{{ template "system_default_registry" . }}{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}"
+     imagePullPolicy: {{ .Values.sidecar.imagePullPolicy }}
+     env:
+       - name: METHOD
+@@ -96,7 +96,7 @@
+ containers:
+ {{- if .Values.sidecar.dashboards.enabled }}
+   - name: {{ template "grafana.name" . }}-sc-dashboard
+-    image: "{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}"
++    image: "{{ template "system_default_registry" . }}{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}"
+     imagePullPolicy: {{ .Values.sidecar.imagePullPolicy }}
+     env:
+       - name: METHOD
+@@ -122,7 +122,7 @@
+         mountPath: {{ .Values.sidecar.dashboards.folder | quote }}
+ {{- end}}
+   - name: {{ .Chart.Name }}
+-    image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
++    image: "{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+     imagePullPolicy: {{ .Values.image.pullPolicy }}
+   {{- if .Values.command }}
+     command:
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/charts/kube-state-metrics/templates/deployment.yaml packages/rancher-monitoring/charts/charts/kube-state-metrics/templates/deployment.yaml
+--- packages/rancher-monitoring/charts-original/charts/kube-state-metrics/templates/deployment.yaml
++++ packages/rancher-monitoring/charts/charts/kube-state-metrics/templates/deployment.yaml
+@@ -154,7 +154,7 @@
+         - --pod-namespace=$(POD_NAMESPACE)
+ {{ end }}
+         imagePullPolicy: {{ .Values.image.pullPolicy }}
+-        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
++        image: "{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+         ports:
+         - containerPort: 8080
+         livenessProbe:
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/charts/prometheus-adapter/templates/custom-metrics-apiserver-deployment.yaml packages/rancher-monitoring/charts/charts/prometheus-adapter/templates/custom-metrics-apiserver-deployment.yaml
+--- packages/rancher-monitoring/charts-original/charts/prometheus-adapter/templates/custom-metrics-apiserver-deployment.yaml
++++ packages/rancher-monitoring/charts/charts/prometheus-adapter/templates/custom-metrics-apiserver-deployment.yaml
+@@ -36,7 +36,7 @@
+       {{- end }}
+       containers:
+       - name: {{ .Chart.Name }}
+-        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
++        image: "{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+         imagePullPolicy: {{ .Values.image.pullPolicy }}
+         args:
+         - /adapter
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/charts/prometheus-node-exporter/templates/daemonset.yaml packages/rancher-monitoring/charts/charts/prometheus-node-exporter/templates/daemonset.yaml
+--- packages/rancher-monitoring/charts-original/charts/prometheus-node-exporter/templates/daemonset.yaml
++++ packages/rancher-monitoring/charts/charts/prometheus-node-exporter/templates/daemonset.yaml
+@@ -33,7 +33,7 @@
+ {{- end }}
+       containers:
+         - name: node-exporter
+-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
++          image: "{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+           imagePullPolicy: {{ .Values.image.pullPolicy }}
+           args:
+             - --path.procfs=/host/proc
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/crds/crd-alertmanager.yaml packages/rancher-monitoring/charts/crds/crd-alertmanager.yaml
 --- packages/rancher-monitoring/charts-original/crds/crd-alertmanager.yaml
 +++ packages/rancher-monitoring/charts/crds/crd-alertmanager.yaml
