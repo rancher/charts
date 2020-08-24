@@ -1,11 +1,3 @@
-# Rancher
-
-{{- define "system_default_registry" -}}
-{{- if .Values.global.systemDefaultRegistry -}}
-{{- printf "%s/" .Values.global.systemDefaultRegistry -}}
-{{- end -}}
-{{- end -}}
-
 # General
 
 {{- define "pushprox.namespace" -}}

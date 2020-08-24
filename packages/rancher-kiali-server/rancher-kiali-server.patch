@@ -37,9 +37,45 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-kiali-server/charts-original/C
 +  catalog.cattle.io/requires-gvr: prometheuses.monitoring.coreos.com/v1
 +  catalog.rancher.io/namespace: cattle-istio-system
 +  catalog.rancher.io/release-name: rancher-kiali-server
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-kiali-server/charts-original/templates/_helpers.tpl packages/rancher-kiali-server/charts/templates/_helpers.tpl
+--- packages/rancher-kiali-server/charts-original/templates/_helpers.tpl
++++ packages/rancher-kiali-server/charts/templates/_helpers.tpl
+@@ -17,10 +17,7 @@
+   {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
+ {{- else }}
+   {{- $name := default .Chart.Name .Values.nameOverride }}
+-  {{- if contains $name .Release.Name }}
+-    {{- .Release.Name | trunc 63 | trimSuffix "-" }}
+-  {{- else }}
+-    {{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
++    {{- printf "%s" $name | trunc 63 | trimSuffix "-" }}
+   {{- end }}
+ {{- end }}
+ {{- end }}
+@@ -170,3 +167,11 @@
+   {{- end }}
+ {{- end }}
+ {{- end }}
++
++{{- define "system_default_registry" -}}
++{{- if .Values.global.systemDefaultRegistry -}}
++{{- printf "%s/" .Values.global.systemDefaultRegistry -}}
++{{- else -}}
++{{- "" -}}
++{{- end -}}
++{{- end -}}
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-kiali-server/charts-original/templates/deployment.yaml packages/rancher-kiali-server/charts/templates/deployment.yaml
 --- packages/rancher-kiali-server/charts-original/templates/deployment.yaml
 +++ packages/rancher-kiali-server/charts/templates/deployment.yaml
+@@ -45,7 +45,7 @@
+       {{- end }}
+       {{- end }}
+       containers:
+-      - image: "{{ .Values.deployment.image_name }}:{{ .Values.deployment.image_version }}"
++      - image: "{{ template "system_default_registry" . }}{{ .Values.deployment.repository }}:{{ .Values.deployment.tag }}"
+         imagePullPolicy: {{ .Values.deployment.image_pull_policy | default "Always" }}
+         name: {{ include "kiali-server.fullname" . }}
+         command:
 @@ -89,6 +89,11 @@
              fieldRef:
                fieldPath: metadata.namespace
@@ -81,7 +117,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-kiali-server/charts-original/t
 +    {{- include "kiali-server.labels" . | nindent 4 }}
 +data:
 +  env.js: |
-+    window.WEB_ROOT='/api/v1/namespaces/{{ .Release.Namespace }}/services/http:rancher-istio-kiali:20001/proxy';
++    window.WEB_ROOT='/k8s/clusters/{{ .Values.global.rancher.clusterId }}/api/v1/namespaces/{{ .Release.Namespace }}/services/http:rancher-istio-kiali:20001/proxy';
 +{{- end }}
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-kiali-server/charts-original/values.yaml packages/rancher-kiali-server/charts/values.yaml
 --- packages/rancher-kiali-server/charts-original/values.yaml
@@ -96,3 +132,30 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-kiali-server/charts-original/v
  #
  # Settings that mimic the Kiali CR which are placed in the ConfigMap
  #
+@@ -57,10 +60,10 @@
+   custom_dashboards:
+     excludes: ['']
+     includes: ['*']
+-  image_name: quay.io/kiali/kiali
++  repository: kiali/kiali
+   image_pull_policy: "Always"
+   image_pull_secrets: []
+-  image_version: v1.22.0
++  tag: v1.22.0
+   ingress_enabled: true
+   node_selector: {}
+   override_ingress_yaml:
+@@ -182,3 +185,13 @@
+   web_fqdn: ""
+   web_root: ""
+   web_schema: ""
++
++# Common settings used among istio subcharts.
++global:
++
++  # Specify rancher clusterId of external tracing config
++  # https://github.com/istio/istio.io/issues/4146#issuecomment-493543032
++  rancher:
++    clusterId:
++
++  systemDefaultRegistry: ""
