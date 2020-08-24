@@ -35,10 +35,6 @@ for f in packages/*; do
 				basename=$(basename -- ${file})
 				patch -E -p3 -d ${f}/charts < ${f}/$basename
 			done
-			split_crds=$(cat ${f}/package.yaml | yq r - generateCRDChart.enabled)
-			if [[ "${split_crds}" == "true" ]]; then
-				./scripts/prepare-crds ${f}
-			fi
 		fi
 	fi
 done
@@ -47,26 +43,17 @@ done
 # If sub-charts existed as package.yaml they will now be vendored into parent
 for f in packages/*; do
 	if [[ -z $CHART || $CHART == $(basename -- ${f}) ]]; then
-		copied_dependencies=()
-		if [[ -f ${f}/charts/requirements.yaml ]]; then
-			repos=$(cat ${f}/charts/requirements.yaml | yq r - "dependencies.*.repository")
-			while IFS= read -r repo; do
-				if [[ ${repo} == file://* ]]; then
-					charts_path=${repo/file:\/\//${f}/charts/}
-					overlay_path=${repo/file:\/\//${f}/overlay/}
-					if [[ ! -d $charts_path ]] && [[ -d $overlay_path ]]; then
-						cp -R $overlay_path $charts_path
-						copied_dependencies+=("${charts_path}")
-					fi
-				fi
-			done < <(echo "${repos}")
+		./scripts/prepare-subcharts ${f}
+	fi
+done
+
+for f in packages/*; do
+	if [[ -f ${f}/package.yaml ]]; then
+		if [[ -z $CHART || $CHART == $(basename -- ${f}) ]]; then
+			split_crds=$(cat ${f}/package.yaml | yq r - generateCRDChart.enabled)
+			if [[ "${split_crds}" == "true" ]]; then
+				./scripts/prepare-crds ${f}
+			fi
 		fi
-		pwd=$(pwd)
-		cd ${f}/charts
-		helm dependency update
-		cd $pwd
-		for dep in "${copied_dependencies[@]}"; do
-			rm -rf $dep
-		done
 	fi
 done

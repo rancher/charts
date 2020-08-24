@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -e
+
+if [[ -z $1 ]]; then
+	echo "No directory provided to pull in subcharts"
+	exit 1
+fi
+
+f=$1
+
+copied_dependencies=()
+if [[ -f ${f}/charts/requirements.yaml ]]; then
+	repos=$(cat ${f}/charts/requirements.yaml | yq r - "dependencies.*.repository")
+	while IFS= read -r repo; do
+		if [[ ${repo} == file://* ]]; then
+			charts_path=${repo/file:\/\//${f}/charts/}
+			overlay_path=${repo/file:\/\//${f}/overlay/}
+			if [[ ! -d $charts_path ]] && [[ -d $overlay_path ]]; then
+				cp -R $overlay_path $charts_path
+				copied_dependencies+=("${charts_path}")
+			fi
+		fi
+	done < <(echo "${repos}")
+fi
+
+pwd=$(pwd)
+cd ${f}/charts
+helm dependency update
+cd $pwd
+
+for dep in "${copied_dependencies[@]}"; do
+	rm -rf $dep
+done
