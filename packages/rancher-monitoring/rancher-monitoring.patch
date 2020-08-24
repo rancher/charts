@@ -107,14 +107,23 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/REA
  | `global.rbac.pspEnabled` | Create pod security policy resources | `true` |
  | `global.rbac.pspAnnotations` | Add annotations to the PSP configurations | `{}` |
  | `kubeTargetVersionOverride` | Provide a target gitVersion of K8S, in case .Capabilites.KubeVersion is not available (e.g. `helm template`) |`""`|
-@@ -195,16 +229,14 @@
+@@ -188,30 +222,25 @@
+ | `prometheusOperator.admissionWebhooks.failurePolicy` | Failure policy for admission webhooks | `Fail` |
+ | `prometheusOperator.admissionWebhooks.patch.enabled` | If true, will use a pre and post install hooks to generate a CA and certificate to use for the prometheus operator tls proxy, and patch the created webhooks with the CA. | `true` |
+ | `prometheusOperator.admissionWebhooks.patch.image.pullPolicy` | Image pull policy for the webhook integration jobs | `IfNotPresent` |
+-| `prometheusOperator.admissionWebhooks.patch.image.repository` | Repository to use for the webhook integration jobs | `jettech/kube-webhook-certgen` |
++| `prometheusOperator.admissionWebhooks.patch.image.repository` | Repository to use for the webhook integration jobs | `rancher/jettech-kube-webhook-certgen` |
+ | `prometheusOperator.admissionWebhooks.patch.image.tag` | Tag to use for the webhook integration jobs | `v1.2.1` |
+ | `prometheusOperator.admissionWebhooks.patch.resources` | Resource limits for admission webhook | `{}` |
+ | `prometheusOperator.admissionWebhooks.patch.nodeSelector` | Node selector for running admission hook patch jobs | `nil` |
  | `prometheusOperator.admissionWebhooks.patch.podAnnotations` | Annotations for the webhook job pods | `nil` |
  | `prometheusOperator.admissionWebhooks.patch.priorityClassName` | Priority class for the webhook integration jobs | `nil` |
  | `prometheusOperator.affinity` | Assign custom affinity rules to the prometheus operator https://kubernetes.io/docs/concepts/configuration/assign-pod-node/ | `{}` |
 -| `prometheusOperator.cleanupCustomResource` | Attempt to delete CRDs when the release is removed. This option may be useful while testing but is not recommended, as deleting the CRD definition will delete resources and prevent the operator from being able to clean up resources that it manages | `false` |
  | `prometheusOperator.configReloaderCpu` | Set the prometheus config reloader side-car CPU limit. If unset, uses the prometheus-operator project default | `nil` |
  | `prometheusOperator.configReloaderMemory` | Set the prometheus config reloader side-car memory limit. If unset, uses the prometheus-operator project default | `nil` |
- | `prometheusOperator.configmapReloadImage.repository` | Repository for configmapReload image | `docker.io/jimmidyson/configmap-reload` |
+-| `prometheusOperator.configmapReloadImage.repository` | Repository for configmapReload image | `docker.io/jimmidyson/configmap-reload` |
++| `prometheusOperator.configmapReloadImage.repository` | Repository for configmapReload image | `rancher/jimmidyson-configmap-reload` |
  | `prometheusOperator.configmapReloadImage.tag` | Tag for configmapReload image | `v0.3.0` |
 -| `prometheusOperator.createCustomResource` | Create CRDs. Required if deploying anything besides the operator itself as part of the release. The operator will create / update these on startup. If your Helm version < 2.10 you will have to either create the CRDs first or deploy the operator first, then the rest of the resources. Regardless of value of this, Helm v3+ will install the CRDs if those are not present already. Use `--skip-crds` with `helm install` if you want to skip CRD creation | `true` |
  | `prometheusOperator.namespaces` |  Namespaces to scope the interaction of the Prometheus Operator and the apiserver (allow list). This is mutually exclusive with `denyNamespaces`. Setting this to an empty object will disable the configuration | `{}` |
@@ -124,16 +133,55 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/REA
 +| `prometheusOperator.manageCrds` |If true prometheus operator will create and update its CRs on startup (for operator `<v0.39.0`)) | `true` |
  | `prometheusOperator.denyNamespaces` | Namespaces not to scope the interaction of the Prometheus Operator (deny list). This is mutually exclusive with `namespaces` | `[]` |
  | `prometheusOperator.enabled` | Deploy Prometheus Operator. Only one of these should be deployed into the cluster | `true` |
- | `prometheusOperator.hyperkubeImage.pullPolicy` | Image pull policy for hyperkube image used to perform maintenance tasks | `IfNotPresent` |
-@@ -291,6 +323,7 @@
+-| `prometheusOperator.hyperkubeImage.pullPolicy` | Image pull policy for hyperkube image used to perform maintenance tasks | `IfNotPresent` |
+-| `prometheusOperator.hyperkubeImage.repository` | Repository for hyperkube image used to perform maintenance tasks | `k8s.gcr.io/hyperkube` |
+-| `prometheusOperator.hyperkubeImage.tag` | Tag for hyperkube image used to perform maintenance tasks | `v1.16.12` |
+ | `prometheusOperator.image.pullPolicy` | Pull policy for prometheus operator image | `IfNotPresent` |
+-| `prometheusOperator.image.repository` | Repository for prometheus operator image | `quay.io/coreos/prometheus-operator` |
++| `prometheusOperator.image.repository` | Repository for prometheus operator image | `rancher/coreos-prometheus-operator` |
+ | `prometheusOperator.image.tag` | Tag for prometheus operator image | `v0.38.1` |
+ | `prometheusOperator.kubeletService.enabled` | If true, the operator will create and maintain a service for scraping kubelets | `true` |
+ | `prometheusOperator.kubeletService.namespace` | Namespace to deploy kubelet service | `kube-system` |
+@@ -222,7 +251,7 @@
+ | `prometheusOperator.podAnnotations` | Annotations to add to the operator pod | `{}` |
+ | `prometheusOperator.podLabels` | Labels to add to the operator pod | `{}` |
+ | `prometheusOperator.priorityClassName` | Name of Priority Class to assign pods | `nil` |
+-| `prometheusOperator.prometheusConfigReloaderImage.repository` | Repository for config-reloader image | `quay.io/coreos/prometheus-config-reloader` |
++| `prometheusOperator.prometheusConfigReloaderImage.repository` | Repository for config-reloader image | `rancher/coreos-prometheus-config-reloader` |
+ | `prometheusOperator.prometheusConfigReloaderImage.tag` | Tag for config-reloader image | `v0.38.1` |
+ | `prometheusOperator.resources` | Resource limits for prometheus operator | `{}` |
+ | `prometheusOperator.securityContext` | SecurityContext for prometheus operator | `{"fsGroup": 65534, "runAsGroup": 65534, "runAsNonRoot": true, "runAsUser": 65534}` |
+@@ -241,8 +270,8 @@
+ | `prometheusOperator.serviceMonitor.metricRelabelings` | The `metric_relabel_configs` for scraping the operator instance. | `` |
+ | `prometheusOperator.serviceMonitor.relabelings` | The `relabel_configs` for scraping the operator instance. | `` |
+ | `prometheusOperator.serviceMonitor.selfMonitor` | Enable monitoring of prometheus operator | `true` |
+-| `prometheusOperator.tlsProxy.enabled` | Enable a TLS proxy container. Only the `squareup/ghostunnel` command line arguments are currently supported and the secret where the cert is loaded from is expected to be provided by the admission webhook | `true` |
+-| `prometheusOperator.tlsProxy.image.repository` | Repository for the TLS proxy container | `squareup/ghostunnel` |
++| `prometheusOperator.tlsProxy.enabled` | Enable a TLS proxy container. Only the `rancher/squareup-ghostunnel` command line arguments are currently supported and the secret where the cert is loaded from is expected to be provided by the admission webhook | `true` |
++| `prometheusOperator.tlsProxy.image.repository` | Repository for the TLS proxy container | `rancher/squareup-ghostunnel` |
+ | `prometheusOperator.tlsProxy.image.tag` | Repository for the TLS proxy container | `v1.5.2` |
+ | `prometheusOperator.tlsProxy.image.pullPolicy` | Image pull policy for the TLS proxy container | `IfNotPresent` |
+ | `prometheusOperator.tlsProxy.resources` | Resource requests and limits for the TLS proxy container | `{}` |
+@@ -291,7 +320,8 @@
  | `prometheus.prometheusSpec.evaluationInterval` | Interval between consecutive evaluations. | `""` |
  | `prometheus.prometheusSpec.externalLabels` | The labels to add to any time series or alerts when communicating with external systems (federation, remote storage, Alertmanager). | `{}` |
  | `prometheus.prometheusSpec.externalUrl` | The external URL the Prometheus instances will be available under. This is necessary to generate correct URLs. This is necessary if Prometheus is not served from root of a DNS name. | `""` |
+-| `prometheus.prometheusSpec.image.repository` | Base image to use for a Prometheus deployment. | `quay.io/prometheus/prometheus` |
 +| `prometheus.prometheusSpec.ignoreNamespaceSelectors` | Ignore NamespaceSelector settings from the PodMonitor and ServiceMonitor configs. If true, PodMonitors and ServiceMonitors can only discover Pods and Services within the namespace they are deployed into | `false` |
- | `prometheus.prometheusSpec.image.repository` | Base image to use for a Prometheus deployment. | `quay.io/prometheus/prometheus` |
++| `prometheus.prometheusSpec.image.repository` | Base image to use for a Prometheus deployment. | `rancher/prom-prometheus` |
  | `prometheus.prometheusSpec.image.tag` | Tag of Prometheus container image to be deployed. | `v2.18.1` |
  | `prometheus.prometheusSpec.listenLocal` | ListenLocal makes the Prometheus server listen on loopback, so that it does not bind against the Pod IP. | `false` |
-@@ -465,17 +498,23 @@
+ | `prometheus.prometheusSpec.logFormat` | Log format for Prometheus to be configured with. | `logfmt` |
+@@ -374,7 +404,7 @@
+ | `alertmanager.alertmanagerSpec.configSecret` | ConfigSecret is the name of a Kubernetes Secret in the same namespace as the Alertmanager object, which contains configuration for this Alertmanager instance. Defaults to 'alertmanager-' The secret is mounted into /etc/alertmanager/config. | `""` |
+ | `alertmanager.alertmanagerSpec.containers` | Containers allows injecting additional containers. This is meant to allow adding an authentication proxy to an Alertmanager pod. | `[]` |
+ | `alertmanager.alertmanagerSpec.externalUrl` | The external URL the Alertmanager instances will be available under. This is necessary to generate correct URLs. This is necessary if Alertmanager is not served from root of a DNS name. | `""` |
+-| `alertmanager.alertmanagerSpec.image.repository` | Base image that is used to deploy pods, without tag. | `quay.io/prometheus/alertmanager` |
++| `alertmanager.alertmanagerSpec.image.repository` | Base image that is used to deploy pods, without tag. | `rancher/prom-alertmanager` |
+ | `alertmanager.alertmanagerSpec.image.tag` | Tag of Alertmanager container image to be deployed. | `v0.20.0` |
+ | `alertmanager.alertmanagerSpec.listenLocal` | ListenLocal makes the Alertmanager server listen on loopback, so that it does not bind against the Pod IP. Note this is only for the Alertmanager UI, not the gossip communication. | `false` |
+ | `alertmanager.alertmanagerSpec.logFormat` | Log format for Alertmanager to be configured with. | `logfmt` |
+@@ -465,17 +495,23 @@
  | `grafana.namespaceOverride` | Override the deployment namespace of grafana | `""` (`Release.Namespace`) |
  | `grafana.rbac.pspUseAppArmor` | Enforce AppArmor in created PodSecurityPolicy (requires rbac.pspEnabled) | `true` |
  | `grafana.service.portName` | Allow to customize Grafana service portname. Will be used by servicemonitor as well | `service` |
@@ -157,7 +205,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/REA
  
  ### Exporters
  | Parameter | Description | Default |
-@@ -649,7 +688,7 @@
+@@ -649,7 +685,7 @@
  The Grafana chart is more feature-rich than this chart - it contains a sidecar that is able to load data sources and dashboards from configmaps deployed into the same cluster. For more information check out the [documentation for the chart](https://github.com/helm/charts/tree/master/stable/grafana)
  
  ### Coreos CRDs
@@ -1645,7 +1693,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
      pspEnabled: true
      pspAnnotations: {}
        ## Specify pod annotations
-@@ -130,6 +333,22 @@
+@@ -130,6 +339,22 @@
    ## ref: https://prometheus.io/docs/alerting/configuration/#configuration-file
    ##      https://prometheus.io/webtools/alerting/routing-tree-editor/
    ##
@@ -1668,7 +1716,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
    config:
      global:
        resolve_timeout: 5m
-@@ -145,6 +364,8 @@
+@@ -145,6 +370,8 @@
          receiver: 'null'
      receivers:
      - name: 'null'
@@ -1677,7 +1725,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    ## Pass the Alertmanager configuration directives through Helm's templating
    ## engine. If the Alertmanager configuration contains Alertmanager templates,
-@@ -160,25 +381,45 @@
+@@ -160,25 +387,45 @@
    ## ref: https://prometheus.io/docs/alerting/notifications/
    ##      https://prometheus.io/docs/alerting/notification_examples/
    ##
@@ -1742,7 +1790,16 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    ingress:
      enabled: false
-@@ -409,9 +650,13 @@
+@@ -334,7 +581,7 @@
+     ## Image of Alertmanager
+     ##
+     image:
+-      repository: quay.io/prometheus/alertmanager
++      repository: rancher/prom-alertmanager
+       tag: v0.20.0
+ 
+     ## If true then the user will be responsible to provide a secret with alertmanager configuration
+@@ -409,9 +656,13 @@
      ## Define resources requests and limits for single Pods.
      ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
      ##
@@ -1759,7 +1816,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
      ## Pod anti-affinity can prevent the scheduler from placing Prometheus replicas on the same node.
      ## The default value "soft" means that the scheduler should *prefer* to not schedule two replica pods onto the same node but no guarantee is provided.
-@@ -486,6 +731,9 @@
+@@ -486,6 +737,9 @@
    enabled: true
    namespaceOverride: ""
  
@@ -1769,7 +1826,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
    ## Deploy default dashboards.
    ##
    defaultDashboardsEnabled: true
-@@ -529,6 +777,7 @@
+@@ -529,6 +783,7 @@
      dashboards:
        enabled: true
        label: grafana_dashboard
@@ -1777,7 +1834,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
        ## Annotations for Grafana dashboard configmaps
        ##
-@@ -547,6 +796,7 @@
+@@ -547,6 +802,7 @@
        ## ref: https://git.io/fjaBS
        createPrometheusReplicasDatasources: false
        label: grafana_datasource
@@ -1785,7 +1842,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    extraConfigmapMounts: []
    # - name: certs-configmap
-@@ -574,6 +824,19 @@
+@@ -574,6 +830,19 @@
    ##
    service:
      portName: service
@@ -1805,7 +1862,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    ## If true, create a serviceMonitor for grafana
    ##
-@@ -599,6 +862,14 @@
+@@ -599,6 +868,14 @@
      #   targetLabel: nodename
      #   replacement: $1
      #   action: replace
@@ -1820,7 +1877,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
  ## Component scraping the kube api server
  ##
-@@ -755,7 +1026,7 @@
+@@ -755,7 +1032,7 @@
  ## Component scraping the kube controller manager
  ##
  kubeControllerManager:
@@ -1829,7 +1886,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    ## If your kube controller manager is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -888,7 +1159,7 @@
+@@ -888,7 +1165,7 @@
  ## Component scraping etcd
  ##
  kubeEtcd:
@@ -1838,7 +1895,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    ## If your etcd is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -948,7 +1219,7 @@
+@@ -948,7 +1225,7 @@
  ## Component scraping kube scheduler
  ##
  kubeScheduler:
@@ -1847,7 +1904,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    ## If your kube scheduler is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1001,7 +1272,7 @@
+@@ -1001,7 +1278,7 @@
  ## Component scraping kube proxy
  ##
  kubeProxy:
@@ -1856,7 +1913,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    ## If your kube proxy is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1075,6 +1346,13 @@
+@@ -1075,6 +1352,13 @@
      create: true
    podSecurityPolicy:
      enabled: true
@@ -1870,7 +1927,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
  ## Deploy node exporter as a daemonset to all nodes
  ##
-@@ -1124,6 +1402,16 @@
+@@ -1124,6 +1408,16 @@
    extraArgs:
      - --collector.filesystem.ignored-mount-points=^/(dev|proc|sys|var/lib/docker/.+)($|/)
      - --collector.filesystem.ignored-fs-types=^(autofs|binfmt_misc|cgroup|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|mqueue|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|sysfs|tracefs)$
@@ -1887,7 +1944,16 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
  ## Manages Prometheus and Alertmanager components
  ##
-@@ -1280,13 +1568,13 @@
+@@ -1137,7 +1431,7 @@
+   tlsProxy:
+     enabled: true
+     image:
+-      repository: squareup/ghostunnel
++      repository: rancher/squareup-ghostunnel
+       tag: v1.5.2
+       pullPolicy: IfNotPresent
+     resources: {}
+@@ -1280,13 +1574,13 @@
  
    ## Resource limits & requests
    ##
@@ -1908,7 +1974,54 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    # Required for use in managed kubernetes clusters (such as AWS EKS) with custom CNI (such as calico),
    # because control-plane managed by AWS cannot communicate with pods' IP CIDR and admission webhooks are not working
-@@ -1628,6 +1916,11 @@
+@@ -1330,20 +1624,20 @@
+   ## Prometheus-operator image
+   ##
+   image:
+-    repository: quay.io/coreos/prometheus-operator
++    repository: rancher/coreos-prometheus-operator
+     tag: v0.38.1
+     pullPolicy: IfNotPresent
+ 
+   ## Configmap-reload image to use for reloading configmaps
+   ##
+   configmapReloadImage:
+-    repository: docker.io/jimmidyson/configmap-reload
++    repository: rancher/jimmidyson-configmap-reload
+     tag: v0.3.0
+ 
+   ## Prometheus-config-reloader image to use for config and rule reloading
+   ##
+   prometheusConfigReloaderImage:
+-    repository: quay.io/coreos/prometheus-config-reloader
++    repository: rancher/coreos-prometheus-config-reloader
+     tag: v0.38.1
+ 
+   ## Set the prometheus config reloader side-car CPU limit
+@@ -1354,13 +1648,6 @@
+   ##
+   configReloaderMemory: 25Mi
+ 
+-  ## Hyperkube image to use when cleaning up
+-  ##
+-  hyperkubeImage:
+-    repository: k8s.gcr.io/hyperkube
+-    tag: v1.16.12
+-    pullPolicy: IfNotPresent
+-
+ ## Deploy a Prometheus instance
+ ##
+ prometheus:
+@@ -1577,7 +1864,7 @@
+     ## Image of Prometheus.
+     ##
+     image:
+-      repository: quay.io/prometheus/prometheus
++      repository: rancher/prom-prometheus
+       tag: v2.18.1
+ 
+     ## Tolerations for use with node taints
+@@ -1628,6 +1915,11 @@
      ##
      externalUrl: ""
  
@@ -1920,7 +2033,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
      ## Define which Nodes the Pods are scheduled on.
      ## ref: https://kubernetes.io/docs/user-guide/node-selection/
      ##
-@@ -1660,7 +1953,7 @@
+@@ -1660,7 +1952,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the PrometheusRule resources created
      ##
@@ -1929,7 +2042,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
      ## PrometheusRules to be selected for target discovery.
      ## If {}, select all ServiceMonitors
-@@ -1685,7 +1978,7 @@
+@@ -1685,7 +1977,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the servicemonitors created
      ##
@@ -1938,7 +2051,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
      ## ServiceMonitors to be selected for target discovery.
      ## If {}, select all ServiceMonitors
-@@ -1705,7 +1998,7 @@
+@@ -1705,7 +1997,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the podmonitors created
      ##
@@ -1947,7 +2060,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
      ## PodMonitors to be selected for target discovery.
      ## If {}, select all PodMonitors
-@@ -1802,9 +2095,13 @@
+@@ -1802,9 +2094,13 @@
  
      ## Resource limits & requests
      ##
