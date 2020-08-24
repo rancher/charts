@@ -1,0 +1,81 @@
+# Default values for citrix-cpx-with-ingress-controller.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# cpximage contains information needed to fetch CPX image
+image: quay.io/citrix/citrix-k8s-cpx-ingress:13.0-58.30
+pullPolicy: IfNotPresent
+# cicimage contains information needed to fetch CIC image
+cic:
+  image: quay.io/citrix/citrix-k8s-ingress-controller:1.8.28
+  pullPolicy: IfNotPresent
+  required: true
+
+mgmtHttpPort: 9080
+
+mgmtHttpsPort: 9443
+# openshift is set to true if charts are being deployed in OpenShift environment.
+openshift: false
+# nsNamespace is the prefix for the resources on the Citrix ADC
+nsNamespace:
+# license is used accept the terms of the Citrix license
+license:
+  accept: no
+# ingressClass is the  name of the Ingress Class
+ingressClass:
+# logLevel is to set level of CIC Logs
+logLevel: DEBUG
+# Default SSL certificate
+defaultSSLCert:
+# Elasticsearch or Kafka or Zipkin endpoint for Citrix observability exporter
+logProxy:
+# Set to ON to enables HTTP2 for Citrix ADC service group configurations
+http2ServerSide: "OFF"
+nodeSelector:
+  key:
+  value:
+
+ADMSettings:
+  licenseServerIP:
+  licenseServerPort: 27000
+  ADMIP:
+  ADMFingerPrint:
+  loginSecret:
+  bandWidthLicense: false
+  bandWidth:
+  vCPULicense: false
+  cpxCores:
+
+# exporter conatins information of prometheus-exporter
+exporter:
+  required: false
+  image: quay.io/citrix/citrix-adc-metrics-exporter:1.4.5
+  pullPolicy: IfNotPresent
+  ports:
+    containerPort: 8888
+
+coeConfig:
+  required: false
+  distributedTracing:
+    enable: false
+    samplingrate: 100
+  endpoint:
+    server:
+  timeseries:
+    port: 5563
+    metrics:
+      enable: false
+      mode: 'avro'
+    auditlogs:
+      enable: false
+    events:
+      enable: false
+  transactions:
+    enable: false
+    port: 5557
+
+crds:
+# If false, CustomResourceDefinitions  will not be installed.
+  install: true
+# if set to true, then CustomResourceDefinitions will not be deleted during helm delete. This way, CustomResourceObjects will not be deleted from the database.
+  retainOnDelete: false

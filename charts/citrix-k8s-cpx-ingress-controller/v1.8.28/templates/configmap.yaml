@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cpx-cic-configmap
+  labels:
+    app: citrix-ingress-controller
+data:
+  LOGLEVEL: {{ .Values.logLevel | quote | lower }}
+  NS_PROTOCOL: "http"
+  NS_PORT: "80"
+  NS_HTTP2_SERVER_SIDE: {{ .Values.http2ServerSide | quote | upper }}
+{{- if .Values.coeConfig.required }}
+  NS_ANALYTICS_CONFIG: |
+    distributed_tracing:
+      enable: {{ .Values.coeConfig.distributedTracing.enable | quote }}
+      samplingrate: {{ .Values.coeConfig.distributedTracing.samplingrate }}
+    endpoint:
+      server: {{ include "analytics.server" . | quote }}
+    timeseries:
+      port: {{ .Values.coeConfig.timeseries.port }}
+      metrics:
+        enable: {{ .Values.coeConfig.timeseries.metrics.enable | quote }}
+        mode: {{ .Values.coeConfig.timeseries.metrics.mode | quote }}
+      auditlogs:
+        enable: {{ .Values.coeConfig.timeseries.auditlogs.enable | quote }}
+      events:
+        enable: {{ .Values.coeConfig.timeseries.events.enable | quote }}
+    transactions:
+      enable: {{ .Values.coeConfig.transactions.enable | quote }}
+      port: {{ .Values.coeConfig.transactions.port }}
+{{- end }}
