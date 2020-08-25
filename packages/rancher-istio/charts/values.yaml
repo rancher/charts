@@ -1,21 +1,24 @@
-revision: "" # leave blank for no canary deployment, or set to given revision, eg: "1-7-2"
 overlayFile: ""
-tag: 1.6.8
-installerVersion: 0.1.6
+tag: 1.6.7
+installerVersion: 1.6.7-rancher1
 forceInstall: false
 
 istiocoredns:
     enabled: false
     image:
-      repository: coredns/coredns
+      repository: rancher/coredns-coredns
       tag: 1.6.2
-    pluginImage: istio/coredns-plugin:0.2-istio-1.1
+    pluginImage:
+      repository: rancher/istio-coredns-plugin
+      tag: 0.2-istio-1.1
 
 base:
     enabled: true
 
 cni:
     enabled: false
+    repository: rancher/istio-install-cni
+    tag: 1.6.7
 
 egressGateways:
     enabled: false
@@ -30,15 +33,18 @@ istiodRemote:
 
 pilot:
     enabled: true
-    image: pilot
+    repository: rancher/istio-pilot
+    tag: 1.6.7
 
 policy:
     enabled: true
-    image: mixer
+    repository: rancher/istio-mixer
+    tag: 1.6.7
 
 telemetry:
     enabled: true
-    image: mixer
+    repository: rancher/istio-mixer
+    tag: 1.6.7
 
 sidecarInjectorWebhook:
   enableNamespacesByDefault: false
@@ -48,10 +54,13 @@ sidecarInjectorWebhook:
   rewriteAppHTTPProbe: true
 
 global:
+  systemDefaultRegistry: ""
   proxy:
-    image: proxyv2
+    repository: rancher/istio-proxyv2
+    tag: 1.6.7
   proxy_init:
-    image: proxyv2
+    repository: rancher/istio-proxyv2
+    tag: 1.6.7
 
 # this can be removed in 1.7 as it is default
 meshConfig:
@@ -61,18 +70,15 @@ meshConfig:
 kiali:
   enabled: true
   auth:
-    # todo: what auth strategy ?
-    # strategy: token # this is default, you can use a service-account or kubeconfig token
     strategy: anonymous
   deployment:
+    ##TODO: update kiali to allow for repository and image
     ingress_enabled: false
+    image_name: docker.io/rancher/kiali-kiali
+    image_version: v1.22.1
   external_services:
     prometheus:
-      custom_metrics_url: "http://rancher-monitoring-prometheus.monitoring-system.svc:9090"
-      url: "http://rancher-monitoring-prometheus.monitoring-system.svc:9090"
+      custom_metrics_url: "http://rancher-monitoring-prometheus.cattle-monitoring-system.svc:9090"
+      url: "http://rancher-monitoring-prometheus.cattle-monitoring-system.svc:9090"
     tracing:
       enabled: false
-  # TODO : update images
-  # deployment:
-  #   image_name: "rancher..."
-  #   image_version: v1.....
