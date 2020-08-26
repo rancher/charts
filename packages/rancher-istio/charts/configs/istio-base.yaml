@@ -4,14 +4,6 @@ spec:
   addonComponents:
     istiocoredns:
       enabled: {{ .Values.istiocoredns.enabled }}
-    prometheus:
-      enabled: false
-    grafana:
-      enabled: false
-    kiali:
-      enabled: false
-    tracing:
-      enabled: false
   components:
     base:
       enabled: {{ .Values.base.enabled }}
@@ -72,6 +64,10 @@ spec:
         image: {{ template "system_default_registry" . }}{{ .Values.global.proxy.repository }}:{{ .Values.global.proxy.tag }}
       proxy_init:
         image: {{ template "system_default_registry" . }}{{ .Values.global.proxy_init.repository}}:{{ .Values.global.proxy_init.tag }}
+      {{- if .Values.global.defaultPodDisruptionBudget.enabled }}
+      defaultPodDisruptionBudget:
+        enabled: {{ .Values.global.defaultPodDisruptionBudget.enabled }}
+      {{- end }}
     istiocoredns:
       coreDNSImage: {{ template "system_default_registry" . }}{{ .Values.istiocoredns.image.repository }}
       coreDNSPluginImage: {{ template "system_default_registry" . }}{{ .Values.istiocoredns.pluginImage.repository }}:{{ .Values.istiocoredns.pluginImage.tag }}

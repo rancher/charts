@@ -16,6 +16,8 @@ All notable changes from the upstream Prometheus Operator chart will be added to
     - User who needs to be able to persist custom Grafana dashboards from the Grafana UI but does not need to be able to interact with Prometheus CRs: `grafana-config-edit` within the `.Values.grafana.sidecar.dashboards.searchNamespace` (default `grafana-dashboards`) namespace
     - User who needs to be able to persist new Grafana datasources but does not need to be able to interact with Prometheus CRs: `.Values.grafana.sidecar.datasources.searchNamespace` (default `grafana-datasources`) namespace
 - Added default resource limits for `Prometheus Operator`, `Prometheus`, `AlertManager`, `Grafana`, `kube-state-metrics`, `node-exporter`
+- Added a default template `rancher_defaults.tmpl` to AlertManager that Rancher will offer to users in order to help configure the way alerts are rendered on a notifier. Also updated the default template deployed with this chart to reference that template and added an example of a Slack config using this template as a comment in the `values.yaml`.
+- Added support for private registries via introducing a new field for `global.systemDefaultRegistry` that, if supplied, will automatically be prepended onto every image used by the chart.
 ### Modified
 - Updated the chart name from `prometheus-operator` to `rancher-monitoring` and added the `io.rancher.certified: rancher` annotation to `Chart.yaml`
 - Modified the default `node-exporter` port from `9100` to `9796`
@@ -35,3 +37,4 @@ All notable changes from the upstream Prometheus Operator chart will be added to
     - `kube-proxy` metrics exporter
 - Updated default Grafana `deploymentStrategy` to `Recreate` to prevent deployments from being stuck on upgrade if a PV is attached to Grafana
 - Modified the default `<serviceMonitor|podMonitor|rule>SelectorNilUsesHelmValues` to default to `false`. As a result, we look for all CRs with any labels in all namespaces by default rather than just the ones tagged with the label `release: rancher-monitoring`.
+- Modified the default images used by the `rancher-monitoring` chart to point to Rancher mirrors of the original images from upstream.
