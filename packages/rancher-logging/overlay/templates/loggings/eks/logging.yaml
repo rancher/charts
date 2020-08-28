@@ -1,0 +1,17 @@
+{{- if and .Values.additionalLoggingSources.eks.enabled }}
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: Logging
+metadata:
+  name: {{ .Release.Name }}-eks
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "logging-operator.labels" . | indent 4 }}
+spec:
+  controlNamespace: {{ .Release.Namespace }}
+  fluentbit:
+    inputTail:
+      Tag: "eks"
+      Path: "/var/log/messages"
+      Parser: "syslog"
+  fluentd: {}
+{{- end }}
