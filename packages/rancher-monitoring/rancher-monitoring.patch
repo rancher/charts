@@ -1807,7 +1807,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    ## Pass the Alertmanager configuration directives through Helm's templating
    ## engine. If the Alertmanager configuration contains Alertmanager templates,
-@@ -160,25 +446,45 @@
+@@ -160,25 +446,76 @@
    ## ref: https://prometheus.io/docs/alerting/notifications/
    ##      https://prometheus.io/docs/alerting/notification_examples/
    ##
@@ -1836,12 +1836,20 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
 +        {{ template "rancher.text_multiple" . }}
 +        {{- end -}}
 +
-+        {{- define "cluster" -}}
-+        {{ .ExternalURL | reReplaceAll ".*alertmanager\\.(.*)" "$1" }}
-+        {{- end -}}
-+
 +        {{- define "rancher.text_multiple" -}}
-+        *Cluster:*  {{ template "cluster" . }}
++        *[GROUP - Details]*
++        One or more alarms in this group have triggered a notification.
++
++        {{- if gt (len .GroupLabels.Values) 0 }}
++        *Group Labels:*
++          {{- range .GroupLabels.SortedPairs }}
++          • *{{ .Name }}:* `{{ .Value }}`
++          {{- end }}
++        {{- end }}
++        {{- if .ExternalURL }}
++        *Link to AlertManager:* {{ .ExternalURL }}
++        {{- end }}
++
 +        {{- range .Alerts }}
 +        {{ template "rancher.text_single" . }}
 +        {{- end }}
@@ -1849,30 +1857,53 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
 +
 +        {{- define "rancher.text_single" -}}
 +        {{- if .Labels.alertname }}
-+        *Alert*: {{ .Labels.alertname }}
-+        {{- end }}
-+        {{- if .Annotations.summary }}
-+        *Summary:* {{ .Annotations.summary }}
++        *[ALERT - {{ .Labels.alertname }}]*
++        {{- else }}
++        *[ALERT]*
 +        {{- end }}
 +        {{- if .Labels.severity }}
 +        *Severity:* `{{ .Labels.severity }}`
 +        {{- end }}
++        {{- if .Labels.cluster }}
++        *Cluster:*  {{ .Labels.cluster }}
++        {{- end }}
++        {{- if .Annotations.summary }}
++        *Summary:* {{ .Annotations.summary }}
++        {{- end }}
++        {{- if .Annotations.message }}
++        *Message:* {{ .Annotations.message }}
++        {{- end }}
 +        {{- if .Annotations.description }}
 +        *Description:* {{ .Annotations.description }}
 +        {{- end }}
-+        {{- if .Annotations.runbook }}
-+        *Runbook:* <{{ .Annotations.runbook }}|:spiral_note_pad:>
++        {{- if .Annotations.runbook_url }}
++        *Runbook URL:* <{{ .Annotations.runbook_url }}|:spiral_note_pad:>
 +        {{- end }}
-+        {{- if .Labels.SortedPairs }}
-+        *Details:*
-+          {{ range .Labels.SortedPairs }} • *{{ .Name }}:* `{{ .Value }}`
-+          {{ end }}
++        {{- with .Labels }}
++        {{- with .Remove (stringSlice "alertname" "severity" "cluster")) }}
++        {{- if gt (len .) 0) }}
++        *Additional Labels:*
++          {{- range .SortedPairs }}
++          • *{{ .Name }}:* `{{ .Value }}`
++          {{- end }}
++        {{- end }}
++        {{- end }}
++        {{- end }}
++        {{- with .Annotations }}
++        {{- with .Remove (stringSlice "summary" "message" "description" "runbook_url") }}
++        {{- if gt (len .) 0) }}
++        *Additional Annotations:*
++          {{- range .SortedPairs }}
++          • *{{ .Name }}:* `{{ .Value }}`
++          {{- end }}
++        {{- end }}
++        {{- end }}
 +        {{- end }}
 +        {{- end -}}
  
    ingress:
      enabled: false
-@@ -334,7 +640,7 @@
+@@ -334,7 +671,7 @@
      ## Image of Alertmanager
      ##
      image:
@@ -1881,7 +1912,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
        tag: v0.20.0
  
      ## If true then the user will be responsible to provide a secret with alertmanager configuration
-@@ -409,9 +715,13 @@
+@@ -409,9 +746,13 @@
      ## Define resources requests and limits for single Pods.
      ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
      ##
@@ -1898,7 +1929,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
      ## Pod anti-affinity can prevent the scheduler from placing Prometheus replicas on the same node.
      ## The default value "soft" means that the scheduler should *prefer* to not schedule two replica pods onto the same node but no guarantee is provided.
-@@ -486,6 +796,9 @@
+@@ -486,6 +827,9 @@
    enabled: true
    namespaceOverride: ""
  
@@ -1908,7 +1939,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
    ## Deploy default dashboards.
    ##
    defaultDashboardsEnabled: true
-@@ -529,6 +842,7 @@
+@@ -529,6 +873,7 @@
      dashboards:
        enabled: true
        label: grafana_dashboard
@@ -1916,7 +1947,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
        ## Annotations for Grafana dashboard configmaps
        ##
-@@ -547,6 +861,7 @@
+@@ -547,6 +892,7 @@
        ## ref: https://git.io/fjaBS
        createPrometheusReplicasDatasources: false
        label: grafana_datasource
@@ -1924,7 +1955,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    extraConfigmapMounts: []
    # - name: certs-configmap
-@@ -574,6 +889,19 @@
+@@ -574,6 +920,19 @@
    ##
    service:
      portName: service
@@ -1944,7 +1975,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    ## If true, create a serviceMonitor for grafana
    ##
-@@ -599,6 +927,14 @@
+@@ -599,6 +958,14 @@
      #   targetLabel: nodename
      #   replacement: $1
      #   action: replace
@@ -1959,7 +1990,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
  ## Component scraping the kube api server
  ##
-@@ -755,7 +1091,7 @@
+@@ -755,7 +1122,7 @@
  ## Component scraping the kube controller manager
  ##
  kubeControllerManager:
@@ -1968,7 +1999,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    ## If your kube controller manager is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -888,7 +1224,7 @@
+@@ -888,7 +1255,7 @@
  ## Component scraping etcd
  ##
  kubeEtcd:
@@ -1977,7 +2008,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    ## If your etcd is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -948,7 +1284,7 @@
+@@ -948,7 +1315,7 @@
  ## Component scraping kube scheduler
  ##
  kubeScheduler:
@@ -1986,7 +2017,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    ## If your kube scheduler is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1001,7 +1337,7 @@
+@@ -1001,7 +1368,7 @@
  ## Component scraping kube proxy
  ##
  kubeProxy:
@@ -1995,7 +2026,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    ## If your kube proxy is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1075,6 +1411,13 @@
+@@ -1075,6 +1442,13 @@
      create: true
    podSecurityPolicy:
      enabled: true
@@ -2009,7 +2040,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
  ## Deploy node exporter as a daemonset to all nodes
  ##
-@@ -1124,6 +1467,16 @@
+@@ -1124,6 +1498,16 @@
    extraArgs:
      - --collector.filesystem.ignored-mount-points=^/(dev|proc|sys|var/lib/docker/.+)($|/)
      - --collector.filesystem.ignored-fs-types=^(autofs|binfmt_misc|cgroup|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|mqueue|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|sysfs|tracefs)$
@@ -2026,7 +2057,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
  ## Manages Prometheus and Alertmanager components
  ##
-@@ -1137,7 +1490,7 @@
+@@ -1137,7 +1521,7 @@
    tlsProxy:
      enabled: true
      image:
@@ -2035,7 +2066,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
        tag: v1.5.2
        pullPolicy: IfNotPresent
      resources: {}
-@@ -1280,13 +1633,13 @@
+@@ -1280,13 +1664,13 @@
  
    ## Resource limits & requests
    ##
@@ -2056,7 +2087,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    # Required for use in managed kubernetes clusters (such as AWS EKS) with custom CNI (such as calico),
    # because control-plane managed by AWS cannot communicate with pods' IP CIDR and admission webhooks are not working
-@@ -1330,20 +1683,20 @@
+@@ -1330,20 +1714,20 @@
    ## Prometheus-operator image
    ##
    image:
@@ -2080,7 +2111,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
      tag: v0.38.1
  
    ## Set the prometheus config reloader side-car CPU limit
-@@ -1354,13 +1707,6 @@
+@@ -1354,13 +1738,6 @@
    ##
    configReloaderMemory: 25Mi
  
@@ -2094,7 +2125,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  ## Deploy a Prometheus instance
  ##
  prometheus:
-@@ -1577,7 +1923,7 @@
+@@ -1577,7 +1954,7 @@
      ## Image of Prometheus.
      ##
      image:
@@ -2103,7 +2134,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
        tag: v2.18.1
  
      ## Tolerations for use with node taints
-@@ -1628,6 +1974,11 @@
+@@ -1628,6 +2005,11 @@
      ##
      externalUrl: ""
  
@@ -2115,7 +2146,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
      ## Define which Nodes the Pods are scheduled on.
      ## ref: https://kubernetes.io/docs/user-guide/node-selection/
      ##
-@@ -1660,7 +2011,7 @@
+@@ -1660,7 +2042,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the PrometheusRule resources created
      ##
@@ -2124,7 +2155,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
      ## PrometheusRules to be selected for target discovery.
      ## If {}, select all ServiceMonitors
-@@ -1685,7 +2036,7 @@
+@@ -1685,7 +2067,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the servicemonitors created
      ##
@@ -2133,7 +2164,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
      ## ServiceMonitors to be selected for target discovery.
      ## If {}, select all ServiceMonitors
-@@ -1705,7 +2056,7 @@
+@@ -1705,7 +2087,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the podmonitors created
      ##
@@ -2142,7 +2173,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
      ## PodMonitors to be selected for target discovery.
      ## If {}, select all PodMonitors
-@@ -1802,9 +2153,13 @@
+@@ -1802,9 +2184,13 @@
  
      ## Resource limits & requests
      ##
