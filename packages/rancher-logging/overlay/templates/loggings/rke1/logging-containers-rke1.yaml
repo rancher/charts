@@ -2,10 +2,8 @@
 apiVersion: logging.banzaicloud.io/v1beta1
 kind: Logging
 metadata:
-  name: {{ .Release.Name }}-rke
+  name: {{ .Release.Name }}-rke-containers
   namespace: {{ .Release.Namespace }}
-  labels:
-{{ include "logging-operator.labels" . | indent 4 }}
 spec:
   controlNamespace: {{ .Release.Namespace }}
   fluentbit:
@@ -14,10 +12,10 @@ spec:
       tag: {{ .Values.images.fluentbit.tag }}
     inputTail:
       Tag: "rke"
-      Path: "/rke/*.log"
+      Path: "/var/log/containers/*rke*.log"
     extraVolumeMounts:
-      - source: "/var/lib/rancher/rke/log"
-        destination: "/rke"
+      - source: "/var/log/containers/"
+        destination: "/var/log/containers/"
         readOnly: true
   fluentd:
     image:
@@ -27,4 +25,5 @@ spec:
       repository: {{ template "system_default_registry" . }}{{ .Values.images.config_reloader.repository }}
       tag: {{ .Values.images.config_reloader.tag }}
     disablePvc: {{ .Values.disablePvc }}
-{{- end }}
+  {{- end }}
+
