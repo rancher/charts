@@ -1,0 +1,223 @@
+labels:
+ io.rancher.certified: partner
+questions:
+- variable: zookeeper.enabled
+  default: "false"
+  type: boolean
+  label: "If true, installs the Zookeeper"
+  group: "Zookeeper Settings"
+  show_subquestion_if: true
+  subquestions:
+    - variable: zookeeper.imgVersion
+      default: "3.5.8"
+      type: string
+      label: "Zookeeper Version:"
+      group: "Zookeeper Settings"
+    - variable: zookeeper.type
+      default: "ClusterIP"
+      type: string
+      label: "Service Type: ClusterIP, NodePort or LoadBalancer"
+      group: "Zookeeper Settings"
+    - variable: zookeeper.port
+      default: "2181"
+      type: int
+      label: "Zookeeper Port:"
+      group: "Zookeeper Settings"
+    - variable: zookeeper.replicas
+      default: "5"
+      type: int
+      label: "Zookeeper Instances:"
+      group: "Zookeeper Settings"
+    - variable: zookeeper.maxClientConnections
+      default: "60"
+      type: int
+      label: "Zookeeper Client Connections:"
+      group: "Zookeeper Settings"
+    - variable: zookeeper.podManagementPolicy
+      default: "OrderedReady"
+      type: string
+      label: "Deploy the PODs in either Parallel or OrderedReady:"
+      group: "Zookeeper Settings"
+    - variable: zookeeper.storage.class
+      default: ""
+      type: storageclass
+      label: "Storage Class:"
+      group: "Zookeeper Settings"
+    - variable: zookeeper.storage.capacity
+      default: "10Gi"
+      type: string
+      label: "Storage Capacity:"
+      group: "Zookeeper Settings"
+
+- variable: kafka.enabled
+  default: "false"
+  type: boolean
+  label: "If true, installs the Kafka Brokers"
+  group: "Kafka Settings"
+  show_subquestion_if: true
+  subquestions:
+    - variable: kafka.replicas
+      default: "5"
+      type: int
+      label: "Kafka Instances:"
+      group: "Kafka Settings"
+    - variable: kafka.imgVersion
+      default: "2.5.0"
+      type: string
+      label: "Kafka Version:"
+      group: "Kafka Settings"
+    - variable: kafka.type
+      default: "ClusterIP"
+      type: string
+      label: "Service Type: ClusterIP, NodePort or LoadBalancer"
+      group: "Kafka Settings"
+    - variable: kafka.securePort
+      default: "9093"
+      type: int
+      label: "Kafka SASL_SSL Port:"
+      group: "Kafka Settings"
+    - variable: kafka.externalPort
+      default: ""
+      description: This port should be unique across namespaces as these ports are exposed as NodePort on Kubernetes nodes
+      type: int
+      label: "Kafka External Port:"
+      group: "Kafka Settings"
+    - variable: kafka.logRetentionHours
+      default: "168"
+      type: int
+      label: "Log Retention Policy (in hours):"
+      group: "Kafka Settings"
+    - variable: kafka.zookeeper.port
+      default: "2181"
+      type: int
+      label: "Zookeeper Port:"
+      group: "Kafka Settings"
+    - variable: kafka.storage.class
+      default: ""
+      type: storageclass
+      label: "Storage Class:"
+      group: "Kafka Settings"
+    - variable: kafka.storage.capacity
+      default: "500Gi"
+      type: string
+      label: "Storage Capacity:"
+      group: "Kafka Settings"
+
+- variable: schemareg.enabled
+  default: "false"
+  type: boolean
+  label: "If true, installs the Schema Registry"
+  group: "Schema Registry Settings"
+  show_subquestion_if: true
+  subquestions:
+    - variable: schemareg.replicas
+      default: "2"
+      type: int
+      label: "Schema Registry Instances:"
+      group: "Schema Registry Settings"
+    - variable: schemareg.imgVersion
+      default: "5.5.1"
+      type: string
+      label: "Schema Registry Version:"
+      group: "Schema Registry Settings"
+    - variable: schemareg.port
+      default: "8081"
+      type: int
+      label: "Schema Registry Port:"
+      group: "Schema Registry Settings"
+    - variable: schemareg.type
+      default: "ClusterIP"
+      type: string
+      label: "Service Type: ClusterIP, NodePort or LoadBalancer"
+      group: "Schema Registry Settings"
+    - variable: schemareg.kafka.port
+      default: "9093"
+      description: "This is the same securedPort used in deploying Kafka Brokers"
+      type: int
+      label: "Kafka SASL_SSL Port:"
+      group: "Schema Registry Settings"
+
+- variable: clustermgr.enabled
+  default: "false"
+  type: boolean
+  label: "If true, installs the Cluster Manager"
+  group: "Cluster Manager Settings"
+  show_subquestion_if: true
+  subquestions:
+    - variable: clustermgr.replicas
+      default: "1"
+      type: int
+      label: "Cluster Manager Instances:"
+      group: "Cluster Manager Settings"
+    - variable: clustermgr.imgVersion
+      default: "1.0.0"
+      type: string
+      label: "Cluster Manager Version:"
+      group: "Cluster Manager Settings"
+    - variable: clustermgr.zookeeper.port
+      default: "2181"
+      type: int
+      description: "This is the same port used while deploying Zookeeper Cluster"
+      label: "Zookeeper Port:"
+      group: "Cluster Manager Settings"
+    - variable: clustermgr.type
+      default: "ClusterIP"
+      type: string
+      label: "Service Type: ClusterIP, NodePort or LoadBalancer"
+      group: "Cluster Manager Settings"
+
+- variable: securitymgr.enabled
+  default: "false"
+  type: boolean
+  label: "If true, installs the Security Manager"
+  group: "Security Manager Settings"
+  show_subquestion_if: true
+  subquestions:
+    - variable: securitymgr.replicas
+      default: "1"
+      type: int
+      label: "Security Manager Instances:"
+      group: "Security Manager Settings"
+    - variable: securitymgr.imgVersion
+      default: "1.0.0"
+      type: string
+      label: "Security Manager Version:"
+      group: "Security Manager Settings"
+    - variable: securitymgr.refreshRateInMS
+      default: "10000"
+      type: int
+      label: "Auto refresh of ACLs policies:"
+      group: "Security Manager Settings"
+
+- variable: kproducer.enabled
+  default: "false"
+  type: boolean
+  label: "If true, installs the Kproducer"
+  group: "Kproducer Settings"
+  show_subquestion_if: true
+  subquestions:
+    - variable: kproducer.replicas
+      default: "10"
+      type: int
+      label: "Kproducer Instances:"
+      group: "Kproducer Settings"
+    - variable: kproducer.imgVersion
+      default: "1.0.0"
+      type: string
+      label: "Kproducer Version:"
+      group: "Kproducer Settings"
+    - variable: kproducer.port
+      default: "3443"
+      type: int
+      label: "Kproducer Port:"
+      group: "Kproducer Settings"
+    - variable: kproducer.type
+      default: "ClusterIP"
+      type: string
+      label: "Service Type: ClusterIP, NodePort or LoadBalancer"
+      group: "Kproducer Settings"
+    - variable: kproducer.maxBodySize
+      default: "50000"
+      type: int
+      label: "Max Payload Size (in bytes):"
+      group: "Kproducer Settings"

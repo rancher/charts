@@ -1,0 +1,118 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ template "schemareg.name" . }}
+    release: {{ .Release.Name }}
+  name: {{ template "bluehub.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.replicas | default "2" | int }}
+  selector:
+    matchLabels:
+      app: {{ template "schemareg.name" . }}
+      release: {{ .Release.Name }}
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: {{ template "schemareg.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+      - env:
+        - name: JMX_PORT
+          value: "5555"
+        - name: SCHEMA_REGISTRY_HEAP_OPTS
+          value: {{ .Values.heapOpts | default "-Xms1024M -Xmx1024M" | quote }}
+        - name: SCHEMA_REGISTRY_KAFKASTORE_TOPIC
+          value: {{ .Values.topic | default "_schemas" | quote }}
+        - name: SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR
+          value: {{ .Values.topicReplicationFactor | default "3" | quote }}
+        - name: SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS
+          value: SASL_SSL://{{ .Release.Name }}-kafka-headless:{{ .Values.kafka.port | default "9093" | int }}
+        - name: SCHEMA_REGISTRY_KAFKASTORE_GROUP_ID
+          value: {{ template "bluehub.fullname" . }}
+        - name: SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL
+          value: SASL_SSL
+        - name: SCHEMA_REGISTRY_KAFKASTORE_SASL_MECHANISM
+          value: PLAIN
+        - name: SCHEMA_REGISTRY_KAFKASTORE_SSL_CLIENT_AUTH
+          value: required
+        - name: SCHEMA_REGISTRY_KAFKASTORE_SSL_ENABLED_PROTOCOLS
+          value: {{ .Values.sslEnabledProtocols | default "TLSv1.2" | quote }}
+        - name: SCHEMA_REGISTRY_KAFKASTORE_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM
+        - name: SCHEMA_REGISTRY_KAFKASTORE_SSL_KEYSTORE_LOCATION
+          value: /schemareg/secrets/kafka.keystore.jks
+        - name: SCHEMA_REGISTRY_KAFKASTORE_SSL_KEYSTORE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ template "bluehub.fullname" . }}-secrets
+              key: {{ template "schemareg.name" . }}_keystore_password
+        - name: SCHEMA_REGISTRY_KAFKASTORE_SSL_KEY_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ template "bluehub.fullname" . }}-secrets
+              key: {{ template "schemareg.name" . }}_key_password
+        - name: SCHEMA_REGISTRY_KAFKASTORE_SSL_TRUSTSTORE_LOCATION
+          value: /schemareg/secrets/kafka.truststore.jks
+        - name: SCHEMA_REGISTRY_KAFKASTORE_SSL_TRUSTSTORE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ template "bluehub.fullname" . }}-secrets
+              key: {{ template "schemareg.name" . }}_truststore_password
+        - name: SCHEMA_REGISTRY_HOST_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        - name: SCHEMA_REGISTRY_KAFKASTORE_KAFKA_SASL_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ template "bluehub.fullname" . }}-secrets
+              key: {{ template "schemareg.name" . }}_sasl_username
+        - name: SCHEMA_REGISTRY_KAFKASTORE_KAFKA_SASL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ template "bluehub.fullname" . }}-secrets
+              key: {{ template "schemareg.name" . }}_sasl_password
+        - name: SCHEMA_REGISTRY_KAFKASTORE_SASL_JAAS_CONFIG
+          value: org.apache.kafka.common.security.plain.PlainLoginModule required username=$(SCHEMA_REGISTRY_KAFKASTORE_KAFKA_SASL_USERNAME) password=$(SCHEMA_REGISTRY_KAFKASTORE_KAFKA_SASL_PASSWORD);
+        image: {{ .Values.imgName | default "bluespireinc/schemareg" }}:{{ .Values.imgVersion | default "5.5.1" }}
+        imagePullPolicy: IfNotPresent
+        name: schema-registry
+        ports:
+        - containerPort: {{ .Values.port | default "8081" | int }}
+          name: 8081tcp02
+          protocol: TCP
+        - containerPort: 5555
+          name: jmx
+          protocol: TCP
+        resources:
+          requests:
+            memory: {{ .Values.resources.requests.memory | default "1Gi" | quote }}
+            cpu: {{ .Values.resources.requests.cpu | default "1000m" | quote }}
+          limits:
+            memory: {{ .Values.resources.limits.memory | default "2Gi" | quote }}
+            cpu: {{ .Values.resources.limits.cpu | default "2000m" | quote }}
+        securityContext:
+          runAsNonRoot: false
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /schemareg/secrets
+          name: secretdir
+      volumes:
+        - name: secretdir
+          secret:
+            defaultMode: 256
+            optional: false
+            secretName: {{ template "bluehub.fullname" . }}-secrets
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      terminationGracePeriodSeconds: 30

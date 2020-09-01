@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: kafka-monitor
+    app.kubernetes.io/name: kafka
+  name: {{ template "bluehub.fullname" . }}-exporter
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: kafka-monitor
+      app.kubernetes.io/name: kafka
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: {{ .Values.metrics.port | default "9308" | quote }}
+        prometheus.io/scrape: "true"
+      creationTimestamp: null
+      labels:
+        app.kubernetes.io/component: kafka-monitor
+        app.kubernetes.io/name: kafka
+    spec:
+      containers:
+      - args:
+        - --kafka.server={{ template "bluehub.fullname" . }}:9092
+        - --web.listen-address=:{{ .Values.metrics.port | default "9308" | int }}
+        image: bluespireinc/kafka-exporter:1.0.0
+        imagePullPolicy: Always
+        name: kafka-exporter
+        ports:
+        - containerPort: {{ .Values.metrics.port | default "9308" | int }}
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 1000m
+            memory: 1Gi
+          limits:
+            cpu: 4000m
+            memory: 2Gi
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext:
+        runAsNonRoot: false
