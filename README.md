@@ -22,6 +22,18 @@ packages/${CHART_NAME}/
     values.yaml
 ```
 
+For **Rancher original** charts with a crds directory, it should have the following tree structure
+
+```text
+packages/${CHART_NAME}/
+  package.yaml              # metadata manifest to enable or disable crds generation
+  charts/                   # regular helm chart directory
+    templates/
+    crds/
+    Chart.yaml
+    values.yaml
+```
+
 For **Rancher modified** charts, it should have the following tree structure
 
 ```text
@@ -34,11 +46,13 @@ packages/${CHART_NAME}/
 A regular `package.yaml` will have the following content:
 
 ```yaml
-url: https://charts.bitnami.com/bitnami/external-dns-2.20.10.tgz # url to fetch upstream chart
+url: https://charts.bitnami.com/bitnami/external-dns-2.20.10.tgz # url to fetch upstream chart, omit this field for a rancher original chart
 packageVersion: 00 # packageVersion of modified charts, producing a $version-$packageVersion chart. For example, if istio 1.4.7 is modified with changes, rancher produces a 1.4.700 chart version that includes the modification rancher made on top of upstream charts.
+generateCRDChart:
+  enabled: true
 ```
 
-Here is an example of upstream chart based on git repository
+Here is an **example** of upstream chart based on git repository
 
 ```yaml
 url: https://github.com/open-policy-agent/gatekeeper.git  # Url to fetch upstream chart from git
@@ -46,7 +60,16 @@ subdirectory: chart/gatekeeper-operator # Sub directory for helm charts in git r
 type: git # optinal, indicate that upstream chart is from git
 commit: v3.1.0-beta.8 # the revision of git repo
 packageVersion: 00 # package version
-``` 
+generateCRDChart:
+  enabled: true
+```
+
+Here is an **example** of local chart with a crds directory
+
+```yaml
+generateCRDChart:
+  enabled: true
+```
 
 ### Workflow
 

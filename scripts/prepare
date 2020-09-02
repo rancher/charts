@@ -4,8 +4,8 @@ set -e
 # Pull in the upstream charts
 for f in packages/*; do
 	if [[ -z $CHART || $CHART == $(basename -- ${f}) ]]; then
-		if [[ -f ${f}/package.yaml ]]; then
-			url=$(cat ${f}/package.yaml | yq r - url)
+		url=$(cat ${f}/package.yaml | yq r - url)
+		if [[ -f ${f}/package.yaml && -n ${url} ]]; then
 			subdirectory=$(cat ${f}/package.yaml | yq r - subdirectory)
 			type=$(cat ${f}/package.yaml | yq r - type)
 			fields=$(echo ${subdirectory} | awk -F'/' '{print NF}')
