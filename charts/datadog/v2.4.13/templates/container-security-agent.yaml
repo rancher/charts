@@ -1,0 +1,107 @@
+{{- define "container-security-agent" -}}
+- name: security-agent
+  image: "{{ .Values.agents.image.repository }}:{{ .Values.agents.image.tag }}"
+  imagePullPolicy: {{ .Values.agents.image.pullPolicy }}
+  securityContext:
+    capabilities:
+      add: ["AUDIT_CONTROL", "AUDIT_READ"]
+  command: ["security-agent", "start", "-c={{ template "datadog.confPath" . }}/datadog.yaml"]
+  resources:
+{{ toYaml .Values.agents.containers.securityAgent.resources | indent 4 }}
+  env:
+    {{- include "containers-common-env" . | nindent 4 }}
+    - name: DD_LOG_LEVEL
+      value: {{ .Values.agents.containers.securityAgent.logLevel | default .Values.datadog.logLevel | quote }}
+    - name: DD_COMPLIANCE_CONFIG_ENABLED
+      value:  {{ .Values.datadog.securityAgent.compliance.enabled | quote }}
+    {{- if .Values.datadog.securityAgent.compliance.enabled }}
+    - name: DD_COMPLIANCE_CONFIG_CHECK_INTERVAL
+      value: {{ .Values.datadog.securityAgent.compliance.checkInterval | quote }}
+    - name: HOST_ROOT
+      value: /host/root
+    - name: DD_CLUSTER_AGENT_ENABLED
+      value: {{ .Values.clusterAgent.enabled | quote }}
+    {{- if .Values.clusterAgent.enabled }}
+    - name: DD_CLUSTER_AGENT_KUBERNETES_SERVICE_NAME
+      value: {{ template "datadog.fullname" . }}-cluster-agent
+    - name: DD_CLUSTER_AGENT_AUTH_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: {{ template "clusterAgent.tokenSecretName" . }}
+          key: token
+    {{- end }}
+    {{- end }}
+    - name: DD_RUNTIME_SECURITY_CONFIG_ENABLED
+      value:  {{ .Values.datadog.securityAgent.runtime.enabled | quote }}
+    {{- if .Values.datadog.securityAgent.runtime.enabled }}
+    - name: DD_RUNTIME_SECURITY_CONFIG_POLICIES_DIR
+      value: "/etc/datadog-agent/runtime-security.d"
+    - name: DD_RUNTIME_SECURITY_CONFIG_SOCKET
+      value: /var/run/sysprobe/runtime-security.sock
+    - name: DD_RUNTIME_SECURITY_CONFIG_SYSCALL_MONITOR_ENABLED
+      value: {{ .Values.datadog.securityAgent.runtime.syscallMonitor.enabled | quote }}
+    {{- end }}
+  {{- range $value := .Values.agents.containers.securityAgent.env }}
+    - name: {{ $value.name }}
+      value: {{ $value.value | quote }}
+  {{- end }}
+  volumeMounts:
+    - name: config
+      mountPath: {{ template "datadog.confPath" . }}
+    {{- if eq .Values.targetSystem "linux" }}
+    - name: runtimesocketdir
+      mountPath: {{ print "/host/" (dir (include "datadog.dockerOrCriSocketPath" .)) | clean }}
+      readOnly: true
+    {{- end }}
+    {{- if eq .Values.targetSystem "windows" }}
+    - name: runtimesocket
+      mountPath: {{ template "datadog.dockerOrCriSocketPath" . }}
+    {{- end }}
+    {{- if .Values.agents.useConfigMap }}
+    - name: {{ template "datadog.fullname" . }}-datadog-yaml
+      mountPath: {{ template "datadog.confPath" . }}/datadog.yaml
+      subPath: datadog.yaml
+    {{- end }}
+    {{- if eq .Values.targetSystem "linux" }}
+    {{- if .Values.datadog.securityAgent.compliance.enabled }}
+    - name: cgroups
+      mountPath: /host/sys/fs/cgroup
+      readOnly: true
+    - name: passwd
+      mountPath: /etc/passwd
+      readOnly: true
+    - name: group
+      mountPath: /etc/group
+      readOnly: true
+    - name: hostroot
+      mountPath: /host/root
+      readOnly: true
+    {{- if eq .Values.targetSystem "linux" }}
+    - name: runtimesocketdir
+      mountPath: {{ print "/host/root" (dir (include "datadog.dockerOrCriSocketPath" .)) | clean }}
+      readOnly: true
+    {{- end }}
+    - name: procdir
+      mountPath: /host/proc
+      readOnly: true
+    {{- if .Values.datadog.securityAgent.compliance.configMap }}
+    - name: complianceconfigdir
+      mountPath: /etc/datadog-agent/compliance.d
+      readOnly: true
+    {{- end }}
+    {{- end }}
+    {{- if .Values.datadog.securityAgent.runtime.enabled }}
+    {{- if .Values.datadog.securityAgent.runtime.policies.configMap }}
+    - name: runtimepoliciesdir
+      mountPath: /etc/datadog-agent/runtime-security.d
+      readOnly: true
+    {{- end }}
+    - name: sysprobe-socket-dir
+      mountPath: /var/run/sysprobe
+      readOnly: true
+    - name: sysprobe-config
+      mountPath: /etc/datadog-agent/system-probe.yaml
+      subPath: system-probe.yaml
+    {{- end }}
+    {{- end }}
+{{- end -}}

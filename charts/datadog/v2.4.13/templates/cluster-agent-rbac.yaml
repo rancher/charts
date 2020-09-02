@@ -14,7 +14,6 @@ rules:
   - ""
   resources:
   - services
-  - events
   - endpoints
   - pods
   - nodes
@@ -23,6 +22,15 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - get
+  - list
+  - watch
+  - create
 - apiGroups: ["quota.openshift.io"]
   resources:
   - clusterresourcequotas
@@ -60,10 +68,11 @@ rules:
   verbs:
   - get
   - update
-- apiGroups:  # To create the leader election token
+- apiGroups:  # To create the leader election token and hpa events
   - ""
   resources:
   - configmaps
+  - events
   verbs:
   - create
 - nonResourceURLs:
@@ -80,6 +89,98 @@ rules:
   - "list"
   - "get"
   - "watch"
+{{- end }}
+{{- if .Values.datadog.orchestratorExplorer.enabled }}
+- apiGroups:  # to get the kube-system namespace UID and generate a cluster ID
+  - ""
+  resources:
+  - namespaces
+  resourceNames:
+  - "kube-system"
+  verbs:
+  - get
+- apiGroups:  # To create the cluster-id configmap
+  - ""
+  resources:
+  - configmaps
+  resourceNames:
+  - "datadog-cluster-id"
+  verbs:
+  - create
+  - get
+  - update
+- apiGroups:
+  - "apps"
+  resources:
+  - deployments
+  - replicasets
+  verbs:
+  - list
+  - get
+  - watch
+{{- end }}
+{{- if and .Values.clusterAgent.metricsProvider.enabled .Values.clusterAgent.metricsProvider.useDatadogMetrics }}
+- apiGroups:
+  - "datadoghq.com"
+  resources:
+  - "datadogmetrics"
+  verbs:
+  - "list"
+  - "create"
+  - "delete"
+  - "watch"
+- apiGroups:
+  - "datadoghq.com"
+  resources:
+  - "datadogmetrics/status"
+  verbs:
+  - "update"
+{{- end }}
+{{- if .Values.clusterAgent.admissionController.enabled }}
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - mutatingwebhookconfigurations
+  verbs: ["get", "list", "watch", "update", "create"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch", "update", "create"]
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["get"]
+- apiGroups: ["apps"]
+  resources: ["statefulsets", "replicasets", "deployments"]
+  verbs: ["get"]
+{{- end }}
+{{- if .Values.datadog.securityAgent.compliance.enabled }}
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
+  - namespaces
+  verbs:
+  - list
+- apiGroups:
+  - "policy"
+  resources:
+  - podsecuritypolicies
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterrolebindings
+  - rolebindings
+  verbs:
+  - list
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  verbs:
+  - list
 {{- end }}
 ---
 apiVersion: {{ template "rbac.apiVersion" . }}
@@ -119,7 +220,7 @@ metadata:
 
 {{- if and .Values.clusterAgent.enabled .Values.clusterAgent.rbac.create .Values.clusterAgent.metricsProvider.enabled }}
 ---
-apiVersion: rbac.authorization.k8s.io/v1
+apiVersion: {{ template "rbac.apiVersion" . }}
 kind: ClusterRoleBinding
 metadata:
   labels:
@@ -137,6 +238,25 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: system:auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: {{ template "datadog.fullname" . }}-cluster-agent
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: {{ template "rbac.apiVersion" . }}
+kind: RoleBinding
+metadata:
+  labels:
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+    app.kubernetes.io/name: "{{ template "datadog.fullname" . }}"
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+  name: "{{ template "datadog.fullname" . }}-cluster-agent"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: extension-apiserver-authentication-reader
 subjects:
   - kind: ServiceAccount
     name: {{ template "datadog.fullname" . }}-cluster-agent

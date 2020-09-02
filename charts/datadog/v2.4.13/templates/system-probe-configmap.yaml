@@ -1,4 +1,4 @@
-{{- if .Values.datadog.systemProbe.enabled }}
+{{- if or .Values.datadog.systemProbe.enabled .Values.datadog.securityAgent.runtime.enabled}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -13,11 +13,22 @@ metadata:
 data:
   system-probe.yaml: |
     system_probe_config:
-      enabled: {{ $.Values.datadog.systemProbe.enabled }}
+      enabled: {{ or $.Values.datadog.systemProbe.enabled $.Values.datadog.securityAgent.runtime.enabled }}
       debug_port:  {{ $.Values.datadog.systemProbe.debugPort }}
-      sysprobe_socket: /opt/datadog-agent/run/sysprobe.sock
-      enable_conntrack : {{ $.Values.datadog.systemProbe.enableConntrack }}
+      sysprobe_socket: /var/run/sysprobe/sysprobe.sock
+      enable_conntrack: {{ $.Values.datadog.systemProbe.enableConntrack }}
       bpf_debug: {{ $.Values.datadog.systemProbe.bpfDebug }}
+      enable_tcp_queue_length: {{ $.Values.datadog.systemProbe.enableTCPQueueLength }}
+      enable_oom_kill: {{ $.Values.datadog.systemProbe.enableOOMKill }}
+      collect_dns_stats: {{ $.Values.datadog.systemProbe.collectDNSStats }}
+    runtime_security_config:
+      enabled: {{ $.Values.datadog.securityAgent.runtime.enabled }}
+      debug: false
+      socket: /var/run/sysprobe/runtime-security.sock
+      policies:
+        dir: /etc/datadog-agent/runtime-security.d
+      syscall_monitor:
+        enabled: {{ $.Values.datadog.securityAgent.runtime.syscallMonitor.enabled }}
 
 {{- if eq .Values.datadog.systemProbe.seccomp "localhost/system-probe" }}
 ---
@@ -65,6 +76,8 @@ data:
             "epoll_wait",
             "epoll_wait",
             "epoll_wait_old",
+            "eventfd",
+            "eventfd2",
             "execve",
             "execveat",
             "exit",
@@ -111,11 +124,13 @@ data:
             "lseek",
             "lstat",
             "lstat64",
+            "madvise",
             "mkdir",
             "mkdirat",
             "mmap",
             "mmap2",
             "mprotect",
+            "mremap",
             "munmap",
             "nanosleep",
             "newfstatat",
@@ -128,6 +143,7 @@ data:
             "poll",
             "ppoll",
             "prctl",
+            "pread64",
             "prlimit64",
             "pselect6",
             "read",

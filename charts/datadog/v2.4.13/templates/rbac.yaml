@@ -83,8 +83,15 @@ rules:
   - endpoints
   verbs:
   - get
+- apiGroups:
+  - policy
+  resources:
+  - podsecuritypolicies
+  verbs:
+  - use
+  resourceNames:
+  - {{ template "datadog.fullname" . }}
 ---
-{{- if not .Values.clusterChecksRunner.rbac.dedicated }}
 apiVersion: {{ template "rbac.apiVersion" . }}
 kind: ClusterRoleBinding
 metadata:
@@ -103,7 +110,6 @@ subjects:
   - kind: ServiceAccount
     name: {{ template "datadog.fullname" . }}
     namespace: {{ .Release.Namespace }}
-{{- end }}
 ---
 apiVersion: v1
 kind: ServiceAccount

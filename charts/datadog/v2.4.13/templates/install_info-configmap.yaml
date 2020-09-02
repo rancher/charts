@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "datadog.fullname" . }}-installinfo
+  labels:
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+    app.kubernetes.io/name: "{{ template "datadog.fullname" . }}"
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+  annotations:
+    checksum/install_info: {{ printf "%s-%s" .Chart.Name .Chart.Version | sha256sum }}
+data:
+  install_info: |
+    ---
+    install_method:
+      tool: helm
+      tool_version: {{ .Release.Service }}
+      installer_version: {{ .Chart.Name }}-{{ .Chart.Version }}

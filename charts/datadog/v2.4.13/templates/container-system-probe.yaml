@@ -4,7 +4,7 @@
   imagePullPolicy: {{ .Values.agents.image.pullPolicy }}
   securityContext:
     capabilities:
-      add: ["SYS_ADMIN", "SYS_RESOURCE", "SYS_PTRACE", "NET_ADMIN", "IPC_LOCK"]
+      add: ["SYS_ADMIN", "SYS_RESOURCE", "SYS_PTRACE", "NET_ADMIN", "NET_BROADCAST", "IPC_LOCK"]
   command: ["/opt/datadog-agent/embedded/bin/system-probe", "--config=/etc/datadog-agent/system-probe.yaml"]
   env:
     - name: DD_LOG_LEVEL
@@ -17,11 +17,29 @@
   volumeMounts:
     - name: debugfs
       mountPath: /sys/kernel/debug
+      mountPropagation: {{ .Values.datadog.hostVolumeMountPropagation }}
     - name: sysprobe-config
-      mountPath: /etc/datadog-agent
+      mountPath: /etc/datadog-agent/system-probe.yaml
+      subPath: system-probe.yaml
     - name: sysprobe-socket-dir
-      mountPath: /opt/datadog-agent/run
+      mountPath: /var/run/sysprobe
     - name: procdir
       mountPath: /host/proc
+      mountPropagation: {{ .Values.datadog.hostVolumeMountPropagation }}
       readOnly: true
+{{- if or .Values.datadog.systemProbe.enableTCPQueueLength .Values.datadog.systemProbe.enableOOMKill }}
+    - name: modules
+      mountPath: /lib/modules
+      mountPropagation: {{ .Values.datadog.hostVolumeMountPropagation }}
+      readOnly: true
+    - name: src
+      mountPath: /usr/src
+      mountPropagation: {{ .Values.datadog.hostVolumeMountPropagation }}
+      readOnly: true
+{{- end }}
+{{- if and .Values.datadog.securityAgent.runtime.enabled .Values.datadog.securityAgent.runtime.policies.configMap }}
+    - name: runtimepoliciesdir
+      mountPath: /etc/datadog-agent/runtime-security.d
+      readOnly: true
+{{- end }}
 {{- end -}}
