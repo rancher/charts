@@ -25,12 +25,19 @@ spec:
         app.kubernetes.io/name: kafka
     spec:
       containers:
-      - args:
-        - --kafka.server={{ template "bluehub.fullname" . }}:9092
+      - name: kafka-exporter
+        args:
+        - --kafka.server={{ template "bluehub.fullname" . }}-headless:{{ .Values.metrics.port | default "9308"}}
         - --web.listen-address=:{{ .Values.metrics.port | default "9308" | int }}
+        - --log.level=debug
+        - --sasl.enabled
+        - --sasl.username=$(SASL_USERNAME)
+        - --sasl.password=$(SASL_PASSWORD)
+        - --sasl.mechanism=plain
+        - --tls.enabled
+        - --tls.insecure-skip-tls-verify
         image: bluespireinc/kafka-exporter:1.0.0
         imagePullPolicy: Always
-        name: kafka-exporter
         ports:
         - containerPort: {{ .Values.metrics.port | default "9308" | int }}
           protocol: TCP
@@ -41,6 +48,17 @@ spec:
           limits:
             cpu: 4000m
             memory: 2Gi
+        env:
+        - name: SASL_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-exporter-secrets
+              key: sasl_username
+        - name: SASL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-exporter-secrets
+              key: sasl_password
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       securityContext:
