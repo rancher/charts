@@ -195,6 +195,10 @@ Below are the secrets which are needed for the above messaging components to wor
 * kafka.client.keystore.jks | Client JKS keystore file
 * kafka.client.truststore.jks | Client JKS trust file
 
+### bluehub-exporter-secrets
+* sasl_username | SASL username
+* sasl_password | SASL password
+
 ### bluehub-schemareg-secrets
 * kafka.keystore.jks | Server JKS keystore file
 * kafka.truststore.jks | Server JKS trust file
