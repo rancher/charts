@@ -1,0 +1,1888 @@
+condition:
+  haproxy:
+    enabled: true
+  hbase:
+    enabled: true
+  hdfs:
+    enabled: true
+  jupyterhub:
+    enabled: true
+  jvmprofiler:
+    enabled: true
+  kafka:
+    enabled: true
+  mlmanager:
+    enabled: true
+  nginx:
+    enabled: true
+  nginx-ingress:
+    enabled: true
+  rbac:
+    enabled: true
+  zookeeper:
+    enabled: true
+global:
+  addEnvironmentToDNSNames: true
+  aws:
+    accessId: ""
+    accessKey: ""
+    buckets: []
+  azure:
+    clientId: ""
+    clientSecret: ""
+    storageAccount: []
+    tenantId: ""
+  baseImage:
+    pullPolicy: IfNotPresent
+    pullSecrets: regcred
+    registry: docker.io
+    repository: splicemachine/sm_k8_base
+    tag: 0.0.2
+  certificateName: dev.splicemachine-dev.io
+  cloudprovider: none
+  dnsPrefix: splicedb
+  dnsProvider: none
+  environmentName: dev1
+  frameworkId: splicedb-dev1
+  gcp:
+    serviceAccount: {}
+  haproxyPrivate: false
+  hdfs:
+    image:
+      pullPolicy: IfNotPresent
+      pullSecrets: regcred
+      registry: docker.io
+      repository: splicemachine/sm_k8_hdfs-3.0.0:0.0.18
+  image:
+    pullPolicy: IfNotPresent
+  journalnodeQuorumSize: 3
+  jscpEnabled: true
+  mlflow:
+    port:
+      bobby: 2375
+      dash: 5003
+      mlflow: 5001
+  mlmanager:
+    password: admin
+    user: mlmanager
+  nodeSelector:
+    core: core
+    db: db
+    enabled: false
+    meta: meta
+  oauthProvider: auth0
+  spark:
+    image:
+      pullPolicy: IfNotPresent
+      pullSecrets: regcred
+      registry: docker.io
+      repository: splicemachine/sm_k8_spark-3.0.0:0.0.69
+  splice:
+    password: admin
+    user: splice
+  timezoneFlag: UTC
+  tls:
+    crt: REPLACE_TLSCRT
+    enabled: false
+    key: REPLACE_TLSKEY
+  zookeeper:
+    configuration:
+      clientPort: 2181
+      leaderElectionPort: 3888
+      maximumClientConnections: 0
+      maximumSessionTimeout: 120000
+      serverPort: 2888
+    quorumSize: 3
+hadoop:
+  chart:
+    name: hadoop
+    version: 0.0.1
+  configmap:
+    coresitexml:
+    - name: fs.adl.impl
+      value: org.apache.hadoop.fs.adl.AdlFileSystem
+    - final: "true"
+      name: fs.AbstractFileSystem.adl.impl
+      value: org.apache.hadoop.fs.adl.Adl
+    - name: fs.adl.impl
+      value: org.apache.hadoop.fs.adl.AdlFileSystem
+    - name: fs.AbstractFileSystem.adl.impl
+      value: org.apache.hadoop.fs.adl.Adl
+    - name: fs.adl.oauth2.access.token.provider.type
+      value: ClientCredential
+    - name: fs.adl.oauth2.access.token.provider
+      value: org.apache.hadoop.fs.adls.oauth2.ConfCredentialBasedAccessTokenProvider
+    - name: fs.defaultFS
+      value: hdfs://{{ .Values.serviceName }}
+    - name: fs.trash.interval
+      value: "1"
+    - name: io.compression.codecs
+      value: org.apache.hadoop.io.compress.DefaultCodec,org.apache.hadoop.io.compress.GzipCodec,org.apache.hadoop.io.compress.BZip2Codec,org.apache.hadoop.io.compress.DeflateCodec,org.apache.hadoop.io.compress.SnappyCodec,org.apache.hadoop.io.compress.Lz4Codec
+    - name: hadoop.security.authentication
+      value: simple
+    - name: hadoop.security.authorization
+      value: "false"
+    - name: hadoop.rpc.protection
+      value: authentication
+    - final: "true"
+      name: hadoop.ssl.require.client.cert
+      value: "false"
+    - final: "true"
+      name: hadoop.ssl.keystores.factory.class
+      value: org.apache.hadoop.security.ssl.FileBasedKeyStoresFactory
+    - final: "true"
+      name: hadoop.ssl.server.conf
+      value: ssl-server.xml
+    - final: "true"
+      name: hadoop.ssl.client.conf
+      value: ssl-client.xml
+    - name: hadoop.security.auth_to_local
+      value: DEFAULT
+    - name: hadoop.proxyuser.hue.hosts
+      value: '*'
+    - name: hadoop.proxyuser.hue.groups
+      value: '*'
+    - name: hadoop.proxyuser.root.hosts
+      value: '*'
+    - name: hadoop.proxyuser.root.groups
+      value: '*'
+    - name: hadoop.proxyuser.HTTP.hosts
+      value: '*'
+    - name: hadoop.proxyuser.HTTP.groups
+      value: '*'
+    - name: hadoop.security.group.mapping
+      value: org.apache.hadoop.security.ShellBasedUnixGroupsMapping
+    - name: hadoop.security.instrumentation.requires.admin
+      value: "false"
+    - name: hadoop.proxyuser.httpfs.groups
+      value: '*'
+    - name: hadoop.proxyuser.httpfs.hosts
+      value: '*'
+    - name: ha.zookeeper.parent-znode
+      value: /{{ include "hadoop.chart" . }}-{{ .Values.serviceName }}/hadoop-ha
+    - name: fs.s3a.aws.credentials.provider
+      value: org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider,org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider,com.amazonaws.auth.InstanceProfileCredentialsProvider
+    - name: hive.exec.orc.split.strategy
+      value: BI
+    - name: fs.s3a.access.key
+      value: '{{ .Values.global.aws.accessId }}'
+    - name: fs.s3a.secret.key
+      value: '{{ .Values.global.aws.accessKey }}'
+    - name: dfs.adls.oauth2.access.token.provider.type
+      value: ClientCredential
+    - name: dfs.adls.oauth2.client.id
+      value: '{{ .Values.global.azure.clientId }}'
+    - name: dfs.adls.oauth2.credential
+      value: '{{ .Values.global.azure.clientSecret }}'
+    - name: dfs.adls.oauth2.refresh.url
+      value: https://login.microsoftonline.com/{{ .Values.global.azure.tenantId }}/oauth2/token
+    - name: fs.gs.impl
+      value: com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem
+    - name: fs.gs.working.dir
+      value: /
+    - name: fs.gs.path.encoding
+      value: uri-path
+    - name: fs.gs.auth.service.account.enable
+      value: "true"
+    - name: fs.gs.auth.service.account.email
+      value: '{{ .Values.global.gcp.serviceAccount.email }}'
+    - name: fs.gs.auth.service.account.private.key.id
+      value: '{{ .Values.global.gcp.serviceAccount.keyid }}'
+    - name: fs.gs.auth.service.account.private.key
+      value: '{{ .Values.global.gcp.serviceAccount.key }}'
+    hdfssitexml:
+    - name: dfs.replication
+      value: "3"
+    - name: dfs.nameservice.id
+      value: '{{ .Values.serviceName }}'
+    - name: dfs.nameservices
+      value: '{{ .Values.serviceName }}'
+    - name: dfs.ha.namenodes.{{ .Values.serviceName }}
+      value: nn0,nn1
+    - name: dfs.namenode.shared.edits.dir
+      value: qjournal://{{ include "journalnode-quorum" . }}/{{ .Values.serviceName
+        }}
+    - name: dfs.namenode.safemode.threshold-pct
+      value: "0.9"
+    - name: dfs.namenode.heartbeat.recheck-interval
+      value: "60000"
+    - name: dfs.namenode.handler.count
+      value: "256"
+    - name: dfs.namenode.service.handler.count
+      value: "60"
+    - name: dfs.namenode.invalidate.work.pct.per.iteration
+      value: "0.95"
+    - name: dfs.namenode.replication.work.multiplier.per.iteration
+      value: "4"
+    - name: dfs.namenode.datanode.registration.ip-hostname-check
+      value: "false"
+    - name: dfs.webhdfs.enabled
+      value: "true"
+    - name: dfs.namenode.rpc-address.{{ .Values.serviceName }}.nn0
+      value: '{{ include "namenode-svc-0" . }}:8020'
+    - name: dfs.namenode.http-address.{{ .Values.serviceName }}.nn0
+      value: '{{ include "namenode-svc-0" . }}:50070'
+    - name: dfs.namenode.rpc-bind-host.{{ .Values.serviceName }}.nn0
+      value: 0.0.0.0
+    - name: dfs.namenode.http-bind-host.{{ .Values.serviceName }}.nn0
+      value: 0.0.0.0
+    - name: dfs.namenode.rpc-address.{{ .Values.serviceName }}.nn1
+      value: '{{ include "namenode-svc-1" . }}:8020'
+    - name: dfs.namenode.http-address.{{ .Values.serviceName }}.nn1
+      value: '{{ include "namenode-svc-1" . }}:50070'
+    - name: dfs.namenode.rpc-bind-host.{{ .Values.serviceName }}.nn1
+      value: 0.0.0.0
+    - name: dfs.namenode.http-bind-host.{{ .Values.serviceName }}.nn1
+      value: 0.0.0.0
+    - name: dfs.journalnode.rpc-address
+      value: 0.0.0.0:8485
+    - name: dfs.journalnode.http-address
+      value: 0.0.0.0:8480
+    - name: dfs.datanode.address
+      value: 0.0.0.0:9003
+    - name: dfs.datanode.http.address
+      value: 0.0.0.0:9004
+    - name: dfs.datanode.ipc.address
+      value: 0.0.0.0:9005
+    - name: dfs.namenode.name.dir
+      value: file://{{ include "hdfs.namenode.datadir" . }}
+    - name: dfs.journalnode.edits.dir
+      value: '{{ include "hdfs.journalnode.datadir" . }}'
+    - name: dfs.datanode.data.dir
+      value: '{{ include "hdfs.datanode.fulldatadir" . }}'
+    - name: dfs.datanode.balance.bandwidthPerSec
+      value: "41943040"
+    - name: dfs.datanode.handler.count
+      value: "20"
+    - name: dfs.datanode.max.transfer.threads
+      value: "8192"
+    - name: dfs.datanode.max.transfer.threads
+      value: "8192"
+    - name: ha.zookeeper.quorum
+      value: '{{ include "zookeeper-quorum" . }}'
+    - name: dfs.ha.fencing.methods
+      value: shell(/bin/true)
+    - name: dfs.ha.automatic-failover.enabled
+      value: "true"
+    - name: dfs.image.compress
+      value: "false"
+    - name: dfs.image.compression.codec
+      value: org.apache.hadoop.io.compress.SnappyCodec
+    - name: dfs.client.read.shortcircuit
+      value: "false"
+    - name: dfs.client.read.shortcircuit.streams.cache.size
+      value: "1000"
+    - name: dfs.client.read.shortcircuit.streams.cache.size.expiry.ms
+      value: "1000"
+    - name: dfs.client.failover.proxy.provider.hdfs
+      value: org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider
+    - name: dfs.client.write.retries
+      value: "6"
+    - name: dfs.client.write.locateFollowingBlock.retries
+      value: "10"
+    - name: dfs.client.block.write.replace-datanode-on-failure.policy
+      value: ALWAYS
+    - name: dfs.namenode.replication.min
+      value: "2"
+    - name: dfs.domain.socket.path
+      value: /var/lib/hadoop-hdfs/dn_socket
+    - name: dfs.permissions.enabled
+      value: "true"
+    - name: dfs.permissions.superusergroup
+      value: hdfs
+    - name: presto.s3.access-key
+      value: '{{ .Values.global.aws.accessId }}'
+    - name: presto.s3.secret-key
+      value: '{{ .Values.global.aws.accessKey }}'
+    - name: dfs.adls.oauth2.access.token.provider.type
+      value: ClientCredential
+    - name: dfs.adls.oauth2.client.id
+      value: '{{ .Values.global.azure.clientId }}'
+    - name: dfs.adls.oauth2.credential
+      value: '{{ .Values.global.azure.clientSecret }}'
+    - name: dfs.adls.oauth2.refresh.url
+      value: https://login.microsoftonline.com/{{ .Values.global.azure.tenantId }}/oauth2/token
+  dataNode:
+    affinity: hard
+    datadir: /data-data
+    javaopts: -Xms4294965096 -Xmx4294965096 -XX:MaxDirectMemorySize=1g
+    livenessProbe:
+      failureThreshold: 16
+      initialDelaySeconds: 180
+      periodSeconds: 30
+      successThreshold: 1
+      timeoutSeconds: 120
+    pdbMaxUnavailable: 1
+    pdbMinAvailable: 2
+    persistence:
+      accessMode:
+      - ReadWriteOnce
+      count: 1
+      size: .2T
+    readinessProbe:
+      failureThreshold: 6
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      successThreshold: 1
+      timeoutSeconds: 5
+    replicas: 3
+    resources:
+      requests:
+        cpu: "2"
+        memory: 6G
+  journalNode:
+    datadir: /journal-data
+    javaopts: -Xms536870912 -Xmx536870912 -XX:MaxDirectMemorySize=1g
+    livenessProbe:
+      failureThreshold: 16
+      initialDelaySeconds: 180
+      periodSeconds: 30
+      successThreshold: 1
+      timeoutSeconds: 120
+    pdbMaxUnavailable: 1
+    pdbMinAvailable: 1
+    persistence:
+      accessMode:
+      - ReadWriteOnce
+      size: 10Gi
+    readinessProbe:
+      failureThreshold: 6
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      successThreshold: 1
+      timeoutSeconds: 5
+    replicas: 3
+    resources:
+      requests:
+        cpu: "1"
+        memory: 1.5G
+  nameNode:
+    datadir: /name-data
+    ingress:
+      annotations:
+        kubernetes.io/ingress.class: nginx-core
+        kubernetes.io/tls-acme: "true"
+      enabled: true
+      hosts:
+      - REPLACE_INGRESS_ADMIN_HDFS_DOMAIN
+      pathSuffix: /
+      tls:
+      - hosts:
+        - REPLACE_INGRESS_ADMIN_HDFS_DOMAIN
+        secretName: REPLACE_CERTIFICATE
+    javaopts: -Xms4294965096 -Xmx4294965096 -XX:MaxDirectMemorySize=1g
+    livenessProbe:
+      failureThreshold: 16
+      initialDelaySeconds: 180
+      periodSeconds: 30
+      successThreshold: 1
+      timeoutSeconds: 120
+    pdbMaxUnavailable: 1
+    pdbMinAvailable: 1
+    persistence:
+      accessMode:
+      - ReadWriteOnce
+      size: 10Gi
+    ports:
+      dfs: 8020
+      webhdfs: 50070
+    readinessProbe:
+      failureThreshold: 6
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      successThreshold: 1
+      timeoutSeconds: 5
+    resources:
+      requests:
+        cpu: "1"
+        memory: 5G
+    service:
+      externaIPEnabled: false
+  serviceName: hdfs
+haproxy-controller:
+  controller:
+    config:
+      syslog-server: 'address:stdout, format: raw, facility:daemon, level: info'
+      timeout-tunnel: 23h
+    image:
+      pullPolicy: IfNotPresent
+      repository: splicemachine/kubernetes-ingress
+      tag: 2.0.11_0.0.5
+    name: controller
+    replicaCount: 1
+hbase:
+  chart:
+    name: hbase
+    version: 0.0.1
+  config:
+    sparkexecutorcores: 6
+    sparkexecutormemory: 20480m
+    sparkexecutormemoryoverhead: 7168m
+    sparkexecutors: 3
+  configmap:
+    hbase:
+      fairschedulerxml: |
+        <?xml version="1.0"?>
+        <allocations>
+            <pool name="import">
+                <schedulingMode>FAIR</schedulingMode>
+                <weight>10</weight>
+                <minShare>0</minShare>
+            </pool>
+            <pool name="query">
+                <schedulingMode>FAIR</schedulingMode>
+                <weight>20</weight>
+                <minShare>0</minShare>
+            </pool>
+            <pool name="admin">
+                <schedulingMode>FAIR</schedulingMode>
+                <weight>1</weight>
+                <minShare>0</minShare>
+            </pool>
+            <pool name="compaction">
+                <schedulingMode>FAIR</schedulingMode>
+                <weight>15</weight>
+                <minShare>2</minShare>
+            </pool>
+            <pool name="urgent">
+                <schedulingMode>FAIR</schedulingMode>
+                <weight>1000</weight>
+                <minShare>0</minShare>
+            </pool>
+        </allocations>
+      hbaseenvsh: |
+        #!/usr/bin/env bash
+        #
+        # *
+        # * Licensed to the Apache Software Foundation (ASF) under one
+        # * or more contributor license agreements.  See the NOTICE file
+        # * distributed with this work for additional information
+        # * regarding copyright ownership.  The ASF licenses this file
+        # * to you under the Apache License, Version 2.0 (the
+        # * "License"); you may not use this file except in compliance
+        # * with the License.  You may obtain a copy of the License at
+        # *
+        # *     http://www.apache.org/licenses/LICENSE-2.0
+        # *
+        # * Unless required by applicable law or agreed to in writing, software
+        # * distributed under the License is distributed on an "AS IS" BASIS,
+        # * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+        # * See the License for the specific language governing permissions and
+        # * limitations under the License.
+        # *
+        # Set environment variables here.
+        # This script sets variables multiple times over the course of starting an hbase process,
+        # so try to keep things idempotent unless you want to take an even deeper look
+        # into the startup scripts (bin/hbase, etc.)
+        # The java implementation to use.  Java 1.8+ required.
+        # export JAVA_HOME=/usr/java/jdk1.8.0/
+        # Extra Java CLASSPATH elements.  Optional.
+        export HBASE_CLASSPATH_PREFIX=/etc/hbase/conf:$(echo /usr/lib/splicemachine/lib/*.jar | tr ' ' ':'):$(echo /usr/lib/spark/jars/* | tr ' ' ':')
+        export HBASE_CLASSPATH=$(echo /usr/lib/hadoop/lib/*.jar | tr ' ' ':'):$(echo /usr/lib/mlmanager/lib/* | tr ' ' ':'):/usr/lib/hadoop/hadoop-azure-datalake.jar:$(echo /usr/lib/hive/lib/*.jar | tr ' ' ':')
+        export OLAP_CLASSPATH="/etc/hadoop/conf:/etc/hbase/conf:/etc/spark/conf:/usr/lib/splicemachine/lib/*:/usr/lib/spark/jars/*:/usr/lib/hbase/lib/*:/usr/lib/hadoop-yarn/lib/*:/usr/lib/hadoop/lib/*"
+        # The maximum amount of heap to use. Default is left to JVM default.
+        # export HBASE_HEAPSIZE=1G
+        # Uncomment below if you intend to use off heap cache. For example, to allocate 8G of
+        # offheap, set the value to "8G".
+        # export HBASE_OFFHEAPSIZE=1G
+        # Extra Java runtime options.
+        # Below are what we set by default.  May only work with SUN JVM.
+        # For more on why as well as other possible settings,
+        # see http://hbase.apache.org/book.html#performance
+        # DBAAS-3180 - We are going to use +UseG1GC for region, and +UseConcMarkSweepGC for master
+        # Cannot specify on a global scale and then override later.
+        # export HBASE_OPTS="$HBASE_OPTS -XX:+UseConcMarkSweepGC"
+        # Uncomment one of the below three options to enable java garbage collection logging for the server-side processes.
+        # This enables basic gc logging to the .out file.
+        # export SERVER_GC_OPTS="-verbose:gc -XX:+PrintGCDetails -XX:+PrintGCDateStamps"
+        # This enables basic gc logging to its own file.
+        # If FILE-PATH is not replaced, the log file(.gc) would still be generated in the HBASE_LOG_DIR .
+        # export SERVER_GC_OPTS="-verbose:gc -XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:<FILE-PATH>"
+        # This enables basic GC logging to its own file with automatic log rolling. Only applies to jdk 1.6.0_34+ and 1.7.0_2+.
+        # If FILE-PATH is not replaced, the log file(.gc) would still be generated in the HBASE_LOG_DIR .
+        # export SERVER_GC_OPTS="-verbose:gc -XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:<FILE-PATH> -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=1 -XX:GCLogFileSize=512M"
+        # Uncomment one of the below three options to enable java garbage collection logging for the client processes.
+        # This enables basic gc logging to the .out file.
+        # export CLIENT_GC_OPTS="-verbose:gc -XX:+PrintGCDetails -XX:+PrintGCDateStamps"
+        # This enables basic gc logging to its own file.
+        # If FILE-PATH is not replaced, the log file(.gc) would still be generated in the HBASE_LOG_DIR .
+        # export CLIENT_GC_OPTS="-verbose:gc -XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:<FILE-PATH>"
+        # This enables basic GC logging to its own file with automatic log rolling. Only applies to jdk 1.6.0_34+ and 1.7.0_2+.
+        # If FILE-PATH is not replaced, the log file(.gc) would still be generated in the HBASE_LOG_DIR .
+        # export CLIENT_GC_OPTS="-verbose:gc -XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:<FILE-PATH> -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=1 -XX:GCLogFileSize=512M"
+        # See the package documentation for org.apache.hadoop.hbase.io.hfile for other configurations
+        # needed setting up off-heap block caching.
+        # FOR Splice Machine
+        # build these out in a clear manner
+        SPLICE_HBASE_REGIONSERVER_OPTS=""
+        SPLICE_HBASE_REGIONSERVER_OPTS="$SPLICE_HBASE_REGIONSERVER_OPTS -Xms{{ .Values.region.processMemory }} -Xmx{{ .Values.region.processMemory }} -XX:+HeapDumpOnOutOfMemoryError -XX:MaxDirectMemorySize=2g -XX:+AlwaysPreTouch -XX:MaxNewSize=2g -XX:InitiatingHeapOccupancyPercent=60 -XX:+UseG1GC -XX:ParallelGCThreads=24 -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=5000"
+        SPLICE_HBASE_REGIONSERVER_OPTS="$SPLICE_HBASE_REGIONSERVER_OPTS -Dderby.drda.logConnections=true"
+        SPLICE_HBASE_REGIONSERVER_OPTS="$SPLICE_HBASE_REGIONSERVER_OPTS -Dderby.drda.timeSlice=0"
+        SPLICE_HBASE_REGIONSERVER_OPTS="$SPLICE_HBASE_REGIONSERVER_OPTS -Dlog4j.debug=true"
+        SPLICE_HBASE_MASTER_OPTS=""
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Xms{{ .Values.master.processMemory }} -Xmx{{ .Values.master.processMemory }} -XX:+HeapDumpOnOutOfMemoryError -XX:MaxDirectMemorySize=2g -XX:+AlwaysPreTouch -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dlog4j.debug=true"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.olap_server.external=true"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.olap_server.deployment.mode=KUBERNETES"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.enabled=true"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.submit.deployMode=client"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.app.name={{ template "hbase.hmaster.fullname" . }}-spark"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.master=k8s://https://kubernetes.default.svc.cluster.local:443"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ui.port=4040"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.acls.enable=true"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.admin.acls=*"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.admin.acls.groups=*"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.logConf=true"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ui.filters=org.apache.shiro.web.servlet.IniShiroFilter"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.driver.maxResultSize=2g"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.driver.cores=2"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.instances={{ .Values.config.sparkexecutors }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.dynamicAllocation.enabled=false"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.dynamicAllocation.executorIdleTimeout=120"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.dynamicAllocation.cachedExecutorIdleTimeout=120"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.dynamicAllocation.minExecutors=1"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.dynamicAllocation.maxExecutors=4"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.io.compression.lz4.blockSize=32k"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kryo.referenceTracking=false"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kryo.registrator=com.splicemachine.derby.impl.SpliceSparkKryoRegistrator"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kryoserializer.buffer.max=512m"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kryoserializer.buffer=4m"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.locality.wait=0"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.memory.fraction=0.5"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.scheduler.mode=FAIR"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.serializer=org.apache.spark.serializer.KryoSerializer"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.shuffle.service.enabled=false"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.shuffle.io.maxRetries=30"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.shuffle.io.retryWait=10"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.sql.shuffle.partitions=1200"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.driver.extraLibraryPath=/usr/lib/hadoop/lib/native:/usr/lib/hbase/lib/native/Linux-amd64-64"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.driver.extraClassPath=/etc/hbase/conf:/usr/lib/mlmanager/lib/*"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.driver.extraJavaOptions=\"-Dlog4j.debug=true -Dlog4j.configuration=log4j.properties\""
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.extraLibraryPath=/usr/lib/hadoop/lib/native:/usr/lib/hbase/lib/native/Linux-amd64-64"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.extraClassPath=/etc/spark/conf:/usr/lib/splicemachine/lib/*:/usr/lib/spark/jars/*:/usr/lib/hbase/lib/*:/usr/lib/hadoop/lib/*:/usr/lib/hadoop/hadoop-azure-datalake.jar:/usr/lib/hive/lib/*:/usr/lib/mlmanager/lib/*"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ui.retainedJobs=150"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ui.retainedStages=250"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.worker.ui.retainedExecutors=100"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.worker.ui.retainedDrivers=100"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.streaming.ui.retainedBatches=100"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.cores={{ .Values.config.sparkexecutorcores }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.memory={{ .Values.config.sparkexecutormemory }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.memoryOverhead={{ .Values.config.sparkexecutormemoryoverhead }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.network.timeout=120s"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.scheduler.minRegisteredResourcesRatio=0"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.scheduler.maxRegisteredResourcesWaitingTime=30s"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.hearbeatInterval=10s"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dspark.compaction.reserved.slots=4"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.local.dir=/spark/tmp0,/spark/tmp1"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.files=/tmp/spark-config/hbase-site.xml,/tmp/hdfs-config/hdfs-site.xml,/tmp/hdfs-config/core-site.xml"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dlog4j.configuration=log4j.properties"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.namespace={{ .Release.Namespace }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.container.image={{ template "spark-image" . }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.container.image.pullPolicy={{ .Values.global.spark.image.pullPolicy }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.authenticate.driver.serviceAccountName=spark"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.driverEnv.SPARK_CONF_DIR=/etc/spark/conf"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.driverEnv.HADOOP_CONF_DIR=/etc/hadoop/conf"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.driverEnv.HBASE_CONF_DIR=/etc/hbase/conf"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.executor.label.app={{ template "hbase.name" . }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.executor.label.release={{ .Release.Name }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executorEnv.RELEASE_NAME={{ .Release.Name }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executorEnv.FRAMEWORKID={{ template "frameworkId" . }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executorEnv.JAVASCOPE={{ .Values.global.jscpEnabled }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executorEnv.ZOOKEEPER_QUORUM={{ include "zookeeper-quorum" . }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.executorEnv.RELEASE_NAME={{ .Release.Name }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.executorEnv.FRAMEWORKID={{ template "frameworkId" . }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.executorEnv.JAVASCOPE={{ .Values.global.jscpEnabled }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.executorEnv.ZOOKEEPER_QUORUM={{ include "zookeeper-quorum" . }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executorEnv.TZ={{ .Values.global.timezoneFlag }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.executorEnv.TZ={{ .Values.global.timezoneFlag }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.executor.label.component=sparkexec"
+        {{ if .Values.global.nodeSelector.enabled }}SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.node.selector.components={{ .Values.global.nodeSelector.db }}"{{ end }}
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.namespace={{ .Release.Namespace }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.local.dir.tmpfs=false"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.maxRemoteBlockSizeFetchToMem=134217728"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.executor.request.cores={{ .Values.config.sparkexecutorcores }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.executor.request.memory={{ template "spark.mem.total" . }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.io.compression.codec=snappy"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.kafka.bootstrapServers={{ template "kafka.fullname" . }}-headless.{{ include "svc-domain" . }}:9092"
+        # DBAAS-1018: escape these quotes exactly once
+        export EXTRA_QUOTE_OPTS="-Dsplice.spark.executor.extraJavaOptions=\"-Dlog4j.debug=true -Dlog4j.configuration=log4j.properties -XX:MaxDirectMemorySize=8g\""
+        # Uncomment and adjust to enable JMX exporting
+        # See jmxremote.password and jmxremote.access in $JRE_HOME/lib/management to configure remote password access.
+        # More details at: http://java.sun.com/javase/6/docs/technotes/guides/management/agent.html
+        # NOTE: HBase provides an alternative JMX implementation to fix the random ports issue, please see JMX
+        # section in HBase Reference Guide for instructions.
+        export HBASE_JMX_BASE="-Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false"
+        export HBASE_MASTER_OPTS="$HBASE_MASTER_OPTS $HBASE_JMX_BASE $SPLICE_HBASE_MASTER_OPTS -Dcom.sun.management.jmxremote.port=10101"
+        export HBASE_REGIONSERVER_OPTS="$HBASE_REGIONSERVER_OPTS $HBASE_JMX_BASE $SPLICE_HBASE_REGIONSERVER_OPTS -Dcom.sun.management.jmxremote.port=10102"
+        # export HBASE_THRIFT_OPTS="$HBASE_THRIFT_OPTS $HBASE_JMX_BASE -Dcom.sun.management.jmxremote.port=10103"
+        # export HBASE_ZOOKEEPER_OPTS="$HBASE_ZOOKEEPER_OPTS $HBASE_JMX_BASE -Dcom.sun.management.jmxremote.port=10104"
+        # export HBASE_REST_OPTS="$HBASE_REST_OPTS $HBASE_JMX_BASE -Dcom.sun.management.jmxremote.port=10105"
+        # File naming hosts on which HRegionServers will run.  $HBASE_HOME/conf/regionservers by default.
+        # export HBASE_REGIONSERVERS=${HBASE_HOME}/conf/regionservers
+        # Uncomment and adjust to keep all the Region Server pages mapped to be memory resident
+        #HBASE_REGIONSERVER_MLOCK=true
+        #HBASE_REGIONSERVER_UID="hbase"
+        # File naming hosts on which backup HMaster will run.  $HBASE_HOME/conf/backup-masters by default.
+        # export HBASE_BACKUP_MASTERS=${HBASE_HOME}/conf/backup-masters
+        # Extra ssh options.  Empty by default.
+        # export HBASE_SSH_OPTS="-o ConnectTimeout=1 -o SendEnv=HBASE_CONF_DIR"
+        # Where log files are stored.  $HBASE_HOME/logs by default.
+        export HBASE_LOG_DIR=/var/log/hbase
+        # Enable remote JDWP debugging of major HBase processes. Meant for Core Developers
+        # export HBASE_MASTER_OPTS="$HBASE_MASTER_OPTS -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8070"
+        # export HBASE_REGIONSERVER_OPTS="$HBASE_REGIONSERVER_OPTS -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8071"
+        # export HBASE_THRIFT_OPTS="$HBASE_THRIFT_OPTS -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8072"
+        # export HBASE_ZOOKEEPER_OPTS="$HBASE_ZOOKEEPER_OPTS -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8073"
+        # A string representing this instance of hbase. $USER by default.
+        export HBASE_IDENT_STRING=hbase
+        # The scheduling priority for daemon processes.  See 'man nice'.
+        # export HBASE_NICENESS=10
+        # The directory where pid files are stored. /tmp by default.
+        # export HBASE_PID_DIR=/var/hbase/pids
+        # Seconds to sleep between slave commands.  Unset by default.  This
+        # can be useful in large clusters, where, e.g., slave rsyncs can
+        # otherwise arrive faster than the master can service them.
+        # export HBASE_SLAVE_SLEEP=0.1
+        # Tell HBase whether it should manage it's own instance of ZooKeeper or not.
+        # export HBASE_MANAGES_ZK=true
+        # The default log rolling policy is RFA, where the log file is rolled as per the size defined for the
+        # RFA appender. Please refer to the log4j.properties file to see more details on this appender.
+        # In case one needs to do log rolling on a date change, one should set the environment property
+        # HBASE_ROOT_LOGGER to "<DESIRED_LOG LEVEL>,DRFA".
+        # For example:
+        # HBASE_ROOT_LOGGER=DEBUG,DRFA
+        # The reason for changing default to RFA is to avoid the boundary case of filling out disk space as
+        # DRFA doesn't put any cap on the log size. Please refer to HBase-5655 for more context.
+      hbasesitexml:
+      - name: hbase.balancer.period
+        value: "60000"
+      - name: hbase.bulkload.staging.dir
+        value: /tmp/splicedb-staging
+      - name: hbase.mapreduce.bulkload.max.hfiles.perRegion.perFamily
+        value: "1024"
+      - name: hbase.client.ipc.pool.size
+        value: "10"
+      - name: hbase.client.keyvalue.maxsize
+        value: "10485760"
+      - name: hbase.client.max.perregion.tasks
+        value: "100"
+      - name: hbase.client.pause
+        value: "100"
+      - name: hbase.client.primaryCallTimeout.get
+        value: "10"
+      - name: hbase.client.primaryCallTimeout.multiget
+        value: "10"
+      - name: hbase.client.retries.number
+        value: "100"
+      - name: hbase.client.scanner.caching
+        value: "1000"
+      - name: hbase.client.scanner.timeout.period
+        value: "1200000"
+      - name: hbase.client.write.buffer
+        value: "2097152"
+      - name: hbase.cluster.distributed
+        value: "true"
+      - name: hbase.coprocessor.abortonerror
+        value: "true"
+      - name: splicemachine.enterprise.key
+        value: ""
+      - name: hbase.coprocessor.master.classes
+        value: com.splicemachine.hbase.SpliceMasterObserver
+      - name: hbase.coprocessor.region.classes
+        value: org.apache.hadoop.hbase.security.access.SecureBulkLoadEndpoint,com.splicemachine.hbase.MemstoreAwareObserver,com.splicemachine.derby.hbase.SpliceIndexObserver,com.splicemachine.derby.hbase.SpliceIndexEndpoint,com.splicemachine.hbase.RegionSizeEndpoint,com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint,com.splicemachine.si.data.hbase.coprocessor.SIObserver,com.splicemachine.hbase.BackupEndpointObserver
+      - name: hbase.coprocessor.regionserver.classes
+        value: com.splicemachine.hbase.RegionServerLifecycleObserver,com.splicemachine.si.data.hbase.coprocessor.SpliceRSRpcServices
+      - name: dfs.client.read.shortcircuit.buffer.size
+        value: "131072"
+      - name: hbase.hash.type
+        value: murmur
+      - name: hfile.block.bloom.cacheonwrite
+        value: "true"
+      - name: hfile.block.cache.size
+        value: "0.25"
+      - name: hbase.hregion.majorcompaction
+        value: "604800000"
+      - name: hbase.hregion.majorcompaction.jitter
+        value: "0.5"
+      - name: hbase.hregion.max.filesize
+        value: "1073741824"
+      - name: hbase.hregion.memstore.block.multiplier
+        value: "4"
+      - name: hbase.hregion.memstore.flush.size
+        value: "134217728"
+      - name: hbase.hregion.memstore.mslab.chunksize
+        value: "2097152"
+      - name: hbase.hregion.memstore.mslab.enabled
+        value: "true"
+      - name: hbase.hregion.memstore.mslab.max.allocation
+        value: "262144"
+      - name: hbase.hregion.preclose.flush.size
+        value: "5242880"
+      - name: hbase.hstore.blockingStoreFiles
+        value: "20"
+      - name: hbase.hstore.blockingWaitTime
+        value: "90000"
+      - name: hbase.hstore.compactionThreshold
+        value: "5"
+      - name: hbase.hstore.compaction.max
+        value: "7"
+      - name: hbase.hstore.compaction.max.size
+        value: "260046848"
+      - name: hbase.hstore.compaction.min
+        value: "3"
+      - name: hbase.hstore.compaction.min.size
+        value: "136314880"
+      - name: hbase.hstore.defaultengine.compactionpolicy.class
+        value: com.splicemachine.compactions.SpliceDefaultCompactionPolicy
+      - name: hbase.hstore.defaultengine.compactor.class
+        value: com.splicemachine.compactions.SpliceDefaultCompactor
+      - name: hbase.htable.threads.max
+        value: "96"
+      - name: io.storefile.bloom.error.rate
+        value: "0.005"
+      - name: hbase.ipc.client.allowsInterrupt
+        value: "true"
+      - name: hbase.ipc.server.read.threadpool.size
+        value: "10"
+      - name: hbase.ipc.warn.response.size
+        value: "-1"
+      - name: hbase.ipc.warn.response.time
+        value: "-1"
+      - name: hbase.master.executor.closeregion.threads
+        value: "5"
+      - name: hbase.master.executor.openregion.threads
+        value: "5"
+      - name: hbase.master.executor.serverops.threads
+        value: "12"
+      - name: hbase.master.handler.count
+        value: "25"
+      - name: hbase.master.info.port
+        value: "16010"
+      - name: hbase.master.loadbalance.bytable
+        value: "false"
+      - name: hbase.master.logcleaner.ttl
+        value: "60000"
+      - name: hbase.master.namespace.init.timeout
+        value: "2400000"
+      - name: hbase.master.port
+        value: "16000"
+      - name: hbase.mvcc.impl
+        value: org.apache.hadoop.hbase.regionserver.SIMultiVersionConsistencyControl
+      - name: hbase.region.replica.replication.enabled
+        value: "false"
+      - name: hbase.regions.slop
+        value: "0"
+      - name: hbase.regionserver.executor.openregion.threads
+        value: "50"
+      - name: hbase.regionserver.global.memstore.size
+        value: "0.25"
+      - name: hbase.regionserver.global.memstore.size.lower.limit
+        value: "0.9"
+      - name: hbase.regionserver.handler.count
+        value: "400"
+      - name: hbase.regionserver.hlog.blocksize
+        value: "134217728"
+      - name: hbase.regionserver.info.port
+        value: "16030"
+      - name: hbase.regionserver.logroll.period
+        value: "3600000"
+      - name: hbase.regionserver.maxlogs
+        value: "48"
+      - name: hbase.regionserver.metahandler.count
+        value: "200"
+      - name: hbase.regionserver.msginterval
+        value: "3000"
+      - name: hbase.regionserver.nbreservationblocks
+        value: "4"
+      - name: hbase.regionserver.optionallogflushinterval
+        value: "1000"
+      - name: hbase.regionserver.port
+        value: "16020"
+      - name: hbase.regionserver.regionSplitLimit
+        value: "2147483647"
+      - name: hbase.regionserver.thread.compaction.large
+        value: "4"
+      - name: hbase.regionserver.thread.compaction.small
+        value: "4"
+      - name: hbase.regionserver.wal.enablecompression
+        value: "true"
+      - name: hbase.rootdir
+        value: /splicedb/hbase
+      - name: hbase.fs.tmp.dir
+        value: /tmp/splicedb-staging
+      - name: hbase.row.level.authorization
+        value: "false"
+      - name: hbase.rpc.protection
+        value: authentication
+      - name: hbase.rpc.timeout
+        value: "1200000"
+      - name: hbase.security.authentication
+        value: simple
+      - name: hbase.security.authorization
+        value: "false"
+      - name: hbase.server.thread.wakefrequency
+        value: "10000"
+      - name: hbase.snapshot.enabled
+        value: "true"
+      - name: hbase.snapshot.master.timeout.millis
+        value: "60000"
+      - name: hbase.snapshot.region.timeout
+        value: "60000"
+      - name: hbase.splitlog.manager.timeout
+        value: "300000"
+      - name: hbase.status.multicast.port
+        value: "16100"
+      - name: hbase.superuser
+        value: root
+      - name: hbase.wal.disruptor.batch
+        value: "true"
+      - name: hbase.wal.provider
+        value: multiwal
+      - name: hbase.wal.regiongrouping.numgroups
+        value: "16"
+      - name: hbase.wal.storage.policy
+        value: NONE
+      - name: hbase.zookeeper.property.tickTime
+        value: "6000"
+      - name: hbase.zookeeper.session.timeout
+        value: "1200000"
+      - name: hbase.zookeeper.znode.parent
+        value: /hbase
+      - name: hbase.zookeeper.znode.rootserver
+        value: root-region-server
+      - name: hbase.hstore.defaultengine.compactor.class
+        value: com.splicemachine.compactions.SpliceDefaultCompactor
+      - name: hbase.hstore.defaultengine.compactionpolicy.class
+        value: com.splicemachine.compactions.SpliceDefaultCompactionPolicy
+      - name: splice.debug.logStatementContext
+        value: "true"
+      - name: splice.authentication
+        value: NATIVE
+      - name: splice.independent.write.threads
+        value: "120"
+      - name: splice.dependent.write.threads
+        value: "80"
+      - name: splice.authentication.ldap.server
+        value: ""
+      - name: splice.authentication.ldap.searchAuthDN
+        value: ""
+      - name: splice.authentication.ldap.searchAuth.password
+        value: ""
+      - name: splice.authentication.ldap.searchBase
+        value: ""
+      - name: splice.authentication.ldap.searchFilter
+        value: ""
+      - name: splice.authentication.ldap.mapGroupAttr
+        value: CLOUDADMIN=splice,MLMANAGER=splice
+      - name: presto.s3.staging-directory
+        value: /spark/tmp0,/spark/tmp1
+      - name: splice.olap_server.external
+        value: "true"
+      - name: splice.olap_server.deployment.mode
+        value: KUBERNETES
+      - name: presto.s3.socket-timeout
+        value: 120s
+      - name: hbase.master.balancer.stochastic.regionCountCost
+        value: "1500"
+      - name: hbase.rowlock.wait.duration
+        value: "10"
+      - name: hbase.zookeeper.quorum
+        value: '{{ include "zookeeper-quorum" . }}'
+      - name: splice.authentication.native.algorithm
+        value: SHA-512
+      - name: splice.client.numConnections
+        value: "1"
+      - name: splice.client.write.maxDependentWrites
+        value: "60000"
+      - name: splice.client.write.maxIndependentWrites
+        value: "60000"
+      - name: splice.compression
+        value: snappy
+      - name: splice.ignore.missing.transactions
+        value: "true"
+      - name: splice.marshal.kryoPoolSize
+        value: "1100"
+      - name: splice.olap.shuffle.partitions
+        value: "200"
+      - name: splice.olap_server.clientWaitTime
+        value: "900000"
+      - name: splice.optimizer.broadcastRegionRowThreshold
+        value: "1000000"
+      - name: splice.ring.bufferSize
+        value: "131072"
+      - name: splice.splitBlockSize
+        value: "67108864"
+      - name: splice.timestamp_server.clientWaitTime
+        value: "120000"
+      - name: splice.txn.activeTxns.cacheSize
+        value: "10240"
+      - name: splice.txn.completedTxns.concurrency
+        value: "128"
+      - name: splice.txn.concurrencyLevel
+        value: "4096"
+      - name: splice.timestamp_server.port
+        value: "16012"
+      - name: splice.olap_server.port
+        value: "16040"
+      - name: splice.writer.maxThreads
+        value: "20"
+      - name: hbase.master.hfilecleaner.plugins
+        value: org.apache.hadoop.hbase.master.cleaner.TimeToLiveHFileCleaner
+      - name: hbase.unsafe.stream.capability.enforce
+        value: "false"
+      - name: hbase.master.info.bindAddress
+        value: '{{ include "hbase-hmaster-svc-0" . }}'
+      - name: splice.olap.log4j.configuration
+        value: file:/etc/hbase/conf/log4j.properties
+      log4jproperties: |
+        status = error
+        name = PropertiesConfig
+        property.filename = /var/log/hbase/hbase.log
+        filters = threshold
+        filter.threshold.type = ThresholdFilter
+        filter.threshold.level = info
+        log4j.rootLogger=INFO,RFA,RFAConsole
+        log4j.logger.splice-derby=INFO, spliceDerby,spliceDerbyConsole
+        log4j.additivity.splice-derby=false
+        log4j.logger.org.mortbay.jetty=INFO, jettyLog,jettyLogConsole
+        # Logging Threshold
+        log4j.threshold=ALL
+        #
+        # Rolling File Appender
+        #
+        hbase.log.maxfilesize=500MB
+        hbase.log.maxbackupindex=8
+        log4j.appender.RFA=org.apache.log4j.RollingFileAppender
+        log4j.appender.RFA.File=/var/log/hbase/hbase.log
+        log4j.appender.RFA.MaxFileSize=${hbase.log.maxfilesize}
+        log4j.appender.RFA.MaxBackupIndex=${hbase.log.maxbackupindex}
+        log4j.appender.RFA.layout=org.apache.log4j.PatternLayout
+        log4j.appender.RFA.layout.ConversionPattern=%d{ISO8601} %-5p [{{ "{{" }}TASK_NAME{{ "}}" }}] [{{ "{{" }}FRAMEWORK_NAME{{ "}}" }}] [hbase] [%t] [%c{2}]: %m%n
+        log4j.appender.RFAConsole=org.apache.log4j.ConsoleAppender
+        log4j.appender.RFAConsole.target=System.err
+        log4j.appender.RFAConsole.layout=org.apache.log4j.PatternLayout
+        log4j.appender.RFAConsole.layout.ConversionPattern=%d{ISO8601} %-5p [{{ "{{" }}TASK_NAME{{ "}}" }}] [{{ "{{" }}FRAMEWORK_NAME{{ "}}"}}] [hbase] [%t] [%c{2}]: %m%n
+        #
+        # Security audit appender
+        #
+        hbase.security.log.file=SecurityAuth.audit
+        hbase.security.log.maxfilesize=256MB
+        hbase.security.log.maxbackupindex=5
+        log4j.appender.RFAS=org.apache.log4j.RollingFileAppender
+        log4j.appender.RFAS.File=/var/log/hbase/${hbase.security.log.file}
+        log4j.appender.RFAS.MaxFileSize=${hbase.security.log.maxfilesize}
+        log4j.appender.RFAS.MaxBackupIndex=${hbase.security.log.maxbackupindex}
+        log4j.appender.RFAS.layout=org.apache.log4j.PatternLayout
+        log4j.appender.RFAS.layout.ConversionPattern=%d{ISO8601} %-5p [{{ "{{" }}TASK_NAME{{ "}}" }}] [{{ "{{" }}FRAMEWORK_NAME{{ "}}" }}] [hbase-security] [%t] [%c{2}]: %m%n
+        log4j.appender.RFASConsole=org.apache.log4j.ConsoleAppender
+        log4j.appender.RFASConsole.target=System.err
+        log4j.appender.RFASConsole.layout=org.apache.log4j.PatternLayout
+        log4j.appender.RFASConsole.layout.ConversionPattern=%d{ISO8601} %-5p [{{ "{{" }}TASK_NAME{{ "}}" }}] [{{ "{{" }}FRAMEWORK_NAME{{ "}}"}}] [hbase-security] [%t] [%c{2}]: %m%n
+        log4j.category.SecurityLogger=${hbase.security.logger}
+        log4j.additivity.SecurityLogger=false
+        #
+        # spliceDerby
+        # Add spliceDerby to the rootlogger above if you want to use this
+        #
+        log4j.appender.spliceDerby=org.apache.log4j.RollingFileAppender
+        log4j.appender.spliceDerby.File=/var/log/hbase/splice-derby.log
+        log4j.appender.spliceDerby.MaxFileSize=${hbase.log.maxfilesize}
+        log4j.appender.spliceDerby.MaxBackupIndex=${hbase.log.maxbackupindex}
+        log4j.appender.spliceDerby.layout=org.apache.log4j.PatternLayout
+        log4j.appender.spliceDerby.layout.ConversionPattern=%d{ISO8601} %-5p [{{ "{{" }}TASK_NAME{{"}}"}}] [{{ "{{" }}FRAMEWORK_NAME{{ "}}" }}] [splicederby] [%t] [%c{2}]: %m%n
+        log4j.appender.spliceDerbyConsole=org.apache.log4j.ConsoleAppender
+        log4j.appender.spliceDerbyConsole.target=System.err
+        log4j.appender.spliceDerbyConsole.layout=org.apache.log4j.PatternLayout
+        log4j.appender.spliceDerbyConsole.layout.ConversionPattern=%d{ISO8601} %-5p [{{ "{{" }}TASK_NAME{{ "}}" }}] [{{ "{{" }}FRAMEWORK_NAME{{ "}}"}}] [splicederby] [%t] [%c{2}]: %m%n
+        #
+        # spliceDerby
+        # Add spliceDerby to the rootlogger above if you want to use this
+        #
+        log4j.appender.jettyLog=org.apache.log4j.RollingFileAppender
+        log4j.appender.jettyLog.File=/var/log/hbase/mortbay-jetty.log
+        log4j.appender.jettyLog.MaxFileSize=${hbase.log.maxfilesize}
+        log4j.appender.jettyLog.MaxBackupIndex=${hbase.log.maxbackupindex}
+        log4j.appender.jettyLog.layout=org.apache.log4j.PatternLayout
+        log4j.appender.jettyLog.layout.ConversionPattern=%d{ISO8601} %-5p [{{ "{{" }}TASK_NAME{{ "}}" }}] [{{ "{{" }}FRAMEWORK_NAME{{ "}}"}}] [jetty] [%t] [%c{2}]: %m%n
+        log4j.appender.jettyLogConsole=org.apache.log4j.ConsoleAppender
+        log4j.appender.jettyLogConsole.target=System.err
+        log4j.appender.jettyLogConsole.layout=org.apache.log4j.PatternLayout
+        log4j.appender.jettyLogConsole.layout.ConversionPattern=%d{ISO8601} %-5p [{{ "{{" }}TASK_NAME{{ "}}" }}] [{{ "{{" }}FRAMEWORK_NAME{{ "}}"}}] [jetty] [%t] [%c{2}]: %m%n
+        # Custom Logging levels
+        log4j.logger.org.apache.zookeeper=${hbase.log.level}
+        log4j.logger.org.apache.hadoop.hbase=${hbase.log.level}
+        log4j.logger.org.apache.hadoop.hbase.zookeeper.ZKUtil=${hbase.log.level}
+        log4j.logger.org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher=${hbase.log.level}
+        # Splice Machine
+        log4j.logger.org.apache.hadoop.hbase.wal=ERROR
+        log4j.logger.org.apache.hadoop.hbase.master=INFO
+        #log4j.logger.org.apache.hadoop.hbase.regionserver=TRACE
+        log4j.logger.org.apache.hadoop.hbase.zookeeper.ZKTableStateManager=WARN
+        log4j.logger.org.apache.hadoop.hbase.io.hfile.CacheConfig=WARN
+        log4j.logger.org.apache.hadoop.hbase.MetaTableAccessor=WARN
+        log4j.logger.org.apache.hadoop.hbase.coprocessor.CoprocessorHost=WARN
+        log4j.logger.org.apache.spark.ContextCleaner=WARN
+        log4j.logger.org.apache.spark.scheduler=WARN
+        log4j.logger.org.apache.spark.storage=WARN
+        log4j.logger.org.apache.spark.SparkContext=WARN
+        log4j.logger.org.apache.spark.executor=WARN
+        log4j.logger.org.apache.spark.rdd.NewHadoopRDD=WARN
+        log4j.logger.com.splicemachine.stream=WARN
+        log4j.logger.org.apache.hadoop.metrics2.impl.MetricsConfig=WARN
+        log4j.logger.org.apache.hadoop.metrics2.impl.MetricsSinkAdapter=WARN
+        log4j.logger.org.apache.hadoop.metrics2.impl.MetricsSystemImpl=WARN
+      shiroini: |
+        [main]
+        # Custom Splice Machine Realm
+        spliceRealm = com.splicemachine.shiro.SpliceDatabaseRealm
+        securityManager.realm = $spliceRealm
+        sessionManager = org.apache.shiro.web.session.mgt.DefaultWebSessionManager
+        spliceRealm.databaseName = splicedb
+        spliceRealm.serverName = {{ template "splice.fullname" . }}-hregion.{{ template "svc-domain" . }}
+        spliceRealm.serverPort = 1527
+        securityManager.sessionManager = $sessionManager
+        # 86,400,000 milliseconds = 24 hour
+        securityManager.sessionManager.globalSessionTimeout = 86400000
+        [urls]
+        /** = authcBasic
+    olap:
+      hbaseenvshcommon: |
+        #!/usr/bin/env bash
+        #
+        # *
+        # * Licensed to the Apache Software Foundation (ASF) under one
+        # * or more contributor license agreements.  See the NOTICE file
+        # * distributed with this work for additional information
+        # * regarding copyright ownership.  The ASF licenses this file
+        # * to you under the Apache License, Version 2.0 (the
+        # * "License"); you may not use this file except in compliance
+        # * with the License.  You may obtain a copy of the License at
+        # *
+        # *     http://www.apache.org/licenses/LICENSE-2.0
+        # *
+        # * Unless required by applicable law or agreed to in writing, software
+        # * distributed under the License is distributed on an "AS IS" BASIS,
+        # * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+        # * See the License for the specific language governing permissions and
+        # * limitations under the License.
+        # *
+        # Set environment variables here.
+        # This script sets variables multiple times over the course of starting an hbase process,
+        # so try to keep things idempotent unless you want to take an even deeper look
+        # into the startup scripts (bin/hbase, etc.)
+        # The java implementation to use.  Java 1.8+ required.
+        # export JAVA_HOME=/usr/java/jdk1.8.0/
+        # Extra Java CLASSPATH elements.  Optional.
+        export HBASE_CLASSPATH_PREFIX=/etc/hbase/conf:$(echo /usr/lib/splicemachine/lib/*.jar | tr ' ' ':'):$(echo /usr/lib/spark/jars/* | tr ' ' ':')
+        export HBASE_CLASSPATH=$(echo /usr/lib/hadoop/lib/*.jar | tr ' ' ':'):$(echo /usr/lib/mlmanager/lib/* | tr ' ' ':'):/usr/lib/hadoop/hadoop-azure-datalake.jar:$(echo /usr/lib/hive/lib/*.jar | tr ' ' ':')
+        export OLAP_CLASSPATH="/etc/hadoop/conf:/etc/hbase/conf:/etc/spark/conf:/usr/lib/splicemachine/lib/*:/usr/lib/spark/jars/*:/usr/lib/hbase/lib/*:/usr/lib/hadoop-yarn/lib/*:/usr/lib/hadoop/lib/*"
+        # The maximum amount of heap to use. Default is left to JVM default.
+        # export HBASE_HEAPSIZE=1G
+        # Uncomment below if you intend to use off heap cache. For example, to allocate 8G of
+        # offheap, set the value to "8G".
+        # export HBASE_OFFHEAPSIZE=1G
+        # Extra Java runtime options.
+        # Below are what we set by default.  May only work with SUN JVM.
+        # For more on why as well as other possible settings,
+        # see http://hbase.apache.org/book.html#performance
+        # DBAAS-3180 - We are going to use +UseG1GC for region, and +UseConcMarkSweepGC for master
+        # Cannot specify on a global scale and then override later.
+        # export HBASE_OPTS="$HBASE_OPTS -XX:+UseConcMarkSweepGC"
+        # Uncomment one of the below three options to enable java garbage collection logging for the server-side processes.
+        # This enables basic gc logging to the .out file.
+        # export SERVER_GC_OPTS="-verbose:gc -XX:+PrintGCDetails -XX:+PrintGCDateStamps"
+        # This enables basic gc logging to its own file.
+        # If FILE-PATH is not replaced, the log file(.gc) would still be generated in the HBASE_LOG_DIR .
+        # export SERVER_GC_OPTS="-verbose:gc -XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:<FILE-PATH>"
+        # This enables basic GC logging to its own file with automatic log rolling. Only applies to jdk 1.6.0_34+ and 1.7.0_2+.
+        # If FILE-PATH is not replaced, the log file(.gc) would still be generated in the HBASE_LOG_DIR .
+        # export SERVER_GC_OPTS="-verbose:gc -XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:<FILE-PATH> -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=1 -XX:GCLogFileSize=512M"
+        # Uncomment one of the below three options to enable java garbage collection logging for the client processes.
+        # This enables basic gc logging to the .out file.
+        # export CLIENT_GC_OPTS="-verbose:gc -XX:+PrintGCDetails -XX:+PrintGCDateStamps"
+        # This enables basic gc logging to its own file.
+        # If FILE-PATH is not replaced, the log file(.gc) would still be generated in the HBASE_LOG_DIR .
+        # export CLIENT_GC_OPTS="-verbose:gc -XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:<FILE-PATH>"
+        # This enables basic GC logging to its own file with automatic log rolling. Only applies to jdk 1.6.0_34+ and 1.7.0_2+.
+        # If FILE-PATH is not replaced, the log file(.gc) would still be generated in the HBASE_LOG_DIR .
+        # export CLIENT_GC_OPTS="-verbose:gc -XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:<FILE-PATH> -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=1 -XX:GCLogFileSize=512M"
+        # See the package documentation for org.apache.hadoop.hbase.io.hfile for other configurations
+        # needed setting up off-heap block caching.
+        # FOR Splice Machine
+        # build these out in a clear manner
+        SPLICE_HBASE_REGIONSERVER_OPTS=""
+        SPLICE_HBASE_REGIONSERVER_OPTS="$SPLICE_HBASE_REGIONSERVER_OPTS -Xms{{ .Values.region.processMemory }} -Xmx{{ .Values.region.processMemory }} -XX:+HeapDumpOnOutOfMemoryError -XX:MaxDirectMemorySize=2g -XX:+AlwaysPreTouch -XX:MaxNewSize=2g -XX:InitiatingHeapOccupancyPercent=60 -XX:+UseG1GC -XX:ParallelGCThreads=24 -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=5000"
+        SPLICE_HBASE_REGIONSERVER_OPTS="$SPLICE_HBASE_REGIONSERVER_OPTS -Dderby.drda.logConnections=true"
+        SPLICE_HBASE_REGIONSERVER_OPTS="$SPLICE_HBASE_REGIONSERVER_OPTS -Dderby.drda.timeSlice=0"
+        SPLICE_HBASE_REGIONSERVER_OPTS="$SPLICE_HBASE_REGIONSERVER_OPTS -Dlog4j.debug=true"
+        SPLICE_HBASE_MASTER_OPTS=""
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Xms{{ .Values.master.processMemory }} -Xmx{{ .Values.master.processMemory }} -XX:+HeapDumpOnOutOfMemoryError -XX:MaxDirectMemorySize=2g -XX:+AlwaysPreTouch -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dlog4j.debug=true"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.olap_server.external=true"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.olap_server.deployment.mode=KUBERNETES"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.kafka.bootstrapServers={{ template "kafka.fullname" . }}-headless.{{ include "svc-domain" . }}:9092"
+        # DBAAS-1018: escape these quotes exactly once
+        export EXTRA_QUOTE_OPTS="-Dsplice.spark.executor.extraJavaOptions=\"-Dlog4j.debug=true -Dlog4j.configuration=log4j.properties -XX:MaxDirectMemorySize=8g\""
+        # Uncomment and adjust to enable JMX exporting
+        # See jmxremote.password and jmxremote.access in $JRE_HOME/lib/management to configure remote password access.
+        # More details at: http://java.sun.com/javase/6/docs/technotes/guides/management/agent.html
+        # NOTE: HBase provides an alternative JMX implementation to fix the random ports issue, please see JMX
+        # section in HBase Reference Guide for instructions.
+        # export HBASE_THRIFT_OPTS="$HBASE_THRIFT_OPTS $HBASE_JMX_BASE -Dcom.sun.management.jmxremote.port=10103"
+        # export HBASE_ZOOKEEPER_OPTS="$HBASE_ZOOKEEPER_OPTS $HBASE_JMX_BASE -Dcom.sun.management.jmxremote.port=10104"
+        # export HBASE_REST_OPTS="$HBASE_REST_OPTS $HBASE_JMX_BASE -Dcom.sun.management.jmxremote.port=10105"
+        # File naming hosts on which HRegionServers will run.  $HBASE_HOME/conf/regionservers by default.
+        # export HBASE_REGIONSERVERS=${HBASE_HOME}/conf/regionservers
+        # Uncomment and adjust to keep all the Region Server pages mapped to be memory resident
+        #HBASE_REGIONSERVER_MLOCK=true
+        #HBASE_REGIONSERVER_UID="hbase"
+        # File naming hosts on which backup HMaster will run.  $HBASE_HOME/conf/backup-masters by default.
+        # export HBASE_BACKUP_MASTERS=${HBASE_HOME}/conf/backup-masters
+        # Extra ssh options.  Empty by default.
+        # export HBASE_SSH_OPTS="-o ConnectTimeout=1 -o SendEnv=HBASE_CONF_DIR"
+        # Where log files are stored.  $HBASE_HOME/logs by default.
+        export HBASE_LOG_DIR=/var/log/hbase
+        # Enable remote JDWP debugging of major HBase processes. Meant for Core Developers
+        # export HBASE_MASTER_OPTS="$HBASE_MASTER_OPTS -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8070"
+        # export HBASE_REGIONSERVER_OPTS="$HBASE_REGIONSERVER_OPTS -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8071"
+        # export HBASE_THRIFT_OPTS="$HBASE_THRIFT_OPTS -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8072"
+        # export HBASE_ZOOKEEPER_OPTS="$HBASE_ZOOKEEPER_OPTS -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8073"
+        # A string representing this instance of hbase. $USER by default.
+        export HBASE_IDENT_STRING=hbase
+        # The scheduling priority for daemon processes.  See 'man nice'.
+        # export HBASE_NICENESS=10
+        # The directory where pid files are stored. /tmp by default.
+        # export HBASE_PID_DIR=/var/hbase/pids
+        # Seconds to sleep between slave commands.  Unset by default.  This
+        # can be useful in large clusters, where, e.g., slave rsyncs can
+        # otherwise arrive faster than the master can service them.
+        # export HBASE_SLAVE_SLEEP=0.1
+        # Tell HBase whether it should manage it's own instance of ZooKeeper or not.
+        # export HBASE_MANAGES_ZK=true
+        # The default log rolling policy is RFA, where the log file is rolled as per the size defined for the
+        # RFA appender. Please refer to the log4j.properties file to see more details on this appender.
+        # In case one needs to do log rolling on a date change, one should set the environment property
+        # HBASE_ROOT_LOGGER to "<DESIRED_LOG LEVEL>,DRFA".
+        # For example:
+        # HBASE_ROOT_LOGGER=DEBUG,DRFA
+        # The reason for changing default to RFA is to avoid the boundary case of filling out disk space as
+        # DRFA doesn't put any cap on the log size. Please refer to HBase-5655 for more context.
+      hbaseenvshoverride: |
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.enabled=true"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.submit.deployMode=client"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.app.name={{ template "hbase.olap.fullname" . }}-spark"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.master=k8s://https://kubernetes.default.svc.cluster.local:443"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ui.port=4040"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.acls.enable=true"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.admin.acls=*"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.admin.acls.groups=*"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.logConf=true"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ui.filters=org.apache.shiro.web.servlet.IniShiroFilter"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.driver.maxResultSize=2g"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.driver.cores=2"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.instances={{ .Values.config.sparkexecutors }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.dynamicAllocation.enabled=false"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.dynamicAllocation.executorIdleTimeout=120"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.dynamicAllocation.cachedExecutorIdleTimeout=120"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.dynamicAllocation.minExecutors=1"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.dynamicAllocation.maxExecutors=4"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.io.compression.lz4.blockSize=32k"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kryo.referenceTracking=false"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kryo.registrator=com.splicemachine.derby.impl.SpliceSparkKryoRegistrator"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kryoserializer.buffer.max=512m"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kryoserializer.buffer=4m"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.locality.wait=0"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.memory.fraction=0.5"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.scheduler.mode=FAIR"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.serializer=org.apache.spark.serializer.KryoSerializer"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.shuffle.service.enabled=false"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.shuffle.io.maxRetries=30"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.shuffle.io.retryWait=10"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.sql.shuffle.partitions=1200"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.driver.extraLibraryPath=/usr/lib/hadoop/lib/native:/usr/lib/hbase/lib/native/Linux-amd64-64"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.driver.extraClassPath=/etc/hbase/conf:/usr/lib/mlmanager/lib/*"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.driver.extraJavaOptions=\"-Dlog4j.debug=true -Dlog4j.configuration=file:/etc/hbase/conf/log4j.properties\""
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.extraLibraryPath=/usr/lib/hadoop/lib/native:/usr/lib/hbase/lib/native/Linux-amd64-64"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.extraClassPath=/etc/spark/conf:/usr/lib/splicemachine/lib/*:/usr/lib/spark/jars/*:/usr/lib/hbase/lib/*:/usr/lib/hadoop/lib/*:/usr/lib/hadoop/hadoop-azure-datalake.jar:/usr/lib/hive/lib/*:/usr/lib/mlmanager/lib/*"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ui.retainedJobs=150"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ui.retainedStages=250"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.worker.ui.retainedExecutors=100"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.worker.ui.retainedDrivers=100"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.streaming.ui.retainedBatches=100"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.cores={{ .Values.config.sparkexecutorcores }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.memory={{ .Values.config.sparkexecutormemory }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.memoryOverhead={{ .Values.config.sparkexecutormemoryoverhead }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.network.timeout=120s"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.scheduler.minRegisteredResourcesRatio=0"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.scheduler.maxRegisteredResourcesWaitingTime=30s"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.hearbeatInterval=10s"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dspark.compaction.reserved.slots=4"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.local.dir=/spark/tmp0,/spark/tmp1"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.files=/tmp/spark-config/hbase-site.xml,/tmp/hdfs-config/hdfs-site.xml,/tmp/hdfs-config/core-site.xml"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dlog4j.configuration=file:/etc/hbase/conf/log4j.properties"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.namespace={{ .Release.Namespace }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.container.image={{ template "spark-image" . }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.container.image.pullPolicy={{ .Values.global.spark.image.pullPolicy }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.authenticate.driver.serviceAccountName=spark"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.driverEnv.SPARK_CONF_DIR=/etc/spark/conf"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.driverEnv.HADOOP_CONF_DIR=/etc/hadoop/conf"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.driverEnv.HBASE_CONF_DIR=/etc/hbase/conf"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.executor.label.app={{ template "hbase.name" . }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.executor.label.release={{ .Release.Name }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executorEnv.RELEASE_NAME={{ .Release.Name }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executorEnv.FRAMEWORKID={{ template "frameworkId" . }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executorEnv.JAVASCOPE={{ .Values.global.jscpEnabled }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executorEnv.ZOOKEEPER_QUORUM={{ include "zookeeper-quorum" . }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.executorEnv.RELEASE_NAME={{ .Release.Name }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.executorEnv.FRAMEWORKID={{ template "frameworkId" . }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.executorEnv.JAVASCOPE={{ .Values.global.jscpEnabled }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.executorEnv.ZOOKEEPER_QUORUM={{ include "zookeeper-quorum" . }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executorEnv.TZ={{ .Values.global.timezoneFlag }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.executorEnv.TZ={{ .Values.global.timezoneFlag }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.executor.label.component=sparkexec"
+        {{ if .Values.global.nodeSelector.enabled }}SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.node.selector.components={{ .Values.global.nodeSelector.db }}"{{ end }}
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.namespace={{ .Release.Namespace }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.local.dir.tmpfs=false"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.maxRemoteBlockSizeFetchToMem=134217728"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.executor.request.cores={{ .Values.config.sparkexecutorcores }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.kubernetes.executor.request.memory={{ template "spark.mem.total" . }}"
+        SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.io.compression.codec=snappy"
+        export HBASE_JMX_BASE="-Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false"
+        export HBASE_MASTER_OPTS="$HBASE_MASTER_OPTS $HBASE_JMX_BASE $SPLICE_HBASE_MASTER_OPTS -Dcom.sun.management.jmxremote.port=10101"
+        export HBASE_REGIONSERVER_OPTS="$HBASE_REGIONSERVER_OPTS $HBASE_JMX_BASE $SPLICE_HBASE_REGIONSERVER_OPTS -Dcom.sun.management.jmxremote.port=10102"
+    spark:
+      hbasesitexml:
+      - name: presto.s3.staging-directory
+        value: /spark/tmp0,/spark/tmp1
+      - name: splice.olap_server.external
+        value: "true"
+      - name: splice.olap_server.deployment.mode
+        value: KUBERNETES
+      - name: presto.s3.socket-timeout
+        value: 120s
+      - name: hbase.balancer.period
+        value: "60000"
+      - name: hbase.bulkload.staging.dir
+        value: /tmp/splicedb-staging
+      - name: hbase.mapreduce.bulkload.max.hfiles.perRegion.perFamily
+        value: "1024"
+      - name: hbase.client.ipc.pool.size
+        value: "10"
+      - name: hbase.client.keyvalue.maxsize
+        value: "10485760"
+      - name: hbase.client.max.perregion.tasks
+        value: "100"
+      - name: hbase.client.pause
+        value: "100"
+      - name: hbase.client.primaryCallTimeout.get
+        value: "10"
+      - name: hbase.client.primaryCallTimeout.multiget
+        value: "10"
+      - name: hbase.client.retries.number
+        value: "100"
+      - name: hbase.client.scanner.caching
+        value: "1000"
+      - name: hbase.client.scanner.timeout.period
+        value: "1200000"
+      - name: hbase.client.write.buffer
+        value: "2097152"
+      - name: hbase.cluster.distributed
+        value: "true"
+      - name: dfs.client.read.shortcircuit.buffer.size
+        value: "131072"
+      - name: hbase.hash.type
+        value: murmur
+      - name: hfile.block.bloom.cacheonwrite
+        value: "true"
+      - name: hfile.block.cache.size
+        value: "0.01"
+      - name: hbase.hregion.majorcompactio
+        value: "604800000"
+      - name: hbase.hregion.majorcompaction.jitter
+        value: "0.5"
+      - name: hbase.hregion.max.filesize
+        value: "1073741824"
+      - name: hbase.hregion.memstore.block.multiplier
+        value: "4"
+      - name: hbase.hregion.memstore.flush.size
+        value: "134217728"
+      - name: hbase.hregion.memstore.mslab.chunksize
+        value: "2097152"
+      - name: hbase.hregion.memstore.mslab.enabled
+        value: "true"
+      - name: hbase.hregion.memstore.mslab.max.allocation
+        value: "262144"
+      - name: hbase.hregion.preclose.flush.size
+        value: "5242880"
+      - name: hbase.hstore.blockingStoreFiles
+        value: "20"
+      - name: hbase.hstore.blockingWaitTime
+        value: "90000"
+      - name: hbase.hstore.compactionThreshold
+        value: "5"
+      - name: hbase.hstore.compaction.max
+        value: "7"
+      - name: hbase.hstore.compaction.max.size
+        value: "260046848"
+      - name: hbase.hstore.compaction.min
+        value: "3"
+      - name: hbase.hstore.compaction.min.size
+        value: "136314880"
+      - name: hbase.hstore.defaultengine.compactionpolicy.class
+        value: com.splicemachine.compactions.SpliceDefaultCompactionPolicy
+      - name: hbase.hstore.defaultengine.compactor.class
+        value: com.splicemachine.compactions.SpliceDefaultCompactor
+      - name: hbase.htable.threads.max
+        value: "96"
+      - name: io.storefile.bloom.error.rate
+        value: "0.005"
+      - name: hbase.ipc.client.allowsInterrupt
+        value: "true"
+      - name: hbase.ipc.server.read.threadpool.size
+        value: "10"
+      - name: hbase.ipc.warn.response.size
+        value: "-1"
+      - name: hbase.ipc.warn.response.time
+        value: "-1"
+      - name: hbase.master.executor.closeregion.threads
+        value: "5"
+      - name: hbase.master.executor.openregion.threads
+        value: "5"
+      - name: hbase.master.executor.serverops.threads
+        value: "12"
+      - name: hbase.master.handler.count
+        value: "25"
+      - name: hbase.master.info.port
+        value: "16010"
+      - name: hbase.master.loadbalance.bytable
+        value: "true"
+      - name: hbase.master.logcleaner.ttl
+        value: "60000"
+      - name: hbase.master.namespace.init.timeout
+        value: "2400000"
+      - name: hbase.master.port
+        value: "16000"
+      - name: hbase.mvcc.impl
+        value: org.apache.hadoop.hbase.regionserver.SIMultiVersionConsistencyControl
+      - name: hbase.region.replica.replication.enabled
+        value: "false"
+      - name: hbase.regions.slop
+        value: "0"
+      - name: hbase.regionserver.executor.openregion.threads
+        value: "50"
+      - name: hbase.regionserver.global.memstore.size
+        value: "0.25"
+      - name: hbase.regionserver.global.memstore.size.lower.limit
+        value: "0.9"
+      - name: hbase.regionserver.handler.count
+        value: "400"
+      - name: hbase.regionserver.hlog.blocksize
+        value: "134217728"
+      - name: hbase.regionserver.info.port
+        value: "16030"
+      - name: hbase.regionserver.logroll.period
+        value: "3600000"
+      - name: hbase.regionserver.maxlogs
+        value: "48"
+      - name: hbase.regionserver.metahandler.count
+        value: "200"
+      - name: hbase.regionserver.msginterval
+        value: "3000"
+      - name: hbase.regionserver.nbreservationblocks
+        value: "4"
+      - name: hbase.regionserver.optionallogflushinterval
+        value: "1000"
+      - name: hbase.regionserver.debug.enable
+        value: "false"
+      - name: hbase.regionserver.debug.port
+        value: "4000"
+      - name: hbase.regionserver.port
+        value: "16020"
+      - name: hbase.regionserver.regionSplitLimit
+        value: "2147483647"
+      - name: hbaseregionserverThreadCompactionLarge
+        value: "1"
+      - name: hbase.regionserver.thread.compaction.small
+        value: "4"
+      - name: hbase.regionserver.wal.enablecompression
+        value: "true"
+      - name: hbase.rootdir
+        value: /splicedb/hbase
+      - name: hbase.fs.tmp.dir
+        value: /tmp/splicedb-staging
+      - name: hbase.row.level.authorization
+        value: "false"
+      - name: hbase.rpc.protection
+        value: authentication
+      - name: hbase.rpc.timeout
+        value: "1200000"
+      - name: hbase.security.authentication
+        value: simple
+      - name: hbase.security.authorization
+        value: "false"
+      - name: hbase.server.thread.wakefrequency
+        value: "10000"
+      - name: hbase.snapshot.enabled
+        value: "true"
+      - name: hbase.snapshot.master.timeoutMillis
+        value: "60000"
+      - name: hbase.snapshot.master.timeout.millis
+        value: "60000"
+      - name: hbase.snapshot.region.timeout
+        value: "60000"
+      - name: hbase.splitlog.manager.timeout
+        value: "300000"
+      - name: hbase.status.multicast.port
+        value: "16100"
+      - name: hbase.superuser
+        value: root
+      - name: hbase.wal.disruptor.batchhbase.wal.disruptor.batch
+        value: "true"
+      - name: hbase.wal.provider
+        value: multiwal
+      - name: hbase.wal.regiongrouping.numgroups
+        value: "16"
+      - name: hbase.wal.storage.policy
+        value: NONE
+      - name: hbase.zookeeper.property.tickTime
+        value: "6000"
+      - name: zookeeper.session.timeout
+        value: "1200000"
+      - name: zookeeper.znode.parent
+        value: /hbase
+      - name: zookeeper.znode.rootserver
+        value: root-region-server
+      - name: hbase.hstore.defaultengine.compactor.class
+        value: com.splicemachine.compactions.SpliceDefaultCompactor
+      - name: hbase.hstore.defaultengine.compactionpolicy.class
+        value: com.splicemachine.compactions.SpliceDefaultCompactionPolicy
+      - name: splice.debug.logStatementContext
+        value: "true"
+      - name: splice.authentication
+        value: NATIVE
+      - name: splice.authentication.ldap.server
+        value: ""
+      - name: splice.authentication.ldap.searchAuthDN
+        value: ""
+      - name: splice.authentication.ldap.searchAuth.password
+        value: ""
+      - name: splice.authentication.ldap.searchBase
+        value: ""
+      - name: splice.authentication.ldap.searchFilter
+        value: ""
+      - name: hbase.coprocessor.abortonerror
+        value: "true"
+      - name: splicemachine.enterprise.key
+        value: ""
+      - name: hbase.coprocessor.master.classes
+        value: com.splicemachine.hbase.SpliceMasterObserver
+      - name: hbase.coprocessor.region.classes
+        value: org.apache.hadoop.hbase.security.access.SecureBulkLoadEndpoint,com.splicemachine.hbase.MemstoreAwareObserver,com.splicemachine.derby.hbase.SpliceIndexObserver,com.splicemachine.derby.hbase.SpliceIndexEndpoint,com.splicemachine.hbase.RegionSizeEndpoint,com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint,com.splicemachine.si.data.hbase.coprocessor.SIObserver,com.splicemachine.hbase.BackupEndpointObserver
+      - name: hbase.coprocessor.regionserver.classes
+        value: com.splicemachine.hbase.RegionServerLifecycleObserver
+      - name: hbase.master.balancer.stochastic.regionCountCost
+        value: "1500"
+      - name: hbase.rowlock.wait.duration
+        value: "0"
+      - name: hbase.zookeeper.quorum
+        value: '{{ include "zookeeper-quorum" . }}'
+      - name: splice.authentication.native.algorithm
+        value: SHA-512
+      - name: splice.client.numConnections
+        value: "1"
+      - name: splice.client.write.maxDependentWrites
+        value: "60000"
+      - name: splice.client.write.maxIndependentWrites
+        value: "60000"
+      - name: splice.compression
+        value: snappy
+      - name: splice.debug.logStatementContext
+        value: "true"
+      - name: splice.ignore.missing.transactions
+        value: "true"
+      - name: splice.marshal.kryoPoolSize
+        value: "1100"
+      - name: splice.olap.shuffle.partitions
+        value: "200"
+      - name: splice.olap_server.clientWaitTime
+        value: "900000"
+      - name: splice.optimizer.broadcastRegionRowThreshold
+        value: "1000000"
+      - name: splice.ring.bufferSize
+        value: "131072"
+      - name: splice.splitBlockSize
+        value: "67108864"
+      - name: splice.timestamp_server.clientWaitTime
+        value: "120000"
+      - name: splice.txn.activeTxns.cacheSize
+        value: "10240"
+      - name: splice.txn.completedTxns.concurrency
+        value: "128"
+      - name: splice.txn.concurrencyLevel
+        value: "4096"
+      - name: splice.timestamp_server.port
+        value: "16012"
+      - name: splice.olap_server.port
+        value: "16040"
+      - name: splice.writer.maxThreads
+        value: "20"
+      - name: hbase.master.hfilecleaner.plugins
+        value: org.apache.hadoop.hbase.master.cleaner.TimeToLiveHFileCleaner
+      - name: hbase.unsafe.stream.capability.enforce
+        value: "false"
+      - name: hbase.master.info.bindAddress
+        value: '{{ include "hbase-olap-svc-0" . }}'
+      - name: hbase.rowlock.wait.duration
+        value: "20000"
+  dbbackup:
+    debug: false
+    destinationpath: s3://bucket/backuptest/
+    enterprisecode: ""
+    replicas: 0
+    retention: true
+    schedule: 30 21 * * 0
+    type: full
+    window: 5
+  debug: false
+  image:
+    pullPolicy: IfNotPresent
+    pullSecrets: regcred
+    registry: docker.io
+    repository: splicemachine/sm_k8_hbase-3.0.0:0.0.68
+  master:
+    ingress:
+      annotations:
+        kubernetes.io/ingress.class: nginx-core
+        kubernetes.io/tls-acme: "true"
+      enabled: true
+      hosts:
+      - REPLACE_INGRESS_ADMIN_HBASE_DOMAIN
+      pathSuffix: /
+      tls:
+      - hosts:
+        - REPLACE_INGRESS_ADMIN_HBASE_DOMAIN
+        secretName: REPLACE_CERTIFICATE
+    livenessProbe:
+      failureThreshold: 10
+      initialDelaySeconds: 60
+      periodSeconds: 30
+      successThreshold: 1
+      timeoutSeconds: 60
+    pdbMaxUnavailable: 1
+    pdbMinAvailable: 1
+    persistence:
+      accessMode:
+      - ReadWriteOnce
+      size: 10Gi
+    processMemory: 4g
+    readinessProbe:
+      failureThreshold: 10
+      initialDelaySeconds: 60
+      periodSeconds: 20
+      successThreshold: 1
+      timeoutSeconds: 360
+    replicas: 2
+    resources:
+      requests:
+        cpu: "2"
+        memory: 6G
+    service:
+      externaIPEnabled: false
+    startupProbe:
+      failureThreshold: 10
+      initialDelaySeconds: 360
+      periodSeconds: 60
+      successThreshold: 1
+      timeoutSeconds: 240
+  olap:
+    ingress:
+      annotations:
+        kubernetes.io/ingress.class: nginx-core
+        kubernetes.io/tls-acme: "true"
+      enabled: true
+      hosts:
+      - REPLACE_INGRESS_ADMIN_OLAP_DOMAIN
+      pathSuffix: /
+      tls:
+      - hosts:
+        - REPLACE_INGRESS_OLAP_HBASE_DOMAIN
+        secretName: REPLACE_CERTIFICATE
+    livenessProbe:
+      failureThreshold: 10
+      initialDelaySeconds: 60
+      periodSeconds: 30
+      successThreshold: 1
+      timeoutSeconds: 60
+    pdbMaxUnavailable: 1
+    pdbMinAvailable: 1
+    persistence:
+      accessMode:
+      - ReadWriteOnce
+      size: 10Gi
+    readinessProbe:
+      failureThreshold: 10
+      initialDelaySeconds: 60
+      periodSeconds: 20
+      successThreshold: 1
+      timeoutSeconds: 360
+    replicas: 1
+    resources:
+      requests:
+        cpu: "2"
+        memory: "6656"
+    service:
+      externaIPEnabled: false
+    sparkIngress:
+      annotations:
+        kubernetes.io/ingress.class: nginx-core
+        kubernetes.io/tls-acme: "true"
+      enabled: true
+      hosts:
+      - REPLACE_INGRESS_SPARK_DOMAIN
+      pathSuffix: /
+      tls:
+      - hosts:
+        - REPLACE_INGRESS_SPARK_DOMAIN
+        secretName: REPLACE_CERTIFICATE
+    startupProbe:
+      failureThreshold: 10
+      initialDelaySeconds: 360
+      periodSeconds: 60
+      successThreshold: 1
+      timeoutSeconds: 240
+  postrestart: false
+  region:
+    affinityDataNode: soft
+    affinityUniqueHost: hard
+    ingress:
+      annotations:
+        kubernetes.io/tls-acme: "true"
+      class: splice-nginx
+      enabled: true
+      hosts:
+      - REPLACE_INGRESS_DOMAIN
+      pathSuffix: /splicedb
+      tls:
+      - hosts:
+        - REPLACE_INGRESS_DOMAIN
+        secretName: REPLACE_CERTIFICATE
+    livenessProbe:
+      failureThreshold: 10
+      initialDelaySeconds: 60
+      periodSeconds: 30
+      successThreshold: 1
+      timeoutSeconds: 60
+    pdbMaxUnavailable: 1
+    pdbMinAvailable: 1
+    persistence:
+      accessMode:
+      - ReadWriteOnce
+      size: 10Gi
+    processMemory: 20g
+    replicas: 3
+    resources:
+      requests:
+        cpu: "4"
+        memory: 24G
+    startupProbe:
+      failureThreshold: 20
+      initialDelaySeconds: 360
+      periodSeconds: 60
+      successThreshold: 1
+      timeoutSeconds: 240
+jvmprofiler:
+  container:
+    port: 8686
+  image:
+    pullPolicy: IfNotPresent
+    pullSecrets: regcred
+    registry: docker.io
+    repository: splicemachine/sm_k8_base
+    tag: 0.0.2
+  ingress:
+    annotations:
+      kubernetes.io/ingress.class: nginx-core
+      kubernetes.io/tls-acme: "true"
+      nginx.ingress.kubernetes.io/configuration-snippet: |
+        rewrite ^(/jvmprofiler)$ $1/ redirect;
+      nginx.ingress.kubernetes.io/rewrite-target: /$1
+    enabled: true
+    hosts:
+    - REPLACE_INGRESS_ADMIN_DOMAIN
+    pathSuffix: /jvmprofiler/?(.*)
+    tls:
+    - hosts:
+      - REPLACE_INGRESS_ADMIN_DOMAIN
+      secretName: REPLACE_CERTIFICATE
+  livenessProbe:
+    failureThreshold: 6
+    initialDelaySeconds: 120
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 5
+  readinessProbe:
+    failureThreshold: 6
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 5
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: "0.5"
+      memory: 2G
+  service:
+    annotations: {}
+    externaIPEnabled: false
+    externalTrafficPolicy: Cluster
+    nodePorts:
+      http: ""
+    port: 8686
+    type: ClusterIP
+kafka:
+  configurationOverrides:
+    advertised.listeners: EXTERNAL://kafka-broker-KAFKA_BROKER_ID_VAR-EXT_DOMAIN_VAR:19092
+    listener.security.protocol.map: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+  external:
+    dns:
+      useExternal: true
+      useInternal: false
+    domain: REPLACE_INGRESS_DOMAIN
+    enabled: true
+    firstListenerPort: 31090
+    servicePort: 19092
+    type: LoadBalancer
+  headless:
+    port: 9092
+  image:
+    pullPolicy: Always
+    pullSecrets: regcred
+    registry: docker.io
+    repository: splicemachine/sm_k8_kafka-3.0.0
+    tag: 0.0.5
+  ingress:
+    annotations:
+      kubernetes.io/ingress.class: nginx-core
+      kubernetes.io/tls-acme: "true"
+    enabled: false
+    hosts:
+    - REPLACE_INGRESS_KAFKA_DOMAIN
+    pathSuffix: /
+    tls:
+    - hosts:
+      - REPLACE_INGRESS_KAFKA_DOMAIN
+      secretName: REPLACE_CERTIFICATE
+  livenessProbe:
+    failureThreshold: 10
+    initialDelaySeconds: 360
+    periodSeconds: 60
+    successThreshold: 1
+    timeoutSeconds: 240
+  pdbMaxUnavailable: 1
+  pdbMinAvailable: 1
+  persistence:
+    accessMode:
+    - ReadWriteOnce
+    mountPath: /opt/kafka/data
+    size: 1Gi
+  readinessProbe:
+    failureThreshold: 10
+    initialDelaySeconds: 60
+    periodSeconds: 20
+    successThreshold: 1
+    timeoutSeconds: 360
+  replicas: 1
+  resources: {}
+  service:
+    externaIPEnabled: false
+mlmanager:
+  bobby:
+    image:
+      environment: azure
+      mode: production
+      pullPolicy: IfNotPresent
+      pullSecrets: regcred
+      registry: docker.io
+      repository: splicemachine/sm_k8_bobby:0.1.22
+    replicas: 0
+    resources:
+      requests:
+        cpu: "0.5"
+        memory: 2G
+  mlflow:
+    image:
+      environment: azure
+      mode: production
+      pullPolicy: IfNotPresent
+      pullSecrets: regcred
+      registry: docker.io
+      repository: splicemachine/sm_k8_mlflow:0.1.22
+    ingress:
+      annotations:
+        kubernetes.io/ingress.class: nginx-core
+        kubernetes.io/tls-acme: "true"
+        nginx.ingress.kubernetes.io/configuration-snippet: |
+          rewrite ^(/mlflow)$ $1/ redirect;
+        nginx.ingress.kubernetes.io/rewrite-target: /$1
+      enabled: true
+      hosts:
+      - REPLACE_INGRESS_ADMIN_DOMAIN
+      pathSuffix: /mlflow/?(.*)
+      tls:
+      - hosts:
+        - REPLACE_INGRESS_ADMIN_DOMAIN
+        secretName: REPLACE_CERTIFICATE
+    jobtrackerIngress:
+      annotations:
+        kubernetes.io/ingress.class: nginx-core
+        kubernetes.io/tls-acme: "true"
+      enabled: true
+      hosts:
+      - REPLACE_INGRESS_JOBTRACKER_DOMAIN
+      pathSuffix: /
+      tls:
+      - hosts:
+        - REPLACE_INGRESS_JOBTRACKER_DOMAIN
+        secretName: REPLACE_CERTIFICATE
+    port:
+      bobby: 2375
+      dash: 5003
+      mlflow: 5001
+    replicas: 1
+    resources:
+      requests:
+        cpu: "0.5"
+        memory: 2G
+    sageMakerRole: REPLACE_SAGE_MAKER_ROLE
+rbac:
+  bindingtype: RoleBinding
+  reftype: Role
+zookeeper:
+  dataDirMountPath: /var/lib/zookeeper
+  image:
+    pullPolicy: IfNotPresent
+    pullSecrets: regcred
+    registry: docker.io
+    repository: splicemachine/sm_k8_zookeeper
+    tag: 0.0.4
+  livenessProbe:
+    failureThreshold: 6
+    initialDelaySeconds: 120
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 5
+  persistence:
+    accessMode:
+    - ReadWriteOnce
+    size: 1Gi
+  readinessProbe:
+    failureThreshold: 6
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 5
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: "0.5"
+      memory: 1Gi
