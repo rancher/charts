@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: kafka-broker
+    app.kubernetes.io/name: kafka
+  name: {{ template "bluehub.fullname" . }}-exporter
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: kafka-broker
+      app.kubernetes.io/name: kafka
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: {{ .Values.metrics.port | default "9308" | quote }}
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+      creationTimestamp: null
+      labels:
+        app.kubernetes.io/component: kafka-broker
+        app.kubernetes.io/name: kafka
+    spec:
+      containers:
+      - name: kafka-exporter
+        args:
+        - --kafka.server={{ template "bluehub.fullname" . }}-headless:{{ .Values.securedPort | default "9093" }}
+        - --web.listen-address=0.0.0.0:{{ .Values.metrics.port | default "9308" | int }}
+        - --log.level=debug
+        - --sasl.enabled
+        - --sasl.username=$(SASL_USERNAME)
+        - --sasl.password=$(SASL_PASSWORD)
+        - --sasl.mechanism=plain
+        - --tls.enabled
+        - --tls.insecure-skip-tls-verify
+        image: bluespireinc/kafka-exporter:1.0.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: {{ .Values.metrics.port | default "9308" | int }}
+          protocol: TCP
+          name: metrics
+        resources:
+          requests: {}
+        env:
+        - name: SASL_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-exporter-secrets
+              key: sasl_username
+        - name: SASL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-exporter-secrets
+              key: sasl_password
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext:
+        runAsNonRoot: false

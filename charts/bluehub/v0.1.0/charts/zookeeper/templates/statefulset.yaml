@@ -1,0 +1,154 @@
+{{ $replicas := (.Values.replicas | default "5" | int) }}
+{{ $pod := (.Release.Name) }}
+{{ $ns := (.Release.Namespace) }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: {{ template "zookeeper.name" . }}
+    release: {{ .Release.Name }}
+  name: {{ template "bluehub.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  podManagementPolicy: {{ .Values.podManagementPolicy | default "OrderedReady" | quote }}
+  replicas: {{ .Values.replicas | default "5" | int }}
+  selector:
+    matchLabels:
+      app: {{ template "zookeeper.name" . }}
+      release: {{ .Release.Name }}
+  serviceName: {{ template "bluehub.fullname" . }}-headless
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: {{ .Values.metrics.port | default "9141" | quote }}
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+      labels:
+        app: {{ template "zookeeper.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - {{ template "zookeeper.name" . }}
+                - key: release
+                  operator: In
+                  values:
+                  - {{ .Release.Name }}
+              topologyKey: kubernetes.io/hostname
+            weight: 1
+      containers:
+      - command:
+        - bash
+        - -c
+        - |
+          ZK_FIX_HOST_REGEX="s/${HOSTNAME}\.[^:]*:/0.0.0.0:/g"
+          ZOOKEEPER_SERVER_ID=$((${HOSTNAME##*-}+1)) \
+          ZOOKEEPER_SERVERS=`echo $ZOOKEEPER_SERVERS | sed -e "$ZK_FIX_HOST_REGEX"` \
+          /etc/confluent/docker/run
+        env:
+        - name: KAFKA_HEAP_OPTS
+          value: {{ .Values.heapOpts | default "-Xms1024M -Xmx1024M" | quote }}
+        - name: KAFKA_JMX_PORT
+          value: {{ .Values.metrics.port | default "9141" | quote }}
+        - name: ZOOKEEPER_TICK_TIME
+          value: {{ .Values.tickTime | default "2000" | quote }}
+        - name: ZOOKEEPER_SYNC_LIMIT
+          value: {{ .Values.syncLimit | default "5" | quote }}
+        - name: ZOOKEEPER_INIT_LIMIT
+          value: {{ .Values.initLimit | default "10" | quote }}
+        - name: ZOOKEEPER_MAX_CLIENT_CNXNS
+          value: {{ .Values.maxClientConnections | default "60" | quote }}
+        - name: ZOOKEEPER_AUTOPURGE_SNAP_RETAIN_COUNT
+          value: "3"
+        - name: ZOOKEEPER_AUTOPURGE_PURGE_INTERVAL
+          value: "24"
+        - name: ZOOKEEPER_CLIENT_PORT
+          value: {{ .Values.port | default "2181" | quote }}
+        - name: KAFKA_OPTS
+          value: -Dzookeeper.requireClientAuthScheme=SASL -Dzookeeper.authProvider.sasl=org.apache.zookeeper.server.auth.SASLAuthenticationProvider -Djava.security.auth.login.config=/zookeeper/secret/zk_jaas.conf -Dzookeeper.4lw.commands.whitelist=mntr
+        - name: ZOOKEEPER_SERVERS
+          value: {{ range $i, $e := until $replicas }}{{ $pod }}-zookeeper-{{ $i }}.{{ $pod }}-zookeeper-headless.{{ $ns }}:2888:3888{{ if eq (toString (add $i 1)) (toString ($replicas)) }}{{ else }};{{ end }}{{ end }}
+        - name: ZOOKEEPER_SERVER_ID
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        image: {{.Values.imgName | default "bluespireinc/zookeeper" }}:{{ .Values.imgVersion | default "3.5.8" }}
+        imagePullPolicy: IfNotPresent
+        name: zookeeper-server
+        resources:
+          requests:
+            memory: {{ .Values.resources.requests.memory | default "1Gi" | quote }}
+            cpu: {{ .Values.resources.requests.cpu | default "2000m" | quote }}
+          limits:
+            memory: {{ .Values.resources.limits.memory | default "2Gi" | quote }}
+            cpu: {{ .Values.resources.limits.cpu | default "4000m" | quote }}
+        ports:
+        - containerPort: {{ .Values.port | default "2181" | int }}
+          name: client
+          protocol: TCP
+        - containerPort: 2888
+          name: server
+          protocol: TCP
+        - containerPort: 3888
+          name: leader-election
+          protocol: TCP
+        - containerPort: {{ .Values.metrics.port | default "9141" | int }}
+          name: metrics
+          protocol: TCP
+        resources:
+          requests:
+            memory: {{ .Values.resources.requests.memory | default "1Gi" | quote }}
+            cpu: {{ .Values.resources.requests.cpu | default "1000m" | quote }}
+          limits:
+            memory: {{ .Values.resources.limits.memory | default "2Gi" | quote }}
+            cpu: {{ .Values.resources.limits.cpu | default "2000m" | quote }}
+        volumeMounts:
+        - mountPath: /zookeeper/data
+          name: datadir
+        - mountPath: /zookeeper/log
+          name: datalogdir
+        - mountPath: /zookeeper/secret
+          name: secretdir
+      volumes:
+        - name: secretdir
+          secret:
+            defaultMode: 256
+            optional: false
+            secretName: {{ template "bluehub.fullname" . }}-secrets
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        runAsNonRoot: false
+      terminationGracePeriodSeconds: 30
+  updateStrategy:
+    type: RollingUpdate
+  volumeClaimTemplates:
+  - metadata:
+      name: datadir
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: {{ .Values.storage.capacity | default "10Gi" | quote }}
+      storageClassName: {{ .Values.storage.class }}
+      volumeMode: Filesystem
+  - metadata:
+      name: datalogdir
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: {{ .Values.storage.capacity | default "10Gi" | quote }}
+      storageClassName: {{ .Values.storage.class }}
+      volumeMode: Filesystem

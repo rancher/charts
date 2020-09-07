@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ template "clustermgr.name" . }}
+    release: {{ .Release.Name }}
+    namespace: {{ .Release.Namespace }}
+  name: {{ template "bluehub.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.replicas | default "1" | int }}
+  selector:
+    matchLabels:
+      app: {{ template "clustermgr.name" . }}
+      release: {{ .Release.Name }}
+      namespace: {{ .Release.Namespace }}
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: {{ template "clustermgr.name" . }}
+        release: {{ .Release.Name }}
+        namespace: {{ .Release.Namespace }}
+    spec:
+      containers:
+      - env:
+        - name: ZK_HOSTS
+          value: {{ .Release.Name }}-zookeeper-headless:{{ .Values.zookeeper.port | default "2181" | int }}
+        - name: JAVA_OPTS
+        - name: KAFKA_MANAGER_AUTH_ENABLED
+          value: "true"
+        - name: KAFKA_MANAGER_USERNAME
+          valueFrom:
+            secretKeyRef:
+              key: {{ template "clustermgr.name" . }}_username
+              name: {{ template "bluehub.fullname" . }}-secrets
+        - name: KAFKA_MANAGER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: {{ template "clustermgr.name" . }}_password
+              name: {{ template "bluehub.fullname" . }}-secrets
+        image: {{ .Values.imgName | default "bluespireinc/clustermgr" }}:{{ .Values.imgVersion | default "latest" }}
+        imagePullPolicy: Always
+        name: kafka-manager
+        ports:
+        - containerPort: {{ .Values.port | default "9000" | int }}
+          name: kafka-manager
+          protocol: TCP
+        resources:
+          requests:
+            memory: {{ .Values.resources.requests.memory | default "128Mi" | quote }}
+            cpu: {{ .Values.resources.requests.cpu | default "100m" | quote }}
+          limits:
+            memory: {{ .Values.resources.limits.memory | default "256Mi" | quote }}
+            cpu: {{ .Values.resources.limits.cpu | default "200m" | quote }}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext:
+          runAsNonRoot: false

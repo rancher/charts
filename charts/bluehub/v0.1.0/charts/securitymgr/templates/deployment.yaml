@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ template "securitymgr.name" . }}
+    release: {{ .Release.Name }}
+  name: {{ template "bluehub.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ template "securitymgr.name" . }}
+      release: {{ .Release.Name }}
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: {{ template "securitymgr.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+      - env:
+        - name: ADMIN_CLIENT_SASL_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: bluehub-securitymgr-secrets
+              key: {{ template "securitymgr.name" . }}_sasl_username
+        - name: ADMIN_CLIENT_SASL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ template "bluehub.fullname" . }}-secrets
+              key: {{ template "securitymgr.name" . }}_sasl_password
+        - name: ADMIN_CLIENT_SSL_KEYSTORE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ template "bluehub.fullname" . }}-secrets
+              key: {{ template "securitymgr.name" . }}_keystore_password
+        - name: ADMIN_CLIENT_SSL_TRUSTSTORE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ template "bluehub.fullname" . }}-secrets
+              key: {{ template "securitymgr.name" . }}_truststore_password
+        - name: KSM_READONLY
+          value: "false"
+        - name: KSM_EXTRACT
+          value: "false"
+        - name: KSM_REFRESH_FREQUENCY_MS
+          value: "{{ .Values.refreshRateInMS | default "default 10000" | int }}"
+        - name: SOURCE_CLASS
+          value: "com.github.simplesteph.ksm.source.FileSourceAcl"
+        - name: SOURCE_FILE_FILENAME
+          value: "/securitymgr/secrets/acls.csv"
+        - name: AUTHORIZER_CLASS
+          value: "com.github.simplesteph.ksm.compat.AdminClientAuthorizer"
+        - name: ADMIN_CLIENT_ID
+          value: "securitymgr"
+        - name: ADMIN_CLIENT_BOOTSTRAP_SERVERS
+          value: "{{ .Release.Name }}-kafka-headless:9093"
+        - name: ADMIN_CLIENT_SECURITY_PROTOCOL
+          value: "SASL_SSL"
+        - name: ADMIN_CLIENT_SSL_ENABLED_PROTOCOLS
+          value: "TLSv1.2"
+        - name: ADMIN_CLIENT_SASL_JAAS_CONFIG
+          value: "org.apache.kafka.common.security.plain.PlainLoginModule required username=$(ADMIN_CLIENT_SASL_USERNAME) password=$(ADMIN_CLIENT_SASL_PASSWORD);"
+        - name: ADMIN_CLIENT_SASL_MECHANISM
+          value: "PLAIN"
+        - name: ADMIN_CLIENT_SSL_KEYSTORE_LOCATION
+          value: "/securitymgr/secrets/kafka.keystore.jks"
+        - name: ADMIN_CLIENT_SSL_TRUSTSTORE_LOCATION
+          value: "/securitymgr/secrets/kafka.truststore.jks"
+        - name: ADMIN_CLIENT_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM
+        image: {{ .Values.imgName | default "bluespireinc/securitymgr" }}:{{ .Values.imgVersion | default "1.0.0" }}
+        imagePullPolicy: IfNotPresent
+        name: security-manager
+        resources:
+          requests:
+            memory: {{ .Values.resources.requests.memory | default "128Mi" | quote }}
+            cpu: {{ .Values.resources.requests.cpu | default "250m" | quote }}
+          limits:
+            memory: {{ .Values.resources.limits.memory | default "256Mi" | quote }}
+            cpu: {{ .Values.resources.limits.cpu | default "350m" | quote }}
+        securityContext:
+          runAsNonRoot: false
+        stdin: true
+        tty: true
+        volumeMounts:
+        - mountPath: /securitymgr/secrets
+          name: secretdir
+      volumes:
+        - name: secretdir
+          secret:
+            defaultMode: 256
+            optional: false
+            secretName: {{ template "bluehub.fullname" . }}-secrets
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext:
+        runAsNonRoot: false
+      terminationGracePeriodSeconds: 30

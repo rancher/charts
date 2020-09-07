@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: {{ template "schemareg.name" . }}
+    release: {{ .Release.Name }}
+  name: {{ template "bluehub.fullname" . }}-svc
+  namespace: {{ .Release.Namespace }}
+spec:
+  ports:
+  - name: {{ template "bluehub.fullname" . }}
+    port: {{ .Values.port | default "8081" | int }}
+    protocol: TCP
+    targetPort: {{ .Values.port | default "8081" | int }}
+  selector:
+    app: {{ template "schemareg.name" . }}
+    release: {{ .Release.Name }}
+  type: {{ .Values.type | default "ClusterIP" | quote }}
