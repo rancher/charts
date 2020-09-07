@@ -222,7 +222,6 @@ Below are the secrets which are needed for the above messaging components to wor
 * acls.csv | Kafka authorization policies
 
 ### bluehub-kproducer-secrets
-* redispwd | redis DB password
 * client-ca.pem | client cert
 
 ### bluehub-kproducer-producers-secrets
