@@ -65,18 +65,13 @@ name: ${name}-crd
 type: application
 EOF
 
-# Add providesGVR annotation
-providesGVR="$(cat ${f}/package.yaml | yq r - generateCRDChart.providesGVR)"
-if ! [[ -z ${providesGVR} ]]; then
-	if [[ -z "$(yq r ${f}/charts/Chart.yaml 'annotations[catalog.cattle.io/auto-install-gvr]')" ]]; then
-		yq w -i ${f}/charts/Chart.yaml "annotations[catalog.cattle.io/auto-install-gvr]" "${providesGVR}"
-	fi
-	if [[ -z "$(yq r ${f}/charts/Chart.yaml 'annotations[catalog.cattle.io/provides-gvr]')" ]]; then
-		yq w -i ${f}/charts-crd/Chart.yaml "annotations[catalog.cattle.io/provides-gvr]" "${providesGVR}"
-	fi
-	if [[ -z "$(yq r ${f}/charts/Chart.yaml 'annotations[catalog.cattle.io/hidden]')" ]]; then
-		yq w -i ${f}/charts-crd/Chart.yaml "annotations[catalog.cattle.io/hidden]" "true"
-	fi
+# Make the primary chart auto-install the CRD chart
+if [[ -z "$(yq r ${f}/charts/Chart.yaml 'annotations[catalog.cattle.io/auto-install]')" ]]; then
+	yq w -i ${f}/charts/Chart.yaml "annotations[catalog.cattle.io/auto-install]" "${name}-crd=match"
+fi
+# Hide the CRD chart
+if [[ -z "$(yq r ${f}/charts-crd/Chart.yaml 'annotations[catalog.cattle.io/hidden]')" ]]; then
+	yq w -i ${f}/charts-crd/Chart.yaml "annotations[catalog.cattle.io/hidden]" "true"
 fi
 
 # Add annotations to charts-crd/Chart.yaml

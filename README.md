@@ -108,7 +108,7 @@ However, in the current `rancher/charts` model, this would require deleting the 
 - Adding a validation YAML to the Rancher chart to direct the user to install the CRD chart before installing the Rancher chart if CRDs do not currently exist on the server
 - Viewing the patch between the CRDs introduced by the upstream chart and the CRDs within the CRD chart
 
-To resolve this, `rancher/charts` has a flag that can be added to the `package.yaml` of any Rancher chart that allows you to specify `generateCRDChart.enabled=true` and `generateCRDChart.providesGVR={{.spec.names.plural }}.{{ .spec.group }}/{{ .spec.version }}` (i.e. `prometheuses.monitoring.coreos.com/v1`). When this mode is enabled, the following changes are applied during each step of the `rancher/charts` developer workflow:
+To resolve this, `rancher/charts` has a flag that can be added to the `package.yaml` of any Rancher chart that allows you to specify `generateCRDChart.enabled=true`. When this mode is enabled, the following changes are applied during each step of the `rancher/charts` developer workflow:
 
 1. On running `make CHART={CHART_NAME} prepare:
 
@@ -141,7 +141,6 @@ To resolve this, `rancher/charts` has a flag that can be added to the `package.y
 Some more considerations when migrating to using this flag:
 - After adding this flag to a chart, you will have to look through the upstream chart and manually remove any CRD build specific code from the upstream chart (i.e. removing `helm.sh/hook: crd-install` from the CRD files, removing any cleanup Jobs introduced by the upstream chart to automatically delete CRDs on uninstall, etc.)
 - The CRDs moved to their own chart must not contain any code that was pulled from helper templates located within the main chart. If it is found that this is necessary for any chart, please submit a feature request.
-- The `generateCRDChart.providesGVR` flag should pick one CRD that is installed by the chart (even if multiple exist) that will be used to annotate the chart and configure auto-installing the CRD chart on the Rancher Dashboard UI when installing the main chart.
 
 See `packages/rancher-monitoring` for an example of a chart that currently uses this flag.
 

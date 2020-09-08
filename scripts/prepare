@@ -44,6 +44,13 @@ for f in packages/*; do
 			if [[ "${split_crds}" == "true" ]]; then
 				./scripts/prepare-crds ${f}
 			fi
+			# Add provides GVR annotation, this lets other charts require it
+			providesGVR="$(cat ${f}/package.yaml | yq r - providesGVR)"
+			if ! [[ -z ${providesGVR} ]]; then
+				if [[ -z "$(yq r ${f}/charts/Chart.yaml 'annotations[catalog.cattle.io/provides-gvr]')" ]]; then
+					yq w -i ${f}/charts/Chart.yaml "annotations[catalog.cattle.io/provides-gvr]" "${providesGVR}"
+				fi
+			fi
 		fi
 	fi
 done
