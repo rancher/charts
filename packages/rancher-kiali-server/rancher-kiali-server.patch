@@ -1,7 +1,7 @@
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-kiali-server/charts-original/Chart.yaml packages/rancher-kiali-server/charts/Chart.yaml
 --- packages/rancher-kiali-server/charts-original/Chart.yaml
 +++ packages/rancher-kiali-server/charts/Chart.yaml
-@@ -1,20 +1,24 @@
+@@ -1,20 +1,28 @@
  apiVersion: v2
  appVersion: v1.22.0
 -description: Kiali is an open source project for service mesh observability, refer
@@ -14,6 +14,8 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-kiali-server/charts-original/C
 -- kiali
 +  - istio
 +  - kiali
++  - networking
++  - infrastructure
  maintainers:
 -- email: kiali-users@googlegroups.com
 -  name: Kiali
@@ -34,10 +36,12 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-kiali-server/charts-original/C
 +  - https://github.com/kiali/helm-charts
  version: 1.22.0
 +annotations:
-+  catalog.cattle.io/requires-gvr: prometheuses.monitoring.coreos.com/v1
++  catalog.cattle.io/requires-gvr: monitoring.coreos.com.prometheuses/v1
 +  catalog.rancher.io/namespace: cattle-istio-system
 +  catalog.rancher.io/release-name: rancher-kiali-server
 +  catalog.cattle.io/hidden: true
++  catalog.cattle.io/auto-install: rancher-kiali-server-crd=match
++  catalog.cattle.io/provides-gvr: monitoringdashboards.monitoring.kiali.io/v1alpha1
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-kiali-server/charts-original/templates/_helpers.tpl packages/rancher-kiali-server/charts/templates/_helpers.tpl
 --- packages/rancher-kiali-server/charts-original/templates/_helpers.tpl
 +++ packages/rancher-kiali-server/charts/templates/_helpers.tpl
