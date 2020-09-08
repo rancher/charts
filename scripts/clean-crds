@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -e
+
+# Reverts changes done to a chart from the prepare-crd script to go back to using one chart
+if [[ -z $1 ]]; then
+    echo "No directory provided to revert charts-crd changes within"
+	exit 1
+fi
+
+f=$1
+
+if ! [[ -d ${f}/charts-crd ]]; then
+    echo "Chart does not have a charts-crd/ directory to revert changes from"
+    exit 1
+fi
+
+# Move CRDs back into ${f}/charts/crd/ and remove ${f}/charts-crd
+mkdir -p ${f}/charts/crds/
+mv ${f}/charts-crd/templates/* ${f}/charts/crds/
+rm -rf ${f}/charts-crd
+
+if ! [[ -d ${f}/charts ]]; then
+    # Main chart has already been deleted; no need to modify contents
+    exit 0
+fi
+
+# Remove the validate-install-${name}-crd.yaml
+name=$(cat ${f}/charts/Chart.yaml | yq r - 'name')
+rm ${f}/charts/templates/validate-install-${name}-crd.yaml
+# Remove additional annotations added to original chart if added
+if [[ "$(yq r ${f}/charts/Chart.yaml 'annotations[catalog.cattle.io/auto-install]')" == "${name}-crd=match" ]]; then
+    yq d -i ${f}/charts/Chart.yaml 'annotations[catalog.cattle.io/auto-install]'
+fi
