@@ -3,6 +3,15 @@ set -e
 
 cd $(dirname $0)/..
 
+for f in packages/*; do
+  if [[ -f ${f}/package.yaml && -d ${f}/charts ]]; then
+    split_crds=$(cat ${f}/package.yaml | yq r - generateCRDChart.enabled)
+    if [[ "${split_crds}" == "true" ]]; then
+      git update-index --assume-unchanged ${f}/charts/crds/*
+    fi
+  fi
+done
+
 ./scripts/prepare
 
 source ./scripts/version
@@ -14,3 +23,12 @@ if [ -n "$DIRTY" ]; then
 fi
 
 ./scripts/generate-charts
+
+for f in packages/*; do
+  if [[ -f ${f}/package.yaml && -d ${f}/charts ]]; then
+    split_crds=$(cat ${f}/package.yaml | yq r - generateCRDChart.enabled)
+    if [[ "${split_crds}" == "true" ]]; then
+      git update-index --no-assume-unchanged ${f}/charts/crds/*
+    fi
+  fi
+done
