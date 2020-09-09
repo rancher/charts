@@ -3,34 +3,8 @@ set -e
 
 cd $(dirname $0)/..
 
-./scripts/prepare
+CHART=$CHART ./scripts/prepare
 
-# Remove special changes from optional flags before checking if Git is dirty
-for f in packages/*; do
-    if [[ -f ${f}/package.yaml ]]; then
-        split_crds=$(cat ${f}/package.yaml | yq r - generateCRDChart.enabled)
-		if [[ "${split_crds}" == "true" && -d ${f}/charts-crd ]]; then
-			./scripts/clean-crds ${f}
-		fi
-    fi
-done
+CHART=$CHART ./scripts/generate-charts
 
-source ./scripts/version
-
-# Add back in special changes from optional flags
-for f in packages/*; do
-    if [[ -f ${f}/package.yaml ]]; then
-        split_crds=$(cat ${f}/package.yaml | yq r - generateCRDChart.enabled)
-		if [[ "${split_crds}" == "true" ]]; then
-			./scripts/prepare-crds ${f}
-		fi
-    fi
-done
-
-if [ -n "$DIRTY" ]; then
-    echo Git is dirty
-    git status
-    exit 1
-fi
-
-./scripts/generate-charts
+CHART=$CHART ./scripts/clean
