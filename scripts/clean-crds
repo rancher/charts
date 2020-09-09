@@ -16,7 +16,11 @@ fi
 
 # Move CRDs back into ${f}/charts/crd/ and remove ${f}/charts-crd
 mkdir -p ${f}/charts/crds/
-mv ${f}/charts-crd/templates/* ${f}/charts/crds/
+if [[ -d ${f}/charts-crd/crd-manifest ]]; then
+	mv ${f}/charts-crd/crd-manifest/* ${f}/charts/crds/
+else
+	mv ${f}/charts-crd/templates/* ${f}/charts/crds/
+fi
 rm -rf ${f}/charts-crd
 
 if ! [[ -d ${f}/charts ]]; then
@@ -26,7 +30,7 @@ fi
 
 # Remove the validate-install-${name}-crd.yaml
 name=$(cat ${f}/charts/Chart.yaml | yq r - 'name')
-rm ${f}/charts/templates/validate-install-${name}-crd.yaml
+rm ${f}/charts/templates/validate-install-crd.yaml
 # Remove additional annotations added to original chart if added
 if [[ "$(yq r ${f}/charts/Chart.yaml 'annotations[catalog.cattle.io/auto-install]')" == "${name}-crd=match" ]]; then
     yq d -i ${f}/charts/Chart.yaml 'annotations[catalog.cattle.io/auto-install]'

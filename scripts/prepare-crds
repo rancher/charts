@@ -2,6 +2,14 @@
 set -e
 
 # Split the provided package into a charts and charts-crd package
+# This script is split up into the following sections
+# - Initial checks to make sure that the current state of the directory is suitable for running this script
+# - Collecting information from the upstream chart that will be used to fill out a set of templates
+# - Copy templates stored in ./scripts/chart-templates into ${f}/charts-crd based on flags
+# - Apply templates based on information collected from the upstream chart
+# - Move anything from ${f}/charts-crd/overlay-upstream to the upstream chart
+# - Move any CRDs from the upstream chart into the appropriate directory for CRDs based on flags
+# - Apply any additional necessary annotation logic on the Chart.yaml of both the upstream and CRD charts
 
 if [[ -z $1 ]]; then
 	echo "No directory provided to initialize charts-crd within"
@@ -34,11 +42,6 @@ if ! [[ -d ${f}/charts/crds ]] || [[ $(ls ${f}/charts/crds | wc -l) -eq 0 ]]; th
 	exit 1
 fi
 
-# Create directory and move CRDs
-mkdir -p ${f}/charts-crd/templates
-mv ${f}/charts/crds/* ${f}/charts-crd/templates
-rm -rf ${f}/charts/crds
-
 # Collect information on chart
 name=$(cat ${f}/charts/Chart.yaml | yq r - 'name')
 api_version=$(cat ${f}/charts/Chart.yaml | yq r - 'apiVersion')
@@ -46,7 +49,7 @@ chart_version=$(cat ${f}/charts/Chart.yaml | yq r - 'version')
 
 # Collect information on CRDs
 crd_apis=()
-for crd_yaml in ${f}/charts-crd/templates/*; do
+for crd_yaml in ${f}/charts/crds/*; do
 	crd_group=$(yq r ${crd_yaml} 'spec.group')
 	crd_kind=$(yq r ${crd_yaml} 'spec.names.kind')
 	crd_version=$(yq r ${crd_yaml} 'spec.version')
@@ -56,25 +59,45 @@ for crd_yaml in ${f}/charts-crd/templates/*; do
 	crd_apis+=("${crd_group}/${crd_version}/${crd_kind}")
 done
 
-# Init Chart.yaml for CRD chart
-cat << EOF > ${f}/charts-crd/Chart.yaml
-apiVersion: ${api_version}
-version: ${chart_version}
-description: A Rancher chart that creates ${name} CRDs within a cluster.
-name: ${name}-crd
-type: application
-EOF
+# Set environment variable to be used in validate-install-crd.yaml template
+set_found_crd=$(
+for crd in ${crd_apis[@]}; do
+  echo "# {{- set \$found \"${crd}\" false -}}"
+done
+)
+
+# Copy base template and apply variables to the template
+mkdir -p ${f}/charts-crd
+cp -R ./scripts/chart-templates/crd-base/* ${f}/charts-crd
+assume_ownership=$(cat ${f}/package.yaml | yq r - generateCRDChart.assumeOwnershipOfCRDs)
+if [[ ${assume_ownership} == "true" ]]; then
+    cp -fR ./scripts/chart-templates/crd-assume-ownership/* ${f}/charts-crd
+fi
+for template_file in $(find ${f}/charts-crd -type f); do
+  # Applies any environment variables currently set onto your template file
+  eval "echo \"$(sed 's/"/\\"/g' ${template_file})\"" > ${template_file}
+done
+
+# Move anything from ${f}/charts-crd/overlay-upstream to the main chart
+cp -R ${f}/charts-crd/overlay-upstream/* ${f}/charts
+rm -rf ${f}/charts-crd/overlay-upstream
+
+# Move CRDs from main chart to CRD chart
+if [[ ${assume_ownership} == "true" ]]; then
+  mkdir -p ${f}/charts-crd/crd-manifest
+  mv ${f}/charts/crds/* ${f}/charts-crd/crd-manifest
+else
+  mkdir -p ${f}/charts-crd/templates
+  mv ${f}/charts/crds/* ${f}/charts-crd/templates
+fi
+rm -rf ${f}/charts/crds
 
 # Make the primary chart auto-install the CRD chart
 if [[ -z "$(yq r ${f}/charts/Chart.yaml 'annotations[catalog.cattle.io/auto-install]')" ]]; then
 	yq w -i ${f}/charts/Chart.yaml "annotations[catalog.cattle.io/auto-install]" "${name}-crd=match"
 fi
-# Hide the CRD chart
-if [[ -z "$(yq r ${f}/charts-crd/Chart.yaml 'annotations[catalog.cattle.io/hidden]')" ]]; then
-	yq w -i ${f}/charts-crd/Chart.yaml "annotations[catalog.cattle.io/hidden]" "true"
-fi
 
-# Add annotations to charts-crd/Chart.yaml
+# Add annotations to ${f}/charts-crd/Chart.yaml
 copyAnnotations=(catalog.cattle.io/release-name catalog.cattle.io/certified catalog.cattle.io/experimental catalog.cattle.io/namespace)
 for a in ${copyAnnotations[@]}; do
 	v=$(yq r ${f}/charts/Chart.yaml "annotations[${a}]")
@@ -85,29 +108,3 @@ for a in ${copyAnnotations[@]}; do
 		yq w -i ${f}/charts-crd/Chart.yaml "annotations[${a}]" "${v}"
 	fi
 done
-
-# Init README.yaml for CRD chart
-cat << EOF > ${f}/charts-crd/README.md
-# ${name}-crd
-A Rancher chart that installs the CRDs used by [${name}](https://github.com/rancher/dev-charts/tree/master/packages/${name}).
-EOF
-
-# Copy a YAML that triggers a failure on the original chart if the CRDs that are copied don't exist
-cat << EOF > ${f}/charts/templates/validate-install-${name}-crd.yaml
-# {{- \$found := dict -}}
-$(
-for crd in ${crd_apis[@]}; do
-echo "# {{- set \$found \"${crd}\" false -}}"
-done
-)
-# {{- range .Capabilities.APIVersions -}}
-# {{- if hasKey \$found (toString .) -}}
-# 	{{- set \$found (toString .) true -}}
-# {{- end -}}
-# {{- end -}}
-# {{- range \$_, \$exists := \$found -}}
-# {{- if (eq \$exists false) -}}
-# 	{{- required "Required CRDs are missing. Please install the ${name}-crd chart before installing this chart." "" -}}
-# {{- end -}}
-# {{- end -}}
-EOF
