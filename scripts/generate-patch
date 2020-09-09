@@ -67,12 +67,6 @@ for f in packages/*; do
 				if [[ "${split_crds}" == "true" ]]; then
 					./scripts/clean-crds ${f}
 				fi
-				providesGVR="$(cat ${f}/package.yaml | yq r - providesGVR)"
-				if ! [[ -z ${providesGVR} ]]; then
-					if [[ "$(yq r ${f}/charts/Chart.yaml 'annotations[catalog.cattle.io/provides-gvr]')" == "${providesGVR}" ]]; then
-						yq d -i ${f}/charts/Chart.yaml "annotations[catalog.cattle.io/provides-gvr]"
-					fi
-				fi
 				diff -x *.tgz -x *.lock -uNr ${f}/charts-original ${f}/charts > ${f}/$(basename -- ${f}).patch || true
 				if ! [[ -s ${f}/$(basename -- ${f}).patch ]]; then
 					# If no changes exist in patch then remove it
