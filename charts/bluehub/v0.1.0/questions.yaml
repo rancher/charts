@@ -4,10 +4,17 @@ questions:
 - variable: zookeeper.enabled
   default: "false"
   type: boolean
-  label: "If true, installs the Zookeeper"
+  label: "Install Zookeeper"
   group: "Zookeeper Settings"
   show_subquestion_if: true
   subquestions:
+    - variable: zookeeper.defaultSecret
+      required: true
+      default: "true"
+      type: boolean
+      label: "Install default secrets"
+      description: "Only for testing. Do not use these for production deployment"
+      group: "Zookeeper Settings"
     - variable: zookeeper.imgVersion
       required: true
       default: "3.5.8"
@@ -58,10 +65,17 @@ questions:
 - variable: kafka.enabled
   default: "false"
   type: boolean
-  label: "If true, installs the Kafka Brokers"
+  label: "Install Kafka Brokers"
   group: "Kafka Settings"
   show_subquestion_if: true
   subquestions:
+    - variable: kafka.defaultSecret
+      required: true
+      default: "true"
+      type: boolean
+      label: "Install default secrets"
+      description: "Only for testing. Do not use these for production deployment"
+      group: "Kafka Settings"
     - variable: kafka.replicas
       required: true
       default: "5"
@@ -88,7 +102,7 @@ questions:
       group: "Kafka Settings"
     - variable: kafka.externalPort
       required: true
-      default: ""
+      default: "30000"
       description: This port should be unique across namespaces as these ports are exposed as NodePort on Kubernetes nodes
       type: int
       label: "Kafka External Port:"
@@ -127,10 +141,17 @@ questions:
 - variable: schemareg.enabled
   default: "false"
   type: boolean
-  label: "If true, installs the Schema Registry"
+  label: "Install Schema Registry"
   group: "Schema Registry Settings"
   show_subquestion_if: true
   subquestions:
+    - variable: schemareg.defaultSecret
+      required: true
+      default: "true"
+      type: boolean
+      label: "Install default secrets"
+      description: "Only for testing. Do not use these for production deployment"
+      group: "Schema Registry Settings"
     - variable: schemareg.replicas
       required: true
       default: "2"
@@ -151,7 +172,7 @@ questions:
       group: "Schema Registry Settings"
     - variable: schemareg.type
       required: true
-      default: "ClusterIP"
+      default: "NodePort"
       type: string
       label: "Service Type: ClusterIP, NodePort or LoadBalancer"
       group: "Schema Registry Settings"
@@ -166,10 +187,18 @@ questions:
 - variable: clustermgr.enabled
   default: "false"
   type: boolean
-  label: "If true, installs the Cluster Manager"
+  label: "Install Cluster Manager"
+  description: "Cluster Manager is self servicing tool to manage clusters, topics, partitions and more"
   group: "Cluster Manager Settings"
   show_subquestion_if: true
   subquestions:
+    - variable: clustermgr.defaultSecret
+      required: true
+      default: "true"
+      type: boolean
+      label: "Install default secrets"
+      description: "Only for testing. Do not use these for production deployment"
+      group: "Cluster Manager Settings"
     - variable: clustermgr.replicas
       required: true
       default: "1"
@@ -191,7 +220,7 @@ questions:
       group: "Cluster Manager Settings"
     - variable: clustermgr.type
       required: true
-      default: "ClusterIP"
+      default: "NodePort"
       type: string
       label: "Service Type: ClusterIP, NodePort or LoadBalancer"
       group: "Cluster Manager Settings"
@@ -199,10 +228,18 @@ questions:
 - variable: securitymgr.enabled
   default: "false"
   type: boolean
-  label: "If true, installs the Security Manager"
+  label: "Install Security Manager"
+  description: "Security Manager is an app to enforce ACLs on Kafka Brokers"
   group: "Security Manager Settings"
   show_subquestion_if: true
   subquestions:
+    - variable: securitymgr.defaultSecret
+      required: true
+      default: "true"
+      type: boolean
+      label: "Install default secrets"
+      description: "Only for testing. Do not use these for production deployment"
+      group: "Security Manager Settings"
     - variable: securitymgr.replicas
       required: true
       default: "1"
@@ -225,13 +262,21 @@ questions:
 - variable: kproducer.enabled
   default: "false"
   type: boolean
-  label: "If true, installs the Kproducer"
+  label: "Install KProducer (producer app)"
+  description: "Easy to use configuration driven producer app"
   group: "Kproducer Settings"
   show_subquestion_if: true
   subquestions:
+    - variable: kproducer.defaultSecret
+      required: true
+      default: "true"
+      type: boolean
+      label: "Install default secrets"
+      description: "Only for testing. Do not use these for production deployment"
+      group: "Kafka Settings"
     - variable: kproducer.replicas
       required: true
-      default: "10"
+      default: "3"
       type: int
       label: "Kproducer Instances:"
       group: "Kproducer Settings"
@@ -249,7 +294,7 @@ questions:
       group: "Kproducer Settings"
     - variable: kproducer.type
       required: true
-      default: "ClusterIP"
+      default: "NodePort"
       type: string
       label: "Service Type: ClusterIP, NodePort or LoadBalancer"
       group: "Kproducer Settings"
