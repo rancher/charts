@@ -3,10 +3,19 @@
 for f in packages/*; do
 	if [[ -f ${f}/package.yaml ]]; then
 		if [[ -z $CHART || $CHART == $(basename -- ${f}) ]]; then
-			if [[ -d ${f}/charts-crd ]]; then
+			# Remove special changes from optional flags before checking if Git is dirty
+			providesGVR="$(yq r ${f}/package.yaml providesGVR)"
+			if [[ -n ${providesGVR} && -f ${f}/charts/Chart.yaml ]]; then
+				if [[ "$(yq r ${f}/charts/Chart.yaml 'annotations[catalog.cattle.io/provides-gvr]')" == "${providesGVR}" ]]; then
+					yq d -i ${f}/charts/Chart.yaml "annotations[catalog.cattle.io/provides-gvr]" 
+				fi
+			fi
+			split_crds=$(yq r ${f}/package.yaml generateCRDChart.enabled)
+			if [[ "${split_crds}" == "true" && -d ${f}/charts-crd ]]; then
 				./scripts/clean-crds ${f}
 			fi
-			if [[ $(cat ${f}/package.yaml | yq r - url) ]]; then
+			url=$(yq r ${f}/package.yaml url)
+			if [[ -n $url ]]; then
 				rm -rf ${f}/charts
 			fi
 		fi

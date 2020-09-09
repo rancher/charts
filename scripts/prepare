@@ -40,11 +40,11 @@ for f in packages/*; do
 				basename=$(basename -- ${file})
 				patch -E -p3 -d ${f}/charts < ${f}/$basename
 			done
+			# Process changes from optional flags for generateCRDChart and providesGVR (documented in README.md)
 			split_crds=$(cat ${f}/package.yaml | yq r - generateCRDChart.enabled)
 			if [[ "${split_crds}" == "true" ]]; then
 				./scripts/prepare-crds ${f}
 			fi
-			# Add provides GVR annotation, this lets other charts require it
 			providesGVR="$(cat ${f}/package.yaml | yq r - providesGVR)"
 			if ! [[ -z ${providesGVR} ]]; then
 				if [[ -z "$(yq r ${f}/charts/Chart.yaml 'annotations[catalog.cattle.io/provides-gvr]')" ]]; then

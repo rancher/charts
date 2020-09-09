@@ -63,11 +63,16 @@ for f in packages/*; do
 				done
 			fi
 			if [[ -d ${f}/charts ]]; then
-				split_crds=$(cat ${f}/package.yaml | yq r - generateCRDChart.enabled)
-				if [[ "${split_crds}" == "true" ]]; then
+				# Remove special changes from optional flags before trying to apply the diff
+				unset split_crds
+				unset providesGVR
+				if [[ -f ${f}/package.yaml ]]; then
+					split_crds=$(yq r ${f}/package.yaml generateCRDChart.enabled)
+					providesGVR="$(yq r ${f}/package.yaml providesGVR)"
+				fi
+				if [[ "${split_crds}" == "true" && -d ${f}/charts-crd ]]; then
 					./scripts/clean-crds ${f}
 				fi
-				providesGVR="$(cat ${f}/package.yaml | yq r - providesGVR)"
 				if ! [[ -z ${providesGVR} ]]; then
 					if [[ "$(yq r ${f}/charts/Chart.yaml 'annotations[catalog.cattle.io/provides-gvr]')" == "${providesGVR}" ]]; then
 						yq d -i ${f}/charts/Chart.yaml "annotations[catalog.cattle.io/provides-gvr]"
@@ -80,6 +85,12 @@ for f in packages/*; do
 				fi
 				if [[ -f ${f}/$(basename -- ${f}).patch ]]; then
 					remove_timestamp_from_diff
+				fi
+				# Add back in special changes from optional flags
+				if [[ -n ${providesGVR} && -f ${f}/charts/Chart.yaml ]]; then
+					if [[ -z "$(yq r ${f}/charts/Chart.yaml 'annotations[catalog.cattle.io/provides-gvr]')" ]]; then
+						yq w -i ${f}/charts/Chart.yaml "annotations[catalog.cattle.io/provides-gvr]" "${providesGVR}"
+					fi
 				fi
 				if [[ "${split_crds}" == "true" ]]; then
 					./scripts/prepare-crds ${f}
