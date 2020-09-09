@@ -4,8 +4,11 @@ set -e
 # Pull in the upstream charts
 for f in packages/*; do
 	if [[ -z $CHART || $CHART == $(basename -- ${f}) ]]; then
-		url=$(cat ${f}/package.yaml | yq r - url)
-		if [[ -f ${f}/package.yaml && -n ${url} ]]; then
+		unset url
+		if [[ -f ${f}/package.yaml ]]; then
+			url=$(cat ${f}/package.yaml | yq r - url)
+		fi
+		if [[ -n ${url} ]]; then
 			subdirectory=$(cat ${f}/package.yaml | yq r - subdirectory)
 			type=$(cat ${f}/package.yaml | yq r - type)
 			fields=$(echo ${subdirectory} | awk -F'/' '{print NF}')
@@ -43,13 +46,6 @@ for f in packages/*; do
 			split_crds=$(cat ${f}/package.yaml | yq r - generateCRDChart.enabled)
 			if [[ "${split_crds}" == "true" ]]; then
 				./scripts/prepare-crds ${f}
-			fi
-			# Add provides GVR annotation, this lets other charts require it
-			providesGVR="$(cat ${f}/package.yaml | yq r - providesGVR)"
-			if ! [[ -z ${providesGVR} ]]; then
-				if [[ -z "$(yq r ${f}/charts/Chart.yaml 'annotations[catalog.cattle.io/provides-gvr]')" ]]; then
-					yq w -i ${f}/charts/Chart.yaml "annotations[catalog.cattle.io/provides-gvr]" "${providesGVR}"
-				fi
 			fi
 		fi
 	fi
