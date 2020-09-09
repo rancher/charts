@@ -100,6 +100,11 @@ up-to-date with the latest chart. It also automatically build github pages to se
 
 ### Experimental: Splitting CRDs from an upstream package into a separate package
 
+**Note to Contributers:** This flag can only be used to create separate CRD charts if your chart meets the following three requirements:
+- The chart defines one or more CRDs
+- The chart is based on an upstream chart and includes a `package.yaml` (if this is not the case, you will need to manually create a separate CRD chart)
+- The chart tries to install some default CRs based on the CRDs that it defines (if this is not the case, you should place the CRDs directly within the `templates/` directory of the chart; using a CRD chart is only necessary since rendering the chart will fail since the `kind` of the default CRs cannot be found in the cluster as the CRD is not installed yet).
+
 There are cases in which upstream charts import CRDs into a cluster using the Helm 3 `crd/` directory, which allows a user to first install the CRDs before rendering the templates created by the chart. However, using this approach has certain caveats [as documented by Helm](https://helm.sh/docs/chart_best_practices/custom_resource_definitions/), such as an inability to upgrade / delete those CRDs and or use the `--dry-run` flag on the package before installing the CRDs. As a result, it may be advised to move those CRDs into a separate chart under the `templates/` directory so that the lifecycle of those CRDs can continue to be managed by Helm.
 
 However, in the current `rancher/charts` model, this would require deleting the CRDs from the upstream chart (which introduces significant changes to the package's patch) and maintaining a separate CRD chart that also needs to be kept up to date with the upstream chart. This poses several challenges, including but not limited to:
@@ -113,7 +118,9 @@ To resolve this, `rancher/charts` has a flag that can be added to the `package.y
 1. On running `make CHART={CHART_NAME} prepare:
 
    After running the default prepare script to pull the chart from upstream and apply the patch, a new directory called `charts-crd` is also created alongside `charts`. This will represent your new CRD chart. Any CRDs located within the Rancher chart in `charts/crd/` will be relocated to `charts-crd/templates/` and a new `charts-crd/Chart.yaml` (with chart names `{CHART_NAME}-crd`) and `charts-crd/README.md` will be generated. The `charts-crd/Chart.yaml` and `charts/Chart.yaml` will also be updated with the relevant annotations used by Rancher to auto-install the CRD chart from Dashboard.
-   
+
+   If you are using the `generateCRDChart.assumeOwnershipOfCRDs` flag, the CRDs will instead be located in `charts-crd/crd-manifest/*` and some additional resources (ConfigMap, Jobs, and RBAC resources) will be created in the `charts-crd/templates` directory instead. This option should only be enabled if the chart is expected to be deployed in a setting where all or a subset of your CRDs may or may not already exist, in which case your CRD chart may want to assume ownership of the CRDs to prevent a failure on deploy.
+
    In addition, a new file `charts/templates/validate-install-${CHART_NAME}-crd.yaml` will be added to your Rancher chart that is automatically configured to validate whether the CRDs that have been moved to the CRD chart are installed onto your cluster before trying to render the Rancher chart. For example, here is an error you might encounter if you try to install the Rancher chart first:
 
    ```
@@ -126,7 +133,7 @@ To resolve this, `rancher/charts` has a flag that can be added to the `package.y
  
    The experience of modifying values within the `charts` directory and making a new patch is unchanged. The same workflow also applies to the `charts-crd` directory with two caveats:
    - Changes to `charts/templates/validate-install-${CHART_NAME}-crd.yaml`, `charts-crd/Chart.yaml`, and `charts-crd/README.md` will be ignored / not be shown in the patch as they are not expected to be updated
-   - Any changes to `charts-crd/templates/*` will show up in the patch as if you had changed the relevant file within `charts/crd/*`.
+   - Any changes to `charts-crd/templates/*` (`charts-crd/crd-manifest/*` if you are using the `generateCRDChart.assumeOwnershipOfCRDs` flag) will show up in the patch as if you had changed the relevant file within `charts/crd/*`.
 
    Files added to the `overlay` directory will only overlay onto the Rancher chart, not the CRD chart.
    
