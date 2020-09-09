@@ -4,7 +4,10 @@ set -e
 # Pull in the upstream charts
 for f in packages/*; do
 	if [[ -z $CHART || $CHART == $(basename -- ${f}) ]]; then
-		url=$(cat ${f}/package.yaml | yq r - url)
+		unset url
+		if [[ -f ${f}/package.yaml ]]; then
+			url=$(cat ${f}/package.yaml | yq r - url)
+		fi
 		if [[ -f ${f}/package.yaml && -n ${url} ]]; then
 			subdirectory=$(cat ${f}/package.yaml | yq r - subdirectory)
 			type=$(cat ${f}/package.yaml | yq r - type)
