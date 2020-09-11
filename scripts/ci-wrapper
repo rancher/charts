@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -e
+set -x
+
+sudo ./scripts/bootstrap
+git fetch origin ${1}
+git checkout origin/${1} ./assets/index.yaml || true
+git checkout origin/${1} ./sha256sum || true
+
+charts=$(./scripts/produce-sha256)
+
+if [[ ! -z $charts ]]; then
+  echo $charts | xargs sh -c ./scripts/ci
+fi

@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -e
+
+# This script compares the sha256sum of each chart folder, find the sha256sum of that chart that has changed
+
+rm -rf ./sha256sum-new
+mkdir -p ./sha256sum-new
+for f in packages/*; do
+    rm -rf ./sha256sum-new/$(basename -- ${f})
+    mkdir -p ./sha256sum-new/$(basename -- ${f})
+    find ${f} -type f | xargs sha256sum > ./sha256sum-new/$(basename -- ${f})/$(basename -- ${f}).sum
+done
+
+if [ ! -d sha256sum ]; then
+    cp -r sha256sum-new sha256sum
+    for f in packages/*; do
+        echo $(basename -- ${f})
+    done
+fi
+
+for f in sha256sum/*; do 
+    if ! cmp -s ./sha256sum-new/$(basename -- ${f})/$(basename -- ${f}).sum ${f}/$(basename -- ${f}).sum; then
+        echo $(basename -- ${f})
+    fi
+done
+
+rm -rf ./sha256sum 2>/dev/null
+mv ./sha256sum-new ./sha256sum

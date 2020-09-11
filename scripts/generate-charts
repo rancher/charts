@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -e
 
-add=0
 for f in packages/*; do
 	if [[ -z $CHART || $CHART == $(basename -- ${f}) ]]; then
 		mkdir -p assets/$(basename -- ${f})
@@ -14,19 +13,35 @@ for f in packages/*; do
 			packageVersion=$(yq r ${f}/package.yaml packageVersion)
 			yq w -i ${f}/charts/Chart.yaml 'version' "${version}${packageVersion}"
 		fi
+
 		helm package ${f}/charts --destination assets/$(basename -- ${f})
-		git checkout assets/$(basename -- ${f})/"$(basename -- ${f})-$(yq r ${f}/charts/Chart.yaml version).tgz" 2>/dev/null || true
+
+		mkdir -p charts/$(basename -- ${f})
+		cp -R ${f}/charts/* charts/$(basename -- ${f})/
+
 		if [[ -d ${f}/charts-crd ]]; then
 			packageVersion=$(yq r ${f}/package.yaml packageVersion)
 			yq w -i ${f}/charts-crd/Chart.yaml 'version' "${version}${packageVersion}"
 
 			helm package ${f}/charts-crd --destination assets/$(basename -- ${f})
-			git checkout assets/$(basename -- ${f})/"$(basename -- ${f})-crd-$(yq r ${f}/charts-crd/Chart.yaml version).tgz" || true
+
+			mkdir -p charts/$(basename -- ${f})/charts-crd
+			cp -R ${f}/charts-crd/* charts/$(basename -- ${f})/charts-crd
 		fi
+		helm repo index --merge ./assets/index.yaml --url assets assets
 	fi
 done
 
-if [[ -n $(git ls-files --other | grep "tgz") ]]; then
-	helm repo index --merge ./assets/index.yaml --url assets assets
-    cp ./assets/index.yaml .
-fi
+cp ./assets/index.yaml .
+
+cat > index.html << EOF
+<!doctype html>
+<html>
+  <head>
+    <title>This is the index page for charts</title>
+  </head>
+  <body>
+    <p>If you are looking for index.yaml, go to https://charts.rancher.io/index.yaml</p>
+  </body>
+</html>
+EOF

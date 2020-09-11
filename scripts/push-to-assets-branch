@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+set -e
+set -x
+
+rm -rf /tmp/tmp-assets
+mkdir -p /tmp/tmp-assets
+cp -r assets/ index.yaml index.html sha256sum/ /tmp/tmp-assets
+if [[ -d charts ]]; then
+  cp -r charts/ /tmp/tmp-assets
+fi
+git checkout .
+git clean -fd
+git fetch ${1} ${2}
+git checkout ${2}
+cp -r /tmp/tmp-assets/* ./
+git add .
+git -c user.name="actions" -c user.email="actions@github.com" commit -m "Generated changes" || true
+git push ${1} ${2}
