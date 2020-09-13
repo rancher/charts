@@ -22,5 +22,11 @@ mirror: bootstrap
 clean:
 	./scripts/clean
 
+rebase-patch:
+	./scripts/generate-rebased-patch
+
+rebase-patch-non-interactive:
+	./scripts/generate-rebased-patch --non-interactive
+
 .DEFAULT_GOAL := ci
 

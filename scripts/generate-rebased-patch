@@ -1,0 +1,243 @@
+#!/usr/bin/env bash
+set -e
+
+INTERACTIVE=1
+while test $# -gt 0; do
+  case "$1" in
+    -n|--non-interactive)
+      INTERACTIVE=0
+      shift
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+if [[ ${INTERACTIVE} == "1" ]]; then
+    echo "Running in interactive mode. This script will spin up a shell if there are any conflicts"
+else
+    echo "Running in non-interactive mode. This script will exit with an error if there are any conflicts"
+fi
+
+if [[ -z ${CHART} || -z ${NEW_PACKAGE_YAML} ]]; then
+    echo "Usage: make CHART=<chart-name> NEW_PACKAGE_YAML=<path-to-new-package-yaml> interactive-rebase"
+	exit 1
+fi
+
+if ! [[ -d packages/${CHART} ]]; then
+    echo "No directory at packages/${CHART}"
+	exit 1
+fi
+
+f=packages/$CHART
+
+if ! [[ -f ${NEW_PACKAGE_YAML} && -n $(yq r ${NEW_PACKAGE_YAML} url) ]]; then
+    echo "New package.yaml at ${NEW_PACKAGE_YAML} does not have a url to pull from"
+    exit 1
+fi
+
+# Check if git is dirty before performing any operations
+if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+    echo "Cannot perform a rebase until all changes are committed. Please ensure all changes are committed before running make interactive-rebase."
+    git status --porcelain --untracked-files=no
+    exit 
+fi
+
+# Check if there's actually a change to be rebased
+new_url=$(yq r ${NEW_PACKAGE_YAML} url)
+old_url=$(yq r ${f}/package.yaml url)
+if [[ ${new_url} == ${old_url} && ${new_commit} == ${old_commit} ]]; then
+    echo "No rebase required: Both ${f}/package.yaml and ${NEW_PACKAGE_YAML} refer to the same upstream repo."
+    exit 0
+fi
+
+# Print a message that explains what the migration is
+old_repo="package at remote URL ${old_url}"
+old_commit=$(yq r ${f}/package.yaml commit)
+if [[ -n ${old_commit} ]]; then
+    old_repo="commit ${old_commit} in git repo at ${old_url}"
+fi
+new_repo="package at remote URL ${new_url}"
+new_commit=$(yq r ${NEW_PACKAGE_YAML} commit)
+if [[ -n ${new_commit} ]]; then
+    new_repo="commit ${new_commit} in git repo at ${new_url}"
+fi
+
+cat << EOF
+# [interactive-rebase]
+# Pulling in repositories to conduct interactive rebase on:
+#
+# ${old_repo}
+# =>
+# ${new_repo}
+#
+EOF
+
+# Prepare the original chart that we use, but disable splitting it into a CRD chart on prepare, and move it into ${f}/charts-local
+yq w -i ${f}/package.yaml generateCRDChart.enabled false
+trap "git checkout -- ${f}/package.yaml" EXIT
+CHART=${CHART} ./scripts/prepare
+rm -rf ${f}/charts-local
+mv ${f}/charts ${f}/charts-local
+git checkout -- ${f}/package.yaml
+trap - EXIT
+
+# Use a trap to ensure that failures don't leave things hanging
+for file in $(find ${f} -name '*.patch'); do mv $file ${file/.patch/._patch}; done
+trap "for file in $(find ${f} -name '*._patch'); do mv $file ${file/._patch/.patch}; done" EXIT
+# Pull in the original upstream chart and place it into ${f}/charts
+./scripts/prepare-upstream ${f}
+rm -rf ${f}/charts
+mv ${f}/charts-original ${f}/charts
+# Prepare its dependencies the same way you would prepare it locally and move it into ${f}/charts-old-upstream
+./scripts/prepare-subcharts ${f}
+rm -rf ${f}/charts-old-upstream
+mv ${f}/charts ${f}/charts-old-upstream
+# Undo the trap exit
+for file in $(find ${f} -name '*._patch'); do mv $file ${file/._patch/.patch}; done
+trap - EXIT
+
+# Use a trap to ensure that failures don't leave things hanging
+for file in $(find ${f} -name '*.patch'); do mv $file ${file/.patch/._patch}; done
+mv ${f}/package.yaml ${f}/old_package.yaml
+cp ${NEW_PACKAGE_YAML} ${f}/package.yaml
+trap "for file in $(find ${f} -name '*._patch'); do mv $file ${file/._patch/.patch}; done; mv ${f}/old_package.yaml ${f}/package.yaml" EXIT
+# Pull in the new upstream chart and place it into ${f}/charts
+./scripts/prepare-upstream ${f}
+rm -rf ${f}/charts
+mv ${f}/charts-original ${f}/charts
+# For all dependencies that the ${f}/charts-local version of the package changed to fixed dependencies numbers,
+# switch the new upstream chart to also use fixed dependency numbers with the latest acceptable versions of
+# the dependencies. This is required to ensure you can resolve conflicts on dependency patches
+i=0
+while ! [[ -z $(yq r ${f}/charts/requirements.yaml dependencies[${i}]) ]]; do 
+    name=$(yq r ${f}/charts/requirements.yaml "dependencies[${i}].name");
+    version=$(yq r ${f}/charts/requirements.yaml "dependencies[${i}].version" | head -n 1);
+    if [[ -d ${f}/charts-local/charts/${name} ]]; then
+        repo=$(yq r ${f}/charts/requirements.yaml "dependencies[${i}].repository");
+        # Add trailing slash
+        [[ "${repo}" != */ ]] && repo="${repo}/";
+        fixed_version=$(curl -sLf ${repo}index.yaml | cat | yq r - "entries.${name}[*].version" | grep ${version} | sort -r -t. -k 1,1nr -k 2,2nr -k 3,3nr | head -n 1);
+        yq w -i ${f}/charts/requirements.yaml "dependencies[${i}].version" ${fixed_version};
+    fi;
+    ((i=i+1));
+done
+# Prepare its dependencies the same way you would prepare it locally and move it into ${f}/charts-new-upstream
+./scripts/prepare-subcharts ${f}
+rm -rf ${f}/charts-new-upstream
+mv ${f}/charts ${f}/charts-new-upstream
+# Undo the trap exit
+for file in $(find ${f} -name '*._patch'); do mv $file ${file/._patch/.patch}; done
+mv ${f}/old_package.yaml ${f}/package.yaml
+trap - EXIT
+
+# Checkout into a new branch to avoid messing with the existing setup
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+rndm=${RANDOM}
+OLD_LOCAL_BRANCH="interactive-rebase-local-oldupstream-${rndm}"
+OLD_NEW_BRANCH="interactive-rebase-oldupstream-newupstream-${rndm}"
+cat << EOF
+# [interactive-rebase]
+# Creating two new branches to facilitate a merge of the charts
+#
+# Branch ${OLD_LOCAL_BRANCH} will contain a commit that has the old upstream followed
+# by a commit with the changes introduced after the patch file(s) is applied
+#
+# Branch ${OLD_NEW_BRANCH} will contain a commit that has the old upstream followed
+# by a commit with the changes introduced by the new upstream
+#
+# We will then attempt to do a rebase on ${OLD_LOCAL_BRANCH} by trying to pull in 
+# changes from ${OLD_NEW_BRANCH} by executing a git rebase ${OLD_NEW_BRANCH}.
+#
+EOF
+echo "# [interactive-rebase]"
+trap "git checkout -- . > /dev/null 2>&1; git checkout -f ${CURRENT_BRANCH}; git branch -D ${OLD_LOCAL_BRANCH} ${OLD_NEW_BRANCH}; rm -rf ${f}/charts-local ${f}/charts-old-upstream ${f}/charts-new-upstream ${f}/charts" EXIT
+
+# Configure the branch that tracks changes from old upstream to local
+git checkout -b ${OLD_LOCAL_BRANCH}
+git add ${f}
+git commit -m "Initial commit"
+rm -rf ${f}/charts
+mkdir -p ${f}/charts
+cp -R ${f}/charts-old-upstream/* ${f}/charts
+git add ${f}/charts
+git commit -m "Added old upstream chart"
+rm -rf ${f}/charts
+mkdir -p ${f}/charts
+cp -R ${f}/charts-local/* ${f}/charts
+git add ${f}/charts
+git commit -m "Apply local changes"
+
+# Configure the branch that tracks changes from old upstream to new upstream
+git checkout -b ${OLD_NEW_BRANCH}
+git reset --hard HEAD^
+rm -rf ${f}/charts
+mkdir -p ${f}/charts
+cp -R ${f}/charts-new-upstream/* ${f}/charts
+git add ${f}/charts
+git commit -m "Apply new changes"
+
+# Try to execute a git rebase
+git checkout ${OLD_LOCAL_BRANCH}
+set +e
+git rebase ${OLD_NEW_BRANCH} 2>&1
+set -e
+
+if [[ -d .git/rebase-apply ]]; then
+    if [[ ${INTERACTIVE} == "0" ]]; then
+        git rebase --abort
+    else
+        # Automatically add files which have no conflicts that need to be addressed from the patch
+        for file in $(git status | grep "both added:" | sed "s/both added://" | xargs); do 
+            if [[ -z $(grep "HEAD" $file) ]]; then
+                git add ${file}; 
+            fi; 
+        done;
+    fi
+fi
+
+# Spin up a shell to allow for user input while they are resolving conflicts
+while [[ -d .git/rebase-apply ]]; do
+cat << EOF
+
+# [interactive-rebase]
+#
+# Detected that the rebase in progress has conflicts.
+#
+# At this point of time, a new shell will be spawned to allow you to resolve conflicts before continuing execution.
+# You must resolve all conflicts and complete the merge before leaving this shell; once you have made
+# the necessary changes, run the exit command to leave this terminal.
+#
+# Once you exit this shell, the script will resume execution.
+#
+# Note: this shell will keep respawning until you resolve the rebase.
+# To abort without performing the rebase, run: 
+# $ git rebase --abort
+# $ exit
+#
+EOF
+bash --rcfile <(echo "PS1='(interactive-rebase-shell) '") -i
+done
+
+# Check if the user just aborted the rebase and exited without changes
+if [[ $(git show-branch --no-name HEAD~2) == "Initial commit" ]]; then
+    echo "Detected that the rebase has been aborted"
+    exit 1
+fi
+
+# Save the patch file
+cp ${NEW_PACKAGE_YAML} ${f}/package.yaml
+yq w -i ${f}/package.yaml generateCRDChart.enabled false
+CHART=${CHART} ./scripts/generate-patch
+cp ${NEW_PACKAGE_YAML} ${f}/package.yaml
+git stash push ${f}/$(basename -- ${f}).patch ${f}/package.yaml
+# Go back to original branch and remove the unnecessary branches
+git checkout -- . > /dev/null 2>&1;
+git checkout -f ${CURRENT_BRANCH}; 
+git branch -D ${OLD_LOCAL_BRANCH} ${OLD_NEW_BRANCH}
+rm -rf ${f}/charts-local ${f}/charts-old-upstream ${f}/charts-new-upstream ${f}/charts
+trap - EXIT
+
+# Unstash the changes from the rebase
+git stash pop
