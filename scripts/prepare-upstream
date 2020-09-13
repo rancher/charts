@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+set -e
+
+# Prepare the chart specified in the url field of the package.yaml and place it into ${f}/packages/charts-original
+
+if [[ -z $1 ]]; then
+	echo "No directory provided to pull in subcharts"
+	exit 1
+fi
+
+f=$1
+
+unset url
+if [[ -f ${f}/package.yaml ]]; then
+	url=$(cat ${f}/package.yaml | yq r - url)
+fi
+
+if [[ -z ${url} ]]; then
+    echo "Chart at packages/${CHART} is a local chart. No upstream to rebase from."
+    exit 1
+fi
+
+subdirectory=$(yq r ${f}/package.yaml subdirectory)
+type=$(yq r ${f}/package.yaml type)
+fields=$(echo ${subdirectory} | awk -F'/' '{print NF}')
+commit=$(yq r ${f}/package.yaml commit)
+if [[ $fields -eq '0' ]]; then
+	fields='1'
+fi
+rm -rf ${f}/charts-original
+mkdir -p ${f}/charts-original
+if [[ $type == 'git' ]]; then
+    rm -rf /tmp/tmp-charts
+	mkdir -p /tmp/tmp-charts
+	git clone --depth=1 --no-tags $url /tmp/tmp-charts
+	pwd=$(pwd)
+	cd /tmp/tmp-charts
+	git fetch --tags
+	git fetch origin $commit
+	git checkout $commit
+	cd $pwd
+	cp -r /tmp/tmp-charts/${subdirectory}/* ${f}/charts-original
+	rm -rf /tmp/tmp-charts
+else
+	curl -sLf ${url} | tar xvzf - -C ${f}/charts-original --strip ${fields} ${subdirectory} > /dev/null 2>&1
+fi
