@@ -18,7 +18,7 @@ function remove_timestamp_from_diff {
 for f in packages/*; do
 	if [[ -f ${f}/package.yaml ]]; then
 		if [[ -z $CHART || $CHART == $(basename -- ${f}) ]]; then
-			url=$(cat ${f}/package.yaml | yq r - url)
+			url=$(yq r ${f}/package.yaml url)
 			if [[ -z ${url} ]]; then
 				continue
 			fi
@@ -55,6 +55,10 @@ for f in packages/*; do
 						((i=i+1))
 						continue
 					fi
+					# Add trailing slash if it does not already exist
+					[[ "${helm_repo}" != */ ]] && helm_repo="${helm_repo}/";
+					# Create ${f}/charts-original/charts if it does not already exist
+					mkdir -p ${f}/charts-original/charts
 					# Subchart is tracked in remote Helm repo with a fixed version number; we grab the download URL and get the local chart archive
 					echo "Comparing current changes to ${subchart}-${version} against upstream found at ${helm_repo}"
 					download_url=$(curl -sLf ${helm_repo}index.yaml | cat | yq r - "entries.${subchart}.(version == ${version}).urls[0]")
@@ -67,7 +71,7 @@ for f in packages/*; do
 				if [[ "${split_crds}" == "true" ]]; then
 					./scripts/clean-crds ${f}
 				fi
-				diff -x *.tgz -x *.lock -uNr ${f}/charts-original ${f}/charts > ${f}/$(basename -- ${f}).patch || true
+				diff -x *.tgz -x *.lock -x *.DS_Store -uNr ${f}/charts-original ${f}/charts > ${f}/$(basename -- ${f}).patch || true
 				if ! [[ -s ${f}/$(basename -- ${f}).patch ]]; then
 					# If no changes exist in patch then remove it
 					rm ${f}/$(basename -- ${f}).patch
