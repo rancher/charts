@@ -4,11 +4,6 @@ The cis-operator enables running CIS benchmark security scans on a kubernetes cl
 
 # Installation
 
-### Requirements
-
-This chart depends on the rancher-cis-benchmark-crd chart.
-
-### Installation
 ```
 helm install rancher-cis-benchmark ./ --create-namespace -n cis-operator-system
 ```
