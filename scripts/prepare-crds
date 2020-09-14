@@ -11,6 +11,30 @@ set -e
 # - Move any CRDs from the upstream chart into the appropriate directory for CRDs based on flags
 # - Apply any additional necessary annotation logic on the Chart.yaml of both the upstream and CRD charts
 
+write_annotation() {
+    # Functionally is the same as yq w -i $1 'annotations[$2]' $3
+	if [[ -z ${1} ]]; then
+        echo "No Chart.yaml path provided"
+        exit 1
+    fi
+	chart_yaml="${1}"
+    if [[ -z ${2} ]]; then
+        echo "Did not provide field to delete in annotations listed in ${f}/charts/Chart.yaml"
+        exit 1
+    fi
+	# escaping for awk
+    field="${2/\//\\/}"
+	if [[ -z ${3} ]]; then
+        echo "Did not provide new value for field ${1} in ${f}/charts/Chart.yaml"
+        exit 1
+    fi
+	# escaping for awk
+    new_val="${3/\//\\/}"
+	tmpfile=$(mktemp)
+	awk -f ./scripts/awk/write_annotation.awk -v field=$field -v new_val=$new_val $chart_yaml > $tmpfile
+	mv $tmpfile $chart_yaml
+}
+
 if [[ -z $1 ]]; then
 	echo "No directory provided to initialize charts-crd within"
 	exit 1
@@ -94,7 +118,7 @@ rm -rf ${f}/charts/crds
 
 # Make the primary chart auto-install the CRD chart
 if [[ -z "$(yq r ${f}/charts/Chart.yaml 'annotations[catalog.cattle.io/auto-install]')" ]]; then
-	yq w -i ${f}/charts/Chart.yaml "annotations[catalog.cattle.io/auto-install]" "${name}-crd=match"
+	write_annotation ${f}/charts/Chart.yaml "catalog.cattle.io/auto-install" "${name}-crd=match"
 fi
 
 # Add annotations to ${f}/charts-crd/Chart.yaml
@@ -105,6 +129,6 @@ for a in ${copyAnnotations[@]}; do
 		if [[ ${a} == "catalog.cattle.io/release-name" ]]; then
 			v="${v}-crd"
 		fi
-		yq w -i ${f}/charts-crd/Chart.yaml "annotations[${a}]" "${v}"
+		write_annotation ${f}/charts-crd/Chart.yaml "${a}" "${v}"
 	fi
 done

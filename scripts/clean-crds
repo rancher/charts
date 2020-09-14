@@ -1,6 +1,24 @@
 #!/usr/bin/env bash
 set -e
 
+delete_annotation() {
+    # Functionally is the same as yq d -i $1 'annotations[$2]'
+    if [[ -z ${1} ]]; then
+        echo "No Chart.yaml path provided"
+        exit 1
+    fi
+    chart_yaml="${1}"
+    if [[ -z ${2} ]]; then
+        echo "Did not provide field to delete in annotations listed in ${f}/charts/Chart.yaml"
+        exit 1
+    fi
+    # escaping for awk
+    field="${2/\//\\/}"
+    tmpfile=$(mktemp)
+    awk -f ./scripts/awk/delete_annotation.awk -v field=$field ${f}/charts/Chart.yaml > $tmpfile
+    mv $tmpfile $chart_yaml
+}
+
 # Reverts changes done to a chart from the prepare-crd script to go back to using one chart
 if [[ -z $1 ]]; then
     echo "No directory provided to revert charts-crd changes within"
@@ -33,5 +51,5 @@ name=$(cat ${f}/charts/Chart.yaml | yq r - 'name')
 rm ${f}/charts/templates/validate-install-crd.yaml
 # Remove additional annotations added to original chart if added
 if [[ "$(yq r ${f}/charts/Chart.yaml 'annotations[catalog.cattle.io/auto-install]')" == "${name}-crd=match" ]]; then
-    yq d -i ${f}/charts/Chart.yaml 'annotations[catalog.cattle.io/auto-install]'
+    delete_annotation ${f}/charts/Chart.yaml "catalog.cattle.io/auto-install"
 fi
