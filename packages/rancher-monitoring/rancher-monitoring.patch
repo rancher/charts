@@ -273,6 +273,20 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/cha
  | `downloadDashboardsImage.tag`             | Curl docker image tag                         | `7.68.0`                                                |
  | `downloadDashboardsImage.pullPolicy`      | Curl docker image pull policy                 | `IfNotPresent`                                          |
  | `namespaceOverride`                       | Override the deployment namespace             | `""` (`Release.Namespace`)                              |
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/charts/grafana/templates/_helpers.tpl packages/rancher-monitoring/charts/charts/grafana/templates/_helpers.tpl
+--- packages/rancher-monitoring/charts-original/charts/grafana/templates/_helpers.tpl
++++ packages/rancher-monitoring/charts/charts/grafana/templates/_helpers.tpl
+@@ -80,3 +80,9 @@
+ app.kubernetes.io/name: {{ include "grafana.name" . }}
+ app.kubernetes.io/instance: {{ .Release.Name }}
+ {{- end -}}
++
++{{- define "grafana_proxy_url" -}}
++{{- if .Values.global.cattle -}}
++root_url = /api/v1/namespaces/{{ include "grafana.namespace" .}}/services/http:{{ include "grafana.fullname" . }}:{{.Values.service.port}}/proxy
++{{- end -}}
++{{- end -}}
+\ No newline at end of file
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/charts/grafana/templates/_pod.tpl packages/rancher-monitoring/charts/charts/grafana/templates/_pod.tpl
 --- packages/rancher-monitoring/charts-original/charts/grafana/templates/_pod.tpl
 +++ packages/rancher-monitoring/charts/charts/grafana/templates/_pod.tpl
@@ -321,6 +335,29 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/cha
      imagePullPolicy: {{ .Values.image.pullPolicy }}
    {{- if .Values.command }}
      command:
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/charts/grafana/templates/configmap.yaml packages/rancher-monitoring/charts/charts/grafana/templates/configmap.yaml
+--- packages/rancher-monitoring/charts-original/charts/grafana/templates/configmap.yaml
++++ packages/rancher-monitoring/charts/charts/grafana/templates/configmap.yaml
+@@ -12,10 +12,19 @@
+   grafana.ini: |
+ {{- range $key, $value := index .Values "grafana.ini" }}
+     [{{ $key }}]
++    {{- if and $.Values.global.cattle (eq $key "server") (not (hasKey $value "root_url")) }}
++      {{ include "grafana_proxy_url" . }}
++    {{- end }}
+     {{- range $elem, $elemVal := $value }}
+     {{ $elem }} = {{ $elemVal }}
+     {{- end }}
+ {{- end }}
++{{- if and $.Values.global.cattle (index .Values "grafana.ini") -}}
++{{- if not (hasKey (index .Values "grafana.ini") "server")}}
++    [server]
++    {{ include "grafana_proxy_url" . }}
++{{- end }}
++{{- end }}
+ 
+ {{- if .Values.datasources }}
+ {{ $root := . }}
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/charts/grafana/values.yaml packages/rancher-monitoring/charts/charts/grafana/values.yaml
 --- packages/rancher-monitoring/charts-original/charts/grafana/values.yaml
 +++ packages/rancher-monitoring/charts/charts/grafana/values.yaml
@@ -705,6 +742,20 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/tem
  {{/* vim: set filetype=mustache: */}}
  {{/* Expand the name of the chart. This is suffixed with -alertmanager, which means subtract 13 from longest 63 available */}}
  {{- define "prometheus-operator.name" -}}
+@@ -90,4 +124,12 @@
+   {{- else -}}
+     {{- .Release.Namespace -}}
+   {{- end -}}
++{{- end -}}
++
++{{- define "prometheus_proxy_url" -}}
++{{- if .Values.global.cattle -}}
++"/api/v1/namespaces/{{ include "prometheus-operator.namespace" . }}/services/http:{{ include "prometheus-operator.fullname" . }}-prometheus:{{ .Values.prometheus.service.port }}/proxy"
++{{- else -}}
++"http://{{ include "prometheus-operator.fullname" . }}-prometheus.{{ include "prometheus-operator.namespace" . }}:{{ .Values.prometheus.service.port }}"
++{{- end -}}
+ {{- end -}}
+\ No newline at end of file
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/templates/alertmanager/alertmanager.yaml packages/rancher-monitoring/charts/templates/alertmanager/alertmanager.yaml
 --- packages/rancher-monitoring/charts-original/templates/alertmanager/alertmanager.yaml
 +++ packages/rancher-monitoring/charts/templates/alertmanager/alertmanager.yaml
@@ -1541,13 +1592,16 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/tem
    version: {{ .Values.prometheus.prometheusSpec.image.tag }}
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.externalLabels }}
-@@ -56,6 +56,9 @@
+@@ -54,7 +54,10 @@
+ {{- else if and .Values.prometheus.ingress.enabled .Values.prometheus.ingress.hosts }}
+   externalUrl: "http://{{ tpl (index .Values.prometheus.ingress.hosts 0) . }}{{ .Values.prometheus.prometheusSpec.routePrefix }}"
  {{- else }}
-   externalUrl: http://{{ template "prometheus-operator.fullname" . }}-prometheus.{{ template "prometheus-operator.namespace" . }}:{{ .Values.prometheus.service.port }}
- {{- end }}
+-  externalUrl: http://{{ template "prometheus-operator.fullname" . }}-prometheus.{{ template "prometheus-operator.namespace" . }}:{{ .Values.prometheus.service.port }}
++  externalUrl: {{ include "prometheus_proxy_url" . }}
++{{- end }}
 +{{- if .Values.prometheus.prometheusSpec.ignoreNamespaceSelectors }}
 +  ignoreNamespaceSelectors: {{ .Values.prometheus.prometheusSpec.ignoreNamespaceSelectors }}
-+{{- end }}
+ {{- end }}
  {{- if .Values.prometheus.prometheusSpec.nodeSelector }}
    nodeSelector:
  {{ toYaml .Values.prometheus.prometheusSpec.nodeSelector | indent 4 }}
@@ -2268,12 +2322,13 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
  ## Provide a k8s version to auto dashboard import script example: kubeTargetVersionOverride: 1.16.6
  ##
-@@ -76,8 +334,19 @@
+@@ -76,8 +334,20 @@
  
  ##
  global:
 +  cattle:
 +    systemDefaultRegistry: ""
++    clusterId: ""
    rbac:
 +    ## Create RBAC resources for ServiceAccounts and users 
 +    ##
