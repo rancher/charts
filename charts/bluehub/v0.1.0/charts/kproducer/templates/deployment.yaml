@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ template "kproducer.name" . }}
+    release: {{ .Release.Name }}
+    namespace: {{ .Release.Namespace }}
+  name: {{ template "bluehub.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.replicas | default "10" | int }}
+  selector:
+    matchLabels:
+      app: {{ template "kproducer.name" . }}
+      release: {{ .Release.Name }}
+      namespace: {{ .Release.Namespace }}
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: {{ template "kproducer.name" . }}
+        release: {{ .Release.Name }}
+        namespace: {{ .Release.Namespace }}
+    spec:
+      containers:
+      - env:
+        - name: maxBodySize
+          value: {{ .Values.maxBodySize | default "8000" | quote }}
+        - name: schemareg
+          value: "http://{{ .Release.Name }}-schemareg-svc:8081"
+        image: {{ .Values.imgName | default "bluespireinc/kproducer" }}:{{ .Values.imgVersion | default "1.0.0" }}
+        imagePullPolicy: Always
+        name: kproducer
+        ports:
+        - containerPort: {{ .Values.port | default "3443" | int }}
+          name: {{ template "kproducer.name" . }}
+          protocol: TCP
+        resources:
+          requests:
+            memory: {{ .Values.resources.requests.memory | default "8Gi" | quote }}
+            cpu: {{ .Values.resources.requests.cpu | default "4000m" | quote }}
+          limits:
+            memory: {{ .Values.resources.limits.memory | default "12Gi" | quote }}
+            cpu: {{ .Values.resources.limits.cpu | default "8000m" | quote }}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /opt/kafka/producers
+          name: producersdir
+        - mountPath: /opt/kafka/schemas
+          name: schemasdir
+        - mountPath: /opt/kafka/certs
+          name: certsdir
+      volumes:
+        - name: producersdir
+          secret:
+            defaultMode: 256
+            optional: false
+            secretName: {{ template "bluehub.fullname" . }}-producers-secrets
+        - name: schemasdir
+          secret:
+            defaultMode: 256
+            optional: false
+            secretName: {{ template "bluehub.fullname" . }}-schemas-secrets
+        - name: certsdir
+          secret:
+            defaultMode: 256
+            optional: false
+            secretName: {{ template "bluehub.fullname" . }}-secrets
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext:
+          runAsNonRoot: false

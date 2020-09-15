@@ -1,0 +1,31 @@
+{{ $name := .Release.Name }}
+{{ $ns := .Release.Namespace }}
+{{ $externalPort := (.Values.externalPort | int) }}
+{{ $internalPort := (.Values.internalPort | int) }}
+{{ range $i := until (.Values.replicas | default "5" | int) }}
+{{ $extPort := (add $externalPort $i) }}
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: kafka-broker
+    app.kubernetes.io/name: kafka
+    pod: {{ $name }}-kafka-{{ $i }}
+  name: {{ $name }}-kafka-{{ $i }}-external
+  namespace: {{ $ns }}
+spec:
+  externalTrafficPolicy: Cluster
+  ports:
+  - name: external-broker
+    port: {{ $internalPort }}
+    nodePort: {{ $extPort }}
+    targetPort: {{ $internalPort }}
+    protocol: TCP
+  selector:
+    app.kubernetes.io/component: kafka-broker
+    app.kubernetes.io/name: kafka
+    statefulset.kubernetes.io/pod-name: {{ $name }}-kafka-{{ $i }}
+  sessionAffinity: None
+  type: NodePort
+---
+{{ end }}
