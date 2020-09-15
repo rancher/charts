@@ -63,14 +63,23 @@ release: {{ .Release.Name | quote }}
 {{- end -}}
 
 {{- define "px.getk8sImages" -}}
+{{- $version := .Capabilities.KubeVersion.GitVersion -}}
 {{- if (.Values.customRegistryURL) -}}
     {{- if (eq "/" (.Values.customRegistryURL | regexFind "/")) -}}
         {{ trim .Values.customRegistryURL }}
     {{- else -}}
-        {{cat (trim .Values.customRegistryURL) "/gcr.io/google_containers" | replace " " ""}}
+        {{- if or (or (and (semverCompare ">= 1.16.14" $version ) (semverCompare "<=1.17.0"  $version)) (and (semverCompare ">= 1.17.10" $version) (semverCompare "<=1.18.0" $version ))) (semverCompare ">=1.18.7" $version) -}}
+           {{cat (trim .Values.customRegistryURL) "/k8s.gcr.io" | replace " " ""}}
+        {{- else -}}
+           {{cat (trim .Values.customRegistryURL) "/gcr.io/google_containers" | replace " " ""}}
+        {{- end -}}
     {{- end -}}
 {{- else -}}
+     {{- if or (or (and (semverCompare ">= 1.16.14" $version ) (semverCompare "<=1.17.0"  $version)) (and (semverCompare ">= 1.17.10" $version) (semverCompare "<=1.18.0" $version ))) (semverCompare ">=1.18.7" $version) -}}
+        {{ "k8s.gcr.io" }}
+     {{- else -}}
         {{ "gcr.io/google_containers" }}
+    {{- end -}}
 {{- end -}}
 {{- end -}}
 
