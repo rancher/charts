@@ -12,12 +12,7 @@ See values.yaml for installation options.
 
 ## Prerequisites
 
-1. Rio requires Kubernetes 1.15 or newer cluster.
-1. Helm installed in the cluster. If Tiller and its service account are not already installed run the following:
-    ```bash
-    $ kubectl apply -f helm/tiller-serviceaccount.yaml
-    $ helm init --service-account tiller
-    ```
+Rio requires Kubernetes 1.15 or newer cluster.
 
 ## Installation
 
