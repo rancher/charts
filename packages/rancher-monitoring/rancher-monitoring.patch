@@ -664,7 +664,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/tem
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/templates/alertmanager/secret.yaml packages/rancher-monitoring/charts/templates/alertmanager/secret.yaml
 --- packages/rancher-monitoring/charts-original/templates/alertmanager/secret.yaml
 +++ packages/rancher-monitoring/charts/templates/alertmanager/secret.yaml
-@@ -1,11 +1,16 @@
+@@ -1,11 +1,19 @@
  {{- if and (.Values.alertmanager.enabled) (not .Values.alertmanager.alertmanagerSpec.useExistingSecret) }}
 +{{- if .Release.IsInstall }}
 +{{- $secretName := (printf "alertmanager-%s-alertmanager" (include "kube-prometheus-stack.fullname" .)) }}
@@ -679,11 +679,14 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/tem
    namespace: {{ template "kube-prometheus-stack.namespace" . }}
 -{{- if .Values.alertmanager.secret.annotations }}
    annotations:
++    "helm.sh/hook": pre-install
++    "helm.sh/hook-delete-policy": hook-succeeded, hook-failed
++    "helm.sh/hook-weight": "3"
 +{{- if .Values.alertmanager.secret.annotations }}
  {{ toYaml .Values.alertmanager.secret.annotations | indent 4 }}
  {{- end }}
    labels:
-@@ -20,4 +25,93 @@
+@@ -20,4 +28,93 @@
  {{- range $key, $val := .Values.alertmanager.templateFiles }}
    {{ $key }}: {{ $val | b64enc | quote }}
  {{- end }}
