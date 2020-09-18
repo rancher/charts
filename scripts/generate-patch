@@ -49,6 +49,8 @@ for f in packages/*; do
 					subchart=$(yq r ${f}/charts/requirements.yaml "dependencies[${i}].name" | head -n 1)
 					version=$(yq r ${f}/charts/requirements.yaml "dependencies[${i}].version" | head -n 1)
 					helm_repo=$(yq r ${f}/charts/requirements.yaml "dependencies[${i}].repository" | head -n 1)
+					# Remove trailing slash
+					[[ ${helm_repo} == */ ]] && helm_repo=${helm_repo%/}
 					if [[ ${helm_repo} == file://* ]] || [[ ${version} == *'*'* ]]; then
 						# Subchart is tracked locally; patches will not be tracked
 						rm -rf ${f}/charts-original/charts/${subchart}
@@ -56,8 +58,12 @@ for f in packages/*; do
 						continue
 					fi
 					# Subchart is tracked in remote Helm repo with a fixed version number; we grab the download URL and get the local chart archive
-					echo "Comparing current changes to ${subchart}-${version} against upstream found at ${helm_repo}"
-					download_url=$(curl -sLf ${helm_repo}index.yaml | cat | yq r - "entries.${subchart}.(version == ${version}).urls[0]")
+					download_url=$(curl -sLf ${helm_repo}/index.yaml | cat | yq r - "entries.${subchart}.(version == ${version}).urls[0]")
+					if [[ -z ${download_url} ]]; then
+						echo "Failed to get download URL for ${subchart} at version ${version} from index.yaml at ${helm_repo}"
+						exit 1
+					fi
+					echo "Comparing current changes to ${subchart}-${version} against upstream found at ${download_url}"
 					curl -sLf ${download_url} | tar xvzf - -C ${f}/charts-original/charts > /dev/null 2>&1
 					((i=i+1))
 				done
