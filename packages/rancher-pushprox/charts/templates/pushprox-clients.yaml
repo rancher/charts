@@ -127,36 +127,4 @@ spec:
       - name: metrics-cert-dir
         emptyDir: {}
       {{- end }}
-{{- if and .Values.clients.https.enabled .Values.clients.https.useServiceAccountCredentials }}
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: {{ template "pushProxy.client.name" . }}
-  labels: {{ include "pushProxy.client.labels" . | nindent 4 }}
-rules:
-- nonResourceURLs: ["/metrics"]
-  verbs: ["get"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: {{ template "pushProxy.client.name" . }}
-  labels: {{ include "pushProxy.client.labels" . | nindent 4 }}
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: {{ template "pushProxy.client.name" . }}
-subjects:
-  - kind: ServiceAccount
-    name: {{ template "pushProxy.client.name" . }}
-    namespace: {{ .Release.Namespace }}
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: {{ template "pushProxy.client.name" . }}
-  namespace: {{ .Release.Namespace }}
-  labels: {{ include "pushProxy.client.labels" . | nindent 4 }}
-{{- end }}
 {{- end }}{{- end }}
