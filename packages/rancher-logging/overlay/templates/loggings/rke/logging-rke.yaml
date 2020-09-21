@@ -19,6 +19,10 @@ spec:
       - source: "/var/lib/rancher/rke/log"
         destination: "/rke"
         readOnly: true
+    {{ with .Values.fluentbit_tolerations }}
+    tolerations:
+      {{ toYaml . | nindent 6 }}
+    {{ end }}
   fluentd:
     image:
       repository: {{ template "system_default_registry" . }}{{ .Values.images.fluentd.repository }}
