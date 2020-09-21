@@ -17,6 +17,7 @@ All notable changes from the upstream Prometheus Operator chart will be added to
 - Added default resource limits for `Prometheus Operator`, `Prometheus`, `AlertManager`, `Grafana`, `kube-state-metrics`, `node-exporter`
 - Added a default template `rancher_defaults.tmpl` to AlertManager that Rancher will offer to users in order to help configure the way alerts are rendered on a notifier. Also updated the default template deployed with this chart to reference that template and added an example of a Slack config using this template as a comment in the `values.yaml`.
 - Added support for private registries via introducing a new field for `global.cattle.systemDefaultRegistry` that, if supplied, will automatically be prepended onto every image used by the chart.
+- Added a default `nginx` proxy container deployed with Grafana whose config is set in the `ConfigMap` located in `charts/grafana/templates/nginx-config.yaml`. The purpose of this container is to make it possible to view Grafana's UI through a proxy that has a subpath (e.g. Rancher's proxy). This proxy container is set to listen on port `8080` (with a `portName` of `nginx-http` instead of the default `service`), which is also where the Grafana service will now point to, and will forward all requests to the Grafana container listening on the default port `3000`.
 ### Modified
 - Updated the chart name from `prometheus-operator` to `rancher-monitoring` and added the `io.rancher.certified: rancher` annotation to `Chart.yaml`
 - Modified the default `node-exporter` port from `9100` to `9796`
