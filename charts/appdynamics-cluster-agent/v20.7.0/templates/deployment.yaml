@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: {{ template "cluster-agent.fullname" . }}
+spec: 
+  replicas: 1
+  selector:
+    matchLabels:
+      clusterAgent_cr: {{ template "cluster-agent.name" . }}
+      name: {{ template "cluster-agent.name" . }}
+      app: {{ template "cluster-agent.name" . }}
+      chart: {{ template "cluster-agent.chart" . }}
+      release: {{ .Release.Name }}
+      heritage: {{ .Release.Service }}
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        clusterAgent_cr: {{ template "cluster-agent.name" . }}
+        name: {{ template "cluster-agent.name" . }}
+        app: {{ template "cluster-agent.name" . }}
+        chart: {{ template "cluster-agent.chart" . }}
+        release: {{ .Release.Name }}
+        heritage: {{ .Release.Service }}
+    spec:
+      containers:
+      - env:
+        - name: APPDYNAMICS_AGENT_ACCOUNT_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              key: controller-key
+              name: cluster-agent-secret
+        - name: APPDYNAMICS_AGENT_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        envFrom:
+        - configMapRef:
+            name: cluster-agent-config
+        image: "{{ .Values.deployment.image.repository }}:{{ .Values.deployment.image.tag }}"
+        imagePullPolicy: {{ .Values.deployment.image.pullPolicy }}
+        name: {{ .Chart.Name }}
+        resources:
+{{- if .Values.deployment.resources }}
+{{ toYaml .Values.deployment.resources | indent 10 }}
+{{- else if .Values.resources }}
+{{ toYaml .Values.resources | indent 10 }}
+{{- end }}
+        volumeMounts:
+        - mountPath: /opt/appdynamics/cluster-agent/config/agent-monitoring/
+          name: agent-mon-config
+        - mountPath: /opt/appdynamics/cluster-agent/config/logging/
+          name: agent-log
+      restartPolicy: Always
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: cluster-agent-mon
+        name: agent-mon-config
+      - configMap:
+          defaultMode: 420
+          name: cluster-agent-log
+        name: agent-log
+

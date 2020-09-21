@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.serviceAccount.name }}
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.serviceAccount.name }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - pods/log
+  - endpoints
+  - persistentvolumeclaims
+  - resourcequotas
+  - nodes
+  - events
+  - namespaces
+  - services
+  - configmaps
+  - secrets
+  verbs:
+  - get
+  - watch
+  - list
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  - statefulsets
+  - deployments
+  - replicasets
+  verbs:
+  - get
+  - watch
+  - list
+- apiGroups: 
+  - "batch"
+  - "extensions"
+  resources: 
+  - "jobs"
+  verbs: 
+  - "get"
+  - "list"
+  - "watch"
+- apiGroups:
+  - metrics.k8s.io
+  resources:
+  - pods
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - appdynamics.com
+  resources:
+  - '*'
+  - clusteragents
+  verbs:
+  - get
+  - list
+  - watch
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ .Values.serviceAccount.name }}
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.serviceAccount.name }}
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ .Values.serviceAccount.name }}
+  apiGroup: rbac.authorization.k8s.io
