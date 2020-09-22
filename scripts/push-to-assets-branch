@@ -4,7 +4,7 @@ set -e
 set -x
 
 if [[ -z ${1} || -z ${2} ]]; then
-    echo "Usage: ./scripts/push-to-assets-branch <package-branch> <assets-branch>"
+    echo "Usage: ./scripts/push-to-assets-branch <remote> <assets-branch>"
     exit 1
 fi
 remote=${1}
@@ -12,15 +12,21 @@ branch=${2}
 
 rm -rf /tmp/tmp-assets
 mkdir -p /tmp/tmp-assets
-for i in assets/ index.yaml index.html sha256sum/ charts; do
+for i in assets sha256sum charts; do
     if [[ -d $i ]]; then
         cp -R $i /tmp/tmp-assets
+    fi
+done
+
+for i in index.yaml index.html; do
+    if [[ -f $i ]]; then
+        cp $i /tmp/tmp-assets
     fi
 done
 git checkout .
 git clean -fd
 git fetch $remote $branch
 git checkout $branch
-cp -r /tmp/tmp-assets/* ./
+cp -R /tmp/tmp-assets/* ./
 git add .
 git -c user.name="actions" -c user.email="actions@github.com" commit -m "Generated changes" || true
