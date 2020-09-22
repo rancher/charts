@@ -1,0 +1,34 @@
+{{- if .Values.additionalLoggingSources.rke.enabled }}
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: Logging
+metadata:
+  name: {{ .Release.Name }}-rke
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "logging-operator.labels" . | indent 4 }}
+spec:
+  controlNamespace: {{ .Release.Namespace }}
+  fluentbit:
+    image:
+      repository: {{ template "system_default_registry" . }}{{ .Values.images.fluentbit.repository }}
+      tag: {{ .Values.images.fluentbit.tag }}
+    inputTail:
+      Tag: "rke"
+      Path: "/rke/*.log"
+    extraVolumeMounts:
+      - source: "/var/lib/rancher/rke/log"
+        destination: "/rke"
+        readOnly: true
+    {{ with .Values.fluentbit_tolerations }}
+    tolerations:
+      {{ toYaml . | nindent 6 }}
+    {{ end }}
+  fluentd:
+    image:
+      repository: {{ template "system_default_registry" . }}{{ .Values.images.fluentd.repository }}
+      tag: {{ .Values.images.fluentd.tag }}
+    configReloaderImage:
+      repository: {{ template "system_default_registry" . }}{{ .Values.images.config_reloader.repository }}
+      tag: {{ .Values.images.config_reloader.tag }}
+    disablePvc: {{ .Values.disablePvc }}
+{{- end }}
