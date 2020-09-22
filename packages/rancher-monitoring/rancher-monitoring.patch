@@ -202,19 +202,49 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/cha
          protocol: TCP
        - name: {{ .Values.podPortName }}
          containerPort: 3000
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/charts/grafana/templates/podsecuritypolicy.yaml packages/rancher-monitoring/charts/charts/grafana/templates/podsecuritypolicy.yaml
+--- packages/rancher-monitoring/charts-original/charts/grafana/templates/podsecuritypolicy.yaml
++++ packages/rancher-monitoring/charts/charts/grafana/templates/podsecuritypolicy.yaml
+@@ -6,13 +6,9 @@
+   namespace: {{ template "grafana.namespace" . }}
+   labels:
+     {{- include "grafana.labels" . | nindent 4 }}
+-  annotations:
+-    seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'docker/default'
+-    seccomp.security.alpha.kubernetes.io/defaultProfileName:  'docker/default'
+-    {{- if .Values.rbac.pspUseAppArmor }}
+-    apparmor.security.beta.kubernetes.io/allowedProfileNames: 'runtime/default'
+-    apparmor.security.beta.kubernetes.io/defaultProfileName:  'runtime/default'
+-    {{- end }}
++{{- if .Values.rbac.pspAnnotations }}
++    annotations: {{ toYaml .Values.rbac.pspAnnotations | nindent 4 }}
++{{- end }}
+ spec:
+   privileged: false
+   allowPrivilegeEscalation: false
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/charts/grafana/values.yaml packages/rancher-monitoring/charts/charts/grafana/values.yaml
 --- packages/rancher-monitoring/charts-original/charts/grafana/values.yaml
 +++ packages/rancher-monitoring/charts/charts/grafana/values.yaml
-@@ -1,7 +1,7 @@
+@@ -1,7 +1,17 @@
  rbac:
    create: true
    pspEnabled: true
 -  pspUseAppArmor: true
-+  pspUseAppArmor: false
++  pspAnnotations: {}
++  ## Specify pod annotations
++  ## Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/#apparmor
++  ## Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/#seccomp
++  ## Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/#sysctl
++  ##
++  # seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'docker/default'
++  # seccomp.security.alpha.kubernetes.io/defaultProfileName:  'docker/default'
++  # apparmor.security.beta.kubernetes.io/allowedProfileNames: 'runtime/default'
++  # apparmor.security.beta.kubernetes.io/defaultProfileName:  'runtime/default'
++
    namespaced: false
    extraRoleRules: []
    # - apiGroups: []
-@@ -49,7 +49,7 @@
+@@ -49,7 +59,7 @@
  # schedulerName: "default-scheduler"
  
  image:
@@ -223,7 +253,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/cha
    tag: 7.1.5
    sha: ""
    pullPolicy: IfNotPresent
-@@ -63,12 +63,15 @@
+@@ -63,12 +73,15 @@
  
  testFramework:
    enabled: true
@@ -241,7 +271,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/cha
    runAsUser: 472
    runAsGroup: 472
    fsGroup: 472
-@@ -91,7 +94,7 @@
+@@ -91,7 +104,7 @@
  # priorityClassName:
  
  downloadDashboardsImage:
@@ -250,7 +280,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/cha
    tag: 7.70.0
    sha: ""
    pullPolicy: IfNotPresent
-@@ -244,7 +247,7 @@
+@@ -244,7 +257,7 @@
    ## initChownData container image
    ##
    image:
@@ -259,7 +289,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/cha
      tag: "1.31.1"
      sha: ""
      pullPolicy: IfNotPresent
-@@ -486,7 +489,7 @@
+@@ -486,7 +499,7 @@
  ## Requires at least Grafana 5 to work and can't be used together with parameters dashboardProviders, datasources and dashboards
  sidecar:
    image:
