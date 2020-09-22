@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 set -e
 
-# This script compares the sha256sum of each chart folder, find the sha256sum of that chart that has changed
+# This script generates the sha256 sum of each file in the packages/ and stores them in the sha256/ directory. 
+# If the sha256/ directory exists, it only prints out the names of the charts whose sha256 sums were changed
+# If the sha256/ directory does not exist, it prints out the names of all charts
 
-rm -rf ./sha256sum-new
-mkdir -p ./sha256sum-new
+if ! which sha256sum > /dev/null; then
+    echo "Could not find required program to compute SHA256 sums: sha256sum"
+    exit 1
+fi
+
 for f in packages/*; do
     rm -rf ./sha256sum-new/$(basename -- ${f})
     mkdir -p ./sha256sum-new/$(basename -- ${f})
@@ -12,7 +17,7 @@ for f in packages/*; do
 done
 
 if [ ! -d sha256sum ]; then
-    cp -r sha256sum-new sha256sum
+    cp -R sha256sum-new sha256sum
     for f in packages/*; do
         echo $(basename -- ${f})
     done
