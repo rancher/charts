@@ -193,15 +193,6 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/cha
      {{- end }}
      imagePullPolicy: {{ .Values.image.pullPolicy }}
    {{- if .Values.command }}
-@@ -285,7 +284,7 @@
-     {{- end }}
-     ports:
-       - name: {{ .Values.service.portName }}
--        containerPort: {{ .Values.service.port }}
-+        containerPort: {{ .Values.service.targetPort }}
-         protocol: TCP
-       - name: {{ .Values.podPortName }}
-         containerPort: 3000
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/charts/grafana/values.yaml packages/rancher-monitoring/charts/charts/grafana/values.yaml
 --- packages/rancher-monitoring/charts-original/charts/grafana/values.yaml
 +++ packages/rancher-monitoring/charts/charts/grafana/values.yaml
@@ -1474,15 +1465,6 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/tem
  {{- if .Values.prometheus.prometheusSpec.nodeSelector }}
    nodeSelector:
  {{ toYaml .Values.prometheus.prometheusSpec.nodeSelector | indent 4 }}
-@@ -226,7 +229,7 @@
- {{- end }}
- {{- if .Values.prometheus.prometheusSpec.containers }}
-   containers:
--{{ toYaml .Values.prometheus.prometheusSpec.containers | indent 4 }}
-+{{ tpl .Values.prometheus.prometheusSpec.containers $ | indent 4 }}
- {{- end }}
- {{- if .Values.prometheus.prometheusSpec.initContainers }}
-   initContainers:
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/templates/prometheus/rules/etcd.yaml packages/rancher-monitoring/charts/templates/prometheus/rules/etcd.yaml
 --- packages/rancher-monitoring/charts-original/templates/prometheus/rules/etcd.yaml
 +++ packages/rancher-monitoring/charts/templates/prometheus/rules/etcd.yaml
@@ -2291,18 +2273,16 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
        ## Annotations for Grafana dashboard configmaps
        ##
-@@ -574,7 +935,60 @@
-   ## Passed to grafana subchart and used by servicemonitor below
+@@ -575,6 +942,19 @@
    ##
    service:
--    portName: service
-+    portName: nginx-http
+     portName: service
 +    ## Port for Grafana Service to listen on
 +    ##
 +    port: 80
 +    ## To be used with a proxy extraContainer port
 +    ##
-+    targetPort: 8080
++    targetPort: 3000
 +    ## Port to expose on each node
 +    ## Only used if service.type is 'NodePort'
 +    ##
@@ -2310,50 +2290,10 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
 +    ## Service type
 +    ##
 +    type: ClusterIP
-+
-+  proxy:
-+    image:
-+      repository: rancher/library-nginx
-+      tag: 1.19.2-alpine
-+  
-+  ## Enable an Specify container in extraContainers. This is meant to allow adding an authentication proxy to a grafana pod
-+  extraContainers: |
-+    - name: grafana-proxy
-+      args:
-+      - nginx
-+      - -g
-+      - daemon off;
-+      - -c
-+      - /nginx/nginx.conf
-+      image: "{{ template "system_default_registry" . }}{{ .Values.proxy.image.repository }}:{{ .Values.proxy.image.tag }}"
-+      ports:
-+      - containerPort: 8080
-+        name: nginx-http
-+        protocol: TCP
-+      volumeMounts:
-+      - mountPath: /nginx
-+        name: grafana-nginx
-+      - mountPath: /var/cache/nginx
-+        name: nginx-home
-+      securityContext:
-+        runAsUser: 101
-+        runAsGroup: 101
-+
-+  ## Volumes that can be used in containers
-+  extraContainerVolumes:
-+    - name: nginx-home
-+      emptyDir: {}
-+    - name: grafana-nginx
-+      configMap:
-+        name: grafana-nginx-proxy-config
-+        items:
-+        - key: nginx.conf
-+          mode: 438
-+          path: nginx.conf
  
    ## If true, create a serviceMonitor for grafana
    ##
-@@ -600,6 +1014,14 @@
+@@ -600,6 +980,14 @@
      #   targetLabel: nodename
      #   replacement: $1
      #   action: replace
@@ -2368,7 +2308,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
  ## Component scraping the kube api server
  ##
-@@ -756,7 +1178,7 @@
+@@ -756,7 +1144,7 @@
  ## Component scraping the kube controller manager
  ##
  kubeControllerManager:
@@ -2377,7 +2317,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    ## If your kube controller manager is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -889,7 +1311,7 @@
+@@ -889,7 +1277,7 @@
  ## Component scraping etcd
  ##
  kubeEtcd:
@@ -2386,7 +2326,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    ## If your etcd is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -949,7 +1371,7 @@
+@@ -949,7 +1337,7 @@
  ## Component scraping kube scheduler
  ##
  kubeScheduler:
@@ -2395,7 +2335,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    ## If your kube scheduler is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1002,7 +1424,7 @@
+@@ -1002,7 +1390,7 @@
  ## Component scraping kube proxy
  ##
  kubeProxy:
@@ -2404,7 +2344,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    ## If your kube proxy is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1076,6 +1498,13 @@
+@@ -1076,6 +1464,13 @@
      create: true
    podSecurityPolicy:
      enabled: true
@@ -2418,7 +2358,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
  ## Deploy node exporter as a daemonset to all nodes
  ##
-@@ -1125,6 +1554,16 @@
+@@ -1125,6 +1520,16 @@
    extraArgs:
      - --collector.filesystem.ignored-mount-points=^/(dev|proc|sys|var/lib/docker/.+)($|/)
      - --collector.filesystem.ignored-fs-types=^(autofs|binfmt_misc|cgroup|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|mqueue|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|sysfs|tracefs)$
@@ -2435,7 +2375,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
  ## Manages Prometheus and Alertmanager components
  ##
-@@ -1138,7 +1577,7 @@
+@@ -1138,7 +1543,7 @@
    tlsProxy:
      enabled: true
      image:
@@ -2444,7 +2384,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
        tag: v1.5.2
        sha: ""
        pullPolicy: IfNotPresent
-@@ -1156,7 +1595,7 @@
+@@ -1156,7 +1561,7 @@
      patch:
        enabled: true
        image:
@@ -2453,7 +2393,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
          tag: v1.2.1
          sha: ""
          pullPolicy: IfNotPresent
-@@ -1285,13 +1724,13 @@
+@@ -1285,13 +1690,13 @@
  
    ## Resource limits & requests
    ##
@@ -2474,7 +2414,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
    # Required for use in managed kubernetes clusters (such as AWS EKS) with custom CNI (such as calico),
    # because control-plane managed by AWS cannot communicate with pods' IP CIDR and admission webhooks are not working
-@@ -1335,7 +1774,7 @@
+@@ -1335,7 +1740,7 @@
    ## Prometheus-operator image
    ##
    image:
@@ -2483,7 +2423,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
      tag: v0.38.1
      sha: ""
      pullPolicy: IfNotPresent
-@@ -1343,14 +1782,14 @@
+@@ -1343,14 +1748,14 @@
    ## Configmap-reload image to use for reloading configmaps
    ##
    configmapReloadImage:
@@ -2500,7 +2440,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
      tag: v0.38.1
      sha: ""
  
-@@ -1366,14 +1805,6 @@
+@@ -1366,14 +1771,6 @@
    ##
    secretFieldSelector: ""
  
@@ -2515,16 +2455,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  ## Deploy a Prometheus instance
  ##
  prometheus:
-@@ -1403,7 +1834,7 @@
-     port: 9090
- 
-     ## To be used with a proxy extraContainer port
--    targetPort: 9090
-+    targetPort: 8080
- 
-     ## List of IP addresses at which the Prometheus server service is available
-     ## Ref: https://kubernetes.io/docs/user-guide/services/#external-ips
-@@ -1614,7 +2045,7 @@
+@@ -1614,7 +2011,7 @@
      ## Image of Prometheus.
      ##
      image:
@@ -2533,7 +2464,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
        tag: v2.18.2
        sha: ""
  
-@@ -1666,6 +2097,11 @@
+@@ -1666,6 +2063,11 @@
      ##
      externalUrl: ""
  
@@ -2545,7 +2476,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
      ## Define which Nodes the Pods are scheduled on.
      ## ref: https://kubernetes.io/docs/user-guide/node-selection/
      ##
-@@ -1698,7 +2134,7 @@
+@@ -1698,7 +2100,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the PrometheusRule resources created
      ##
@@ -2554,7 +2485,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
      ## PrometheusRules to be selected for target discovery.
      ## If {}, select all ServiceMonitors
-@@ -1723,7 +2159,7 @@
+@@ -1723,7 +2125,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the servicemonitors created
      ##
@@ -2563,7 +2494,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
      ## ServiceMonitors to be selected for target discovery.
      ## If {}, select all ServiceMonitors
-@@ -1743,7 +2179,7 @@
+@@ -1743,7 +2145,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the podmonitors created
      ##
@@ -2572,7 +2503,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
      ## PodMonitors to be selected for target discovery.
      ## If {}, select all PodMonitors
-@@ -1840,9 +2276,13 @@
+@@ -1840,9 +2242,13 @@
  
      ## Resource limits & requests
      ##
@@ -2589,75 +2520,3 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
  
      ## Prometheus StorageSpec for persistent data
      ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/user-guides/storage.md
-@@ -1857,11 +2297,6 @@
-     #          storage: 50Gi
-     #    selector: {}
- 
--    # Additional volumes on the output StatefulSet definition.
--    volumes: []
--    # Additional VolumeMounts on the output StatefulSet definition.
--    volumeMounts: []
--
-     ## AdditionalScrapeConfigs allows specifying additional Prometheus scrape configurations. Scrape configurations
-     ## are appended to the configurations generated by the Prometheus Operator. Job configurations must have the form
-     ## as specified in the official Prometheus documentation:
-@@ -1964,9 +2399,49 @@
-     ##
-     thanos: {}
- 
-+    proxy:
-+      image:
-+        repository: rancher/library-nginx
-+        tag: 1.19.2-alpine
-+
-     ## Containers allows injecting additional containers. This is meant to allow adding an authentication proxy to a Prometheus pod.
-     ##  if using proxy extraContainer  update targetPort with proxy container port
--    containers: []
-+    containers: |
-+      - name: prometheus-proxy
-+        args:
-+        - nginx
-+        - -g
-+        - daemon off;
-+        - -c
-+        - /nginx/nginx.conf
-+        image: "{{ template "system_default_registry" . }}{{ .Values.prometheus.prometheusSpec.proxy.image.repository }}:{{ .Values.prometheus.prometheusSpec.proxy.image.tag }}"
-+        ports:
-+        - containerPort: 8080
-+          name: nginx-http
-+          protocol: TCP
-+        volumeMounts:
-+        - mountPath: /nginx
-+          name: prometheus-nginx
-+        - mountPath: /var/cache/nginx
-+          name: nginx-home
-+        securityContext:
-+          runAsUser: 101
-+          runAsGroup: 101
-+
-+    # Additional volumes on the output StatefulSet definition.
-+    volumes: 
-+      - name: nginx-home
-+        emptyDir: {}
-+      - name: prometheus-nginx
-+        configMap:
-+          name: prometheus-nginx-proxy-config
-+          items:
-+          - key: nginx.conf
-+            mode: 438
-+            path: nginx.conf
-+
-+    # Additional VolumeMounts on the output StatefulSet definition.
-+    volumeMounts: []
- 
-     ## InitContainers allows injecting additional initContainers. This is meant to allow doing some changes
-     ## (permissions, dir tree) on mounted volumes before starting prometheus
-@@ -1974,7 +2449,7 @@
- 
-     ## PortName to use for Prometheus.
-     ##
--    portName: "web"
-+    portName: "nginx-http"
- 
-   additionalServiceMonitors: []
-   ## Name of the ServiceMonitor to create
