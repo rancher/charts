@@ -12,7 +12,7 @@ spec:
   template:
     metadata:
       labels: {{ include "pushProxy.client.labels" . | nindent 8 }}
-    spec: 
+    spec:
 {{- if .Values.clients.nodeSelector }}
       nodeSelector: {{ toYaml .Values.clients.nodeSelector | nindent 8 }}
 {{- end }}
@@ -21,9 +21,7 @@ spec:
 {{- end }}
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
-      {{- if and .Values.clients.https.enabled .Values.clients.https.useServiceAccountCredentials }}
       serviceAccountName: {{ template "pushProxy.client.name" . }}
-      {{- end }}
       containers:
       - name: pushprox-client
         image: {{ template "system_default_registry" . }}{{ .Values.clients.image.repository }}:{{ .Values.clients.image.tag }}
@@ -61,6 +59,9 @@ spec:
           value: :{{ .Values.clients.port }}
         - name: PROXY_URL
           value: {{ template "pushProxy.proxyUrl" . }}
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
         {{- if and .Values.clients.https.enabled .Values.clients.https.certDir }}
         volumeMounts:
         - name: metrics-cert-dir
@@ -114,9 +115,12 @@ spec:
           value: /etc/ssl/push-proxy/push-proxy-key.pem
         - name: CACERT_FILE_TARGET
           value: /etc/ssl/push-proxy/push-proxy-ca-cert.pem
+        securityContext:
+          runAsNonRoot: false
         volumeMounts:
         - name: metrics-cert-dir-source
           mountPath: /etc/source
+          readOnly: true
         - name: metrics-cert-dir
           mountPath: /etc/ssl/push-proxy
       volumes:
@@ -127,36 +131,4 @@ spec:
       - name: metrics-cert-dir
         emptyDir: {}
       {{- end }}
-{{- if and .Values.clients.https.enabled .Values.clients.https.useServiceAccountCredentials }}
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: {{ template "pushProxy.client.name" . }}
-  labels: {{ include "pushProxy.client.labels" . | nindent 4 }}
-rules:
-- nonResourceURLs: ["/metrics"]
-  verbs: ["get"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: {{ template "pushProxy.client.name" . }}
-  labels: {{ include "pushProxy.client.labels" . | nindent 4 }}
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: {{ template "pushProxy.client.name" . }}
-subjects:
-  - kind: ServiceAccount
-    name: {{ template "pushProxy.client.name" . }}
-    namespace: {{ .Release.Namespace }}
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: {{ template "pushProxy.client.name" . }}
-  namespace: {{ .Release.Namespace }}
-  labels: {{ include "pushProxy.client.labels" . | nindent 4 }}
-{{- end }}
 {{- end }}{{- end }}
