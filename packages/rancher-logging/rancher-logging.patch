@@ -20,6 +20,18 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-logging/charts-original/Chart.
 +  catalog.cattle.io/release-name: rancher-logging
 +  catalog.cattle.io/ui-component: logging
 +  catalog.cattle.io/provides-gvr: logging.banzaicloud.io.clusterflow/v1beta1
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-logging/charts-original/templates/deployment.yaml packages/rancher-logging/charts/templates/deployment.yaml
+--- packages/rancher-logging/charts-original/templates/deployment.yaml
++++ packages/rancher-logging/charts/templates/deployment.yaml
+@@ -30,7 +30,7 @@
+     {{- end }}
+       containers:
+         - name: {{ .Chart.Name }}
+-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
++          image: "{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+           imagePullPolicy: {{ .Values.image.pullPolicy }}
+           resources:
+             {{- toYaml .Values.resources | nindent 12 }}
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-logging/charts-original/templates/_helpers.tpl packages/rancher-logging/charts/templates/_helpers.tpl
 --- packages/rancher-logging/charts-original/templates/_helpers.tpl
 +++ packages/rancher-logging/charts/templates/_helpers.tpl
