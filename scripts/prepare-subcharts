@@ -106,28 +106,22 @@ i=0
 while ! [[ -z $(yq r ${f}/charts/requirements.yaml "dependencies[${i}]") ]]; do
 	name=$(yq r ${f}/charts/requirements.yaml "dependencies[${i}].name")
 	version=$(yq r ${f}/charts/requirements.yaml "dependencies[${i}].version")
-	charts_path=${f}/charts/charts/${name}
-	subchart_tgz=${name}-${version}.tgz
 	repo=$(yq r ${f}/charts/requirements.yaml "dependencies[${i}].repository")
 	if [[ ${repo} == file://* ]]; then
 		# Subcharts that are tracked locally should be directly edited, not via a patch
-		if [[ -f ${subchart_tgz} ]]; then
-			rm -rf charts_path
-		fi
+		rm -rf ${f}/charts/charts/${name}
 		((i=i+1))
 		continue
 	fi
-	subchart_path=$(ls ${f}/charts/charts/${subchart_tgz})
-	if [[ ${version} == *'*'* ]]; then
+	if [[ ! ${version} =~ ^[0-9\.]+$ ]]; then
 		# Subcharts that are tracked remotely must have a fixed version number
-		if [[ -f ${subchart_path} ]]; then
-			rm -rf ${charts_path}
-		fi
+		rm -rf ${f}/charts/charts/${name}
 		((i=i+1))
 		continue
 	fi
 	# Subchart could be patched
-	if [[ -f ${subchart_path} ]]; then
+	subchart_tgz=${name}-${version}.tgz
+	if [[ -f ${f}/charts/charts/${subchart_tgz} ]]; then
 		tar xvzf ${f}/charts/charts/${subchart_tgz} -C ${f}/charts/charts > /dev/null 2>&1
 		rm ${f}/charts/charts/${subchart_tgz}
 	fi
@@ -135,7 +129,10 @@ while ! [[ -z $(yq r ${f}/charts/requirements.yaml "dependencies[${i}]") ]]; do
 done
 
 # Undo the patch on the requirements.yaml
-if [[ -f ${f}/requirements.patch ]] && [[ -s ${f}/requirements.patch ]]; then
-	patch -R -E -p3 -d ${f}/charts < ${f}/requirements.patch
+if [[ -f ${f}/requirements.patch ]]; then
+	if [[ -s ${f}/requirements.patch ]]; then
+		# Should only apply a patch if the requirements.patch has something in it
+		patch -R -E -p3 -d ${f}/charts < ${f}/requirements.patch
+	fi
 	rm ${f}/requirements.patch
 fi
