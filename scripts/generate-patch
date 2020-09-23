@@ -51,7 +51,7 @@ for f in packages/*; do
 					helm_repo=$(yq r ${f}/charts/requirements.yaml "dependencies[${i}].repository" | head -n 1)
 					# Remove trailing slash
 					[[ ${helm_repo} == */ ]] && helm_repo=${helm_repo%/}
-					if [[ ${helm_repo} == file://* ]] || [[ ${version} == *'*'* ]]; then
+					if [[ ${helm_repo} == file://* ]] || [[ ! ${version} =~ ^[0-9\.]+$ ]]; then
 						# Subchart is tracked locally; patches will not be tracked
 						rm -rf ${f}/charts-original/charts/${subchart}
 						((i=i+1))
