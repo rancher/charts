@@ -9,8 +9,7 @@ git fetch origin ${1}
 git checkout origin/${1} ./assets/index.yaml || true
 git checkout origin/${1} ./sha256sum || true
 
-charts=$(./scripts/produce-sha256)
-
-if [[ -n ${charts} ]]; then
-  echo $charts | xargs ./scripts/ci
-fi
+# produce-sha256 produces sha256 and print out chart name that has changed, and only run CI against changed chart
+for i in $(./scripts/produce-sha256); do
+    ./scripts/ci $i
+done
