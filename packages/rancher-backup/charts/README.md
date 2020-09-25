@@ -26,7 +26,7 @@ helm install rancher-backup rancher-chart/rancher-backup -n cattle-resources-sys
 The following table lists the configurable parameters of the rancher-backup chart and their default values:
 
 | Parameter   |      Description      |  Default |
-|----------|:-------------:|------:|
+|----------|---------------|-------|
 | image.repository |  Container image repository | rancher/backup-restore-operator |
 | image.tag |    Container image tag  |   v0.1.0-rc1 |
 | s3.enabled | Configure S3 compatible default storage location. Current version supports S3 and MinIO |    false |
