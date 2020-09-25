@@ -1,0 +1,58 @@
+{{- if and .Values.s3.enabled .Values.persistence.enabled }}
+{{- fail "\n\nCannot configure both s3 and PV for storing backups" }}
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "backupRestore.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "backupRestore.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "backupRestore.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "backupRestore.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/s3-secret.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "backupRestore.serviceAccountName" . }}
+      containers:
+      - name: {{ .Chart.Name }}
+        image: {{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: Always
+        env:
+        - name: CHART_NAMESPACE
+          value: {{ .Release.Namespace }}
+          {{- if .Values.s3.enabled }}
+        - name: DEFAULT_S3_BACKUP_STORAGE_LOCATION
+          value: {{ include "backupRestore.s3SecretName" . }}
+          {{- end }}
+          {{- if .Values.persistence.enabled }}
+        - name: DEFAULT_PERSISTENCE_ENABLED
+          value: "persistence-enabled"
+        volumeMounts:
+        - mountPath: "/var/lib/backups"
+          name: pv-storage
+      volumes:
+        - name: pv-storage
+          persistentVolumeClaim:
+            claimName: {{ include "backupRestore.pvcName" . }}
+          {{- end }} 
+      nodeSelector:
+        kubernetes.io/os: linux
+      {{- with .Values.nodeSelector }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      tolerations:
+      {{- include "linux-node-tolerations" . | nindent 8}}
+      {{- with .Values.tolerations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
