@@ -67,10 +67,10 @@ Create the name of the service account to use
 {{- printf "%s-%s" .Chart.Name "s3" | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
+{{/*
+Create PVC name using release and revision number.
+*/}}
 {{- define "backupRestore.pvcName" -}}
-{{ include "backupRestore.fullname" . }}
+{{- printf "%s-%d" .Release.Name .Release.Revision }}
 {{- end }}
 
-{{- define "backupRestore.nfsPVName" -}}
-{{ include "backupRestore.fullname" . }}
-{{- end }}
