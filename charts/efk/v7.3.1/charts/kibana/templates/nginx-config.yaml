@@ -1,0 +1,194 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "fullname" . }}-nginx
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    release: {{ .Release.Name | quote }}
+data:
+  nginx.conf: |-
+    user                  nginx;
+    worker_processes      auto;
+    error_log             /dev/stdout warn;
+    pid                   /var/run/nginx.pid;
+
+    events {
+       worker_connections 1024;
+    }
+
+    http {
+      include       /etc/nginx/mime.types;
+      log_format    main '[$time_local - $status] $remote_addr - $remote_user $request ($http_referer)';
+
+      proxy_connect_timeout       10;
+      proxy_read_timeout          180;
+      proxy_send_timeout          5;
+      proxy_buffering             off;
+      proxy_cache_path            /tmp/nginx levels=1:2 keys_zone=my_zone:100m inactive=1d max_size=10g;
+
+      server {
+        listen          80;
+        access_log      off;
+
+        gzip            on;
+        gzip_min_length 1k;
+        gzip_comp_level 2;
+        gzip_types      text/plain application/javascript application/x-javascript text/css application/xml text/javascript image/jpeg image/gif image/png;
+        gzip_vary       on;
+        gzip_disable    "MSIE [1-6]\.";
+
+        proxy_set_header Host $host;
+
+        location ~* bundles/app/ {
+          proxy_set_header Accept-Encoding "";
+          proxy_pass     http://localhost:5601;
+          sub_filter_types application/javascript;
+          sub_filter_once off;
+          sub_filter "loadStyleSheet('/" "loadStyleSheet('./";
+          sub_filter '/bundles/' './bundles/';
+          sub_filter '/built_assets/' './built_assets/';
+        }
+
+        location /built_assets/dlls/vendors.bundle.dll.js {
+          proxy_set_header Accept-Encoding "";
+          proxy_pass     http://localhost:5601;
+          sub_filter_types *;
+          sub_filter_once off;
+          sub_filter '/built_assets/dlls/' './built_assets/dlls/';
+        }
+
+        location /bundles/commons.bundle.js {
+          proxy_set_header Accept-Encoding "";
+          proxy_pass     http://localhost:5601;
+          sub_filter_types *;
+          sub_filter_once off;
+          sub_filter '/api/' './api/';
+          sub_filter '/app/' './app/';
+          sub_filter 'url:basePath.prepend("/".concat(navLink.icon))' 'url:basePath.prepend("./".concat(navLink.icon))';
+          sub_filter 'this.basePath=' 'this.basePath="."+';
+          sub_filter 'window.location=response.location' 'window.location="."+response.location';
+        }
+
+        location /bundles/kibana.bundle.js {
+          proxy_set_header Accept-Encoding "";
+          proxy_pass     http://localhost:5601;
+          sub_filter_types *;
+          sub_filter_once off;
+          sub_filter '/api/' './api/';
+          sub_filter '/app/' './app/';
+          sub_filter 'injectedMetadata.i18n.translationsUrl' '"./"+injectedMetadata.i18n.translationsUrl';
+          sub_filter 'this.basePath=' 'this.basePath="."+';
+          sub_filter '../api/console/' './api/console/';
+          sub_filter '/s/' './s/';
+        }
+
+        location /bundles/ {
+          proxy_set_header Accept-Encoding "";
+          proxy_pass     http://localhost:5601;
+          sub_filter_types *;
+          sub_filter_once off;
+          sub_filter 'injectedMetadata.i18n.translationsUrl' '"./"+injectedMetadata.i18n.translationsUrl';
+        }
+
+        location ~ ^/app/translations/(.*) {
+          return 301 $http_x_forwarded_proto://$server_name/translations/$1;
+        }
+
+        location ~ ^/app/built_assets/(.*) {
+          return 301 $http_x_forwarded_proto://$server_name/built_assets/$1;
+        }
+
+        location ~ ^/app/bundles/(.*) {
+          return 301 $http_x_forwarded_proto://$server_name/bundles/$1;
+        }
+
+        location ~ ^/app/node_modules/(.*) {
+          return 301 $http_x_forwarded_proto://$server_name/node_modules/$1;
+        }
+
+        location ~ ^/app/plugins/(.*) {
+          return 301 $http_x_forwarded_proto://$server_name/plugins/$1;
+        }
+
+        location ~ ^/s/(.*)/app/api/(.*) {
+          if ($request_method = POST ) {
+            return 307 $http_x_forwarded_proto://$server_name/api/$2$is_args$args;
+          }
+          return 301 $http_x_forwarded_proto://$server_name/api/$2$is_args$args;
+        }
+
+        location ~ ^/app/s/(.*)/app/kibana {
+          return 301 $http_x_forwarded_proto://$server_name/s/$1/app/kibana;
+        }
+
+        location ~ ^/s/(.*)/app/s/(.*)/elasticsearch/(.*) {
+          if ($request_method = POST ) {
+            return 307 $http_x_forwarded_proto://$server_name/elasticsearch/$3$is_args$args;
+          }
+          return 301 $http_x_forwarded_proto://$server_name/elasticsearch/$3$is_args$args;
+        }
+
+        location ~ ^/s/(.*)/app/s/(.*)/elasticsearch/(.*) {
+          if ($request_method = POST ) {
+            return 307 $http_x_forwarded_proto://$server_name/elasticsearch/$3$is_args$args;
+          }
+          return 301 $http_x_forwarded_proto://$server_name/elasticsearch/$3$is_args$args;
+        }
+
+        location ~ ^/s/(.*)/app/built_assets/(.*) {
+          return 301 $http_x_forwarded_proto://$server_name/built_assets/$2$is_args$args;
+        }
+
+        location ~ ^/s/(.*)/app/s/(.*)/(.*) {
+          return 301 $http_x_forwarded_proto://$server_name/s/$2/$3$is_args$args;
+        }
+
+        location ~ ^/s/(.*)/app/bundles/(.*) {
+          return 301 $http_x_forwarded_proto://$server_name/bundles/$2$is_args$args;
+        }
+
+        location ~ ^/s/(.*)/app/node_modules/(.*) {
+          return 301 $http_x_forwarded_proto://$server_name/node_modules/$2$is_args$args;
+        }
+
+        location ~ ^/s/(.*)/app/app/(.*) {
+          return 301 $http_x_forwarded_proto://$server_name/app/$2$is_args$args;
+        }
+
+        location ~ ^/app/api/(.*) {
+          if ($request_method = POST ) {
+            return 307 $http_x_forwarded_proto://$server_name/api/$1$is_args$args;
+          }
+          return 301 $http_x_forwarded_proto://$server_name/api/$1$is_args$args;
+        }
+
+        location ~ ^/app/elasticsearch/(.*) {
+          if ($request_method = POST ) {
+            return 307 $http_x_forwarded_proto://$server_name/elasticsearch/$1$is_args$args;
+          }
+          return 301 $http_x_forwarded_proto://$server_name/elasticsearch/$1$is_args$args;
+        }
+
+        location ~ ^/app/app/(.*) {
+          return 301 $http_x_forwarded_proto://$server_name/app/$1$is_args$args;
+        }
+
+        location / {
+          proxy_cache         my_zone;
+          proxy_cache_valid   200 302 1d;
+          proxy_cache_valid   301 30d;
+          proxy_cache_valid   any 5m;
+          proxy_cache_bypass  $http_cache_control;
+          add_header          X-Proxy-Cache $upstream_cache_status;
+          add_header          Cache-Control "public";
+
+          proxy_pass     http://localhost:5601/;
+          sub_filter_types text/html;
+          sub_filter_once on;
+          if ($request_filename ~ .*\.(?:js|css|jpg|jpeg|gif|png|ico|cur|gz|svg|svgz|mp4|ogg|ogv|webm)$) {
+            expires             90d;
+          }
+        }
+      }
+    }
