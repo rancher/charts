@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -e
+
+# This script generates the sha256 sum of each file in the packages/ and stores them in the sha256/ directory. 
+# If the sha256/ directory exists, it only prints out the names of the charts whose sha256 sums were changed
+# If the sha256/ directory does not exist, it prints out the names of all charts
+
+if ! which sha256sum > /dev/null; then
+    echo "Could not find required program to compute SHA256 sums: sha256sum"
+    exit 1
+fi
+
+for f in packages/*; do
+    rm -rf ./sha256sum-new/$(basename -- ${f})
+    mkdir -p ./sha256sum-new/$(basename -- ${f})
+    find ${f} -type f | xargs sha256sum > ./sha256sum-new/$(basename -- ${f})/$(basename -- ${f}).sum
+done
+
+# If there were no sha256sums in the first place, output the name of every chart
+if [ ! -d sha256sum ]; then
+    cp -R sha256sum-new sha256sum
+    for f in packages/*; do
+        echo $(basename -- ${f})
+    done
+fi
+
+# For all the new sha256sums that were generated, compare them and see if the existing assets need to be rebuilt
+for f in sha256sum-new/*; do
+    if ! cmp -s ./sha256sum/$(basename -- ${f})/$(basename -- ${f}).sum ${f}/$(basename -- ${f}).sum; then
+        echo $(basename -- ${f})
+    fi
+done
+
+rm -rf ./sha256sum 2>/dev/null
+mv ./sha256sum-new ./sha256sum

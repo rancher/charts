@@ -3,7 +3,7 @@ name: CI-push
 on:
   push:
     branches:
-      - dev-v2.5
+      - main-source
 
 jobs:
   build:
@@ -13,8 +13,8 @@ jobs:
 
     - name: Run CI scripts
       run: |-
-        sudo make ci
+        ./scripts/ci-wrapper main
 
-    - uses: stefanzweifel/git-auto-commit-action@480e111bf8274f3bbd429aef51504f71c808e3e4
-      with:
-        commit_message: Generated changes
+    - name: Push charts and assets to the main branch
+      run: |-
+        ./scripts/push-to-assets-branch origin main && git push origin main

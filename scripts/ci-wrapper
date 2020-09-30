@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -e
+set -x
+
+sudo ./scripts/bootstrap
+git fetch origin ${1}
+
+# checkout index.yaml and sha256sum folder from asset branch in order to compare sha and merge index
+git checkout origin/${1} ./assets/index.yaml || true
+git checkout origin/${1} ./sha256sum || true
+
+# produce-sha256 produces sha256 and print out chart name that has changed, and only run CI against changed chart
+for i in $(./scripts/produce-sha256); do
+    ./scripts/ci $i
+done
