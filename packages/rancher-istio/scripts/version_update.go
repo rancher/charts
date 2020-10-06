@@ -53,4 +53,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	err = updateFiles(fmt.Sprintf("%s/packages/rancher-istio/charts/requirements.yaml", wd), *currentIstio, *newIstio, *currentKiali, *newKiali)
+	if err != nil {
+		panic(err)
+	}
 }
