@@ -9,6 +9,16 @@ The following prerequisites are required for deploying Citrix ADC as a sidecar i
 
 - Ensure that **Istio** is enabled.
 - Ensure that your cluster has Kubernetes version 1.14.0 or later and the `admissionregistration.k8s.io/v1beta1` API is enabled.
+- Ensure the [Kubernetes controller manager](https://rancher.com/docs/rke/latest/en/config-options/services/#kubernetes-controller-manager)’s default certificate signer is enabled.
+
+**Note**: For RKE based cluster, extra arguments need to be provided for kube-controller service.
+```services:
+  kube-controller: 
+    extra_args: 
+      cluster-signing-cert-file: "/etc/kubernetes/ssl/kube-ca.pem"
+      cluster-signing-key-file: "/etc/kubernetes/ssl/kube-ca-key.pem"
+```
+For detailed information follow this [link](https://github.com/citrix/citrix-xds-adaptor/blob/master/docs/rancher-provisioned-cluster.md)
 
 ### Important NOTE:
  - We should not **Enable Istio Auto Injection** on Application namespace.
