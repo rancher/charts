@@ -18,7 +18,7 @@ The following prerequisites are required for deploying Citrix ADC as a sidecar i
       cluster-signing-cert-file: "/etc/kubernetes/ssl/kube-ca.pem"
       cluster-signing-key-file: "/etc/kubernetes/ssl/kube-ca-key.pem"
 ```
-For detailed information follow this [link](https://github.com/citrix/citrix-xds-adaptor/blob/master/docs/rancher-provisioned-cluster.md)
+For detailed information follow this [link](https://github.com/citrix/citrix-xds-adaptor/blob/master/docs/istio-integration/rancher-provisioned-cluster.md)
 
 ### Important NOTE:
  - We should not **Enable Istio Auto Injection** on Application namespace.
