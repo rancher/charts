@@ -31,6 +31,13 @@ spec:
     spec:
       serviceAccountName: {{ template "openebs.serviceAccountName" . }}
       hostNetwork: true
+      # host PID is used to check status of iSCSI Service when the NDM
+      # API service is enabled
+{{- if .Values.featureGates.enabled }}
+{{- if .Values.featureGates.APIService.enabled }}
+      hostPID: true
+{{- end}}
+{{- end}}
       containers:
       - name: {{ template "openebs.name" . }}-ndm
         image: "{{ .Values.image.repository }}{{ .Values.ndm.image }}:{{ .Values.ndm.imageTag }}"
@@ -39,6 +46,9 @@ spec:
 {{- if .Values.featureGates.enabled }}
 {{- if .Values.featureGates.GPTBasedUUID.enabled }}
           - --feature-gates={{ .Values.featureGates.GPTBasedUUID.featureGateFlag }}
+{{- end}}
+{{- if .Values.featureGates.APIService.enabled }}
+          - --feature-gates={{ .Values.featureGates.APIService.featureGateFlag }}
 {{- end}}
 {{- end}}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -94,6 +104,8 @@ spec:
         - name: procmount
           mountPath: /host/proc
           readOnly: true
+        - name: devmount
+          mountPath: /dev
         - name: basepath
           mountPath: /var/openebs/ndm
 {{- if .Values.ndm.sparse }}
@@ -115,6 +127,12 @@ spec:
       - name: procmount
         hostPath:
           path: /proc
+          type: Directory
+      # the /dev directory is mounted so that we have access to the devices that
+      # are connected at runtime of the pod.
+      - name: devmount
+        hostPath:
+          path: /dev
           type: Directory
       - name: basepath
         hostPath:

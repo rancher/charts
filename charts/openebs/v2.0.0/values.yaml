@@ -13,7 +13,7 @@ serviceAccount:
 
 release:
   # "openebs.io/version" label for control plane components
-  version: "1.12.0"
+  version: "2.0.0"
 
 image:
   pullPolicy: IfNotPresent
@@ -22,7 +22,7 @@ image:
 apiserver:
   enabled: true
   image: "openebs/m-apiserver"
-  imageTag: "1.12.0"
+  imageTag: "2.0.0"
   replicas: 1
   ports:
     externalPort: 5656
@@ -47,8 +47,9 @@ varDirectoryPath:
 provisioner:
   enabled: true
   image: "openebs/openebs-k8s-provisioner"
-  imageTag: "1.12.0"
+  imageTag: "2.0.0"
   replicas: 1
+  enableLeaderElection: true
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -59,8 +60,9 @@ provisioner:
 localprovisioner:
   enabled: true
   image: "openebs/provisioner-localpv"
-  imageTag: "1.12.0"
+  imageTag: "2.0.0"
   replicas: 1
+  enableLeaderElection: true
   basePath: "/var/openebs/local"
   nodeSelector: {}
   tolerations: []
@@ -73,11 +75,12 @@ snapshotOperator:
   enabled: true
   controller:
     image: "openebs/snapshot-controller"
-    imageTag: "1.12.0"
+    imageTag: "2.0.0"
   provisioner:
     image: "openebs/snapshot-provisioner"
-    imageTag: "1.12.0"
+    imageTag: "2.0.0"
   replicas: 1
+  enableLeaderElection: true
   upgradeStrategy: "Recreate"
   nodeSelector: {}
   tolerations: []
@@ -89,7 +92,7 @@ snapshotOperator:
 ndm:
   enabled: true
   image: "openebs/node-disk-manager"
-  imageTag: "0.7.0"
+  imageTag: "0.8.0"
   sparse:
     path: "/var/openebs/sparse"
     size: "10737418240"
@@ -112,7 +115,7 @@ ndm:
 ndmOperator:
   enabled: true
   image: "openebs/node-disk-operator"
-  imageTag: "0.7.0"
+  imageTag: "0.8.0"
   replicas: 1
   upgradeStrategy: Recreate
   nodeSelector: {}
@@ -128,7 +131,7 @@ ndmOperator:
 webhook:
   enabled: true
   image: "openebs/admission-server"
-  imageTag: "1.12.0"
+  imageTag: "2.0.0"
   failurePolicy: "Fail"
   replicas: 1
   healthCheck:
@@ -141,33 +144,36 @@ webhook:
 
 jiva:
   image: "openebs/jiva"
-  imageTag: "1.12.0"
+  imageTag: "2.0.0"
   replicas: 3
   defaultStoragePath: "/var/openebs"
 
 cstor:
   pool:
     image: "openebs/cstor-pool"
-    imageTag: "1.12.0"
+    imageTag: "2.0.0"
   poolMgmt:
     image: "openebs/cstor-pool-mgmt"
-    imageTag: "1.12.0"
+    imageTag: "2.0.0"
   target:
     image: "openebs/cstor-istgt"
-    imageTag: "1.12.0"
+    imageTag: "2.0.0"
   volumeMgmt:
     image: "openebs/cstor-volume-mgmt"
-    imageTag: "1.12.0"
+    imageTag: "2.0.0"
 
 helper:
   image: "openebs/linux-utils"
-  imageTag: "1.12.0"
+  imageTag: "2.0.0"
 
 featureGates:
-  enabled: false
+  enabled: true
   GPTBasedUUID:
-    enabled: false
+    enabled: true
     featureGateFlag: "GPTBasedUUID"
+  APIService:
+    enabled: false
+    featureGateFlag: "APIService"
 
 crd:
   enableInstall: true
@@ -176,7 +182,7 @@ policies:
   monitoring:
     enabled: true
     image: "openebs/m-exporter"
-    imageTag: "1.12.0"
+    imageTag: "2.0.0"
 
 analytics:
   enabled: true
