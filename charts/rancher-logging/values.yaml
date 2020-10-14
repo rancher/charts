@@ -32,9 +32,14 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
-nodeSelector: {}
+nodeSelector:
+  kubernetes.io/os: linux
 
-tolerations: []
+tolerations:
+  - key: cattle.io/os
+    operator: "Equal"
+    value: "linux"
+    effect: NoSchedule
 
 affinity: {}
 
@@ -105,10 +110,6 @@ images:
     repository: rancher/fluent-bit-out-syslog
     tag: 0.1.0
 
-global:
-  cattle:
-    systemDefaultRegistry: ""
-
 fluentbit_tolerations:
   - key: node-role.kubernetes.io/controlplane
     value: "true"
@@ -116,3 +117,7 @@ fluentbit_tolerations:
   - key: node-role.kubernetes.io/etcd
     value: "true"
     effect: NoExecute
+
+global:
+  cattle:
+    systemDefaultRegistry: ""
