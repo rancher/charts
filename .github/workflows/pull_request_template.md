@@ -1,5 +1,7 @@
 #### Pull Request Checklist ####
+
 **Note: This checklist is only applicable to charts that are being added to the new `Apps & Marketplace` UI.**
+
 One of the following must be checkmarked:
 
 - [ ] Chart has never been pushed to https://github.com/rancher/charts/tree/main-source.
