@@ -1,13 +1,3 @@
-# Rancher Istio Installers
-
-A Rancher created chart that packages the istioctl binary to install via a helm chart.
-
-# Installation Requirements 
-
-## Chart Dependencies
-- rancher-kiali-server-crd chart
-
-
 ## Kiali
 
 ###  Dependencies
@@ -27,8 +17,3 @@ To limit scraping to specific namespaces, set `prometheus.prometheusSpec.ignoreN
 
 1. Add a Service Monitor or Pod Monitor in the namespace with the targets you want to scrape.
 1. Add an additionalScrapeConfig to your rancher-monitoring instance to scrape all targets in all namespaces.
-
-# Installation
-```
-helm install rancher-istio . --create-namespace -n istio-system
-```
