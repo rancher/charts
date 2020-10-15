@@ -156,9 +156,7 @@ The following values are enabled for different distributions via [rancher-pushpr
 | `rkeScheduler.enabled` | Create a PushProx installation for monitoring kube-scheduler metrics in RKE clusters | `false` |
 | `rkeProxy.enabled` | Create a PushProx installation for monitoring kube-proxy metrics in RKE clusters | `false` |
 | `rkeEtcd.enabled` | Create a PushProx installation for monitoring etcd metrics in RKE clusters | `false` |
-| `k3sControllerManager.enabled` | Create a PushProx installation for monitoring kube-controller-manager metrics in k3s clusters | `false` |
-| `k3sScheduler.enabled` | Create a PushProx installation for monitoring kube-scheduler metrics in k3s clusters | `false` |
-| `k3sProxy.enabled` | Create a PushProx installation for monitoring kube-proxy metrics in k3s clusters | `false` |
+| `k3sServer.enabled` | Create a PushProx installation for monitoring k3s-server metrics (accounts for kube-controller-manager, kube-scheduler, and kube-proxy metrics) in k3s clusters | `false` |
 | `kubeAdmControllerManager.enabled` | Create a PushProx installation for monitoring kube-controller-manager metrics in kubeAdm clusters | `false` |
 | `kubeAdmScheduler.enabled` | Create a PushProx installation for monitoring kube-scheduler metrics in kubeAdm clusters | `false` |
 | `kubeAdmProxy.enabled` | Create a PushProx installation for monitoring kube-proxy metrics in kubeAdm clusters | `false` |
