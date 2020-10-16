@@ -14,10 +14,11 @@ spec:
       tag: {{ .Values.images.fluentbit.tag }}
     inputTail:
       Tag: "rke"
-      Path: "/rke/*.log"
+      Path: "/var/lib/rancher/logging/rke"
+      Parser: json
     extraVolumeMounts:
-      - source: "/var/lib/rancher/rke/log"
-        destination: "/rke"
+      - source: "/var/lib/rancher/logging/"
+        destination: "/var/lib/rancher/logging/"
         readOnly: true
   {{- $total_tolerations := concat (.Values.tolerations) (.Values.fluentbit_tolerations) }}
   {{- with $total_tolerations }}
