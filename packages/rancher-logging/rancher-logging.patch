@@ -20,6 +20,21 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-logging/charts-original/Chart.
 +  catalog.cattle.io/release-name: rancher-logging
 +  catalog.cattle.io/ui-component: logging
 +  catalog.cattle.io/provides-gvr: logging.banzaicloud.io.clusterflow/v1beta1
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-logging/charts-original/templates/_helpers.tpl packages/rancher-logging/charts/templates/_helpers.tpl
+--- packages/rancher-logging/charts-original/templates/_helpers.tpl
++++ packages/rancher-logging/charts/templates/_helpers.tpl
+@@ -56,3 +56,11 @@
+ {{- end }}
+ app.kubernetes.io/managed-by: {{ .Release.Service }}
+ {{- end -}}
++
++{{- define "system_default_registry" -}}
++{{- if .Values.global.cattle.systemDefaultRegistry -}}
++{{- printf "%s/" .Values.global.cattle.systemDefaultRegistry -}}
++{{- else -}}
++{{- "" -}}
++{{- end -}}
++{{- end -}}
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-logging/charts-original/templates/deployment.yaml packages/rancher-logging/charts/templates/deployment.yaml
 --- packages/rancher-logging/charts-original/templates/deployment.yaml
 +++ packages/rancher-logging/charts/templates/deployment.yaml
@@ -45,21 +60,6 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-logging/charts-original/templa
      {{- with .Values.affinity }}
        affinity:
          {{- toYaml . | nindent 8 }}
-diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-logging/charts-original/templates/_helpers.tpl packages/rancher-logging/charts/templates/_helpers.tpl
---- packages/rancher-logging/charts-original/templates/_helpers.tpl
-+++ packages/rancher-logging/charts/templates/_helpers.tpl
-@@ -56,3 +56,11 @@
- {{- end }}
- app.kubernetes.io/managed-by: {{ .Release.Service }}
- {{- end -}}
-+
-+{{- define "system_default_registry" -}}
-+{{- if .Values.global.cattle.systemDefaultRegistry -}}
-+{{- printf "%s/" .Values.global.cattle.systemDefaultRegistry -}}
-+{{- else -}}
-+{{- "" -}}
-+{{- end -}}
-+{{- end -}}
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-logging/charts-original/values.yaml packages/rancher-logging/charts/values.yaml
 --- packages/rancher-logging/charts-original/values.yaml
 +++ packages/rancher-logging/charts/values.yaml
@@ -98,7 +98,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-logging/charts-original/values
  
  affinity: {}
  
-@@ -76,4 +81,46 @@
+@@ -76,4 +81,49 @@
  monitoring:
    # Create a Prometheus Operator ServiceMonitor object
    serviceMonitor:
@@ -129,6 +129,9 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-logging/charts-original/values
 +  fluentbit:
 +    repository: rancher/fluent-fluent-bit
 +    tag: 1.5.4
++  fluentbit_debug:
++    repository: rancher/fluent-fluent-bit
++    tag: 1.5.4-debug
 +  fluentd:
 +    repository: rancher/banzaicloud-fluentd
 +    tag: v1.11.2-alpine-2
