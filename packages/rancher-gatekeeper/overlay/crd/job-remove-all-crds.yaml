@@ -1,0 +1,19 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: gatekeeper-delete-all-crd-job
+  annotations:
+    "helm.sh/hook": "pre-install"
+    "helm.sh/hook-delete-policy": "hook-succeeded, before-hook-creation, hook-failed"
+spec:
+  template:
+    spec:
+      serviceAccountName: gatekeeper-admin
+      containers:
+      - name: gatekeeper-delete-all-crd
+        image: "{{ template "system_default_registry" . }}{{ .Values.global.kubectl.repository }}:{{ .Values.global.kubectl.tag }}"
+        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+        command: ["kubectl",  "delete", "crd", "configs.config.gatekeeper.sh constrainttemplates.templates.gatekeeper.sh"]
+      restartPolicy: Never
+  backoffLimit: 1
