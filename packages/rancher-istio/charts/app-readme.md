@@ -5,7 +5,7 @@
 
 This dependecy installs the required CRDs for installing Kiali. Since Kiali is bundled in with Istio in this chart, if you do not have these dependencies installed, your Istio installation will fail. If you do not plan on using Kiali, set `kiali.enabled=false` when installing Istio for a succesful installation.
 
-> **Note:** The following configuration options assume you have installed the dependecies for Kiali. Please ensure you have Promtheus in your cluster before proceeding if you would like to use Kiali graphs to visualize data.
+> **Note:** The following configuration options assume you have installed the dependecies for Kiali. Please ensure you have Promtheus in your cluster before proceeding.
 
 The `kiali.external_services.prometheus` url is set in the values.yaml:
 ```
