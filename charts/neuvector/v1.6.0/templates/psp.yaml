@@ -1,0 +1,77 @@
+{{- if .Values.psp -}}
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: neuvector-binding-psp
+  annotations:
+    seccomp.security.alpha.kubernetes.io/allowedProfileNames: '*'
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+spec:
+  privileged: true
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: true
+  allowedCapabilities:
+  - SYS_ADMIN
+  - NET_ADMIN
+  - SYS_PTRACE
+  - IPC_LOCK
+  requiredDropCapabilities:
+  - ALL
+  volumes:
+  - '*'
+  hostNetwork: true
+  hostPorts:
+  - min: 0
+    max: 65535
+  hostIPC: true
+  hostPID: true
+  runAsUser:
+    rule: 'RunAsAny'
+  seLinux:
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'RunAsAny'
+  fsGroup:
+    rule: 'RunAsAny'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: neuvector-binding-psp
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+rules:
+- apiGroups:
+  - policy
+  - extensions
+  resources:
+  - podsecuritypolicies
+  verbs:
+  - use
+  resourceNames:
+  - neuvector-binding-psp
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: neuvector-binding-psp
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: neuvector-binding-psp
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: {{ .Release.Namespace }}
+{{- end }}
