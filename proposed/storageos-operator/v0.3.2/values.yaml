@@ -27,7 +27,7 @@ operator:
 
   image:
     repository: storageos/cluster-operator
-    tag: v2.2.0
+    tag: v2.3.1
     pullPolicy: IfNotPresent
 
 # cluster-specific configuation parameters.
@@ -87,6 +87,9 @@ cluster:
     # nodeContainer is the StorageOS node image to use, available from the
     # [Docker Hub](https://hub.docker.com/r/storageos/node/).
     node:
+      repository:
+      tag:
+    apiManager:
       repository:
       tag:
     init:
@@ -157,6 +160,10 @@ cleanup:
       command:
         - "deployment"
         - "storageos-scheduler"
+    - name: api-manager
+      command:
+        - "deployment"
+        - "storageos-api-manager"
     - name: configmap
       command:
         - "configmap"
@@ -169,6 +176,7 @@ cleanup:
         - "storageos-statefulset-sa"
         - "storageos-csi-helper-sa"
         - "storageos-scheduler-sa"
+        - "storageos-api-manager-sa"
     - name: role
       command:
         - "role"
@@ -185,6 +193,10 @@ cleanup:
       command:
         - "service"
         - "storageos"
+    - name: api-manager-service
+      command:
+        - "service"
+        - "storageos-api-manager-metrics"
     - name: clusterrole
       command:
         - "clusterrole"
@@ -194,6 +206,7 @@ cleanup:
         - "storageos:pod-fencer"
         - "storageos:scheduler-extender"
         - "storageos:init"
+        - "storageos:api-manager"
         - "storageos:nfs-provisioner"
         - "storageos:csi-resizer"
     - name: clusterrolebinding
@@ -206,6 +219,7 @@ cleanup:
         - "storageos:pod-fencer"
         - "storageos:scheduler-extender"
         - "storageos:init"
+        - "storageos:api-manager"
         - "storageos:nfs-provisioner"
         - "storageos:csi-resizer"
     - name: storageclass

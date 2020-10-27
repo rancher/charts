@@ -8,7 +8,9 @@ StorageOS is a cloud native, software-defined storage platform that transforms
 commodity server or cloud based disk capacity into enterprise-class persistent
 storage for containers. StorageOS volumes offer high throughput, low latency
 and consistent performance, and are therefore ideal for deploying databases,
-message queues, and other mission-critical stateful solutions.
+message queues, and other mission-critical stateful solutions. StorageOS
+Project edition also offers ReadWriteMany volumes that are concurrently
+accessible by multiple applications.
 
 The StorageOS Operator installs and manages StorageOS within a cluster. Cluster
 nodes may contribute local or attached disk-based storage into a distributed
@@ -31,6 +33,8 @@ additional capacity, features and support plans contact sales@storageos.com.
 * High Availability - synchronous replication insulates you from node failure.
 * Delta Sync - replicas out of sync due to transient failures only transfer
     changed blocks.
+* Multiple AccessModes - dynamically provision ReadWriteOnce or ReadWriteMany
+    volumes.
 * Scalability - disaggregated consensus means no single scheduling point of
     failure.
 * Thin provisioning - Only consume the space you need in a storage pool.
@@ -164,13 +168,6 @@ metadata:
 spec:
   secretRefName: "storageos-api"
   secretRefNamespace: "storageos-operator"
-  csi:
-    enable: true
-    deploymentStrategy: "deployment"
-    enableProvisionCreds: true
-    enableControllerPublishCreds: true
-    enableNodePublishCreds: true
-    enableControllerExpandCreds: true
   kvBackend:
     address: "etcd-client.etcd.svc.cluster.local:2379"
     # address: '10.42.15.23:2379,10.42.12.22:2379,10.42.13.16:2379' # You can set ETCD server IPs.
@@ -219,7 +216,7 @@ Operator chart and their default values.
 Parameter | Description | Default
 --------- | ----------- | -------
 `operator.image.repository` | StorageOS Operator container image repository | `storageos/cluster-operator`
-`operator.image.tag` | StorageOS Operator container image tag | `v2.2.0`
+`operator.image.tag` | StorageOS Operator container image tag | `v2.3.1`
 `operator.image.pullPolicy` | StorageOS Operator container image pull policy | `IfNotPresent`
 `podSecurityPolicy.enabled` | If true, create & use PodSecurityPolicy resources | `false`
 `podSecurityPolicy.annotations` | Specify pod annotations in the pod security policy | `{}`
@@ -241,6 +238,8 @@ Parameter | Description | Default
 `cluster.disableTelemetry` | If true, no telemetry data will be collected from the cluster | `false`
 `cluster.images.node.repository` | StorageOS Node container image repository |
 `cluster.images.node.tag` | StorageOS Node container image tag |
+`cluster.images.apiManager.repository` | StorageOS API Manager container image repository |
+`cluster.images.apiManager.tag` | StorageOS API Manager container image tag |
 `cluster.images.init.repository` | StorageOS init container image repository |
 `cluster.images.init.tag` | StorageOS init container image tag |
 `cluster.images.csiV1ClusterDriverRegistrar.repository` | CSI v1 Cluster Driver Registrar image repository |

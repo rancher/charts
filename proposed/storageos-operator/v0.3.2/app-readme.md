@@ -4,7 +4,9 @@ StorageOS is a cloud native, software-defined storage platform that transforms
 commodity server or cloud based disk capacity into enterprise-class persistent
 storage for containers. StorageOS volumes offer high throughput, low latency
 and consistent performance, and are therefore ideal for deploying databases,
-message queues, and other mission-critical stateful solutions.
+message queues, and other mission-critical stateful solutions. StorageOS
+Project edition also offers ReadWriteMany volumes that are concurrently
+accessible by multiple applications.
 
 The StorageOS Operator installs and manages StorageOS within a cluster. Cluster
 nodes may contribute local or attached disk-based storage into a distributed
@@ -27,6 +29,8 @@ additional capacity, features and support plans contact sales@storageos.com.
 * High Availability - synchronous replication insulates you from node failure.
 * Delta Sync - replicas out of sync due to transient failures only transfer
     changed blocks.
+* Multiple AccessModes - dynamically provision ReadWriteOnce or ReadWriteMany
+    volumes.
 * Scalability - disaggregated consensus means no single scheduling point of
     failure.
 * Thin provisioning - Only consume the space you need in a storage pool.
