@@ -28,7 +28,7 @@ The following table lists the configurable parameters of the rancher-backup char
 | Parameter   |      Description      |  Default |
 |----------|---------------|-------|
 | image.repository |  Container image repository | rancher/backup-restore-operator |
-| image.tag |    Container image tag  |   v0.1.0-rc1 |
+| image.tag |    Container image tag  |   v1.0.2 |
 | s3.enabled | Configure S3 compatible default storage location. Current version supports S3 and MinIO |    false |
 | s3.credentialSecretName | Name of the Secret containing S3 credentials. This is an optional field. Skip this field in order to use IAM Role authentication. The Secret must contain following two keys, `accessKey` and `secretKey` |    "" |
 | s3.credentialSecretNamespace | Namespace of the Secret containing S3 credentials |    "" |
