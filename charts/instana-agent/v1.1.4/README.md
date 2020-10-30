@@ -120,7 +120,7 @@ For more information on agent modes, refer to the [Host Agent Modes](https://www
 First, create a namespace for the instana-agent
 
 ```bash
-$ kubectl create namespace instana-agent
+kubectl create namespace instana-agent
 ```
 
 To install the chart with the release name `instana-agent` and set the values on the command line run:
@@ -152,13 +152,13 @@ To uninstall/delete the `instana-agent` release:
 ### Uninstalling with Helm 3
 
 ```bash
-$ helm del instana-agent -n instana-agent
+helm del instana-agent -n instana-agent
 ```
 
 ### Uninstalling with Helm 2
 
 ```bash
-$ helm del --purge instana-agent
+helm del --purge instana-agent
 ```
 
 ## Configuration
@@ -177,6 +177,7 @@ The following table lists the configurable parameters of the Instana chart and t
 | `agent.image.name`                 | The image name to pull                                                  | `instana/agent`                                                                                             |
 | `agent.image.tag`                  | The image tag to pull                                                   | `latest`                                                                                                    |
 | `agent.image.pullPolicy`           | Image pull policy                                                       | `Always`                                                                                                    |
+| `agent.image.pullSecrets`          | Image pull secrets; if not specified (default) _and_ `agent.image.name` starts with `containers.instana.io`, it will be automatically set to `[{ "name": "containers-instana-io" }]` to match the default secret created in this case. | `nil`                                                                                                    |
 | `agent.key`                        | Your Instana Agent key                                                  | `nil` You must provide your own key                                                                         |
 | `agent.listenAddress`              | List of addresses to listen on, or "*" for all interfaces               | `nil`                                                                                                       |
 | `agent.mode`                       | Agent mode. Supported values are `APM`, `INFRASTRUCTURE`, `AWS`         | `APM`                                                                                                 |
@@ -220,8 +221,8 @@ Besides the settings listed above, there are many more settings that can be appl
 An overview of the settings that can be applied is provided in the [Agent Configuration File](https://www.instana.com/docs/setup_and_manage/host_agent/configuration#agent-configuration-file) documentation.
 To configure the agent, you can either:
 
-- edit the [config map](templates/configmap.yaml), or
-- provide the configuration via the `agent.configuration_yaml` parameter in [values.yaml](values.yaml)
+* edit the [config map](templates/configmap.yaml), or
+* provide the configuration via the `agent.configuration_yaml` parameter in [values.yaml](values.yaml)
 
 This configuration will be used for all Instana Agents on all nodes. Visit the [agent configuration documentation](https://docs.instana.io/setup_and_manage/host_agent/#agent-configuration-file) for more details on configuration options.
 
