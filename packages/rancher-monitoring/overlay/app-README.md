@@ -12,4 +12,4 @@ The chart installs the following components:
 - [node-exporter](https://github.com/helm/charts/tree/master/stable/prometheus-node-exporter) / [kube-state-metrics](https://github.com/helm/charts/tree/master/stable/kube-state-metrics) / [rancher-pushprox](https://github.com/rancher/charts/tree/dev-v2.5/packages/rancher-pushprox/charts) - These charts monitor various Kubernetes components across different Kubernetes cluster types.
 - [Prometheus Adapter](https://github.com/helm/charts/tree/master/stable/prometheus-adapter) - The adapter allows a user to expose custom metrics, resource metrics, and external metrics on the default [Prometheus](https://prometheus.io/) instance to the Kubernetes API Server.
 
-For more information, review  the Helm README of this chart.
+For more information, review the Helm README of this chart.
