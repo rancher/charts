@@ -4,7 +4,7 @@ This chart enables ability to capture backups of the Rancher application and res
 
 For more information on how to use the feature, refer to our [docs](https://rancher.com/docs/rancher/v2.x/en/backups/v2.5/).
 
-This chart installs the following component:
+This chart installs the following components:
 
 - [backup-restore-operator](https://github.com/rancher/backup-restore-operator)
   - The operator handles backing up all Kubernetes resources and CRDs that Rancher creates and manages from the local cluster. It gathers these resources by querying the Kubernetes API server, packages all the resources to create a tarball file and saves it in the configured backup storage location.
