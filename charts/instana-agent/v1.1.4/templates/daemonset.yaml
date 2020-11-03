@@ -15,10 +15,12 @@ spec:
     metadata:
       labels:
         {{- include "instana-agent.commonLabels" . | nindent 8 }}
-      {{- if .Values.agent.pod.annotations }}
       annotations:
+      {{- if .Values.agent.pod.annotations }}
         {{- toYaml .Values.agent.pod.annotations | nindent 8 }}
       {{- end }}
+        # To ensure that changes to agent.configuration_yaml or agent.additional_backends trigger a Pod recreation, we keep a SHA here
+        instana-configuration-hash: {{ .Values.agent.configuration_yaml | cat ";" | cat ( join "," .Values.agent.additionalBackends ) | sha1sum }}
     spec:
       {{- if .Values.agent.pod.nodeSelector }}
       nodeSelector:
@@ -32,6 +34,14 @@ spec:
       hostPID: true
       {{- if .Values.agent.pod.priorityClassName }}
       priorityClassName: {{ .Values.agent.pod.priorityClassName | quote }}
+      {{- end }}
+      dnsPolicy: ClusterFirstWithHostNet
+      {{- if typeIs "[]interface {}" .Values.agent.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.agent.image.pullSecrets | nindent 8 }}
+      {{- else if .Values.agent.image.name | hasPrefix "containers.instana.io" }}
+      imagePullSecrets:
+        - name: containers-instana-io
       {{- end }}
       containers:
         - name: instana-agent
@@ -50,20 +60,27 @@ spec:
               value: {{ .Values.agent.endpointHost | quote }}
             - name: INSTANA_AGENT_ENDPOINT_PORT
               value: {{ .Values.agent.endpointPort | quote }}
-            - name: INSTANA_AGENT_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ template "instana-agent.fullname" . }}
-                  key: key
             {{- if .Values.agent.mode }}
             - name: INSTANA_AGENT_MODE
               value: {{ .Values.agent.mode | quote }}
             {{- end }}
-            {{- if .Values.agent.downloadKey }}
+            {{- $agentKey := required "The parameter 'agent.key' is required" .Values.agent.key }}
+            {{- $downloadKey := .Values.agent.downloadKey }}
+            {{- if .Values.agent.keysSecret }}
+            {{- $keysSecret := lookup "v1" "Secret" .Release.Namespace .Values.agent.keysSecret }}
+            {{- $agentKey := required "The secret passed to 'keySecrets' must contain a field called 'key'" $keysSecret.data.key }}
+            {{- $downloadKey := $keysSecret.data.downloadKey }}
+            {{- end }}
+            - name: INSTANA_AGENT_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ template "instana-agent.keysSecretName" . }}
+                  key: key
+            {{- if $downloadKey }}
             - name: INSTANA_DOWNLOAD_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ template "instana-agent.fullname" . }}
+                  name: {{ template "instana-agent.keysSecretName" . }}
                   key: downloadKey
             {{- end }}
             {{- if .Values.agent.proxyHost }}
@@ -186,6 +203,10 @@ spec:
       {{- if .Values.agent.pod.tolerations }}
       tolerations:
         {{- toYaml .Values.agent.pod.tolerations | nindent 8 }}
+      {{- end }}
+      {{- if .Values.agent.pod.affinity }}
+      affinity:
+        {{- toYaml .Values.agent.pod.affinity | nindent 8 }}
       {{- end }}
       volumes:
         - name: dev

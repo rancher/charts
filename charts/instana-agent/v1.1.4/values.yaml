@@ -2,12 +2,22 @@
 # name: instana-agent
 
 agent:
-  # agent.key is the secret token which your agent uses to authenticate to Instana's servers.
-  key: null
   # agent.mode is used to set agent mode and it can be APM, INFRASTRUCTURE or AWS
   # mode: APM
-  # agent.downloadKey is optional, if used it doesn't have to match agent.key
+
+  # agent.key is the secret token which your agent uses to authenticate to Instana's servers.
+  key: null
+  # agent.downloadKey is key, sometimes known ass "sales key", that allows you to download,
+  # software from Instana.
   # downloadKey: null
+
+  # Rather than specifying the agent key and optionally the download key, you can "bring your
+  # own secret" creating it in the namespace in which you install the `instana-agent` and
+  # specify its name in the `keysSecret` field. The secret you create must contains
+  # a field called `key` and optionally one called `downloadKey`, which contain, respectively,
+  # the values you'd otherwise set in `.agent.key` and `agent.downloadKey`.
+  # keysSecret: null
+
   # agent.listenAddress is the IP address the agent HTTP server will listen to.
   # listenAddress: *
 
@@ -30,6 +40,12 @@ agent:
     tag: latest
     # agent.image.pullPolicy specifies when to pull the image container.
     pullPolicy: Always
+    # `agent.image.pullSecrets` allows you to override the default pull secret that is created when agent.image.name starts with "containers.instana.io"
+    # Setting `agent.image.pullSecrets` prevents the creation of the default `containers-instana-io` secret.
+    # pullSecrets:
+    #   - name: my_awesome_secret_instead
+    # If you want no imagePullSecrets to be specified in the agent pod, you can just pass an empty array to `agent.image.pullSecrets`
+    # pullSecrets: []
 
   pod:
     # agent.pod.annotations are additional annotations to be added to the agent pods.
@@ -38,6 +54,10 @@ agent:
     # agent.pod.tolerations are tolerations to influence agent pod assignment.
     #   https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
     tolerations: []
+
+    # agent.pod.affinity are affinities to influence agent pod assignment.
+    # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+    affinity: {}
 
     # agent.pod.priorityClassName is the name of an existing PriorityClass that should be set on the agent pods
     #   https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/

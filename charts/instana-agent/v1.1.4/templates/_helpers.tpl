@@ -52,6 +52,17 @@ The name of the PodSecurityPolicy used.
 {{- end -}}
 
 {{/*
+Prints out the name of the secret to use to retrieve the agent key
+*/}}
+{{- define "instana-agent.keysSecretName" -}}
+{{- if .Values.agent.keysSecret -}}
+{{ .Values.agent.keysSecret }}
+{{- else -}}
+{{ template "instana-agent.fullname" . }}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Add Helm metadata to resource labels.
 */}}
 {{- define "instana-agent.commonLabels" -}}
@@ -74,3 +85,13 @@ app.kubernetes.io/name: {{ include "instana-agent.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Generates the dockerconfig for the credentials to pull from containers.instana.io
+*/}}
+{{- define "imagePullSecretContainersInstanaIo" }}
+{{- $registry := "containers.instana.io" }}
+{{- $username := "_" }}
+{{- $password := default .Values.agent.key .Values.agent.downloadKey }}
+{{- printf "{\"auths\": {\"%s\": {\"auth\": \"%s\"}}}" $registry (printf "%s:%s" $username $password | b64enc) | b64enc }}
+{{- end }}
