@@ -10,6 +10,6 @@ The chart installs the following components:
 - [kube-prometheus](https://github.com/prometheus-operator/kube-prometheus/) - A collection of community-curated Kubernetes manifests, Grafana Dashboards, and PrometheusRules that deploy a default end-to-end cluster monitoring configuration.
 - [Grafana](https://github.com/helm/charts/tree/master/stable/grafana) - Grafana allows a user to create / view dashboards based on the cluster metrics collected by Prometheus.
 - [node-exporter](https://github.com/helm/charts/tree/master/stable/prometheus-node-exporter) / [kube-state-metrics](https://github.com/helm/charts/tree/master/stable/kube-state-metrics) / [rancher-pushprox](https://github.com/rancher/charts/tree/dev-v2.5/packages/rancher-pushprox/charts) - These charts monitor various Kubernetes components across different Kubernetes cluster types.
-- [Prometheus Adapter](https://github.com/helm/charts/tree/master/stable/prometheus-adapter) - The adapter exposes custom metrics, resource metrics, and external metrics on the default [Prometheus](https://prometheus.io/) instance.
+- [Prometheus Adapter](https://github.com/helm/charts/tree/master/stable/prometheus-adapter) - The adapter allows a user to expose custom metrics, resource metrics, and external metrics on the default [Prometheus](https://prometheus.io/) instance to the Kubernetes API Server.
 
 For more information, review  the Helm README of this chart.
