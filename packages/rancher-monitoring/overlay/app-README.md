@@ -8,7 +8,7 @@ The chart installs the following components:
 
 - [Prometheus Operator](https://github.com/coreos/prometheus-operator)  - The operator provides easy monitoring definitions for Kubernetes services, manages [Prometheus](https://prometheus.io/) and [AlertManager](https://prometheus.io/docs/alerting/latest/alertmanager/) instances, and adds default scrape targets for some Kubernetes components.
 - [kube-prometheus](https://github.com/prometheus-operator/kube-prometheus/) - A collection of community-curated Kubernetes manifests, Grafana Dashboards, and PrometheusRules that deploy a default end-to-end cluster monitoring configuration.
-- [Grafana](https://github.com/helm/charts/tree/master/stable/grafana) - Grafana allows the ability to view dashboards of the Kubernetes cluster. The chart installs several default dashboards based on metrics available in the cluster.
+- [Grafana](https://github.com/helm/charts/tree/master/stable/grafana) - Grafana allows a user to create / view dashboards based on the cluster metrics collected by Prometheus.
 - [node-exporter](https://github.com/helm/charts/tree/master/stable/prometheus-node-exporter)/[kube-state-metrics](https://github.com/helm/charts/tree/master/stable/kube-state-metrics)/[rancher-pushprox](https://github.com/rancher/charts/tree/dev-v2.5/packages/rancher-pushprox/charts) - These components set up monitoring of internal Kubernetes components across different Kubernetes cluster types.
 - [Prometheus Adapter](https://github.com/helm/charts/tree/master/stable/prometheus-adapter) - The adapter exposes custom metrics, resource metrics, and external metrics on the default [Prometheus](https://prometheus.io/) instance.
 
