@@ -1,14 +1,15 @@
+{{- \$currentScope := . -}}
+{{- range \$configMap := (include "crd_manifest_configmaps" . | fromYaml) }}
+{{- with \$currentScope -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Chart.Name }}-manifest
+  name: {{ get \$configMap "name" }}
   namespace: {{ .Release.Namespace }}
 data:
-  crd-manifest.yaml: |
-    {{- \$currentScope := . -}}
-    {{- \$crds := (.Files.Glob  "crd-manifest/**.yaml") -}}
-    {{- range \$path, \$_ :=  \$crds -}}
-    {{- with \$currentScope -}}
-    {{ .Files.Get \$path | nindent 4 }}
-    ---
-    {{- end -}}{{- end -}}
+{{- range \$path, \$file := (get \$configMap "crds") }}
+{{ \$path | indent 2 }}: |
+{{ \$file | indent 4 }}
+{{- end }}
+---
+{{- end }}{{- end }}

@@ -1,3 +1,4 @@
+{{- \$currentScope := . -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -20,23 +21,29 @@ spec:
         runAsNonRoot: true
         runAsUser: 1000
       containers:
-        - name: create-crds
+{{- range \$configMap := (include "crd_manifest_configmaps" . | fromYaml) }}
+{{- with \$currentScope }}
+        - name: create-crds-{{ get \$configMap "name" }}
           image: {{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
           imagePullPolicy: IfNotPresent
           command:
           - /bin/kubectl
           - apply
           - -f
-          - /etc/config/crd-manifest.yaml
+          - /etc/config/crd-manifest/{{ get \$configMap "name" }}
           volumeMounts:
-            - name: crd-manifest
-              readOnly: true
-              mountPath: /etc/config
+          - name: {{ get \$configMap "name" }}
+            readOnly: true
+            mountPath: /etc/config/crd-manifest/{{ get \$configMap "name" }}
+{{- end }}{{- end }}
       restartPolicy: OnFailure
       volumes:
-      - name: crd-manifest
+{{- range \$configMap := (include "crd_manifest_configmaps" . | fromYaml) }}
+{{- with \$currentScope }}
+      - name: {{ get \$configMap "name" }}
         configMap:
-          name: {{ .Chart.Name }}-manifest
+          name: {{ get \$configMap "name" }}
+{{- end }}{{- end }}
 ---
 apiVersion: batch/v1
 kind: Job
@@ -60,33 +67,43 @@ spec:
         runAsNonRoot: true
         runAsUser: 1000
       initContainers:
-        - name: remove-finalizers
+{{- range \$configMap := (include "crd_manifest_configmaps" . | fromYaml) }}
+{{- with \$currentScope }}
+        - name: remove-finalzers-{{ get \$configMap "name" }}
           image: {{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
           imagePullPolicy: IfNotPresent
           command:
           - /bin/kubectl
           - apply
           - -f
-          - /etc/config/crd-manifest.yaml
+          - /etc/config/crd-manifest/{{ get \$configMap "name" }}
           volumeMounts:
-            - name: crd-manifest
-              readOnly: true
-              mountPath: /etc/config
+          - name: {{ get \$configMap "name" }}
+            readOnly: true
+            mountPath: /etc/config/crd-manifest/{{ get \$configMap "name" }}
+{{- end }}{{- end }}
       containers:
-        - name: delete-crds
+{{- range \$configMap := (include "crd_manifest_configmaps" . | fromYaml) }}
+{{- with \$currentScope }}
+        - name: delete-crds-{{ get \$configMap "name" }}
           image: {{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
           imagePullPolicy: IfNotPresent
           command:
           - /bin/kubectl
           - delete
           - -f
-          - /etc/config/crd-manifest.yaml
+          - /etc/config/crd-manifest/{{ get \$configMap "name" }}
           volumeMounts:
-            - name: crd-manifest
-              readOnly: true
-              mountPath: /etc/config
+          - name: {{ get \$configMap "name" }}
+            readOnly: true
+            mountPath: /etc/config/crd-manifest/{{ get \$configMap "name" }}
+{{- end }}{{- end }}
       restartPolicy: OnFailure
       volumes:
-      - name: crd-manifest
+{{- range \$configMap := (include "crd_manifest_configmaps" . | fromYaml) }}
+{{- with \$currentScope }}
+      - name: {{ get \$configMap "name" }}
         configMap:
-          name: {{ .Chart.Name }}-manifest
+          name: {{ get \$configMap "name" }}
+{{- end }}{{- end }}
+
