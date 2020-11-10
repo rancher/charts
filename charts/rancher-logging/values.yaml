@@ -32,9 +32,14 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
-nodeSelector: {}
+nodeSelector:
+  kubernetes.io/os: linux
 
-tolerations: []
+tolerations:
+  - key: cattle.io/os
+    operator: "Equal"
+    value: "linux"
+    effect: NoSchedule
 
 affinity: {}
 
@@ -83,6 +88,9 @@ disablePvc: true
 additionalLoggingSources:
   rke:
     enabled: false
+    fluentbit:
+      log_level: "info"
+      mem_buffer_limit: "5MB"
   rke2:
     enabled: false
   k3s:
@@ -98,16 +106,15 @@ images:
   fluentbit:
     repository: rancher/fluent-fluent-bit
     tag: 1.5.4
+  fluentbit_debug:
+    repository: rancher/fluent-fluent-bit
+    tag: 1.5.4-debug
   fluentd:
     repository: rancher/banzaicloud-fluentd
     tag: v1.11.2-alpine-2
   syslog_forwarder:
     repository: rancher/fluent-bit-out-syslog
     tag: 0.1.0
-
-global:
-  cattle:
-    systemDefaultRegistry: ""
 
 fluentbit_tolerations:
   - key: node-role.kubernetes.io/controlplane
@@ -116,3 +123,7 @@ fluentbit_tolerations:
   - key: node-role.kubernetes.io/etcd
     value: "true"
     effect: NoExecute
+
+global:
+  cattle:
+    systemDefaultRegistry: ""

@@ -13,20 +13,44 @@
 {{- end }}
 
 {{- define "exporter.kubeControllerManager.enabled" -}}
-{{- if or .Values.kubeControllerManager.enabled .Values.rkeControllerManager.enabled .Values.k3sControllerManager.enabled .Values.kubeAdmControllerManager.enabled .Values.rke2ControllerManager.enabled -}}
+{{- if or .Values.kubeControllerManager.enabled .Values.rkeControllerManager.enabled .Values.k3sServer.enabled .Values.kubeAdmControllerManager.enabled .Values.rke2ControllerManager.enabled -}}
 "true"
 {{- end -}}
 {{- end }}
 
 {{- define "exporter.kubeScheduler.enabled" -}}
-{{- if or .Values.kubeScheduler.enabled .Values.rkeScheduler.enabled .Values.k3sScheduler.enabled .Values.kubeAdmScheduler.enabled .Values.rke2Scheduler.enabled -}}
+{{- if or .Values.kubeScheduler.enabled .Values.rkeScheduler.enabled .Values.k3sServer.enabled .Values.kubeAdmScheduler.enabled .Values.rke2Scheduler.enabled -}}
 "true"
 {{- end -}}
 {{- end }}
 
 {{- define "exporter.kubeProxy.enabled" -}}
-{{- if or .Values.kubeProxy.enabled .Values.rkeProxy.enabled .Values.k3sProxy.enabled .Values.kubeAdmProxy.enabled .Values.rke2Proxy.enabled -}}
+{{- if or .Values.kubeProxy.enabled .Values.rkeProxy.enabled .Values.k3sServer.enabled .Values.kubeAdmProxy.enabled .Values.rke2Proxy.enabled -}}
 "true"
+{{- end -}}
+{{- end }}
+
+{{- define "exporter.kubeControllerManager.jobName" -}}
+{{- if .Values.k3sServer.enabled -}}
+k3s-server
+{{- else -}}
+kube-controller-manager
+{{- end -}}
+{{- end }}
+
+{{- define "exporter.kubeScheduler.jobName" -}}
+{{- if .Values.k3sServer.enabled -}}
+k3s-server
+{{- else -}}
+kube-scheduler
+{{- end -}}
+{{- end }}
+
+{{- define "exporter.kubeProxy.jobName" -}}
+{{- if .Values.k3sServer.enabled -}}
+k3s-server
+{{- else -}}
+kube-proxy
 {{- end -}}
 {{- end }}
 

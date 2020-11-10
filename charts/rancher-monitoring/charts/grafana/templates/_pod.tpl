@@ -26,6 +26,7 @@ initContainers:
     {{- end }}
     imagePullPolicy: {{ .Values.initChownData.image.pullPolicy }}
     securityContext:
+      runAsNonRoot: false
       runAsUser: 0
     command: ["chown", "-R", "{{ .Values.securityContext.runAsUser }}:{{ .Values.securityContext.runAsGroup }}", "/var/lib/grafana"]
     resources:

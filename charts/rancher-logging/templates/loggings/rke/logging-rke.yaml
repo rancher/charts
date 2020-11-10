@@ -14,15 +14,21 @@ spec:
       tag: {{ .Values.images.fluentbit.tag }}
     inputTail:
       Tag: "rke"
-      Path: "/rke/*.log"
+      Path: "/var/lib/rancher/logging/rke"
+      Parser: json
     extraVolumeMounts:
-      - source: "/var/lib/rancher/rke/log"
-        destination: "/rke"
+      - source: "/var/lib/rancher/logging/"
+        destination: "/var/lib/rancher/logging/"
         readOnly: true
-    {{ with .Values.fluentbit_tolerations }}
+  {{- $total_tolerations := concat (.Values.tolerations) (.Values.fluentbit_tolerations) }}
+  {{- with $total_tolerations }}
     tolerations:
-      {{ toYaml . | nindent 6 }}
-    {{ end }}
+      {{- toYaml . | nindent 6 }}
+  {{- end }}
+  {{- with .Values.nodeSelector }}
+    nodeSelector:
+      {{- toYaml . | nindent 6 }}
+  {{- end }}
   fluentd:
     image:
       repository: {{ template "system_default_registry" . }}{{ .Values.images.fluentd.repository }}
@@ -31,4 +37,12 @@ spec:
       repository: {{ template "system_default_registry" . }}{{ .Values.images.config_reloader.repository }}
       tag: {{ .Values.images.config_reloader.tag }}
     disablePvc: {{ .Values.disablePvc }}
+    {{- with .Values.tolerations }}
+    tolerations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.nodeSelector }}
+    nodeSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
 {{- end }}
