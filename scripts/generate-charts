@@ -31,14 +31,6 @@ for f in packages/*; do
 			cp -R ${f}/charts-crd/* charts/$(basename -- ${f})/charts-crd
 		fi
 		helm repo index --merge ./assets/index.yaml --url assets assets
-
-		# Clean up changes
-		if [[ -f ${f}/package.yaml ]]; then
-			yq w -i ${f}/charts/Chart.yaml 'version' "${version}"
-		fi
-		for file in $(find ./${f}/overlay -type f); do
-			rm ${f}/charts/${file#./${f}/overlay/}
-		done
 	fi
 done
 
