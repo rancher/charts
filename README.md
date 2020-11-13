@@ -85,7 +85,7 @@ The step includes:
    
 2. Change the version in `package.yaml`. If upstream chart needs to be updated, update url to point the latest chart. `packageVersion` also needs to updated.
 
-3. Make modification to your charts. 
+3. Make modifications to your charts.
 
 4. Run `make CHART={CHART_NAME} patch`
  
@@ -97,6 +97,25 @@ The step includes:
 
 This repo provides a [workflow](./.github/workflows) that automatically uploads patch files and tarball of charts. Commit will only need to update `package/${chart-name}/charts` and make sure patches are 
 up-to-date with the latest chart. It also automatically build github pages to serve `index.yaml` and artifacts of charts.
+
+### Troubleshooting
+
+When updating your chart with the upstream version you may encounter conflicts, or have general questions about the process. Below are some troubleshooting tips.
+
+#### How do I find all the image tags from the upstream chart?
+
+Check the new image versions (and entirely new images) in the upstream chart, and update them in the local chart.
+There are multiple ways to find them, but the easiest may be to install the upstream chart on a sandboxed cluster and track all images used.
+
+#### How do I update the image tags or add new images to our mirror?
+
+Add or update images in the new chart by opening a PR in [image-mirror](https://github.com/rancher/image-mirror).
+
+#### How do I generate a CRD chart when there's conflicts?
+
+Encountering conflicts when running `prepare` can create a scenario where the `charts-crd` chart is never generated.
+While this workflow may not work for all conflicts, you can copy the files with conflicts to a temporary location, manually triage the conflicts, and then copy those files back.
+You may also want to remove the files with conflicts from the chart's `patch` file before running `prepare` again.
 
 ### Experimental: Splitting CRDs from an upstream package into a separate package
 
