@@ -787,7 +787,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/tem
  {{ toYaml .Values.alertmanager.secret.annotations | indent 4 }}
  {{- end }}
    labels:
-@@ -20,4 +28,97 @@
+@@ -20,4 +28,137 @@
  {{- range $key, $val := .Values.alertmanager.templateFiles }}
    {{ $key }}: {{ $val | b64enc | quote }}
  {{- end }}
@@ -853,6 +853,11 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/tem
 +  resources:
 +  - secrets
 +  verbs: ['create', 'get', 'patch']
++- apiGroups: ['policy']
++  resources: ['podsecuritypolicies']
++  verbs:     ['use']
++  resourceNames:
++  - alertmanager-{{ template "kube-prometheus-stack.fullname" . }}-pre-install
 +---
 +apiVersion: rbac.authorization.k8s.io/v1
 +kind: ClusterRoleBinding
@@ -884,6 +889,41 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/tem
 +    "helm.sh/hook": pre-install
 +    "helm.sh/hook-delete-policy": hook-succeeded, hook-failed
 +    "helm.sh/hook-weight": "3"
++---
++apiVersion: policy/v1beta1
++kind: PodSecurityPolicy
++metadata:
++  name: alertmanager-{{ template "kube-prometheus-stack.fullname" . }}-pre-install
++  namespace: {{ template "kube-prometheus-stack.namespace" . }}
++  labels:
++    app: {{ template "kube-prometheus-stack.name" . }}-alertmanager
++  annotations:
++    "helm.sh/hook": pre-install
++    "helm.sh/hook-delete-policy": hook-succeeded, hook-failed
++    "helm.sh/hook-weight": "3"
++spec:
++  privileged: false
++  allowPrivilegeEscalation: false
++  hostNetwork: false
++  hostIPC: false
++  hostPID: false
++  runAsUser:
++    rule: 'MustRunAsNonRoot'
++  seLinux:
++    rule: 'RunAsAny'
++  supplementalGroups:
++    rule: 'MustRunAs'
++    ranges:
++      - min: 1
++        max: 65535
++  fsGroup:
++    rule: 'MustRunAs'
++    ranges:
++      - min: 1
++        max: 65535
++  readOnlyRootFilesystem: false
++  volumes:
++    - 'secret'
  {{- end }}
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/templates/exporters/core-dns/servicemonitor.yaml packages/rancher-monitoring/charts/templates/exporters/core-dns/servicemonitor.yaml
 --- packages/rancher-monitoring/charts-original/templates/exporters/core-dns/servicemonitor.yaml
