@@ -60,6 +60,15 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/Cha
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/README.md packages/rancher-monitoring/charts/README.md
 --- packages/rancher-monitoring/charts-original/README.md
 +++ packages/rancher-monitoring/charts/README.md
+@@ -15,7 +15,7 @@
+
+ ```console
+ helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+-helm repo add stable https://kubernetes-charts.storage.googleapis.com/
++helm repo add stable https://charts.helm.sh/stable/
+ helm repo update
+ ```
+
 @@ -127,7 +127,41 @@
  helm show values prometheus-community/kube-prometheus-stack
  ```
@@ -340,23 +349,11 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/cha
 +  runAsNonRoot: true
    runAsGroup: 65534
    runAsUser: 65534
-   fsGroup: 65534
-diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/charts/prometheus-adapter/README.md packages/rancher-monitoring/charts/charts/prometheus-adapter/README.md
---- packages/rancher-monitoring/charts-original/charts/prometheus-adapter/README.md
-+++ packages/rancher-monitoring/charts/charts/prometheus-adapter/README.md
-@@ -111,7 +111,7 @@
- | Parameter                       | Description                                                                     | Default                                     |
- | ------------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------|
- | `affinity`                      | Node affinity                                                                   | `{}`                                        |
--| `image.repository`              | Image repository                                                                | `directxman12/k8s-prometheus-adapter-amd64` |
-+| `image.repository`              | Image repository                                                                | `rancher/directxman12-k8s-prometheus-adapter-amd64` |
- | `image.tag`                     | Image tag                                                                       | `v0.6.0`                                    |
- | `image.pullPolicy`              | Image pull policy                                                               | `IfNotPresent`                              |
- | `image.pullSecrets`             | Image pull secrets                                                              | `{}`                                        |
+   fsGroup: 65534                                                        | `{}`                                        |
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/charts/prometheus-adapter/templates/custom-metrics-apiserver-deployment.yaml packages/rancher-monitoring/charts/charts/prometheus-adapter/templates/custom-metrics-apiserver-deployment.yaml
 --- packages/rancher-monitoring/charts-original/charts/prometheus-adapter/templates/custom-metrics-apiserver-deployment.yaml
 +++ packages/rancher-monitoring/charts/charts/prometheus-adapter/templates/custom-metrics-apiserver-deployment.yaml
-@@ -36,7 +36,7 @@
+@@ -37,7 +37,7 @@
        {{- end }}
        containers:
        - name: {{ .Chart.Name }}
@@ -374,18 +371,9 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/cha
  image:
 -  repository: directxman12/k8s-prometheus-adapter-amd64
 +  repository: rancher/directxman12-k8s-prometheus-adapter-amd64
-   tag: v0.6.0
+   tag: v0.7.0
    pullPolicy: IfNotPresent
- 
-@@ -139,3 +139,7 @@
-   # API server unable to communicate with metrics-server. As an example, this is required
-   # if you use Weave network on EKS
-   enabled: false
-+
-+securityContext:
-+  runAsNonRoot: true
-+  runAsUser: 1000
-\ No newline at end of file
+
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/charts/prometheus-node-exporter/OWNERS packages/rancher-monitoring/charts/charts/prometheus-node-exporter/OWNERS
 --- packages/rancher-monitoring/charts-original/charts/prometheus-node-exporter/OWNERS
 +++ packages/rancher-monitoring/charts/charts/prometheus-node-exporter/OWNERS
@@ -495,8 +483,9 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/req
 -
    - name: kube-state-metrics
 -    version: "2.8.*"
+-    repository: https://kubernetes-charts.storage.googleapis.com/
 +    version: 2.8.14
-     repository: https://kubernetes-charts.storage.googleapis.com/
++    repository: https://charts.helm.sh/stable/
      condition: kubeStateMetrics.enabled
 -
    - name: prometheus-node-exporter
@@ -512,85 +501,85 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/req
      condition: grafana.enabled
 +
 +  - name: prometheus-adapter
-+    version: 2.4.0
-+    repository: https://kubernetes-charts.storage.googleapis.com/
++    version: 2.7.1
++    repository: https://prometheus-community.github.io/helm-charts
 +    condition: prometheus-adapter.enabled
 +
 +  - name: rancher-pushprox
 +    alias: rkeControllerManager
-+    version: 0.1.1
++    version: 0.1.2
 +    repository: file://../../rancher-pushprox/charts
 +    condition: rkeControllerManager.enabled
 +
 +  - name: rancher-pushprox
 +    alias: rkeScheduler
-+    version: 0.1.1
++    version: 0.1.2
 +    repository: file://../../rancher-pushprox/charts
 +    condition: rkeScheduler.enabled
 +
 +  - name: rancher-pushprox
 +    alias: rkeProxy
-+    version: 0.1.1
++    version: 0.1.2
 +    repository: file://../../rancher-pushprox/charts
 +    condition: rkeProxy.enabled
 +
 +  - name: rancher-pushprox
 +    alias: rkeEtcd
-+    version: 0.1.1
++    version: 0.1.2
 +    repository: file://../../rancher-pushprox/charts
 +    condition: rkeEtcd.enabled
 +
 +  - name: rancher-pushprox
 +    alias: k3sServer
-+    version: 0.1.1
++    version: 0.1.2
 +    repository: file://../../rancher-pushprox/charts
 +    condition: k3sServer.enabled
 +
 +  - name: rancher-pushprox
 +    alias: kubeAdmControllerManager
-+    version: 0.1.1
++    version: 0.1.2
 +    repository: file://../../rancher-pushprox/charts
 +    condition: kubeAdmControllerManager.enabled
 +
 +  - name: rancher-pushprox
 +    alias: kubeAdmScheduler
-+    version: 0.1.1
++    version: 0.1.2
 +    repository: file://../../rancher-pushprox/charts
 +    condition: kubeAdmScheduler.enabled
 +
 +  - name: rancher-pushprox
 +    alias: kubeAdmProxy
-+    version: 0.1.1
++    version: 0.1.2
 +    repository: file://../../rancher-pushprox/charts
 +    condition: kubeAdmProxy.enabled
 +
 +  - name: rancher-pushprox
 +    alias: kubeAdmEtcd
-+    version: 0.1.1
++    version: 0.1.2
 +    repository: file://../../rancher-pushprox/charts
 +    condition: kubeAdmEtcd.enabled
 +
 +  - name: rancher-pushprox
 +    alias: rke2ControllerManager
-+    version: 0.1.1
++    version: 0.1.2
 +    repository: file://../../rancher-pushprox/charts
 +    condition: rke2ControllerManager.enabled
 +
 +  - name: rancher-pushprox
 +    alias: rke2Scheduler
-+    version: 0.1.1
++    version: 0.1.2
 +    repository: file://../../rancher-pushprox/charts
 +    condition: rke2Scheduler.enabled
 +
 +  - name: rancher-pushprox
 +    alias: rke2Proxy
-+    version: 0.1.1
++    version: 0.1.2
 +    repository: file://../../rancher-pushprox/charts
 +    condition: rke2Proxy.enabled
 +
 +  - name: rancher-pushprox
 +    alias: rke2Etcd
-+    version: 0.1.1
++    version: 0.1.2
 +    repository: file://../../rancher-pushprox/charts
 +    condition: rke2Etcd.enabled
 \ No newline at end of file
@@ -787,7 +776,7 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/tem
  {{ toYaml .Values.alertmanager.secret.annotations | indent 4 }}
  {{- end }}
    labels:
-@@ -20,4 +28,97 @@
+@@ -20,4 +28,137 @@
  {{- range $key, $val := .Values.alertmanager.templateFiles }}
    {{ $key }}: {{ $val | b64enc | quote }}
  {{- end }}
@@ -853,6 +842,11 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/tem
 +  resources:
 +  - secrets
 +  verbs: ['create', 'get', 'patch']
++- apiGroups: ['policy']
++  resources: ['podsecuritypolicies']
++  verbs:     ['use']
++  resourceNames:
++  - alertmanager-{{ template "kube-prometheus-stack.fullname" . }}-pre-install
 +---
 +apiVersion: rbac.authorization.k8s.io/v1
 +kind: ClusterRoleBinding
@@ -884,6 +878,41 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/tem
 +    "helm.sh/hook": pre-install
 +    "helm.sh/hook-delete-policy": hook-succeeded, hook-failed
 +    "helm.sh/hook-weight": "3"
++---
++apiVersion: policy/v1beta1
++kind: PodSecurityPolicy
++metadata:
++  name: alertmanager-{{ template "kube-prometheus-stack.fullname" . }}-pre-install
++  namespace: {{ template "kube-prometheus-stack.namespace" . }}
++  labels:
++    app: {{ template "kube-prometheus-stack.name" . }}-alertmanager
++  annotations:
++    "helm.sh/hook": pre-install
++    "helm.sh/hook-delete-policy": hook-succeeded, hook-failed
++    "helm.sh/hook-weight": "3"
++spec:
++  privileged: false
++  allowPrivilegeEscalation: false
++  hostNetwork: false
++  hostIPC: false
++  hostPID: false
++  runAsUser:
++    rule: 'MustRunAsNonRoot'
++  seLinux:
++    rule: 'RunAsAny'
++  supplementalGroups:
++    rule: 'MustRunAs'
++    ranges:
++      - min: 1
++        max: 65535
++  fsGroup:
++    rule: 'MustRunAs'
++    ranges:
++      - min: 1
++        max: 65535
++  readOnlyRootFilesystem: false
++  volumes:
++    - 'secret'
  {{- end }}
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/templates/exporters/core-dns/servicemonitor.yaml packages/rancher-monitoring/charts/templates/exporters/core-dns/servicemonitor.yaml
 --- packages/rancher-monitoring/charts-original/templates/exporters/core-dns/servicemonitor.yaml
@@ -2364,14 +2393,14 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/tem
 diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/values.yaml packages/rancher-monitoring/charts/values.yaml
 --- packages/rancher-monitoring/charts-original/values.yaml
 +++ packages/rancher-monitoring/charts/values.yaml
-@@ -2,13 +2,245 @@
+@@ -2,13 +2,247 @@
  # This is a YAML-formatted file.
  # Declare variables to be passed into your templates.
  
 +# Rancher Monitoring Configuration
 +
 +## Configuration for prometheus-adapter
-+## ref: https://github.com/helm/charts/tree/master/stable/prometheus-adapter
++## ref: https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus-adapter
 +##
 +prometheus-adapter:
 +  enabled: true
@@ -2381,9 +2410,11 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-monitoring/charts-original/val
 +    port: 9090
 +  image:
 +    repository: rancher/directxman12-k8s-prometheus-adapter-amd64
-+    tag: v0.6.0
++    tag: v0.7.0
 +    pullPolicy: IfNotPresent
 +    pullSecrets: {}
++  psp:
++    create: true
 +
 +## RKE PushProx Monitoring
 +## ref: https://github.com/rancher/charts/tree/master/packages/rancher-pushprox
