@@ -1,54 +1,45 @@
+{{- if and .Values.proxy }}{{ if .Values.proxy.enabled }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ .Chart.Name }}-manager
-  labels:
-    app: {{ .Chart.Name }}-manager
+  name: {{ template "pushProxy.proxy.name" . }}
+  labels: {{ include "pushProxy.proxy.labels" . | nindent 4 }}
 rules:
-- apiGroups:
-  - apiextensions.k8s.io
-  resources:
-  - customresourcedefinitions
-  verbs: ['create', 'get', 'patch', 'delete']
 - apiGroups: ['policy']
   resources: ['podsecuritypolicies']
   verbs:     ['use']
   resourceNames:
-  - {{ .Chart.Name }}-manager
+  - {{ template "pushProxy.proxy.name" . }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ .Chart.Name }}-manager
-  labels:
-    app: {{ .Chart.Name }}-manager
+  name: {{ template "pushProxy.proxy.name" . }}
+  labels: {{ include "pushProxy.proxy.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ .Chart.Name }}-manager
+  name: {{ template "pushProxy.proxy.name" . }}
 subjects:
-- kind: ServiceAccount
-  name: {{ .Chart.Name }}-manager
-  namespace: {{ .Release.Namespace }}
+  - kind: ServiceAccount
+    name: {{ template "pushProxy.proxy.name" . }}
+    namespace: {{ .Release.Namespace }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: {{ .Chart.Name }}-manager
+  name: {{ template "pushProxy.proxy.name" . }}
   namespace: {{ .Release.Namespace }}
-  labels:
-    app: {{ .Chart.Name }}-manager
+  labels: {{ include "pushProxy.proxy.labels" . | nindent 4 }}
 ---
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
-  name: {{ .Chart.Name }}-manager
+  name: {{ template "pushProxy.proxy.name" . }}
   namespace: {{ .Release.Namespace }}
-  labels:
-    app: {{ .Chart.Name }}-manager
+  labels: {{ include "pushProxy.proxy.labels" . | nindent 4 }}
 spec:
   privileged: false
-  allowPrivilegeEscalation: false
   hostNetwork: false
   hostIPC: false
   hostPID: false
@@ -68,5 +59,5 @@ spec:
         max: 65535
   readOnlyRootFilesystem: false
   volumes:
-    - 'configMap'
     - 'secret'
+{{- end }}{{- end }}
