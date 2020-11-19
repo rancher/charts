@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.configmap.name }}
+  labels:
+{{ include "local-path-provisioner.labels" . | indent 4 }}
+data:
+{{- if .Values.customNodePathMap }}
+  config.json: |-
+    {
+      "nodePathMap": {{ .Values.customNodePathMap | toPrettyJson | nindent 8 }}
+    }
+
+{{- else }}
+  config.json: |-
+        {
+                "nodePathMap":[
+                {
+                        "node":"DEFAULT_PATH_FOR_NON_LISTED_NODES",
+                        "paths":[{{ .Values.storageClass.hostDir | quote }}]
+                }
+                ]
+        }
+{{- end }}
+  setup: |-
+    {{ .Values.configmap.setup | nindent 4 }}
+  teardown: |-
+    {{ .Values.configmap.teardown | nindent 4 }}
+  helperPod.yaml: |-
+    {{ .Values.configmap.helperPod | nindent 4 }}
+

@@ -1,0 +1,68 @@
+labels:
+  io.cattle.role: project
+categories:
+- Storage
+questions:
+- variable: storageClass.create
+  default: true
+  type: boolean
+  description: "Create storageClass automatically?"
+  label: "Create storageClass?"
+  required: true
+  group: StorageClass
+  show_subquestion_if: true
+  subquestions:
+    - variable: storageClass.defaultClass
+      default: false
+      type: boolean
+      description: "StorageClass as the default StorageClass."
+      label: "Is this StorageClass the default class?"
+      required: false
+    - variable: storageClass.name
+      default: local-path
+      type: string
+      description: "Set a StorageClass name"
+      label: "StorageClass Name"
+      required: false
+    - variable: storageClass.reclaimPolicy
+      default: "Delete"
+      type: enum
+      description: "ReclaimPolicy field of the class, which can be either Delete or Retain"
+      label: "Reclaim Policy"
+      required: false
+      options: 
+        - "Delete"
+        - "Retain"
+
+- variable: storageClass.hostDir
+  default: "/opt/local-path-provisioner"
+  type: string
+  description: "Path for creating volumes in every node of the cluster. If you need custom paths, please edit the YAML directly and use customNodePathMap."
+  label: "Local host directory for volumes."
+  required: true
+  group: StorageClass
+    
+- variable: storageClass.provisionerName
+  default: "rancher.io/local-path"
+  description: "Set a provisioner name. If unset, a name will be generated."
+  label: "Provisioner Name"
+  type: string
+  group: Provisioner
+  required: false
+
+- variable: rbac.create
+  default: true
+  type: boolean
+  description: "Create RBAC resources automatically?"
+  label: "Create RBAC resources?"
+  required: true
+  group: Other
+
+- variable: serviceAccount.create
+  default: true
+  type: boolean
+  description: "Create serviceAccount automatically?"
+  label: "Create serviceAccount?"
+  required: true
+  group: Other
+
