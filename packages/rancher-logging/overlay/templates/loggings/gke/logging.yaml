@@ -1,8 +1,8 @@
-{{- if .Values.additionalLoggingSources.eks.enabled }}
+{{- if .Values.additionalLoggingSources.gke.enabled }}
 apiVersion: logging.banzaicloud.io/v1beta1
 kind: Logging
 metadata:
-  name: {{ .Release.Name }}-eks
+  name: {{ .Release.Name }}-gke
   namespace: {{ .Release.Namespace }}
   labels:
 {{ include "logging-operator.labels" . | indent 4 }}
@@ -13,9 +13,8 @@ spec:
       repository: {{ template "system_default_registry" . }}{{ .Values.images.fluentbit.repository }}
       tag: {{ .Values.images.fluentbit.tag }}
     inputTail:
-      Tag: "eks"
-      Path: "/var/log/messages"
-      Parser: "syslog"
+      Tag: "gke"
+      Path: "/var/log/kube-proxy.log"
   {{- $total_tolerations := concat (.Values.tolerations) (.Values.fluentbit_tolerations) }}
   {{- with $total_tolerations }}
     tolerations: {{- toYaml . | nindent 6 }}
