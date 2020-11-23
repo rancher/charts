@@ -1,4 +1,4 @@
-{{- if .Values.agent.key -}}
+{{- if or .Values.agent.key .Values.agent.keysSecret -}}
 {{- if or .Values.zone.name .Values.cluster.name -}}
 apiVersion: apps/v1
 kind: DaemonSet
@@ -11,14 +11,22 @@ spec:
   selector:
     matchLabels:
       {{- include "instana-agent.selectorLabels" . | nindent 6 }}
+  updateStrategy:
+    type: {{ .Values.agent.updateStrategy.type }}
+    {{- if eq .Values.agent.updateStrategy.type "RollingUpdate" }}
+    rollingUpdate:
+      maxUnavailable: {{ .Values.agent.updateStrategy.rollingUpdate.maxUnavailable }}
+    {{- end }}
   template:
     metadata:
       labels:
         {{- include "instana-agent.commonLabels" . | nindent 8 }}
-      {{- if .Values.agent.pod.annotations }}
       annotations:
+      {{- if .Values.agent.pod.annotations }}
         {{- toYaml .Values.agent.pod.annotations | nindent 8 }}
       {{- end }}
+        # To ensure that changes to agent.configuration_yaml or agent.additional_backends trigger a Pod recreation, we keep a SHA here
+        instana-configuration-hash: {{ .Values.agent.configuration_yaml | cat ";" | cat ( join "," .Values.agent.additionalBackends ) | sha1sum }}
     spec:
       {{- if .Values.agent.pod.nodeSelector }}
       nodeSelector:
@@ -34,6 +42,13 @@ spec:
       priorityClassName: {{ .Values.agent.pod.priorityClassName | quote }}
       {{- end }}
       dnsPolicy: ClusterFirstWithHostNet
+      {{- if typeIs "[]interface {}" .Values.agent.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.agent.image.pullSecrets | nindent 8 }}
+      {{- else if .Values.agent.image.name | hasPrefix "containers.instana.io" }}
+      imagePullSecrets:
+        - name: containers-instana-io
+      {{- end }}
       containers:
         - name: instana-agent
           image: "{{ .Values.agent.image.name }}:{{ .Values.agent.image.tag }}"
@@ -51,22 +66,21 @@ spec:
               value: {{ .Values.agent.endpointHost | quote }}
             - name: INSTANA_AGENT_ENDPOINT_PORT
               value: {{ .Values.agent.endpointPort | quote }}
-            - name: INSTANA_AGENT_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ template "instana-agent.fullname" . }}
-                  key: key
             {{- if .Values.agent.mode }}
             - name: INSTANA_AGENT_MODE
               value: {{ .Values.agent.mode | quote }}
             {{- end }}
-            {{- if .Values.agent.downloadKey }}
+            - name: INSTANA_AGENT_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ template "instana-agent.keysSecretName" . }}
+                  key: key
             - name: INSTANA_DOWNLOAD_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ template "instana-agent.fullname" . }}
+                  name: {{ template "instana-agent.keysSecretName" . }}
                   key: downloadKey
-            {{- end }}
+                  optional: true
             {{- if .Values.agent.proxyHost }}
             - name: INSTANA_AGENT_PROXY_HOST
               value: {{ .Values.agent.proxyHost | quote }}
@@ -154,10 +168,10 @@ spec:
             timeoutSeconds: 3
           resources:
             requests:
-              memory: "{{ default 512 .Values.agent.pod.requests.memory }}Mi"
+              memory: "{{ dict "memory" (default 512 .Values.agent.pod.requests.memory) | include "ensureMemoryMeasurement" }}"
               cpu: {{ default 0.5 .Values.agent.pod.requests.cpu }}
             limits:
-              memory: "{{ default 512 .Values.agent.pod.limits.memory }}Mi"
+              memory: "{{ dict "memory" (default 512 .Values.agent.pod.limits.memory) | include "ensureMemoryMeasurement" }}"
               cpu: {{ default 1.5 .Values.agent.pod.limits.cpu }}
           ports:
             - containerPort: 42699
@@ -187,6 +201,10 @@ spec:
       {{- if .Values.agent.pod.tolerations }}
       tolerations:
         {{- toYaml .Values.agent.pod.tolerations | nindent 8 }}
+      {{- end }}
+      {{- if .Values.agent.pod.affinity }}
+      affinity:
+        {{- toYaml .Values.agent.pod.affinity | nindent 8 }}
       {{- end }}
       volumes:
         - name: dev
