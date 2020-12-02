@@ -38,7 +38,7 @@ To limit scraping to specific namespaces, set `prometheus.prometheusSpec.ignoreN
 
 Jaeger allows you to trace and monitor distributed microservices.
 
-> **Note:** This addon is using the basic all-in-one Jaeger installation which is not qualified for production. Use the [Jaeger Tracing](https://www.jaegertracing.io/docs/1.21/getting-started/) documentation to determine which installation you will need for your production needs.
+> **Note:** This addon is using the all-in-one Jaeger installation which is not qualified for production. Use the [Jaeger Tracing](https://www.jaegertracing.io/docs/1.21/getting-started/) documentation to determine which installation you will need for your production needs.
 
 # Installation
 ```
