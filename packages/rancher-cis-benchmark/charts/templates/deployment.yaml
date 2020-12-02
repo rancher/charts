@@ -19,6 +19,9 @@ spec:
       - name: cis-operator
         image: '{{ template "system_default_registry" . }}{{ .Values.image.cisoperator.repository }}:{{ .Values.image.cisoperator.tag }}'
         imagePullPolicy: Always
+        ports:
+        - name: cismetrics
+          containerPort: {{ .Values.alerts.metricsPort }}
         env:
         - name: SECURITY_SCAN_IMAGE
           value: {{ template "system_default_registry" . }}{{ .Values.image.securityScan.repository }}
@@ -28,6 +31,10 @@ spec:
           value: {{ template "system_default_registry" . }}{{ .Values.image.sonobuoy.repository }}
         - name: SONOBUOY_IMAGE_TAG
           value: {{ .Values.image.sonobuoy.tag }}
+        - name: CIS_ALERTS_METRICS_PORT
+          value: '{{ .Values.alerts.metricsPort }}'
+        - name: CIS_ALERTS_SEVERITY
+          value: {{ .Values.alerts.severity }}
         resources:
           {{- toYaml .Values.resources | nindent 12 }}
       nodeSelector:
