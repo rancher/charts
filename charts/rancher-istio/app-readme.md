@@ -2,6 +2,7 @@
 
 Our [Istio](https://istio.io/) installer wraps the istioctl binary commands in a handy helm chart, including an overlay file option to allow complex customization. It also includes:
 * **[Kiali](https://kiali.io/)**: Used for graphing traffic flow throughout the mesh
+* **[Jaeger](https://www.jaegertracing.io/)**: A quick start, all-in-one installation used for tracing distributed systemm. This is not production qualified, please refer to jaeger documentation to determine which installation you may need instead.
 
 ### Dependencies
 
