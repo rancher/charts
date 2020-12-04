@@ -1,0 +1,35 @@
+#!/bin/bash
+set -e
+
+CWD=$(pwd -P)
+cleanup()
+{
+    EXIT=$?
+    set +e
+    echo Cleaning up
+    TESTS="$CWD/$(dirname $0)/../unit"
+    for dindYML in $(find $TESTS -iname 'dind-*.yml'); do
+        rke remove --dind --force --config $dindYML
+        rm -f $dindYML
+    done
+    return $EXIT
+}
+
+if [[ "${DRONE_PULL_REQUEST}" ]]; then
+  CHANGEDPATHS=$(git --no-pager diff --name-only HEAD..HEAD~1 | grep "packages/" | cut -d'/' -f2-2 | uniq)
+else
+  CHANGEDPATHS=$(git --no-pager diff --name-only HEAD~1 | grep "packages/" | cut -d'/' -f2-2 | uniq)
+fi
+
+if [[ -z "$CHANGEDPATHS" ]]; then
+	go test -cover -tags=test $CWD/$(dirname $0)/../unit/common
+else
+	IFS=' ' read -r -a charts <<< "$CHANGEDPATHS"
+	for chart in "${charts[@]}"
+	do
+		export CHART=$chart
+		go test $CWD/$(dirname $0)/../unit/common
+		go test $CWD/$(dirname $0)/../unit/$chart
+	done
+fi
+trap cleanup exit

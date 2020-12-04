@@ -1,0 +1,39 @@
+---
+kind: pipeline
+name: chart-testing
+
+workspace:
+  base: /go
+  path: src/github.com/brendarearden/charts
+
+steps:
+- name: test
+  image: golang:1.16-alpine
+  environment:
+    HELM_VERSION: v3.3.1 #should match rancher helm version
+  commands:
+  - apk -U add bash git gcc patch libc-dev docker file curl make tar
+  - curl -L https://get.helm.sh/helm-$${HELM_VERSION}-linux-amd64.tar.gz | tar xvz
+  - mv linux-amd64/helm /usr/bin/helm
+  - chmod +x /usr/bin/helm
+  - go mod tidy
+  - find tests/scripts/ -type f -print0 | xargs -0 chmod +x
+  - ./tests/scripts/ci
+
+trigger:
+  branch:
+   - integration-testing
+  event:
+    - pull_request
+
+services:
+- name: docker
+  image: docker:dind
+  privileged: true
+  volumes:
+  - name: dockersock
+    path: /var/run
+
+volumes:
+  - name: dockersock
+    temp: {}
