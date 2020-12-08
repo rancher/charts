@@ -19,7 +19,7 @@ The following table lists the configurable parameters of the externalip-webhook 
 
 | Parameter                            | Description                                                                                                                | Default                                            |
 | ----------------------------------   | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| `allowedExternalIPCidrs`             | Allowed external IP cidrs sepparated by `,`                                                                                | `""`                                               |
+| `allowedExternalIPCidrs`             | Set allowed external IP CIDRs separated by a comma                                                                         | `""`                                               |
 | `certificates.caBundle`              | If cert-manager integration is disabled, add here self signed ca.crt in base64 format                                      | `""`                                               |
 | `certificates.certManager.enabled`   | Enable cert manager integration. Cert manager should be already installed at the k8s cluster                               | `true`                                               |
 | `certificates.certManager.version`   | Cert manager version to use                                                                                                | `""`                                               |
