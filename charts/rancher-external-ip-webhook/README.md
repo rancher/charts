@@ -8,7 +8,6 @@ This chart will create a deployment of `externalip-webhook` within your Kubernet
 
 To install the chart with the release name `rancher-external-ip-webhook`:
 
-
 ```bash
 $ helm repo add rancher-chart https://charts.rancher.io
 $ helm repo update
@@ -67,4 +66,4 @@ $ helm repo update
 $ helm install rancher-external-ip-webhook rancher-chart/rancher-external-ip-webhook --namespace cattle-externalip-system -f values.yaml
 ```
 
-> **Tip**: You can use the default [values.yaml](values.yaml)
+> **Tip**: You can use the default [values.yaml](https://github.com/rancher/externalip-webhook/blob/master/chart/values.yaml)
