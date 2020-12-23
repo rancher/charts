@@ -1,8 +1,8 @@
 diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/Chart.yaml packages/longhorn/charts/Chart.yaml
 --- packages/longhorn/charts-original/Chart.yaml
 +++ packages/longhorn/charts/Chart.yaml
-@@ -5,23 +5,31 @@
- kubeVersion: ">=v1.14.0-r0"
+@@ -5,24 +5,32 @@
+ kubeVersion: ">=v1.16.0-r0"
  description: Longhorn is a distributed block storage system for Kubernetes.
  keywords:
 -- longhorn
@@ -22,12 +22,14 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/Chart.yaml pa
 -- https://github.com/longhorn/longhorn
 -- https://github.com/longhorn/longhorn-engine
 -- https://github.com/longhorn/longhorn-instance-manager
+-- https://github.com/longhorn/longhorn-share-manager
 -- https://github.com/longhorn/longhorn-manager
 -- https://github.com/longhorn/longhorn-ui
 -- https://github.com/longhorn/longhorn-tests
 +  - https://github.com/longhorn/longhorn
 +  - https://github.com/longhorn/longhorn-engine
 +  - https://github.com/longhorn/longhorn-instance-manager
++  - https://github.com/longhorn/longhorn-share-manager
 +  - https://github.com/longhorn/longhorn-manager
 +  - https://github.com/longhorn/longhorn-ui
 +  - https://github.com/longhorn/longhorn-tests
@@ -50,19 +52,77 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/Chart.yaml pa
 +  catalog.cattle.io/provides-gvr: longhorn.io/v1beta1
 +  catalog.cattle.io/display-name: "Longhorn"
 +  catalog.cattle.io/os: linux
+diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/README.md packages/longhorn/charts/README.md
+--- packages/longhorn/charts-original/README.md
++++ packages/longhorn/charts/README.md
+@@ -12,7 +12,7 @@
+ 2. Longhorn Instance Manager -- Controller/replica instance lifecycle management https://github.com/longhorn/longhorn-instance-manager
+ 3. Longhorn Share Manager -- NFS provisioner that exposes Longhorn volumes as ReadWriteMany volumes. https://github.com/longhorn/longhorn-share-manager
+ 4. Longhorn Manager -- Longhorn orchestration, includes CSI driver for Kubernetes https://github.com/longhorn/longhorn-manager
+-4. Longhorn UI -- Dashboard https://github.com/longhorn/longhorn-ui
++5. Longhorn UI -- Dashboard https://github.com/longhorn/longhorn-ui
+ 
+ ## Prerequisites
+ 
+@@ -21,41 +21,12 @@
+ 3. Make sure `curl`, `findmnt`, `grep`, `awk` and `blkid` has been installed in all nodes of the Kubernetes cluster.
+ 4. Make sure `open-iscsi` has been installed in all nodes of the Kubernetes cluster. For GKE, recommended Ubuntu as guest OS image since it contains `open-iscsi` already.
+ 
+-## Installation
+-1. Add Longhorn chart repository.
+-```
+-helm repo add longhorn https://charts.longhorn.io
+-```
+-
+-2. Update local Longhorn chart information from chart repository.
+-```
+-helm repo update
+-```
+-
+-3. Install Longhorn chart.
+-- With Helm 2, the following command will create the `longhorn-system` namespace and install the Longhorn chart together.
+-```
+-helm install longhorn/longhorn --name longhorn --namespace longhorn-system
+-``` 
+-- With Helm 3, the following commands will create the `longhorn-system` namespace first, then install the Longhorn chart.
+-
+-```
+-kubectl create namespace longhorn-system
+-helm install longhorn longhorn/longhorn --namespace longhorn-system
+-```
+-
+ ## Uninstallation
+ 
+-With Helm 2 to uninstall Longhorn.
+-```
+-helm delete longhorn --purge
+-```
+-
+-With Helm 3 to uninstall Longhorn.
+-```
+-helm uninstall longhorn -n longhorn-system
+-kubectl delete namespace longhorn-system
+-```
++To prevent damage to the Kubernetes cluster, we recommend deleting all Kubernetes workloads using Longhorn volumes (PersistentVolume, PersistentVolumeClaim, StorageClass, Deployment, StatefulSet, DaemonSet, etc).
++
++From Rancher Cluster Explorer UI, navigate to Apps page, delete app `longhorn` then app `longhorn-crd` in Installed Apps tab.
++
+ 
+ ---
+ Please see [link](https://github.com/longhorn/longhorn) for more information.
 diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/crds/crds.yaml packages/longhorn/charts/crds/crds.yaml
 --- packages/longhorn/charts-original/crds/crds.yaml
 +++ packages/longhorn/charts/crds/crds.yaml
-@@ -0,0 +1,172 @@
-+apiVersion: apiextensions.k8s.io/v1beta1
+@@ -0,0 +1,420 @@
++apiVersion: apiextensions.k8s.io/v1
 +kind: CustomResourceDefinition
 +metadata:
 +  labels:
 +    app.kubernetes.io/name: longhorn
-+    helm.sh/chart: longhorn-1.0.2
++    helm.sh/chart: longhorn-1.1.0
 +    app.kubernetes.io/managed-by: Helm
 +    app.kubernetes.io/instance: longhorn
-+    app.kubernetes.io/version: v1.0.2
++    app.kubernetes.io/version: v1.1.0
 +    longhorn-manager: Engine
 +  name: engines.longhorn.io
 +spec:
@@ -72,22 +132,53 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/crds/crds.yam
 +    listKind: EngineList
 +    plural: engines
 +    shortNames:
-+      - lhe
++    - lhe
 +    singular: engine
 +  scope: Namespaced
-+  version: v1beta1
-+  subresources:
-+    status: {}
++  versions:
++  - name: v1beta1
++    served: true
++    storage: true
++    schema:
++      openAPIV3Schema:
++        type: object
++        properties:
++          spec:
++            x-kubernetes-preserve-unknown-fields: true
++          status:
++            x-kubernetes-preserve-unknown-fields: true
++    subresources:
++      status: {}
++    additionalPrinterColumns:
++    - name: State
++      type: string
++      description: The current state of the engine
++      jsonPath: .status.currentState
++    - name: Node
++      type: string
++      description: The node that the engine is on
++      jsonPath: .spec.nodeID
++    - name: InstanceManager
++      type: string
++      description: The instance manager of the engine
++      jsonPath: .status.instanceManagerName
++    - name: Image
++      type: string
++      description: The current image of the engine
++      jsonPath: .status.currentImage
++    - name: Age
++      type: date
++      jsonPath: .metadata.creationTimestamp
 +---
-+apiVersion: apiextensions.k8s.io/v1beta1
++apiVersion: apiextensions.k8s.io/v1
 +kind: CustomResourceDefinition
 +metadata:
 +  labels:
 +    app.kubernetes.io/name: longhorn
-+    helm.sh/chart: longhorn-1.0.2
++    helm.sh/chart: longhorn-1.1.0
 +    app.kubernetes.io/managed-by: Helm
 +    app.kubernetes.io/instance: longhorn
-+    app.kubernetes.io/version: v1.0.2
++    app.kubernetes.io/version: v1.1.0
 +    longhorn-manager: Replica
 +  name: replicas.longhorn.io
 +spec:
@@ -97,22 +188,57 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/crds/crds.yam
 +    listKind: ReplicaList
 +    plural: replicas
 +    shortNames:
-+      - lhr
++    - lhr
 +    singular: replica
 +  scope: Namespaced
-+  version: v1beta1
-+  subresources:
-+    status: {}
++  versions:
++  - name: v1beta1
++    served: true
++    storage: true
++    schema:
++      openAPIV3Schema:
++        type: object
++        properties:
++          spec:
++            x-kubernetes-preserve-unknown-fields: true
++          status:
++            x-kubernetes-preserve-unknown-fields: true
++    subresources:
++      status: {}
++    additionalPrinterColumns:
++    - name: State
++      type: string
++      description: The current state of the replica
++      jsonPath: .status.currentState
++    - name: Node
++      type: string
++      description: The node that the replica is on
++      jsonPath: .spec.nodeID
++    - name: Disk
++      type: string
++      description: The disk that the replica is on
++      jsonPath: .spec.diskID
++    - name: InstanceManager
++      type: string
++      description: The instance manager of the replica
++      jsonPath: .status.instanceManagerName
++    - name: Image
++      type: string
++      description: The current image of the replica
++      jsonPath: .status.currentImage
++    - name: Age
++      type: date
++      jsonPath: .metadata.creationTimestamp
 +---
-+apiVersion: apiextensions.k8s.io/v1beta1
++apiVersion: apiextensions.k8s.io/v1
 +kind: CustomResourceDefinition
 +metadata:
 +  labels:
 +    app.kubernetes.io/name: longhorn
-+    helm.sh/chart: longhorn-1.0.2
++    helm.sh/chart: longhorn-1.1.0
 +    app.kubernetes.io/managed-by: Helm
 +    app.kubernetes.io/instance: longhorn
-+    app.kubernetes.io/version: v1.0.2
++    app.kubernetes.io/version: v1.1.0
 +    longhorn-manager: Setting
 +  name: settings.longhorn.io
 +spec:
@@ -122,20 +248,34 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/crds/crds.yam
 +    listKind: SettingList
 +    plural: settings
 +    shortNames:
-+      - lhs
++    - lhs
 +    singular: setting
 +  scope: Namespaced
-+  version: v1beta1
++  versions:
++  - name: v1beta1
++    served: true
++    storage: true
++    schema:
++      openAPIV3Schema:
++        x-kubernetes-preserve-unknown-fields: true
++    additionalPrinterColumns:
++    - name: Value
++      type: string
++      description: The value of the setting
++      jsonPath: .value
++    - name: Age
++      type: date
++      jsonPath: .metadata.creationTimestamp
 +---
-+apiVersion: apiextensions.k8s.io/v1beta1
++apiVersion: apiextensions.k8s.io/v1
 +kind: CustomResourceDefinition
 +metadata:
 +  labels:
 +    app.kubernetes.io/name: longhorn
-+    helm.sh/chart: longhorn-1.0.2
++    helm.sh/chart: longhorn-1.1.0
 +    app.kubernetes.io/managed-by: Helm
 +    app.kubernetes.io/instance: longhorn
-+    app.kubernetes.io/version: v1.0.2
++    app.kubernetes.io/version: v1.1.0
 +    longhorn-manager: Volume
 +  name: volumes.longhorn.io
 +spec:
@@ -145,22 +285,57 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/crds/crds.yam
 +    listKind: VolumeList
 +    plural: volumes
 +    shortNames:
-+      - lhv
++    - lhv
 +    singular: volume
 +  scope: Namespaced
-+  version: v1beta1
-+  subresources:
-+    status: {}
++  versions:
++  - name: v1beta1
++    served: true
++    storage: true
++    schema:
++      openAPIV3Schema:
++        type: object
++        properties:
++          spec:
++            x-kubernetes-preserve-unknown-fields: true
++          status:
++            x-kubernetes-preserve-unknown-fields: true
++    subresources:
++      status: {}
++    additionalPrinterColumns:
++    - name: State
++      type: string
++      description: The state of the volume
++      jsonPath: .status.state
++    - name: Robustness
++      type: string
++      description: The robustness of the volume
++      jsonPath: .status.robustness
++    - name: Scheduled
++      type: string
++      description: The scheduled condition of the volume
++      jsonPath: .status.conditions['scheduled']['status']
++    - name: Size
++      type: string
++      description: The size of the volume
++      jsonPath: .spec.size
++    - name: Node
++      type: string
++      description: The node that the volume is currently attaching to
++      jsonPath: .status.currentNodeID
++    - name: Age
++      type: date
++      jsonPath: .metadata.creationTimestamp
 +---
-+apiVersion: apiextensions.k8s.io/v1beta1
++apiVersion: apiextensions.k8s.io/v1
 +kind: CustomResourceDefinition
 +metadata:
 +  labels:
 +    app.kubernetes.io/name: longhorn
-+    helm.sh/chart: longhorn-1.0.2
++    helm.sh/chart: longhorn-1.1.0
 +    app.kubernetes.io/managed-by: Helm
 +    app.kubernetes.io/instance: longhorn
-+    app.kubernetes.io/version: v1.0.2
++    app.kubernetes.io/version: v1.1.0
 +    longhorn-manager: EngineImage
 +  name: engineimages.longhorn.io
 +spec:
@@ -170,22 +345,53 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/crds/crds.yam
 +    listKind: EngineImageList
 +    plural: engineimages
 +    shortNames:
-+      - lhei
++    - lhei
 +    singular: engineimage
 +  scope: Namespaced
-+  version: v1beta1
-+  subresources:
-+    status: {}
++  versions:
++  - name: v1beta1
++    served: true
++    storage: true
++    schema:
++      openAPIV3Schema:
++        type: object
++        properties:
++          spec:
++            x-kubernetes-preserve-unknown-fields: true
++          status:
++            x-kubernetes-preserve-unknown-fields: true
++    subresources:
++      status: {}
++    additionalPrinterColumns:
++    - name: State
++      type: string
++      description: State of the engine image
++      jsonPath: .status.state
++    - name: Image
++      type: string
++      description: The Longhorn engine image
++      jsonPath: .spec.image
++    - name: RefCount
++      type: integer
++      description: Number of volumes are using the engine image
++      jsonPath: .status.refCount
++    - name: BuildDate
++      type: date
++      description: The build date of the engine image
++      jsonPath: .status.buildDate
++    - name: Age
++      type: date
++      jsonPath: .metadata.creationTimestamp
 +---
-+apiVersion: apiextensions.k8s.io/v1beta1
++apiVersion: apiextensions.k8s.io/v1
 +kind: CustomResourceDefinition
 +metadata:
 +  labels:
 +    app.kubernetes.io/name: longhorn
-+    helm.sh/chart: longhorn-1.0.2
++    helm.sh/chart: longhorn-1.1.0
 +    app.kubernetes.io/managed-by: Helm
 +    app.kubernetes.io/instance: longhorn
-+    app.kubernetes.io/version: v1.0.2
++    app.kubernetes.io/version: v1.1.0
 +    longhorn-manager: Node
 +  name: nodes.longhorn.io
 +spec:
@@ -195,22 +401,49 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/crds/crds.yam
 +    listKind: NodeList
 +    plural: nodes
 +    shortNames:
-+      - lhn
++    - lhn
 +    singular: node
 +  scope: Namespaced
-+  version: v1beta1
-+  subresources:
-+    status: {}
++  versions:
++  - name: v1beta1
++    served: true
++    storage: true
++    schema:
++      openAPIV3Schema:
++        type: object
++        properties:
++          spec:
++            x-kubernetes-preserve-unknown-fields: true
++          status:
++            x-kubernetes-preserve-unknown-fields: true
++    subresources:
++      status: {}
++    additionalPrinterColumns:
++    - name: Ready
++      type: string
++      description: Indicate whether the node is ready
++      jsonPath: .status.conditions['Ready']['status']
++    - name: AllowScheduling
++      type: boolean
++      description: Indicate whether the user disabled/enabled replica scheduling for the node
++      jsonPath: .spec.allowScheduling
++    - name: Schedulable
++      type: string
++      description: Indicate whether Longhorn can schedule replicas on the node
++      jsonPath: .status.conditions['Schedulable']['status']
++    - name: Age
++      type: date
++      jsonPath: .metadata.creationTimestamp
 +---
-+apiVersion: apiextensions.k8s.io/v1beta1
++apiVersion: apiextensions.k8s.io/v1
 +kind: CustomResourceDefinition
 +metadata:
 +  labels:
 +    app.kubernetes.io/name: longhorn
-+    helm.sh/chart: longhorn-1.0.2
++    helm.sh/chart: longhorn-1.1.0
 +    app.kubernetes.io/managed-by: Helm
 +    app.kubernetes.io/instance: longhorn
-+    app.kubernetes.io/version: v1.0.2
++    app.kubernetes.io/version: v1.1.0
 +    longhorn-manager: InstanceManager
 +  name: instancemanagers.longhorn.io
 +spec:
@@ -220,166 +453,185 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/crds/crds.yam
 +    listKind: InstanceManagerList
 +    plural: instancemanagers
 +    shortNames:
-+      - lhim
++    - lhim
 +    singular: instancemanager
 +  scope: Namespaced
-+  version: v1beta1
-+  subresources:
-+    status: {}
++  versions:
++  - name: v1beta1
++    served: true
++    storage: true
++    schema:
++      openAPIV3Schema:
++        type: object
++        properties:
++          spec:
++            x-kubernetes-preserve-unknown-fields: true
++          status:
++            x-kubernetes-preserve-unknown-fields: true
++    subresources:
++      status: {}
++    additionalPrinterColumns:
++    - name: State
++      type: string
++      description: The state of the instance manager
++      jsonPath: .status.currentState
++    - name: Type
++      type: string
++      description: The type of the instance manager (engine or replica)
++      jsonPath: .spec.type
++    - name: Node
++      type: string
++      description: The node that the instance manager is running on
++      jsonPath: .spec.nodeID
++    - name: Age
++      type: date
++      jsonPath: .metadata.creationTimestamp
++---
++apiVersion: apiextensions.k8s.io/v1
++kind: CustomResourceDefinition
++metadata:
++  labels:
++    app.kubernetes.io/name: longhorn
++    helm.sh/chart: longhorn-1.1.0
++    app.kubernetes.io/managed-by: Helm
++    app.kubernetes.io/instance: longhorn
++    app.kubernetes.io/version: v1.1.0
++    longhorn-manager: ShareManager
++  name: sharemanagers.longhorn.io
++spec:
++  group: longhorn.io
++  names:
++    kind: ShareManager
++    listKind: ShareManagerList
++    plural: sharemanagers
++    shortNames:
++    - lhsm
++    singular: sharemanager
++  scope: Namespaced
++  versions:
++  - name: v1beta1
++    served: true
++    storage: true
++    schema:
++      openAPIV3Schema:
++        type: object
++        properties:
++          spec:
++            x-kubernetes-preserve-unknown-fields: true
++          status:
++            x-kubernetes-preserve-unknown-fields: true
++    subresources:
++      status: {}
++    additionalPrinterColumns:
++    - name: State
++      type: string
++      description: The state of the share manager
++      jsonPath: .status.state
++    - name: Node
++      type: string
++      description: The node that the share manager is owned by
++      jsonPath: .status.ownerID
++    - name: Age
++      type: date
++      jsonPath: .metadata.creationTimestamp
 diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/questions.yml packages/longhorn/charts/questions.yml
 --- packages/longhorn/charts-original/questions.yml
 +++ packages/longhorn/charts/questions.yml
-@@ -10,97 +10,97 @@
-   show_subquestion_if: false
+@@ -11,7 +11,7 @@
    group: "Longhorn Images"
    subquestions:
--  - variable: image.longhorn.manager
-+  - variable: image.longhorn.manager.repository
-     default: longhornio/longhorn-manager
--    description: "Specify Longhorn Manager Image Name"
-+    description: "Specify Longhorn Manager Image Repository"
+   - variable: image.longhorn.manager.repository
+-    default: longhornio/longhorn-manager
++    default: rancher/longhornio-longhorn-manager
+     description: "Specify Longhorn Manager Image Repository"
      type: string
--    label: Longhorn Manager Image Name
-+    label: Longhorn Manager Image Repository
-     group: "Longhorn Images Settings"
--  - variable: image.longhorn.managerTag
-+  - variable: image.longhorn.manager.tag
-     default: v1.0.2
-     description: "Specify Longhorn Manager Image Tag"
-     type: string
+     label: Longhorn Manager Image Repository
+@@ -23,7 +23,7 @@
      label: Longhorn Manager Image Tag
      group: "Longhorn Images Settings"
--  - variable: image.longhorn.engine
-+  - variable: image.longhorn.engine.repository
-     default: longhornio/longhorn-engine
--    description: "Specify Longhorn Engine Image Name"
-+    description: "Specify Longhorn Engine Image Repository"
+   - variable: image.longhorn.engine.repository
+-    default: longhornio/longhorn-engine
++    default: rancher/longhornio-longhorn-engine
+     description: "Specify Longhorn Engine Image Repository"
      type: string
--    label: Longhorn Engine Image Name
-+    label: Longhorn Engine Image Repository
-     group: "Longhorn Images Settings"
--  - variable: image.longhorn.engineTag
-+  - variable: image.longhorn.engine.tag
-     default: v1.0.2
-     description: "Specify Longhorn Engine Image Tag"
-     type: string
+     label: Longhorn Engine Image Repository
+@@ -35,7 +35,7 @@
      label: Longhorn Engine Image Tag
      group: "Longhorn Images Settings"
--  - variable: image.longhorn.ui
-+  - variable: image.longhorn.ui.repository
-     default:  longhornio/longhorn-ui
--    description: "Specify Longhorn UI Image Name"
-+    description: "Specify Longhorn UI Image Repository"
+   - variable: image.longhorn.ui.repository
+-    default:  longhornio/longhorn-ui
++    default:  rancher/longhornio-longhorn-ui
+     description: "Specify Longhorn UI Image Repository"
      type: string
--    label: Longhorn UI Image Name
-+    label: Longhorn UI Image Repository
-     group: "Longhorn Images Settings"
--  - variable: image.longhorn.uiTag
-+  - variable: image.longhorn.ui.tag
-     default: v1.0.2
-     description: "Specify Longhorn UI Image Tag"
-     type: string
+     label: Longhorn UI Image Repository
+@@ -47,7 +47,7 @@
      label: Longhorn UI Image Tag
      group: "Longhorn Images Settings"
--  - variable: image.longhorn.instanceManager
-+  - variable: image.longhorn.instanceManager.repository
-     default: longhornio/longhorn-instance-manager
--    description: "Specify Longhorn Instance Manager Image Name"
-+    description: "Specify Longhorn Instance Manager Image Repository"
+   - variable: image.longhorn.instanceManager.repository
+-    default: longhornio/longhorn-instance-manager
++    default: rancher/longhornio-longhorn-instance-manager
+     description: "Specify Longhorn Instance Manager Image Repository"
      type: string
--    label: Longhorn Instance Manager Image Name
-+    label: Longhorn Instance Manager Image Repository
-     group: "Longhorn Images Settings"
--  - variable: image.longhorn.instanceManagerTag
-+  - variable: image.longhorn.instanceManager.tag
-     default: v1_20200514
-     description: "Specify Longhorn Instance Manager Image Tag"
-     type: string
+     label: Longhorn Instance Manager Image Repository
+@@ -59,7 +59,7 @@
      label: Longhorn Instance Manager Image Tag
      group: "Longhorn Images Settings"
--  - variable: csi.attacherImage
-+  - variable: image.csi.attacher.repository
-     default: longhornio/csi-attacher
--    description: "Specify CSI attacher image. Leave blank to autodetect."
-+    description: "Specify CSI attacher image repository. Leave blank to autodetect."
+   - variable: image.longhorn.shareManager.repository
+-    default: longhornio/longhorn-share-manager
++    default: rancher/longhornio-longhorn-share-manager
+     description: "Specify Longhorn Share Manager Image Repository"
      type: string
--    label: Longhorn CSI Attacher Image
-+    label: Longhorn CSI Attacher Image Repository
-     group: "Longhorn CSI Driver Images"
--  - variable: csi.attacherImageTag
-+  - variable: image.csi.attacher.tag
-     default: v2.0.0
-     description: "Specify CSI attacher image tag. Leave blank to autodetect."
+     label: Longhorn Share Manager Image Repository
+@@ -71,7 +71,7 @@
+     label: Longhorn Share Manager Image Tag
+     group: "Longhorn Images Settings"
+   - variable: image.csi.attacher.repository
+-    default: longhornio/csi-attacher
++    default: rancher/longhornio-csi-attacher
+     description: "Specify CSI attacher image repository. Leave blank to autodetect."
      type: string
+     label: Longhorn CSI Attacher Image Repository
+@@ -83,7 +83,7 @@
      label: Longhorn CSI Attacher Image Tag
      group: "Longhorn CSI Driver Images"
--  - variable: csi.provisionerImage
-+  - variable: image.csi.provisioner.repository
-     default: longhornio/csi-provisioner
--    description: "Specify CSI provisioner image. Leave blank to autodetect."
-+    description: "Specify CSI provisioner image repository. Leave blank to autodetect."
+   - variable: image.csi.provisioner.repository
+-    default: longhornio/csi-provisioner
++    default: rancher/longhornio-csi-provisioner
+     description: "Specify CSI provisioner image repository. Leave blank to autodetect."
      type: string
--    label: Longhorn CSI Provisioner Image
-+    label: Longhorn CSI Provisioner Image Repository
-     group: "Longhorn CSI Driver Images"
--  - variable: csi.provisionerImageTag
-+  - variable: image.csi.provisioner.tag
-     default: v1.4.0
-     description: "Specify CSI provisioner image tag. Leave blank to autodetect."
-     type: string
+     label: Longhorn CSI Provisioner Image Repository
+@@ -95,7 +95,7 @@
      label: Longhorn CSI Provisioner Image Tag
      group: "Longhorn CSI Driver Images"
--  - variable: csi.nodeDriverRegistrarImage
-+  - variable: image.csi.nodeDriverRegistrar.repository
-     default: longhornio/csi-node-driver-registrar
--    description: "Specify CSI Node Driver Registrar image. Leave blank to autodetect."
-+    description: "Specify CSI Node Driver Registrar image repository. Leave blank to autodetect."
+   - variable: image.csi.nodeDriverRegistrar.repository
+-    default: longhornio/csi-node-driver-registrar
++    default: rancher/longhornio-csi-node-driver-registrar
+     description: "Specify CSI Node Driver Registrar image repository. Leave blank to autodetect."
      type: string
--    label: Longhorn CSI Node Driver Registrar Image
-+    label: Longhorn CSI Node Driver Registrar Image Repository
-     group: "Longhorn CSI Driver Images"
--  - variable: csi.nodeDriverRegistrarImageTag
-+  - variable: image.csi.nodeDriverRegistrar.tag
-     default: v1.2.0
-     description: "Specify CSI Node Driver Registrar image tag. Leave blank to autodetect."
-     type: string
+     label: Longhorn CSI Node Driver Registrar Image Repository
+@@ -107,7 +107,7 @@
      label: Longhorn CSI Node Driver Registrar Image Tag
      group: "Longhorn CSI Driver Images"
--  - variable: csi.resizerImage
-+  - variable: image.csi.resizer.repository
-     default: longhornio/csi-resizer
--    description: "Specify CSI Driver Resizer image. Leave blank to autodetect."
-+    description: "Specify CSI Driver Resizer image repository. Leave blank to autodetect."
+   - variable: image.csi.resizer.repository
+-    default: longhornio/csi-resizer
++    default: rancher/longhornio-csi-resizer
+     description: "Specify CSI Driver Resizer image repository. Leave blank to autodetect."
      type: string
--    label: Longhorn CSI Driver Resizer Image
-+    label: Longhorn CSI Driver Resizer Image Repository
+     label: Longhorn CSI Driver Resizer Image Repository
+@@ -119,7 +119,7 @@
+     label: Longhorn CSI Driver Resizer Image Tag
      group: "Longhorn CSI Driver Images"
--  - variable: csi.resizerImageTag
-+  - variable: image.csi.resizer.tag
-     default: v0.3.0
-     description: "Specify CSI Driver Resizer image tag. Leave blank to autodetect."
+   - variable: image.csi.snapshotter.repository
+-    default: longhornio/csi-snapshotter
++    default: rancher/longhornio-csi-snapshotter
+     description: "Specify CSI Driver Snapshotter image repository. Leave blank to autodetect."
      type: string
-diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/templates/_helpers.tpl packages/longhorn/charts/templates/_helpers.tpl
---- packages/longhorn/charts-original/templates/_helpers.tpl
-+++ packages/longhorn/charts/templates/_helpers.tpl
-@@ -36,3 +36,12 @@
- app.kubernetes.io/instance: {{ .Release.Name }}
- app.kubernetes.io/version: {{ .Chart.AppVersion }}
- {{- end -}}
-+
-+
-+{{- define "system_default_registry" -}}
-+{{- if .Values.global.cattle.systemDefaultRegistry -}}
-+{{- printf "%s/" .Values.global.cattle.systemDefaultRegistry -}}
-+{{- else -}}
-+{{- "" -}}
-+{{- end -}}
-+{{- end -}}
+     label: Longhorn CSI Driver Snapshotter Image Repository
 diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/templates/crds.yaml packages/longhorn/charts/templates/crds.yaml
 --- packages/longhorn/charts-original/templates/crds.yaml
 +++ packages/longhorn/charts/templates/crds.yaml
-@@ -1,137 +0,0 @@
--apiVersion: apiextensions.k8s.io/v1beta1
+@@ -1,380 +0,0 @@
+-apiVersion: apiextensions.k8s.io/v1
 -kind: CustomResourceDefinition
 -metadata:
 -  labels: {{- include "longhorn.labels" . | nindent 4 }}
@@ -395,11 +647,42 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/templates/crd
 -    - lhe
 -    singular: engine
 -  scope: Namespaced
--  version: v1beta1
--  subresources:
--    status: {}
+-  versions:
+-  - name: v1beta1
+-    served: true
+-    storage: true
+-    schema:
+-      openAPIV3Schema:
+-        type: object
+-        properties:
+-          spec:
+-            x-kubernetes-preserve-unknown-fields: true
+-          status:
+-            x-kubernetes-preserve-unknown-fields: true
+-    subresources:
+-      status: {}
+-    additionalPrinterColumns:
+-    - name: State
+-      type: string
+-      description: The current state of the engine
+-      jsonPath: .status.currentState
+-    - name: Node
+-      type: string
+-      description: The node that the engine is on
+-      jsonPath: .spec.nodeID
+-    - name: InstanceManager
+-      type: string
+-      description: The instance manager of the engine
+-      jsonPath: .status.instanceManagerName
+-    - name: Image
+-      type: string
+-      description: The current image of the engine
+-      jsonPath: .status.currentImage
+-    - name: Age
+-      type: date
+-      jsonPath: .metadata.creationTimestamp
 ----
--apiVersion: apiextensions.k8s.io/v1beta1
+-apiVersion: apiextensions.k8s.io/v1
 -kind: CustomResourceDefinition
 -metadata:
 -  labels: {{- include "longhorn.labels" . | nindent 4 }}
@@ -415,11 +698,46 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/templates/crd
 -    - lhr
 -    singular: replica
 -  scope: Namespaced
--  version: v1beta1
--  subresources:
--    status: {}
+-  versions:
+-  - name: v1beta1
+-    served: true
+-    storage: true
+-    schema:
+-      openAPIV3Schema:
+-        type: object
+-        properties:
+-          spec:
+-            x-kubernetes-preserve-unknown-fields: true
+-          status:
+-            x-kubernetes-preserve-unknown-fields: true
+-    subresources:
+-      status: {}
+-    additionalPrinterColumns:
+-    - name: State
+-      type: string
+-      description: The current state of the replica
+-      jsonPath: .status.currentState
+-    - name: Node
+-      type: string
+-      description: The node that the replica is on
+-      jsonPath: .spec.nodeID
+-    - name: Disk
+-      type: string
+-      description: The disk that the replica is on
+-      jsonPath: .spec.diskID
+-    - name: InstanceManager
+-      type: string
+-      description: The instance manager of the replica
+-      jsonPath: .status.instanceManagerName
+-    - name: Image
+-      type: string
+-      description: The current image of the replica
+-      jsonPath: .status.currentImage
+-    - name: Age
+-      type: date
+-      jsonPath: .metadata.creationTimestamp
 ----
--apiVersion: apiextensions.k8s.io/v1beta1
+-apiVersion: apiextensions.k8s.io/v1
 -kind: CustomResourceDefinition
 -metadata:
 -  labels: {{- include "longhorn.labels" . | nindent 4 }}
@@ -435,9 +753,23 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/templates/crd
 -    - lhs
 -    singular: setting
 -  scope: Namespaced
--  version: v1beta1
+-  versions:
+-  - name: v1beta1
+-    served: true
+-    storage: true
+-    schema:
+-      openAPIV3Schema:
+-        x-kubernetes-preserve-unknown-fields: true
+-    additionalPrinterColumns:
+-    - name: Value
+-      type: string
+-      description: The value of the setting
+-      jsonPath: .value
+-    - name: Age
+-      type: date
+-      jsonPath: .metadata.creationTimestamp
 ----
--apiVersion: apiextensions.k8s.io/v1beta1
+-apiVersion: apiextensions.k8s.io/v1
 -kind: CustomResourceDefinition
 -metadata:
 -  labels: {{- include "longhorn.labels" . | nindent 4 }}
@@ -453,11 +785,46 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/templates/crd
 -    - lhv
 -    singular: volume
 -  scope: Namespaced
--  version: v1beta1
--  subresources:
--    status: {}
+-  versions:
+-  - name: v1beta1
+-    served: true
+-    storage: true
+-    schema:
+-      openAPIV3Schema:
+-        type: object
+-        properties:
+-          spec:
+-            x-kubernetes-preserve-unknown-fields: true
+-          status:
+-            x-kubernetes-preserve-unknown-fields: true
+-    subresources:
+-      status: {}
+-    additionalPrinterColumns:
+-    - name: State
+-      type: string
+-      description: The state of the volume
+-      jsonPath: .status.state
+-    - name: Robustness
+-      type: string
+-      description: The robustness of the volume
+-      jsonPath: .status.robustness
+-    - name: Scheduled
+-      type: string
+-      description: The scheduled condition of the volume
+-      jsonPath: .status.conditions['scheduled']['status']
+-    - name: Size
+-      type: string
+-      description: The size of the volume
+-      jsonPath: .spec.size
+-    - name: Node
+-      type: string
+-      description: The node that the volume is currently attaching to
+-      jsonPath: .status.currentNodeID
+-    - name: Age
+-      type: date
+-      jsonPath: .metadata.creationTimestamp
 ----
--apiVersion: apiextensions.k8s.io/v1beta1
+-apiVersion: apiextensions.k8s.io/v1
 -kind: CustomResourceDefinition
 -metadata:
 -  labels: {{- include "longhorn.labels" . | nindent 4 }}
@@ -473,11 +840,42 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/templates/crd
 -    - lhei
 -    singular: engineimage
 -  scope: Namespaced
--  version: v1beta1
--  subresources:
--    status: {}
+-  versions:
+-  - name: v1beta1
+-    served: true
+-    storage: true
+-    schema:
+-      openAPIV3Schema:
+-        type: object
+-        properties:
+-          spec:
+-            x-kubernetes-preserve-unknown-fields: true
+-          status:
+-            x-kubernetes-preserve-unknown-fields: true
+-    subresources:
+-      status: {}
+-    additionalPrinterColumns:
+-    - name: State
+-      type: string
+-      description: State of the engine image
+-      jsonPath: .status.state
+-    - name: Image
+-      type: string
+-      description: The Longhorn engine image
+-      jsonPath: .spec.image
+-    - name: RefCount
+-      type: integer
+-      description: Number of volumes are using the engine image
+-      jsonPath: .status.refCount
+-    - name: BuildDate
+-      type: date
+-      description: The build date of the engine image
+-      jsonPath: .status.buildDate
+-    - name: Age
+-      type: date
+-      jsonPath: .metadata.creationTimestamp
 ----
--apiVersion: apiextensions.k8s.io/v1beta1
+-apiVersion: apiextensions.k8s.io/v1
 -kind: CustomResourceDefinition
 -metadata:
 -  labels: {{- include "longhorn.labels" . | nindent 4 }}
@@ -493,11 +891,38 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/templates/crd
 -    - lhn
 -    singular: node
 -  scope: Namespaced
--  version: v1beta1
--  subresources:
--    status: {}
+-  versions:
+-  - name: v1beta1
+-    served: true
+-    storage: true
+-    schema:
+-      openAPIV3Schema:
+-        type: object
+-        properties:
+-          spec:
+-            x-kubernetes-preserve-unknown-fields: true
+-          status:
+-            x-kubernetes-preserve-unknown-fields: true
+-    subresources:
+-      status: {}
+-    additionalPrinterColumns:
+-    - name: Ready
+-      type: string
+-      description: Indicate whether the node is ready
+-      jsonPath: .status.conditions['Ready']['status']
+-    - name: AllowScheduling
+-      type: boolean
+-      description: Indicate whether the user disabled/enabled replica scheduling for the node
+-      jsonPath: .spec.allowScheduling
+-    - name: Schedulable
+-      type: string
+-      description: Indicate whether Longhorn can schedule replicas on the node
+-      jsonPath: .status.conditions['Schedulable']['status']
+-    - name: Age
+-      type: date
+-      jsonPath: .metadata.creationTimestamp
 ----
--apiVersion: apiextensions.k8s.io/v1beta1
+-apiVersion: apiextensions.k8s.io/v1
 -kind: CustomResourceDefinition
 -metadata:
 -  labels: {{- include "longhorn.labels" . | nindent 4 }}
@@ -513,248 +938,125 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/templates/crd
 -    - lhim
 -    singular: instancemanager
 -  scope: Namespaced
--  version: v1beta1
--  subresources:
--    status: {}
-diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/templates/daemonset-sa.yaml packages/longhorn/charts/templates/daemonset-sa.yaml
---- packages/longhorn/charts-original/templates/daemonset-sa.yaml
-+++ packages/longhorn/charts/templates/daemonset-sa.yaml
-@@ -16,11 +16,7 @@
-     spec:
-       containers:
-       - name: longhorn-manager
--    {{- if .Values.privateRegistry.registryUrl }}
--        image: "{{ .Values.privateRegistry.registryUrl }}/{{ .Values.image.longhorn.manager }}:{{ .Values.image.longhorn.managerTag }}"
--    {{- else }}
--        image: "{{ .Values.image.longhorn.manager }}:{{ .Values.image.longhorn.managerTag }}"
--    {{- end }}
-+        image: {{ template "system_default_registry" . }}{{ .Values.image.longhorn.manager.repository }}:{{ .Values.image.longhorn.manager.tag }}
-         imagePullPolicy: IfNotPresent
-         securityContext:
-           privileged: true
-@@ -29,23 +25,11 @@
-         - -d
-         - daemon
-         - --engine-image
--    {{- if .Values.privateRegistry.registryUrl }}
--        - "{{ .Values.privateRegistry.registryUrl }}/{{ .Values.image.longhorn.engine }}:{{ .Values.image.longhorn.engineTag }}"
--    {{- else }}
--        - "{{ .Values.image.longhorn.engine }}:{{ .Values.image.longhorn.engineTag }}"
--    {{- end }}
-+        - "{{ template "system_default_registry" . }}{{ .Values.image.longhorn.engine.repository }}:{{ .Values.image.longhorn.engine.tag }}"
-         - --instance-manager-image
--    {{- if .Values.privateRegistry.registryUrl }}
--        - "{{ .Values.privateRegistry.registryUrl }}/{{ .Values.image.longhorn.instanceManager }}:{{ .Values.image.longhorn.instanceManagerTag }}"
--    {{- else }}
--        - "{{ .Values.image.longhorn.instanceManager }}:{{ .Values.image.longhorn.instanceManagerTag }}"
--    {{- end }}
-+        - "{{ template "system_default_registry" . }}{{ .Values.image.longhorn.instanceManager.repository }}:{{ .Values.image.longhorn.instanceManager.tag }}"
-         - --manager-image
--    {{- if .Values.privateRegistry.registryUrl }}
--        - "{{ .Values.privateRegistry.registryUrl }}/{{ .Values.image.longhorn.manager }}:{{ .Values.image.longhorn.managerTag }}"
--    {{- else }}
--        - "{{ .Values.image.longhorn.manager }}:{{ .Values.image.longhorn.managerTag }}"
--    {{- end }}
-+        - "{{ template "system_default_registry" . }}{{ .Values.image.longhorn.manager.repository }}:{{ .Values.image.longhorn.manager.tag }}"
-         - --service-account
-         - longhorn-service-account
-         ports:
-diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/templates/deployment-driver.yaml packages/longhorn/charts/templates/deployment-driver.yaml
---- packages/longhorn/charts-original/templates/deployment-driver.yaml
-+++ packages/longhorn/charts/templates/deployment-driver.yaml
-@@ -16,30 +16,18 @@
-     spec:
-       initContainers:
-         - name: wait-longhorn-manager
--      {{- if .Values.privateRegistry.registryUrl }}
--          image: {{ printf "%s/%s:%s" .Values.privateRegistry.registryUrl .Values.image.longhorn.manager .Values.image.longhorn.managerTag | quote }}
--      {{- else }}
--          image: {{ printf "%s:%s" .Values.image.longhorn.manager .Values.image.longhorn.managerTag | quote }}
--      {{- end }}
-+          image: {{ template "system_default_registry" . }}{{ .Values.image.longhorn.manager.repository }}:{{ .Values.image.longhorn.manager.tag }}
-           command: ['sh', '-c', 'while [ $(curl -m 1 -s -o /dev/null -w "%{http_code}" http://longhorn-backend:9500/v1) != "200" ]; do echo waiting; sleep 2; done']
-       containers:
-         - name: longhorn-driver-deployer
--      {{- if .Values.privateRegistry.registryUrl }}
--          image: {{ printf "%s/%s:%s" .Values.privateRegistry.registryUrl .Values.image.longhorn.manager .Values.image.longhorn.managerTag | quote }}
--      {{- else }}
--          image: {{ printf "%s:%s" .Values.image.longhorn.manager .Values.image.longhorn.managerTag | quote }}
--      {{- end }}
-+          image: {{ template "system_default_registry" . }}{{ .Values.image.longhorn.manager.repository }}:{{ .Values.image.longhorn.manager.tag }}
-           imagePullPolicy: IfNotPresent
-           command:
-           - longhorn-manager
-           - -d
-           - deploy-driver
-           - --manager-image
--      {{- if .Values.privateRegistry.registryUrl }}
--          - {{ printf "%s/%s:%s" .Values.privateRegistry.registryUrl .Values.image.longhorn.manager .Values.image.longhorn.managerTag | quote }}
--      {{- else }}
--          - {{ printf "%s:%s" .Values.image.longhorn.manager .Values.image.longhorn.managerTag | quote }}
--      {{- end }}
-+          - "{{ template "system_default_registry" . }}{{ .Values.image.longhorn.manager.repository }}:{{ .Values.image.longhorn.manager.tag }}"
-           - --manager-url
-           - http://longhorn-backend:9500/v1
-           env:
-@@ -59,41 +47,22 @@
-           - name: KUBELET_ROOT_DIR
-             value: {{ .Values.csi.kubeletRootDir }}
-           {{- end }}
--      {{- if .Values.privateRegistry.registryUrl }}
--          {{- if and .Values.csi.attacherImage .Values.csi.attacherImageTag }}
--          - name: CSI_ATTACHER_IMAGE
--            value: {{ printf "%s/%s:%s" .Values.privateRegistry.registryUrl .Values.csi.attacherImage .Values.csi.attacherImageTag | quote }}
--          {{- end }}
--          {{- if and .Values.csi.provisionerImage .Values.csi.provisionerImageTag }}
--          - name: CSI_PROVISIONER_IMAGE
--            value: {{ printf "%s/%s:%s" .Values.privateRegistry.registryUrl .Values.csi.provisionerImage .Values.csi.provisionerImageTag | quote }}
--          {{- end }}
--          {{- if and .Values.csi.nodeDriverRegistrarImage .Values.csi.nodeDriverRegistrarImageTag }}
--          - name: CSI_NODE_DRIVER_REGISTRAR_IMAGE
--            value: {{ printf "%s/%s:%s" .Values.privateRegistry.registryUrl .Values.csi.nodeDriverRegistrarImage .Values.csi.nodeDriverRegistrarImageTag | quote }}
--          {{- end }}
--          {{- if and .Values.csi.resizerImage .Values.csi.resizerImageTag }}
--          - name: CSI_RESIZER_IMAGE
--            value: {{ printf "%s/%s:%s" .Values.privateRegistry.registryUrl .Values.csi.resizerImage .Values.csi.resizerImageTag | quote }}
--          {{- end }}
--      {{- else }}
--          {{- if and .Values.csi.attacherImage .Values.csi.attacherImageTag }}
-+          {{- if and .Values.image.csi.attacher.repository .Values.image.csi.attacher.tag }}
-           - name: CSI_ATTACHER_IMAGE
--            value: {{ printf "%s:%s" .Values.csi.attacherImage .Values.csi.attacherImageTag | quote }}
-+            value: "{{ template "system_default_registry" . }}{{ .Values.image.csi.attacher.repository }}:{{ .Values.image.csi.attacher.tag }}"
-           {{- end }}
--          {{- if and .Values.csi.provisionerImage .Values.csi.provisionerImageTag }}
-+          {{- if and .Values.image.csi.provisioner.repository .Values.image.csi.provisioner.tag }}
-           - name: CSI_PROVISIONER_IMAGE
--            value: {{ printf "%s:%s" .Values.csi.provisionerImage .Values.csi.provisionerImageTag | quote }}
-+            value: "{{ template "system_default_registry" . }}{{ .Values.image.csi.provisioner.repository }}:{{ .Values.image.csi.provisioner.tag }}"
-           {{- end }}
--          {{- if and .Values.csi.nodeDriverRegistrarImage .Values.csi.nodeDriverRegistrarImageTag }}
-+          {{- if and .Values.image.csi.nodeDriverRegistrar.repository .Values.image.csi.nodeDriverRegistrar.tag }}
-           - name: CSI_NODE_DRIVER_REGISTRAR_IMAGE
--            value: {{ printf "%s:%s" .Values.csi.nodeDriverRegistrarImage .Values.csi.nodeDriverRegistrarImageTag | quote }}
-+            value: "{{ template "system_default_registry" . }}{{ .Values.image.csi.nodeDriverRegistrar.repository }}:{{ .Values.image.csi.nodeDriverRegistrar.tag }}"
-           {{- end }}
--          {{- if and .Values.csi.resizerImage .Values.csi.resizerImageTag }}
-+          {{- if and .Values.image.csi.resizer.repository .Values.image.csi.resizer.tag }}
-           - name: CSI_RESIZER_IMAGE
--            value: {{ printf "%s:%s" .Values.csi.resizerImage .Values.csi.resizerImageTag | quote }}
-+            value: "{{ template "system_default_registry" . }}{{ .Values.image.csi.resizer.repository }}:{{ .Values.image.csi.resizer.tag }}"
-           {{- end }}
--      {{- end }}
-           {{- if .Values.csi.attacherReplicaCount }}
-           - name: CSI_ATTACHER_REPLICA_COUNT
-             value: {{ .Values.csi.attacherReplicaCount | quote }}
-diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/templates/deployment-ui.yaml packages/longhorn/charts/templates/deployment-ui.yaml
---- packages/longhorn/charts-original/templates/deployment-ui.yaml
-+++ packages/longhorn/charts/templates/deployment-ui.yaml
-@@ -17,11 +17,7 @@
-     spec:
-       containers:
-       - name: longhorn-ui
--    {{- if .Values.privateRegistry.registryUrl }}
--        image: "{{ .Values.privateRegistry.registryUrl }}/{{ .Values.image.longhorn.ui }}:{{ .Values.image.longhorn.uiTag }}"
--    {{- else }}
--        image: "{{ .Values.image.longhorn.ui }}:{{ .Values.image.longhorn.uiTag }}"
--    {{- end }}
-+        image: {{ template "system_default_registry" . }}{{ .Values.image.longhorn.ui.repository }}:{{ .Values.image.longhorn.ui.tag }}
-         imagePullPolicy: IfNotPresent
-         securityContext:
-           runAsUser: 0
-diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/templates/postupgrade-job.yaml packages/longhorn/charts/templates/postupgrade-job.yaml
---- packages/longhorn/charts-original/templates/postupgrade-job.yaml
-+++ packages/longhorn/charts/templates/postupgrade-job.yaml
-@@ -17,11 +17,7 @@
-     spec:
-       containers:
-       - name: longhorn-post-upgrade
--    {{- if .Values.privateRegistry.registryUrl }}
--        image: "{{ .Values.privateRegistry.registryUrl }}/{{ .Values.image.longhorn.manager }}:{{ .Values.image.longhorn.managerTag }}"
--    {{- else }}
--        image: "{{ .Values.image.longhorn.manager }}:{{ .Values.image.longhorn.managerTag }}"
--    {{- end }}
-+        image: {{ template "system_default_registry" . }}{{ .Values.image.longhorn.manager.repository }}:{{ .Values.image.longhorn.manager.tag }}
-         imagePullPolicy: Always
-         command:
-         - longhorn-manager
-diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/templates/uninstall-job.yaml packages/longhorn/charts/templates/uninstall-job.yaml
---- packages/longhorn/charts-original/templates/uninstall-job.yaml
-+++ packages/longhorn/charts/templates/uninstall-job.yaml
-@@ -17,11 +17,7 @@
-     spec:
-       containers:
-       - name: longhorn-uninstall
--    {{- if .Values.privateRegistry.registryUrl }}
--        image: "{{ .Values.privateRegistry.registryUrl }}/{{ .Values.image.longhorn.manager }}:{{ .Values.image.longhorn.managerTag }}"
--    {{- else }}
--        image: "{{ .Values.image.longhorn.manager }}:{{ .Values.image.longhorn.managerTag }}"
--    {{- end }}
-+        image: {{ template "system_default_registry" . }}{{ .Values.image.longhorn.manager.repository }}:{{ .Values.image.longhorn.manager.tag }}
-         imagePullPolicy: Always
-         command:
-         - longhorn-manager
+-  versions:
+-  - name: v1beta1
+-    served: true
+-    storage: true
+-    schema:
+-      openAPIV3Schema:
+-        type: object
+-        properties:
+-          spec:
+-            x-kubernetes-preserve-unknown-fields: true
+-          status:
+-            x-kubernetes-preserve-unknown-fields: true
+-    subresources:
+-      status: {}
+-    additionalPrinterColumns:
+-    - name: State
+-      type: string
+-      description: The state of the instance manager
+-      jsonPath: .status.currentState
+-    - name: Type
+-      type: string
+-      description: The type of the instance manager (engine or replica)
+-      jsonPath: .spec.type
+-    - name: Node
+-      type: string
+-      description: The node that the instance manager is running on
+-      jsonPath: .spec.nodeID
+-    - name: Age
+-      type: date
+-      jsonPath: .metadata.creationTimestamp
+----
+-apiVersion: apiextensions.k8s.io/v1
+-kind: CustomResourceDefinition
+-metadata:
+-  labels: {{- include "longhorn.labels" . | nindent 4 }}
+-    longhorn-manager: ShareManager
+-  name: sharemanagers.longhorn.io
+-spec:
+-  group: longhorn.io
+-  names:
+-    kind: ShareManager
+-    listKind: ShareManagerList
+-    plural: sharemanagers
+-    shortNames:
+-    - lhsm
+-    singular: sharemanager
+-  scope: Namespaced
+-  versions:
+-  - name: v1beta1
+-    served: true
+-    storage: true
+-    schema:
+-      openAPIV3Schema:
+-        type: object
+-        properties:
+-          spec:
+-            x-kubernetes-preserve-unknown-fields: true
+-          status:
+-            x-kubernetes-preserve-unknown-fields: true
+-    subresources:
+-      status: {}
+-    additionalPrinterColumns:
+-    - name: State
+-      type: string
+-      description: The state of the share manager
+-      jsonPath: .status.state
+-    - name: Node
+-      type: string
+-      description: The node that the share manager is owned by
+-      jsonPath: .status.ownerID
+-    - name: Age
+-      type: date
+-      jsonPath: .metadata.creationTimestamp
 diff -x '*.tgz' -x '*.lock' -uNr packages/longhorn/charts-original/values.yaml packages/longhorn/charts/values.yaml
 --- packages/longhorn/charts-original/values.yaml
 +++ packages/longhorn/charts/values.yaml
-@@ -1,16 +1,37 @@
- # Default values for longhorn.
- # This is a YAML-formatted file.
- # Declare variables to be passed into your templates.
-+global:
-+  cattle:
-+    systemDefaultRegistry: ""
-+
+@@ -8,35 +8,35 @@
  image:
    longhorn:
--    engine: longhornio/longhorn-engine
--    engineTag: v1.0.2
--    manager: longhornio/longhorn-manager
--    managerTag: v1.0.2
--    ui: longhornio/longhorn-ui
--    uiTag: v1.0.2
--    instanceManager: longhornio/longhorn-instance-manager
--    instanceManagerTag: v1_20200514
-+    engine:
+     engine:
+-      repository: longhornio/longhorn-engine
 +      repository: rancher/longhornio-longhorn-engine
-+      tag: v1.0.2
-+    manager:
+       tag: v1.1.0
+     manager:
+-      repository: longhornio/longhorn-manager
 +      repository: rancher/longhornio-longhorn-manager
-+      tag: v1.0.2
-+    ui:
+       tag: v1.1.0
+     ui:
+-      repository: longhornio/longhorn-ui
 +      repository: rancher/longhornio-longhorn-ui
-+      tag: v1.0.2
-+    instanceManager:
+       tag: v1.1.0
+     instanceManager:
+-      repository: longhornio/longhorn-instance-manager
 +      repository: rancher/longhornio-longhorn-instance-manager
-+      tag: v1_20200514
-+  csi:
-+    attacher:
+       tag: v1_20201216
+     shareManager:
+-      repository: longhornio/longhorn-share-manager
++      repository: rancher/longhornio-longhorn-share-manager
+       tag: v1_20201204
+   csi:
+     attacher:
+-      repository: longhornio/csi-attacher
 +      repository: rancher/longhornio-csi-attacher
-+      tag: v2.0.0
-+    provisioner:
+       tag: v2.2.1-lh1
+     provisioner:
+-      repository: longhornio/csi-provisioner
 +      repository: rancher/longhornio-csi-provisioner
-+      tag: v1.4.0
-+    nodeDriverRegistrar:
+       tag: v1.6.0-lh1
+     nodeDriverRegistrar:
+-      repository: longhornio/csi-node-driver-registrar
 +      repository: rancher/longhornio-csi-node-driver-registrar
-+      tag: v1.2.0
-+    resizer:
+       tag: v1.2.0-lh1
+     resizer:
+-      repository: longhornio/csi-resizer
 +      repository: rancher/longhornio-csi-resizer
-+      tag: v0.3.0
+       tag: v0.5.1-lh1
+     snapshotter:
+-      repository: longhornio/csi-snapshotter
++      repository: rancher/longhornio-csi-snapshotter
+       tag: v2.1.1-lh1
    pullPolicy: IfNotPresent
  
- service:
-@@ -26,14 +47,6 @@
-   defaultClassReplicaCount: 3
- 
- csi:
--  attacherImage: longhornio/csi-attacher
--  attacherImageTag: v2.0.0
--  provisionerImage: longhornio/csi-provisioner
--  provisionerImageTag: v1.4.0
--  nodeDriverRegistrarImage: longhornio/csi-node-driver-registrar
--  nodeDriverRegistrarImageTag: v1.2.0
--  resizerImage: longhornio/csi-resizer
--  resizerImageTag: v0.3.0
-   kubeletRootDir: ~
-   attacherReplicaCount: ~
-   provisionerReplicaCount: ~
