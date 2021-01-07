@@ -45,3 +45,22 @@ app.kubernetes.io/version: {{ .Chart.AppVersion }}
 {{- "" -}}
 {{- end -}}
 {{- end -}}
+
+{{- define "registry_url" -}}
+{{- if .Values.privateRegistry.registryUrl -}}
+{{- printf "%s/" .Values.privateRegistry.registryUrl -}}
+{{- else -}}
+{{ include "system_default_registry" . }}
+{{- end -}}
+{{- end -}}
+
+{{- /*
+ define the longhorn release namespace
+*/ -}}
+{{- define "release_namespace" -}}
+{{- if .Values.namespaceOverride -}}
+{{- .Values.namespaceOverride -}}
+{{- else -}}
+{{- .Release.Namespace -}}
+{{- end -}}
+{{- end -}}

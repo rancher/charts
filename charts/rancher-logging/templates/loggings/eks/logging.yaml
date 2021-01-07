@@ -1,4 +1,4 @@
-{{- if and .Values.additionalLoggingSources.eks.enabled }}
+{{- if .Values.additionalLoggingSources.eks.enabled }}
 apiVersion: logging.banzaicloud.io/v1beta1
 kind: Logging
 metadata:
@@ -18,12 +18,10 @@ spec:
       Parser: "syslog"
   {{- $total_tolerations := concat (.Values.tolerations) (.Values.fluentbit_tolerations) }}
   {{- with $total_tolerations }}
-    tolerations:
-      {{- toYaml . | nindent 6 }}
+    tolerations: {{- toYaml . | nindent 6 }}
   {{- end }}
   {{- with .Values.nodeSelector }}
-    nodeSelector:
-      {{- toYaml . | nindent 6 }}
+    nodeSelector: {{- toYaml . | nindent 6 }}
   {{- end }}
   fluentd:
     image:
@@ -34,11 +32,9 @@ spec:
       tag: {{ .Values.images.config_reloader.tag }}
     disablePvc: {{ .Values.disablePvc }}
     {{- with .Values.tolerations }}
-    tolerations:
-      {{- toYaml . | nindent 6 }}
+    tolerations: {{- toYaml . | nindent 6 }}
     {{- end }}
     {{- with .Values.nodeSelector }}
-    nodeSelector:
-      {{- toYaml . | nindent 6 }}
+    nodeSelector: {{- toYaml . | nindent 6 }}
     {{- end }}
 {{- end }}

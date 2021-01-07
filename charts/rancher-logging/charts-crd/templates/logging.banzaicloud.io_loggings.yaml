@@ -464,6 +464,61 @@ spec:
                           output_type:
                             type: string
                         type: object
+                      sumologic:
+                        properties:
+                          collector_key_name:
+                            type: string
+                          collector_value:
+                            type: string
+                          exclude_container_regex:
+                            type: string
+                          exclude_facility_regex:
+                            type: string
+                          exclude_host_regex:
+                            type: string
+                          exclude_namespace_regex:
+                            type: string
+                          exclude_pod_regex:
+                            type: string
+                          exclude_priority_regex:
+                            type: string
+                          exclude_unit_regex:
+                            type: string
+                          log_format:
+                            type: string
+                          source_category:
+                            type: string
+                          source_category_key_name:
+                            type: string
+                          source_category_prefix:
+                            type: string
+                          source_category_replace_dash:
+                            type: string
+                          source_host:
+                            type: string
+                          source_host_key_name:
+                            type: string
+                          source_name:
+                            type: string
+                          source_name_key_name:
+                            type: string
+                          tracing_annotation_prefix:
+                            type: string
+                          tracing_container_name:
+                            type: string
+                          tracing_format:
+                            type: boolean
+                          tracing_host:
+                            type: string
+                          tracing_label_prefix:
+                            type: string
+                          tracing_namespace:
+                            type: string
+                          tracing_pod:
+                            type: string
+                          tracing_pod_id:
+                            type: string
+                        type: object
                       tag_normaliser:
                         properties:
                           format:
@@ -879,8 +934,13 @@ spec:
                           type: object
                       type: object
                   type: object
+                coroStackSize:
+                  format: int32
+                  type: integer
                 customConfigSecret:
                   type: string
+                enableUpstream:
+                  type: boolean
                 extraVolumeMounts:
                   items:
                     properties:
@@ -901,8 +961,24 @@ spec:
                   properties:
                     Match:
                       type: string
+                    account_id:
+                      type: boolean
+                    ami_id:
+                      type: boolean
+                    az:
+                      type: boolean
+                    ec2_instance_id:
+                      type: boolean
+                    ec2_instance_type:
+                      type: boolean
+                    hostname:
+                      type: boolean
                     imds_version:
                       type: string
+                    private_ip:
+                      type: boolean
+                    vpc_id:
+                      type: boolean
                   type: object
                 filterKubernetes:
                   properties:
@@ -951,8 +1027,34 @@ spec:
                     tls.verify:
                       type: string
                   type: object
+                flush:
+                  format: int32
+                  type: integer
+                forwardOptions:
+                  properties:
+                    Require_ack_response:
+                      type: boolean
+                    Retry_Limit:
+                      type: string
+                    Send_options:
+                      type: boolean
+                    Tag:
+                      type: string
+                    Time_as_Integer:
+                      type: boolean
+                  type: object
+                grace:
+                  format: int32
+                  type: integer
                 image:
                   properties:
+                    imagePullSecrets:
+                      items:
+                        properties:
+                          name:
+                            type: string
+                        type: object
+                      type: array
                     pullPolicy:
                       type: string
                     repository:
@@ -1082,6 +1184,8 @@ spec:
                       format: int32
                       type: integer
                   type: object
+                logLevel:
+                  type: string
                 metrics:
                   properties:
                     interval:
@@ -1103,12 +1207,70 @@ spec:
                           type: object
                         honorLabels:
                           type: boolean
+                        metricRelabelings:
+                          items:
+                            properties:
+                              action:
+                                type: string
+                              modulus:
+                                format: int64
+                                type: integer
+                              regex:
+                                type: string
+                              replacement:
+                                type: string
+                              separator:
+                                type: string
+                              sourceLabels:
+                                items:
+                                  type: string
+                                type: array
+                              targetLabel:
+                                type: string
+                            type: object
+                          type: array
+                        relabelings:
+                          items:
+                            properties:
+                              action:
+                                type: string
+                              modulus:
+                                format: int64
+                                type: integer
+                              regex:
+                                type: string
+                              replacement:
+                                type: string
+                              separator:
+                                type: string
+                              sourceLabels:
+                                items:
+                                  type: string
+                                type: array
+                              targetLabel:
+                                type: string
+                            type: object
+                          type: array
                       type: object
                     timeout:
                       type: string
                   type: object
                 mountPath:
                   type: string
+                network:
+                  properties:
+                    connectTimeout:
+                      format: int32
+                      type: integer
+                    keepalive:
+                      type: boolean
+                    keepaliveIdleTimeout:
+                      format: int32
+                      type: integer
+                    keepaliveMaxRecycle:
+                      format: int32
+                      type: integer
+                  type: object
                 nodeSelector:
                   additionalProperties:
                     type: string
@@ -1398,6 +1560,8 @@ spec:
                         fsGroup:
                           format: int64
                           type: integer
+                        fsGroupChangePolicy:
+                          type: string
                         runAsGroup:
                           format: int64
                           type: integer
@@ -1416,6 +1580,15 @@ spec:
                               type: string
                             user:
                               type: string
+                          type: object
+                        seccompProfile:
+                          properties:
+                            localhostProfile:
+                              type: string
+                            type:
+                              type: string
+                          required:
+                          - type
                           type: object
                         supplementalGroups:
                           items:
@@ -1487,6 +1660,15 @@ spec:
                               type: string
                             user:
                               type: string
+                          type: object
+                        seccompProfile:
+                          properties:
+                            localhostProfile:
+                              type: string
+                            type:
+                              type: string
+                          required:
+                          - type
                           type: object
                         windowsOptions:
                           properties:
@@ -1907,6 +2089,13 @@ spec:
                   type: object
                 configReloaderImage:
                   properties:
+                    imagePullSecrets:
+                      items:
+                        properties:
+                          name:
+                            type: string
+                        type: object
+                      type: array
                     pullPolicy:
                       type: string
                     repository:
@@ -2030,8 +2219,89 @@ spec:
                           type: object
                       type: object
                   type: object
+                forwardInputConfig:
+                  properties:
+                    add_tag_prefix:
+                      type: string
+                    bind:
+                      type: string
+                    chunk_size_limit:
+                      type: string
+                    chunk_size_warn_limit:
+                      type: string
+                    deny_keepalive:
+                      type: boolean
+                    linger_timeout:
+                      type: integer
+                    port:
+                      type: string
+                    resolve_hostname:
+                      type: boolean
+                    security:
+                      properties:
+                        allow_anonymous_source:
+                          type: boolean
+                        self_hostname:
+                          type: string
+                        shared_key:
+                          type: string
+                        user_auth:
+                          type: boolean
+                      required:
+                      - self_hostname
+                      - shared_key
+                      type: object
+                    send_keepalive_packet:
+                      type: boolean
+                    skip_invalid_event:
+                      type: boolean
+                    source_address_key:
+                      type: string
+                    sourceHostnameKey:
+                      type: string
+                    tag:
+                      type: string
+                    transport:
+                      properties:
+                        ca_cert_path:
+                          type: string
+                        ca_path:
+                          type: string
+                        ca_private_key_passphrase:
+                          type: string
+                        ca_private_key_path:
+                          type: string
+                        cert_path:
+                          type: string
+                        ciphers:
+                          type: string
+                        client_cert_auth:
+                          type: boolean
+                        insecure:
+                          type: boolean
+                        private_key_passphrase:
+                          type: string
+                        private_key_path:
+                          type: string
+                        protocol:
+                          type: string
+                        version:
+                          type: string
+                      type: object
+                  type: object
+                ignoreRepeatedLogInterval:
+                  type: string
+                ignoreSameLogInterval:
+                  type: string
                 image:
                   properties:
+                    imagePullSecrets:
+                      items:
+                        properties:
+                          name:
+                            type: string
+                        type: object
+                      type: array
                     pullPolicy:
                       type: string
                     repository:
@@ -2133,6 +2403,50 @@ spec:
                           type: object
                         honorLabels:
                           type: boolean
+                        metricRelabelings:
+                          items:
+                            properties:
+                              action:
+                                type: string
+                              modulus:
+                                format: int64
+                                type: integer
+                              regex:
+                                type: string
+                              replacement:
+                                type: string
+                              separator:
+                                type: string
+                              sourceLabels:
+                                items:
+                                  type: string
+                                type: array
+                              targetLabel:
+                                type: string
+                            type: object
+                          type: array
+                        relabelings:
+                          items:
+                            properties:
+                              action:
+                                type: string
+                              modulus:
+                                format: int64
+                                type: integer
+                              regex:
+                                type: string
+                              replacement:
+                                type: string
+                              separator:
+                                type: string
+                              sourceLabels:
+                                items:
+                                  type: string
+                                type: array
+                              targetLabel:
+                                type: string
+                            type: object
+                          type: array
                       type: object
                     timeout:
                       type: string
@@ -2222,12 +2536,14 @@ spec:
                         type: string
                       type: object
                   type: object
+                rootDir:
+                  type: string
                 scaling:
                   properties:
+                    podManagementPolicy:
+                      type: string
                     replicas:
                       type: integer
-                  required:
-                  - replicas
                   type: object
                 security:
                   properties:
@@ -2236,6 +2552,8 @@ spec:
                         fsGroup:
                           format: int64
                           type: integer
+                        fsGroupChangePolicy:
+                          type: string
                         runAsGroup:
                           format: int64
                           type: integer
@@ -2254,6 +2572,15 @@ spec:
                               type: string
                             user:
                               type: string
+                          type: object
+                        seccompProfile:
+                          properties:
+                            localhostProfile:
+                              type: string
+                            type:
+                              type: string
+                          required:
+                          - type
                           type: object
                         supplementalGroups:
                           items:
@@ -2326,6 +2653,15 @@ spec:
                             user:
                               type: string
                           type: object
+                        seccompProfile:
+                          properties:
+                            localhostProfile:
+                              type: string
+                            type:
+                              type: string
+                          required:
+                          - type
+                          type: object
                         windowsOptions:
                           properties:
                             gmsaCredentialSpec:
@@ -2368,6 +2704,13 @@ spec:
                   type: array
                 volumeModImage:
                   properties:
+                    imagePullSecrets:
+                      items:
+                        properties:
+                          name:
+                            type: string
+                        type: object
+                      type: array
                     pullPolicy:
                       type: string
                     repository:

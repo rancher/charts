@@ -8,7 +8,11 @@ A Rancher created chart that packages the istioctl binary to install via a helm 
 - rancher-kiali-server-crd chart
 
 
+# Addons
+
 ## Kiali
+
+Kiali allows you to view and manage your istio-based service mesh through an easy to use dashboard.
 
 ###  Dependencies
 - rancher-monitoring chart or other Prometheus installation
@@ -29,6 +33,12 @@ To limit scraping to specific namespaces, set `prometheus.prometheusSpec.ignoreN
 
 1. Add a Service Monitor or Pod Monitor in the namespace with the targets you want to scrape.
 1. Add an additionalScrapeConfig to your rancher-monitoring instance to scrape all targets in all namespaces.
+
+## Jaeger
+
+Jaeger allows you to trace and monitor distributed microservices.
+
+> **Note:** This addon is using the all-in-one Jaeger installation which is not qualified for production. Use the [Jaeger Tracing](https://www.jaegertracing.io/docs/1.21/getting-started/) documentation to determine which installation you will need for your production needs.
 
 # Installation
 ```
