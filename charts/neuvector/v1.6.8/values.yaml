@@ -8,6 +8,7 @@ registry: docker.io
 tag: latest
 imagePullSecrets:
 psp: false
+serviceAccount: default
 
 controller:
   # If false, controller will not be installed
@@ -21,6 +22,7 @@ controller:
     repository: neuvector/controller
   replicas: 3
   disruptionbudget: 0
+  priorityClassName:
   apisvc:
     type:
   pvc:
@@ -67,6 +69,7 @@ enforcer:
   enabled: true
   image:
     repository: neuvector/enforcer
+  priorityClassName:
   tolerations:
     - effect: NoSchedule
       key: node-role.kubernetes.io/master
@@ -76,6 +79,7 @@ manager:
   enabled: true
   image:
     repository: neuvector/manager
+  priorityClassName:
   env:
     ssl: true
   svc:
@@ -100,6 +104,7 @@ cve:
       repository: neuvector/updater
       tag: latest
     schedule: "0 0 * * *"
+    priorityClassName:
   scanner:
     enabled: true
     replicas: 3
@@ -111,17 +116,7 @@ cve:
         maxUnavailable: 0
     image:
       repository: neuvector/scanner
-
-exporter:
-  # If false, exporter will not be installed
-  enabled: false
-  scrapping: true
-  image:
-    repository: neuvector/prometheus-exporter
-    tag: 0.9.0
-  # changes this to a readonly user !
-  CTRL_USERNAME: admin
-  CTRL_PASSWORD: admin
+    priorityClassName:
 
 docker:
   path: /var/run/docker.sock
@@ -146,4 +141,5 @@ admissionwebhook:
   type: ClusterIP
 
 crdwebhook:
+  enabled: true
   type: ClusterIP
