@@ -1,0 +1,43 @@
+{{- if .Values.manager.enabled -}}
+{{- if (semverCompare ">=1.9-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: apps/v1
+{{- else }}
+apiVersion: extensions/v1beta1
+{{- end }}
+kind: Deployment
+metadata:
+  name: neuvector-manager-pod
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neuvector-manager-pod
+  template:
+    metadata:
+      labels:
+        app: neuvector-manager-pod
+        release: {{ .Release.Name }}
+    spec:
+    {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecrets }}
+    {{- end }}
+      containers:
+        - name: neuvector-manager-pod
+          image: "{{ .Values.registry }}/{{ .Values.manager.image.repository }}:{{ .Values.tag }}"
+          env:
+            - name: CTRL_SERVER_IP
+              value: neuvector-svc-controller.{{ .Release.Namespace }}
+            {{- if not .Values.manager.env.ssl }}
+            - name: MANAGER_SSL
+              value: "off"
+            {{- end }}
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+      restartPolicy: Always
+{{- end }}
