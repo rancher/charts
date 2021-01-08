@@ -15,6 +15,9 @@ spec:
     inputTail:
       Tag: "aks"
       Path: "/var/log/azure/kubelet-status.log"
+    security:
+      podSecurityPolicyCreate: true
+      roleBasedAccessControlCreate: true
   {{- $total_tolerations := concat (.Values.tolerations) (.Values.fluentbit_tolerations) }}
   {{- with $total_tolerations }}
     tolerations: {{- toYaml . | nindent 6 }}
@@ -30,6 +33,9 @@ spec:
       repository: {{ template "system_default_registry" . }}{{ .Values.images.config_reloader.repository }}
       tag: {{ .Values.images.config_reloader.tag }}
     disablePvc: {{ .Values.disablePvc }}
+    security:
+      podSecurityPolicyCreate: true
+      roleBasedAccessControlCreate: true
     {{- with .Values.tolerations }}
     tolerations: {{- toYaml . | nindent 6 }}
     {{- end }}
