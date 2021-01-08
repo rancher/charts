@@ -163,3 +163,72 @@ diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-kiali-server/charts-original/v
 +  cattle:
 +    systemDefaultRegistry: ""
 +    clusterId:
+diff -x '*.tgz' -x '*.lock' -uNr packages/rancher-kiali-server/charts-original/templates/kiali-psp.yaml packages/rancher-kiali-server/charts/templates/kiali-psp.yaml
+--- packages/rancher-kiali-server/charts-original/templates/kiali-psp.yaml
++++ packages/rancher-kiali-server/charts/templates/kiali-psp.yaml
+@@ -0,0 +1,65 @@
++apiVersion: rbac.authorization.k8s.io/v1
++kind: RoleBinding
++metadata:
++  name: kiali-psp
++  namespace: istio-system
++roleRef:
++  apiGroup: rbac.authorization.k8s.io
++  kind: Role
++  name: kiali-psp
++subjects:
++  - kind: ServiceAccount
++    name: kiali
++---
++apiVersion: rbac.authorization.k8s.io/v1
++kind: Role
++metadata:
++  name: kiali-psp
++  namespace: istio-system
++rules:
++- apiGroups:
++  - policy
++  resourceNames:
++  - kiali-psp
++  resources:
++  - podsecuritypolicies
++  verbs:
++  - use
++---
++apiVersion: policy/v1beta1
++kind: PodSecurityPolicy
++metadata:
++  name: kiali-psp
++  namespace: istio-system
++spec:
++  allowPrivilegeEscalation: false
++  forbiddenSysctls:
++  - '*'
++  fsGroup:
++      ranges:
++        - max: 65535
++          min: 1
++      rule: MustRunAs
++  requiredDropCapabilities:
++  - ALL
++  runAsUser:
++      rule: MustRunAsNonRoot
++  runAsGroup:
++      rule: MustRunAs
++      ranges:
++      - min: 1
++        max: 65535
++  seLinux:
++      rule: RunAsAny
++  supplementalGroups:
++      ranges:
++        - max: 65535
++          min: 1
++      rule: MustRunAs
++  volumes:
++  - configMap
++  - emptyDir
++  - projected
++  - secret
++  - downwardAPI
++  - persistentVolumeClaim
