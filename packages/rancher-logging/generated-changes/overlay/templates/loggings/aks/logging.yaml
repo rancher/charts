@@ -15,6 +15,11 @@ spec:
     inputTail:
       Tag: "aks"
       Path: "/var/log/azure/kubelet-status.log"
+    {{- if .Values.rbac.psp.enabled }}
+    security:
+      podSecurityPolicyCreate: true
+      roleBasedAccessControlCreate: true
+    {{- end }}
   {{- if .Values.additionalLoggingSources.aks.fluentbit.mountPath }}
     mountPath: {{ .Values.additionalLoggingSources.aks.fluentbit.mountPath }}
   {{- end }}
@@ -33,6 +38,11 @@ spec:
       repository: {{ template "system_default_registry" . }}{{ .Values.images.config_reloader.repository }}
       tag: {{ .Values.images.config_reloader.tag }}
     disablePvc: {{ .Values.disablePvc }}
+    {{- if .Values.rbac.psp.enabled }}
+    security:
+      podSecurityPolicyCreate: true
+      roleBasedAccessControlCreate: true
+    {{- end }}
     {{- with .Values.tolerations }}
     tolerations: {{- toYaml . | nindent 6 }}
     {{- end }}
