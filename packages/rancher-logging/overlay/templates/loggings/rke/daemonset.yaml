@@ -25,18 +25,28 @@ spec:
               name: outdir
             - mountPath: /var/lib/docker/containers/
               name: containers
-            - mountPath: /fluent-bit/etc/
+            - mountPath: /tail-db
+              name: tail-db
+            - mountPath: /fluent-bit/etc/fluent-bit.conf
               name: config
+              subPath: fluent-bit.conf
       volumes:
         - name: indir
           hostPath:
             path: /var/lib/rancher/rke/log/
+          type: DirectoryOrCreate
         - name: outdir
           hostPath:
             path: /var/lib/rancher/logging/
+          type: DirectoryOrCreate
         - name: containers
           hostPath:
             path: /var/lib/docker/containers/
+          type: DirectoryOrCreate
+        - name: tail-db
+          hostPath:
+            path: /var/lib/rancher/logging/tail-db/
+          type: DirectoryOrCreate
         - name: config
           configMap:
             name: "{{ .Release.Name }}-rke"
