@@ -3,7 +3,7 @@ name: CI-pullrequest
 on:
   pull_request:
     branches:
-      - dev-v2.5-source
+      - dev-v2.5-source-alt
 
 jobs:
   build:
@@ -12,5 +12,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Validate
+      - name: Pull in all relevant branches
+        run: git fetch origin dev-v2.5-source-alt dev-v2.5-alt main-alt
+      
+      - name: Checkout source branch
+        run: git checkout dev-v2.5-source-alt
+        
+      - name: Validate 
         run: sudo make validate

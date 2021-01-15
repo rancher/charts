@@ -3,7 +3,7 @@ name: CI-push
 on:
   push:
     branches:
-      - dev-v2.5-source
+      - dev-v2.5-source-alt
 
 jobs:
   build:
@@ -11,10 +11,17 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Run CI scripts
-      run: |-
-        ./scripts/ci-wrapper dev-v2.5
+    - name: Pull in all relevant branches
+      run: git fetch origin dev-v2.5-source-alt dev-v2.5-alt main-alt
+      
+    - name: Checkout source branch
+      run: git checkout dev-v2.5-source-alt
+      
+    - name: Validate 
+      run: sudo make validate
 
-    - name: Push charts and assets to the dev-v2.5 branch
-      run: |-
-        ./scripts/push-to-assets-branch origin dev-v2.5 && git push origin dev-v2.5
+    - name: Checkout staging branch
+      run: git checkout origin/dev-v2.5-alt
+
+    - name: Synchronize
+      run:  sudo make sync
