@@ -1,0 +1,859 @@
+--- charts-original/values.yaml
++++ charts/values.yaml
+@@ -2,13 +2,247 @@
+ # This is a YAML-formatted file.
+ # Declare variables to be passed into your templates.
+ 
++# Rancher Monitoring Configuration
++
++## Configuration for prometheus-adapter
++## ref: https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus-adapter
++##
++prometheus-adapter:
++  enabled: true
++  prometheus:
++    # Change this if you change the namespaceOverride or nameOverride of prometheus-operator
++    url: http://rancher-monitoring-prometheus.cattle-monitoring-system.svc
++    port: 9090
++  image:
++    repository: rancher/directxman12-k8s-prometheus-adapter-amd64
++    tag: v0.7.0
++    pullPolicy: IfNotPresent
++    pullSecrets: {}
++  psp:
++    create: true
++
++## RKE PushProx Monitoring
++## ref: https://github.com/rancher/charts/tree/master/packages/rancher-pushprox
++##
++rkeControllerManager:
++  enabled: false
++  metricsPort: 10252
++  component: kube-controller-manager
++  clients:
++    port: 10011
++    useLocalhost: true
++    nodeSelector:
++      node-role.kubernetes.io/controlplane: "true"
++    tolerations:
++    - effect: "NoExecute"
++      operator: "Exists"
++    - effect: "NoSchedule"
++      operator: "Exists"
++
++rkeScheduler:
++  enabled: false
++  metricsPort: 10251
++  component: kube-scheduler
++  clients:
++    port: 10012
++    useLocalhost: true
++    nodeSelector:
++      node-role.kubernetes.io/controlplane: "true"
++    tolerations:
++    - effect: "NoExecute"
++      operator: "Exists"
++    - effect: "NoSchedule"
++      operator: "Exists"
++
++rkeProxy:
++  enabled: false
++  metricsPort: 10249
++  component: kube-proxy
++  clients:
++    port: 10013
++    useLocalhost: true
++    tolerations:
++    - effect: "NoExecute"
++      operator: "Exists"
++    - effect: "NoSchedule"
++      operator: "Exists"
++
++rkeEtcd:
++  enabled: false
++  metricsPort: 2379
++  component: kube-etcd
++  clients:
++    port: 10014
++    https:
++      enabled: true
++      certDir: /etc/kubernetes/ssl
++      certFile: kube-etcd-*.pem
++      keyFile: kube-etcd-*-key.pem
++      caCertFile: kube-ca.pem
++    nodeSelector:
++      node-role.kubernetes.io/etcd: "true"
++    tolerations:
++    - effect: "NoExecute"
++      operator: "Exists"
++    - effect: "NoSchedule"
++      operator: "Exists"
++
++## k3s PushProx Monitoring
++## ref: https://github.com/rancher/charts/tree/master/packages/rancher-pushprox
++##
++k3sServer:
++  enabled: false
++  metricsPort: 10249
++  component: k3s-server
++  clients:
++    port: 10013
++    useLocalhost: true
++    tolerations:
++    - effect: "NoExecute"
++      operator: "Exists"
++    - effect: "NoSchedule"
++      operator: "Exists"
++
++## KubeADM PushProx Monitoring
++## ref: https://github.com/rancher/charts/tree/master/packages/rancher-pushprox
++##
++kubeAdmControllerManager:
++  enabled: false
++  metricsPort: 10257
++  component: kube-controller-manager
++  clients:
++    port: 10011
++    useLocalhost: true
++    https:
++      enabled: true
++      useServiceAccountCredentials: true
++      insecureSkipVerify: true
++    nodeSelector:
++      node-role.kubernetes.io/master: ""
++    tolerations:
++    - effect: "NoExecute"
++      operator: "Exists"
++    - effect: "NoSchedule"
++      operator: "Exists"
++
++kubeAdmScheduler:
++  enabled: false
++  metricsPort: 10259
++  component: kube-scheduler
++  clients:
++    port: 10012
++    useLocalhost: true
++    https:
++      enabled: true
++      useServiceAccountCredentials: true
++      insecureSkipVerify: true
++    nodeSelector:
++      node-role.kubernetes.io/master: ""
++    tolerations:
++    - effect: "NoExecute"
++      operator: "Exists"
++    - effect: "NoSchedule"
++      operator: "Exists"
++
++kubeAdmProxy:
++  enabled: false
++  metricsPort: 10249
++  component: kube-proxy
++  clients:
++    port: 10013
++    useLocalhost: true
++    tolerations:
++    - effect: "NoExecute"
++      operator: "Exists"
++    - effect: "NoSchedule"
++      operator: "Exists"
++
++kubeAdmEtcd:
++  enabled: false
++  metricsPort: 2381
++  component: kube-etcd
++  clients:
++    port: 10014
++    useLocalhost: true
++    nodeSelector:
++      node-role.kubernetes.io/master: ""
++    tolerations:
++    - effect: "NoExecute"
++      operator: "Exists"
++    - effect: "NoSchedule"
++      operator: "Exists"
++
++## rke2 PushProx Monitoring
++## ref: https://github.com/rancher/charts/tree/master/packages/rancher-pushprox
++##
++rke2ControllerManager:
++  enabled: false
++  metricsPort: 10252
++  component: kube-controller-manager
++  clients:
++    port: 10011
++    useLocalhost: true
++    nodeSelector:
++      node-role.kubernetes.io/master: "true"
++    tolerations:
++      - effect: "NoExecute"
++        operator: "Exists"
++      - effect: "NoSchedule"
++        operator: "Exists"
++
++rke2Scheduler:
++  enabled: false
++  metricsPort: 10251
++  component: kube-scheduler
++  clients:
++    port: 10012
++    useLocalhost: true
++    nodeSelector:
++      node-role.kubernetes.io/master: "true"
++    tolerations:
++      - effect: "NoExecute"
++        operator: "Exists"
++      - effect: "NoSchedule"
++        operator: "Exists"
++
++rke2Proxy:
++  enabled: false
++  metricsPort: 10249
++  component: kube-proxy
++  clients:
++    port: 10013
++    useLocalhost: true
++  tolerations:
++    - effect: "NoExecute"
++      operator: "Exists"
++    - effect: "NoSchedule"
++      operator: "Exists"
++
++rke2Etcd:
++  enabled: false
++  metricsPort: 2381
++  component: kube-etcd
++  clients:
++    port: 10014
++    useLocalhost: true
++    nodeSelector:
++      node-role.kubernetes.io/etcd: "true"
++    tolerations:
++      - effect: "NoSchedule"
++        key: node-role.kubernetes.io/master
++        operator: "Equal"
++
++# Prometheus Operator Configuration
++
+ ## Provide a name in place of kube-prometheus-stack for `app:` labels
++## NOTE: If you change this value, you must update the prometheus-adapter.prometheus.url
+ ##
+-nameOverride: ""
++nameOverride: "rancher-monitoring"
+ 
+ ## Override the deployment namespace
++## NOTE: If you change this value, you must update the prometheus-adapter.prometheus.url
+ ##
+-namespaceOverride: ""
++namespaceOverride: "cattle-monitoring-system"
+ 
+ ## Provide a k8s version to auto dashboard import script example: kubeTargetVersionOverride: 1.16.6
+ ##
+@@ -76,8 +310,23 @@
+ 
+ ##
+ global:
++  cattle:
++    systemDefaultRegistry: ""
++  kubectl:
++     repository: rancher/kubectl
++     tag: v1.18.6
++     pullPolicy: IfNotPresent
+   rbac:
++    ## Create RBAC resources for ServiceAccounts and users 
++    ##
+     create: true
++
++    userRoles:
++      ## Create default user ClusterRoles to allow users to interact with Prometheus CRs, ConfigMaps, and Secrets
++      create: true
++      ## Aggregate default user ClusterRoles into default k8s ClusterRoles
++      aggregateToDefaultRoles: true
++
+     pspEnabled: true
+     pspAnnotations: {}
+       ## Specify pod annotations
+@@ -130,6 +379,22 @@
+   ## ref: https://prometheus.io/docs/alerting/configuration/#configuration-file
+   ##      https://prometheus.io/webtools/alerting/routing-tree-editor/
+   ##
++  ## Example Slack Config
++  ## config:
++  ##   route:
++  ##     group_by: ['job']
++  ##     group_wait: 30s
++  ##     group_interval: 5m
++  ##     repeat_interval: 3h
++  ##     receiver: 'slack-notifications'
++  ##   receivers:
++  ##   - name: 'slack-notifications'
++  ##     slack_configs:
++  ##     - send_resolved: true
++  ##       text: '{{ template "slack.rancher.text" . }}'
++  ##       api_url: <slack-webhook-url-here>
++  ##   templates:
++  ##   - /etc/alertmanager/config/*.tmpl
+   config:
+     global:
+       resolve_timeout: 5m
+@@ -145,6 +410,8 @@
+         receiver: 'null'
+     receivers:
+     - name: 'null'
++    templates:
++    - /etc/alertmanager/config/*.tmpl
+ 
+   ## Pass the Alertmanager configuration directives through Helm's templating
+   ## engine. If the Alertmanager configuration contains Alertmanager templates,
+@@ -160,25 +427,76 @@
+   ## ref: https://prometheus.io/docs/alerting/notifications/
+   ##      https://prometheus.io/docs/alerting/notification_examples/
+   ##
+-  templateFiles: {}
+-  #
+-  ## An example template:
+-  #   template_1.tmpl: |-
+-  #       {{ define "cluster" }}{{ .ExternalURL | reReplaceAll ".*alertmanager\\.(.*)" "$1" }}{{ end }}
+-  #
+-  #       {{ define "slack.myorg.text" }}
+-  #       {{- $root := . -}}
+-  #       {{ range .Alerts }}
+-  #         *Alert:* {{ .Annotations.summary }} - `{{ .Labels.severity }}`
+-  #         *Cluster:*  {{ template "cluster" $root }}
+-  #         *Description:* {{ .Annotations.description }}
+-  #         *Graph:* <{{ .GeneratorURL }}|:chart_with_upwards_trend:>
+-  #         *Runbook:* <{{ .Annotations.runbook }}|:spiral_note_pad:>
+-  #         *Details:*
+-  #           {{ range .Labels.SortedPairs }} • *{{ .Name }}:* `{{ .Value }}`
+-  #           {{ end }}
+-  #       {{ end }}
+-  #       {{ end }}
++  templateFiles:
++    rancher_defaults.tmpl: |-
++        {{- define "slack.rancher.text" -}}
++        {{ template "rancher.text_multiple" . }}
++        {{- end -}}
++
++        {{- define "rancher.text_multiple" -}}
++        *[GROUP - Details]*
++        One or more alarms in this group have triggered a notification.
++
++        {{- if gt (len .GroupLabels.Values) 0 }}
++        *Group Labels:*
++          {{- range .GroupLabels.SortedPairs }}
++          • *{{ .Name }}:* `{{ .Value }}`
++          {{- end }}
++        {{- end }}
++        {{- if .ExternalURL }}
++        *Link to AlertManager:* {{ .ExternalURL }}
++        {{- end }}
++
++        {{- range .Alerts }}
++        {{ template "rancher.text_single" . }}
++        {{- end }}
++        {{- end -}}
++
++        {{- define "rancher.text_single" -}}
++        {{- if .Labels.alertname }}
++        *[ALERT - {{ .Labels.alertname }}]*
++        {{- else }}
++        *[ALERT]*
++        {{- end }}
++        {{- if .Labels.severity }}
++        *Severity:* `{{ .Labels.severity }}`
++        {{- end }}
++        {{- if .Labels.cluster }}
++        *Cluster:*  {{ .Labels.cluster }}
++        {{- end }}
++        {{- if .Annotations.summary }}
++        *Summary:* {{ .Annotations.summary }}
++        {{- end }}
++        {{- if .Annotations.message }}
++        *Message:* {{ .Annotations.message }}
++        {{- end }}
++        {{- if .Annotations.description }}
++        *Description:* {{ .Annotations.description }}
++        {{- end }}
++        {{- if .Annotations.runbook_url }}
++        *Runbook URL:* <{{ .Annotations.runbook_url }}|:spiral_note_pad:>
++        {{- end }}
++        {{- with .Labels }}
++        {{- with .Remove (stringSlice "alertname" "severity" "cluster") }}
++        {{- if gt (len .) 0 }}
++        *Additional Labels:*
++          {{- range .SortedPairs }}
++          • *{{ .Name }}:* `{{ .Value }}`
++          {{- end }}
++        {{- end }}
++        {{- end }}
++        {{- end }}
++        {{- with .Annotations }}
++        {{- with .Remove (stringSlice "summary" "message" "description" "runbook_url") }}
++        {{- if gt (len .) 0 }}
++        *Additional Annotations:*
++          {{- range .SortedPairs }}
++          • *{{ .Name }}:* `{{ .Value }}`
++          {{- end }}
++        {{- end }}
++        {{- end }}
++        {{- end }}
++        {{- end -}}
+ 
+   ingress:
+     enabled: false
+@@ -208,6 +526,25 @@
+   ## Configuration for Alertmanager secret
+   ##
+   secret:
++
++    # Should the Alertmanager Config Secret be cleaned up on an uninstall?
++    # This is set to false by default to prevent the loss of alerting configuration on an uninstall
++    # Only used Alertmanager is deployed and alertmanager.alertmanagerSpec.useExistingSecret=false
++    #
++    cleanupOnUninstall: false
++
++    # The image used to manage the Alertmanager Config Secret's lifecycle
++    # Only used Alertmanager is deployed and alertmanager.alertmanagerSpec.useExistingSecret=false
++    #
++    image:
++      repository: rancher/rancher-agent
++      tag: v2.4.8
++      pullPolicy: IfNotPresent
++
++    securityContext:
++      runAsNonRoot: true
++      runAsUser: 1000
++
+     annotations: {}
+ 
+   ## Configuration for creating an Ingress that will map to each Alertmanager replica service
+@@ -334,7 +671,7 @@
+     ## Image of Alertmanager
+     ##
+     image:
+-      repository: quay.io/prometheus/alertmanager
++      repository: rancher/prom-alertmanager
+       tag: v0.21.0
+       sha: ""
+ 
+@@ -410,9 +747,13 @@
+     ## Define resources requests and limits for single Pods.
+     ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+     ##
+-    resources: {}
+-    # requests:
+-    #   memory: 400Mi
++    resources:
++      limits:
++        memory: 500Mi
++        cpu: 1000m
++      requests:
++        memory: 100Mi
++        cpu: 100m
+ 
+     ## Pod anti-affinity can prevent the scheduler from placing Prometheus replicas on the same node.
+     ## The default value "soft" means that the scheduler should *prefer* to not schedule two replica pods onto the same node but no guarantee is provided.
+@@ -487,6 +828,27 @@
+   enabled: true
+   namespaceOverride: ""
+ 
++  ## Grafana's primary configuration
++  ## NOTE: values in map will be converted to ini format
++  ## ref: http://docs.grafana.org/installation/configuration/
++  ##
++  grafana.ini:
++    users:
++      auto_assign_org_role: Viewer
++    auth:
++      disable_login_form: false
++    auth.anonymous:
++      enabled: true
++      org_role: Viewer
++    auth.basic:
++      enabled: false
++    dashboards:
++      # Modify this value to change the default dashboard shown on the main Grafana page
++      default_home_dashboard_path: /tmp/dashboards/rancher-default-home.json
++
++  deploymentStrategy:
++    type: Recreate
++
+   ## Deploy default dashboards.
+   ##
+   defaultDashboardsEnabled: true
+@@ -530,6 +892,7 @@
+     dashboards:
+       enabled: true
+       label: grafana_dashboard
++      searchNamespace: cattle-dashboards
+ 
+       ## Annotations for Grafana dashboard configmaps
+       ##
+@@ -574,7 +937,60 @@
+   ## Passed to grafana subchart and used by servicemonitor below
+   ##
+   service:
+-    portName: service
++    portName: nginx-http
++    ## Port for Grafana Service to listen on
++    ##
++    port: 80
++    ## To be used with a proxy extraContainer port
++    ##
++    targetPort: 8080
++    ## Port to expose on each node
++    ## Only used if service.type is 'NodePort'
++    ##
++    nodePort: 30950
++    ## Service type
++    ##
++    type: ClusterIP
++
++  proxy:
++    image:
++      repository: rancher/library-nginx
++      tag: 1.19.2-alpine
++  
++  ## Enable an Specify container in extraContainers. This is meant to allow adding an authentication proxy to a grafana pod
++  extraContainers: |
++    - name: grafana-proxy
++      args:
++      - nginx
++      - -g
++      - daemon off;
++      - -c
++      - /nginx/nginx.conf
++      image: "{{ template "system_default_registry" . }}{{ .Values.proxy.image.repository }}:{{ .Values.proxy.image.tag }}"
++      ports:
++      - containerPort: 8080
++        name: nginx-http
++        protocol: TCP
++      volumeMounts:
++      - mountPath: /nginx
++        name: grafana-nginx
++      - mountPath: /var/cache/nginx
++        name: nginx-home
++      securityContext:
++        runAsUser: 101
++        runAsGroup: 101
++
++  ## Volumes that can be used in containers
++  extraContainerVolumes:
++    - name: nginx-home
++      emptyDir: {}
++    - name: grafana-nginx
++      configMap:
++        name: grafana-nginx-proxy-config
++        items:
++        - key: nginx.conf
++          mode: 438
++          path: nginx.conf
+ 
+   ## If true, create a serviceMonitor for grafana
+   ##
+@@ -600,6 +1016,14 @@
+     #   targetLabel: nodename
+     #   replacement: $1
+     #   action: replace
++  
++  resources:
++    limits:
++      memory: 200Mi
++      cpu: 200m
++    requests:
++      memory: 100Mi
++      cpu: 100m
+ 
+ ## Component scraping the kube api server
+ ##
+@@ -756,7 +1180,7 @@
+ ## Component scraping the kube controller manager
+ ##
+ kubeControllerManager:
+-  enabled: true
++  enabled: false
+ 
+   ## If your kube controller manager is not deployed as a pod, specify IPs it can be found on
+   ##
+@@ -889,7 +1313,7 @@
+ ## Component scraping etcd
+ ##
+ kubeEtcd:
+-  enabled: true
++  enabled: false
+ 
+   ## If your etcd is not deployed as a pod, specify IPs it can be found on
+   ##
+@@ -949,7 +1373,7 @@
+ ## Component scraping kube scheduler
+ ##
+ kubeScheduler:
+-  enabled: true
++  enabled: false
+ 
+   ## If your kube scheduler is not deployed as a pod, specify IPs it can be found on
+   ##
+@@ -1002,7 +1426,7 @@
+ ## Component scraping kube proxy
+ ##
+ kubeProxy:
+-  enabled: true
++  enabled: false
+ 
+   ## If your kube proxy is not deployed as a pod, specify IPs it can be found on
+   ##
+@@ -1076,6 +1500,13 @@
+     create: true
+   podSecurityPolicy:
+     enabled: true
++  resources:
++    limits:
++      cpu: 100m
++      memory: 200Mi
++    requests:
++      cpu: 100m
++      memory: 130Mi
+ 
+ ## Deploy node exporter as a daemonset to all nodes
+ ##
+@@ -1125,6 +1556,16 @@
+   extraArgs:
+     - --collector.filesystem.ignored-mount-points=^/(dev|proc|sys|var/lib/docker/.+)($|/)
+     - --collector.filesystem.ignored-fs-types=^(autofs|binfmt_misc|cgroup|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|mqueue|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|sysfs|tracefs)$
++  service:
++    port: 9796
++    targetPort: 9796
++  resources:
++    limits:
++      cpu: 200m
++      memory: 50Mi
++    requests:
++      cpu: 100m
++      memory: 30Mi
+ 
+ ## Manages Prometheus and Alertmanager components
+ ##
+@@ -1138,7 +1579,7 @@
+   tlsProxy:
+     enabled: true
+     image:
+-      repository: squareup/ghostunnel
++      repository: rancher/squareup-ghostunnel
+       tag: v1.5.2
+       sha: ""
+       pullPolicy: IfNotPresent
+@@ -1156,7 +1597,7 @@
+     patch:
+       enabled: true
+       image:
+-        repository: jettech/kube-webhook-certgen
++        repository: rancher/jettech-kube-webhook-certgen
+         tag: v1.2.1
+         sha: ""
+         pullPolicy: IfNotPresent
+@@ -1285,13 +1726,13 @@
+ 
+   ## Resource limits & requests
+   ##
+-  resources: {}
+-  # limits:
+-  #   cpu: 200m
+-  #   memory: 200Mi
+-  # requests:
+-  #   cpu: 100m
+-  #   memory: 100Mi
++  resources:
++    limits:
++      cpu: 200m
++      memory: 500Mi
++    requests:
++      cpu: 100m
++      memory: 100Mi
+ 
+   # Required for use in managed kubernetes clusters (such as AWS EKS) with custom CNI (such as calico),
+   # because control-plane managed by AWS cannot communicate with pods' IP CIDR and admission webhooks are not working
+@@ -1335,7 +1776,7 @@
+   ## Prometheus-operator image
+   ##
+   image:
+-    repository: quay.io/coreos/prometheus-operator
++    repository: rancher/coreos-prometheus-operator
+     tag: v0.38.1
+     sha: ""
+     pullPolicy: IfNotPresent
+@@ -1343,14 +1784,14 @@
+   ## Configmap-reload image to use for reloading configmaps
+   ##
+   configmapReloadImage:
+-    repository: docker.io/jimmidyson/configmap-reload
++    repository: rancher/jimmidyson-configmap-reload
+     tag: v0.3.0
+     sha: ""
+ 
+   ## Prometheus-config-reloader image to use for config and rule reloading
+   ##
+   prometheusConfigReloaderImage:
+-    repository: quay.io/coreos/prometheus-config-reloader
++    repository: rancher/coreos-prometheus-config-reloader
+     tag: v0.38.1
+     sha: ""
+ 
+@@ -1366,14 +1807,6 @@
+   ##
+   secretFieldSelector: ""
+ 
+-  ## Hyperkube image to use when cleaning up
+-  ##
+-  hyperkubeImage:
+-    repository: k8s.gcr.io/hyperkube
+-    tag: v1.16.12
+-    sha: ""
+-    pullPolicy: IfNotPresent
+-
+ ## Deploy a Prometheus instance
+ ##
+ prometheus:
+@@ -1403,7 +1836,7 @@
+     port: 9090
+ 
+     ## To be used with a proxy extraContainer port
+-    targetPort: 9090
++    targetPort: 8080
+ 
+     ## List of IP addresses at which the Prometheus server service is available
+     ## Ref: https://kubernetes.io/docs/user-guide/services/#external-ips
+@@ -1614,7 +2047,7 @@
+     ## Image of Prometheus.
+     ##
+     image:
+-      repository: quay.io/prometheus/prometheus
++      repository: rancher/prom-prometheus
+       tag: v2.18.2
+       sha: ""
+ 
+@@ -1666,6 +2099,11 @@
+     ##
+     externalUrl: ""
+ 
++    ## Ignore NamespaceSelector settings from the PodMonitor and ServiceMonitor configs
++    ## If true, PodMonitors and ServiceMonitors can only discover Pods and Services within the namespace they are deployed into
++    ##
++    ignoreNamespaceSelectors: false
++
+     ## Define which Nodes the Pods are scheduled on.
+     ## ref: https://kubernetes.io/docs/user-guide/node-selection/
+     ##
+@@ -1698,7 +2136,7 @@
+     ## prometheus resource to be created with selectors based on values in the helm deployment,
+     ## which will also match the PrometheusRule resources created
+     ##
+-    ruleSelectorNilUsesHelmValues: true
++    ruleSelectorNilUsesHelmValues: false
+ 
+     ## PrometheusRules to be selected for target discovery.
+     ## If {}, select all ServiceMonitors
+@@ -1723,7 +2161,7 @@
+     ## prometheus resource to be created with selectors based on values in the helm deployment,
+     ## which will also match the servicemonitors created
+     ##
+-    serviceMonitorSelectorNilUsesHelmValues: true
++    serviceMonitorSelectorNilUsesHelmValues: false
+ 
+     ## ServiceMonitors to be selected for target discovery.
+     ## If {}, select all ServiceMonitors
+@@ -1743,7 +2181,7 @@
+     ## prometheus resource to be created with selectors based on values in the helm deployment,
+     ## which will also match the podmonitors created
+     ##
+-    podMonitorSelectorNilUsesHelmValues: true
++    podMonitorSelectorNilUsesHelmValues: false
+ 
+     ## PodMonitors to be selected for target discovery.
+     ## If {}, select all PodMonitors
+@@ -1840,9 +2278,13 @@
+ 
+     ## Resource limits & requests
+     ##
+-    resources: {}
+-    # requests:
+-    #   memory: 400Mi
++    resources:
++      limits:
++        memory: 1500Mi
++        cpu: 1000m
++      requests:
++        memory: 750Mi
++        cpu: 750m
+ 
+     ## Prometheus StorageSpec for persistent data
+     ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/user-guides/storage.md
+@@ -1857,11 +2299,6 @@
+     #          storage: 50Gi
+     #    selector: {}
+ 
+-    # Additional volumes on the output StatefulSet definition.
+-    volumes: []
+-    # Additional VolumeMounts on the output StatefulSet definition.
+-    volumeMounts: []
+-
+     ## AdditionalScrapeConfigs allows specifying additional Prometheus scrape configurations. Scrape configurations
+     ## are appended to the configurations generated by the Prometheus Operator. Job configurations must have the form
+     ## as specified in the official Prometheus documentation:
+@@ -1964,9 +2401,46 @@
+     ##
+     thanos: {}
+ 
++    proxy:
++      image:
++        repository: rancher/library-nginx
++        tag: 1.19.2-alpine
++
+     ## Containers allows injecting additional containers. This is meant to allow adding an authentication proxy to a Prometheus pod.
+     ##  if using proxy extraContainer  update targetPort with proxy container port
+-    containers: []
++    containers: |
++      - name: prometheus-proxy
++        args:
++        - nginx
++        - -g
++        - daemon off;
++        - -c
++        - /nginx/nginx.conf
++        image: "{{ template "system_default_registry" . }}{{ .Values.prometheus.prometheusSpec.proxy.image.repository }}:{{ .Values.prometheus.prometheusSpec.proxy.image.tag }}"
++        ports:
++        - containerPort: 8080
++          name: nginx-http
++          protocol: TCP
++        volumeMounts:
++        - mountPath: /nginx
++          name: prometheus-nginx
++        - mountPath: /var/cache/nginx
++          name: nginx-home
++        securityContext:
++          runAsUser: 101
++          runAsGroup: 101
++
++    # Additional volumes on the output StatefulSet definition.
++    volumes: 
++      - name: nginx-home
++        emptyDir: {}
++      - name: prometheus-nginx
++        configMap:
++          name: prometheus-nginx-proxy-config
++          defaultMode: 438
++
++    # Additional VolumeMounts on the output StatefulSet definition.
++    volumeMounts: []
+ 
+     ## InitContainers allows injecting additional initContainers. This is meant to allow doing some changes
+     ## (permissions, dir tree) on mounted volumes before starting prometheus
+@@ -1974,7 +2448,7 @@
+ 
+     ## PortName to use for Prometheus.
+     ##
+-    portName: "web"
++    portName: "nginx-http"
+ 
+   additionalServiceMonitors: []
+   ## Name of the ServiceMonitor to create

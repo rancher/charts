@@ -1,0 +1,24 @@
+--- charts-original/templates/grafana/dashboards/etcd.yaml
++++ charts/templates/grafana/dashboards/etcd.yaml
+@@ -4,11 +4,12 @@
+ https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack/hack
+ */ -}}
+ {{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion .Values.kubeTargetVersionOverride }}
+-{{- if and (semverCompare ">=1.10.0-0" $kubeTargetVersion) (semverCompare "<1.14.0-0" $kubeTargetVersion) .Values.grafana.enabled .Values.grafana.defaultDashboardsEnabled .Values.kubeEtcd.enabled }}
++{{- if and (semverCompare ">=1.10.0-0" $kubeTargetVersion) (semverCompare "<1.14.0-0" $kubeTargetVersion) .Values.grafana.enabled .Values.grafana.defaultDashboardsEnabled }}
++{{- if (include "exporter.kubeEtcd.enabled" .)}}
+ apiVersion: v1
+ kind: ConfigMap
+ metadata:
+-  namespace: {{ template "kube-prometheus-stack.namespace" . }}
++  namespace: {{ .Values.grafana.sidecar.dashboards.searchNamespace }}
+   name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" $) "etcd" | trunc 63 | trimSuffix "-" }}
+   annotations:
+ {{ toYaml .Values.grafana.sidecar.dashboards.annotations | indent 4 }}
+@@ -1113,4 +1114,5 @@
+         "uid": "c2f4e12cdf69feb95caa41a5a1b423d9",
+         "version": 215
+     }
++{{- end }}
+ {{- end }}
+\ No newline at end of file

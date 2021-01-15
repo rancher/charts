@@ -1,0 +1,63 @@
+--- charts-original/README.md
++++ charts/README.md
+@@ -15,7 +15,7 @@
+ 
+ ```console
+ helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+-helm repo add stable https://kubernetes-charts.storage.googleapis.com/
++helm repo add stable https://charts.helm.sh/stable/
+ helm repo update
+ ```
+ 
+@@ -127,7 +127,41 @@
+ helm show values prometheus-community/kube-prometheus-stack
+ ```
+ 
+-You may also `helm show values` on this chart's [dependencies](#dependencies) for additional options.
++You may also run `helm show values` on this chart's [dependencies](#dependencies) for additional options.
++
++### Rancher Monitoring Configuration
++
++The following table shows values exposed by Rancher Monitoring's additions to the chart:
++
++| Parameter | Description | Default |
++| ----- | ----------- | ------ |
++| `nameOverride` | Provide a name that should be used instead of the chart name when naming all resources deployed by this chart |`"rancher-monitoring"`|
++| `namespaceOverride` | Override the deployment namespace | `"cattle-monitoring-system"` |
++| `global.rbac.userRoles.create` | Create default user ClusterRoles to allow users to interact with Prometheus CRs, ConfigMaps, and Secrets | `true` |
++| `global.rbac.userRoles.aggregateToDefaultRoles` | Aggregate default user ClusterRoles into default k8s ClusterRoles | `true` |
++| `prometheus-adapter.enabled` | Whether to install [prometheus-adapter](https://github.com/helm/charts/tree/master/stable/prometheus-adapter) within the cluster | `true` |
++| `prometheus-adapter.prometheus.url` | A URL pointing to the Prometheus deployment within your cluster. The default value is set based on the assumption that you plan to deploy the default Prometheus instance from this chart where `.Values.namespaceOverride=cattle-monitoring-system` and `.Values.nameOverride=rancher-monitoring` | `http://rancher-monitoring-prometheus.cattle-monitoring-system.svc` |
++| `prometheus-adapter.prometheus.port` | The port on the Prometheus deployment that Prometheus Adapter can make requests to | `9090` |
++| `prometheus.prometheusSpec.ignoreNamespaceSelectors` | Ignore NamespaceSelector settings from the PodMonitor and ServiceMonitor configs. If true, PodMonitors and ServiceMonitors can only discover Pods and Services within the namespace they are deployed into | `false` |
++| `alertmanager.secret.cleanupOnUninstall` | Whether or not to trigger a job to clean up the alertmanager config secret to be deleted on a `helm uninstall`. By default, this is disabled to prevent the loss of alerting configuration on an uninstall. | `false` |
++| `alertmanager.secret.image.pullPolicy` | Image pull policy for job(s) related to alertmanager config secret's lifecycle | `IfNotPresent` |
++| `alertmanager.secret.image.repository` | Repository to use for job(s) related to alertmanager config secret's lifecycle | `rancher/rancher-agent` |
++| `alertmanager.secret.image.tag` | Tag to use for job(s) related to alertmanager config secret's lifecycle | `v2.4.8` |
++
++The following values are enabled for different distributions via [rancher-pushprox](https://github.com/rancher/dev-charts/tree/master/packages/rancher-pushprox). See the rancher-pushprox `README.md` for more information on what all values can be configured for the PushProxy chart.
++
++| Parameter | Description | Default |
++| ----- | ----------- | ------ |
++| `rkeControllerManager.enabled` | Create a PushProx installation for monitoring kube-controller-manager metrics in RKE clusters | `false` |
++| `rkeScheduler.enabled` | Create a PushProx installation for monitoring kube-scheduler metrics in RKE clusters | `false` |
++| `rkeProxy.enabled` | Create a PushProx installation for monitoring kube-proxy metrics in RKE clusters | `false` |
++| `rkeEtcd.enabled` | Create a PushProx installation for monitoring etcd metrics in RKE clusters | `false` |
++| `k3sServer.enabled` | Create a PushProx installation for monitoring k3s-server metrics (accounts for kube-controller-manager, kube-scheduler, and kube-proxy metrics) in k3s clusters | `false` |
++| `kubeAdmControllerManager.enabled` | Create a PushProx installation for monitoring kube-controller-manager metrics in kubeAdm clusters | `false` |
++| `kubeAdmScheduler.enabled` | Create a PushProx installation for monitoring kube-scheduler metrics in kubeAdm clusters | `false` |
++| `kubeAdmProxy.enabled` | Create a PushProx installation for monitoring kube-proxy metrics in kubeAdm clusters | `false` |
++| `kubeAdmEtcd.enabled` | Create a PushProx installation for monitoring etcd metrics in kubeAdm clusters | `false` |
++
+ 
+ ### Multiple releases
+ 
+@@ -221,7 +255,7 @@
+ 
+ #### CoreOS CRDs
+ 
+-The CRDs are provisioned using crd-install hooks, rather than relying on a separate chart installation. If you already have these CRDs provisioned and don't want to remove them, you can disable the CRD creation by these hooks by setting `prometheusOperator.createCustomResource` to `false` (not required if using Helm v3).
++The CRDs are provisioned using a separate chart installation within the Helm chart `rancher-monitoring-crd` that is packaged alongside this chart.
+ 
+ #### Kubelet Service
+ 
