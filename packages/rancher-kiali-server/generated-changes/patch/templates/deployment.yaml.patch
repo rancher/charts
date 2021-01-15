@@ -1,0 +1,38 @@
+--- charts-original/templates/deployment.yaml
++++ charts/templates/deployment.yaml
+@@ -45,7 +45,7 @@
+       {{- end }}
+       {{- end }}
+       containers:
+-      - image: "{{ .Values.deployment.image_name }}:{{ .Values.deployment.image_version }}"
++      - image: "{{ template "system_default_registry" . }}{{ .Values.deployment.repository }}:{{ .Values.deployment.tag }}"
+         imagePullPolicy: {{ .Values.deployment.image_pull_policy | default "Always" }}
+         name: {{ include "kiali-server.fullname" . }}
+         command:
+@@ -89,6 +89,11 @@
+             fieldRef:
+               fieldPath: metadata.namespace
+         volumeMounts:
++        {{- if .Values.web_root_override }}
++        - name: kiali-console
++          subPath: env.js
++          mountPath: /opt/kiali/console/env.js
++        {{- end }}
+         - name: {{ include "kiali-server.fullname" . }}-configuration
+           mountPath: "/kiali-configuration"
+         - name: {{ include "kiali-server.fullname" . }}-cert
+@@ -104,6 +109,14 @@
+         {{- toYaml .Values.deployment.resources | nindent 10 }}
+         {{- end }}
+       volumes:
++      {{- if .Values.web_root_override }}
++      - name: kiali-console
++        configMap:
++          name: kiali-console
++          items:
++          - key: env.js
++            path: env.js
++      {{- end }}
+       - name: {{ include "kiali-server.fullname" . }}-configuration
+         configMap:
+           name: {{ include "kiali-server.fullname" . }}

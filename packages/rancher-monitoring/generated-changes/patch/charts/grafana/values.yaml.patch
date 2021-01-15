@@ -1,0 +1,75 @@
+--- charts-original/charts/grafana/values.yaml
++++ charts/charts/grafana/values.yaml
+@@ -1,7 +1,17 @@
+ rbac:
+   create: true
+   pspEnabled: true
+-  pspUseAppArmor: true
++  pspAnnotations: {}
++  ## Specify pod annotations
++  ## Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/#apparmor
++  ## Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/#seccomp
++  ## Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/#sysctl
++  ##
++  # seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'docker/default'
++  # seccomp.security.alpha.kubernetes.io/defaultProfileName:  'docker/default'
++  # apparmor.security.beta.kubernetes.io/allowedProfileNames: 'runtime/default'
++  # apparmor.security.beta.kubernetes.io/defaultProfileName:  'runtime/default'
++
+   namespaced: false
+   extraRoleRules: []
+   # - apiGroups: []
+@@ -49,7 +59,7 @@
+ # schedulerName: "default-scheduler"
+ 
+ image:
+-  repository: grafana/grafana
++  repository: rancher/grafana-grafana
+   tag: 7.1.5
+   sha: ""
+   pullPolicy: IfNotPresent
+@@ -63,12 +73,15 @@
+ 
+ testFramework:
+   enabled: true
+-  image: "bats/bats"
++  image: "rancher/bats-bats"
+   tag: "v1.1.0"
+   imagePullPolicy: IfNotPresent
+-  securityContext: {}
++  securityContext:
++    runAsNonRoot: true
++    runAsUser: 1000
+ 
+ securityContext:
++  runAsNonRoot: true
+   runAsUser: 472
+   runAsGroup: 472
+   fsGroup: 472
+@@ -91,7 +104,7 @@
+ # priorityClassName:
+ 
+ downloadDashboardsImage:
+-  repository: curlimages/curl
++  repository: rancher/curlimages-curl
+   tag: 7.70.0
+   sha: ""
+   pullPolicy: IfNotPresent
+@@ -244,7 +257,7 @@
+   ## initChownData container image
+   ##
+   image:
+-    repository: busybox
++    repository: rancher/library-busybox
+     tag: "1.31.1"
+     sha: ""
+     pullPolicy: IfNotPresent
+@@ -486,7 +499,7 @@
+ ## Requires at least Grafana 5 to work and can't be used together with parameters dashboardProviders, datasources and dashboards
+ sidecar:
+   image:
+-    repository: kiwigrid/k8s-sidecar
++    repository: rancher/kiwigrid-k8s-sidecar
+     tag: 0.1.151
+     sha: ""
+   imagePullPolicy: IfNotPresent

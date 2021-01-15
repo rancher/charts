@@ -1,0 +1,30 @@
+--- charts-original/templates/prometheus/prometheus.yaml
++++ charts/templates/prometheus/prometheus.yaml
+@@ -32,7 +32,7 @@
+ {{ toYaml .Values.prometheus.prometheusSpec.apiserverConfig | indent 4}}
+ {{- end }}
+ {{- if .Values.prometheus.prometheusSpec.image }}
+-  baseImage: {{ .Values.prometheus.prometheusSpec.image.repository }}
++  baseImage: {{ template "system_default_registry" . }}{{ .Values.prometheus.prometheusSpec.image.repository }}
+   version: {{ .Values.prometheus.prometheusSpec.image.tag }}
+   {{- if .Values.prometheus.prometheusSpec.image.sha }}
+   sha: {{ .Values.prometheus.prometheusSpec.image.sha }}
+@@ -59,6 +59,9 @@
+ {{- else }}
+   externalUrl: http://{{ template "kube-prometheus-stack.fullname" . }}-prometheus.{{ template "kube-prometheus-stack.namespace" . }}:{{ .Values.prometheus.service.port }}
+ {{- end }}
++{{- if .Values.prometheus.prometheusSpec.ignoreNamespaceSelectors }}
++  ignoreNamespaceSelectors: {{ .Values.prometheus.prometheusSpec.ignoreNamespaceSelectors }}
++{{- end }}
+ {{- if .Values.prometheus.prometheusSpec.nodeSelector }}
+   nodeSelector:
+ {{ toYaml .Values.prometheus.prometheusSpec.nodeSelector | indent 4 }}
+@@ -226,7 +229,7 @@
+ {{- end }}
+ {{- if .Values.prometheus.prometheusSpec.containers }}
+   containers:
+-{{ toYaml .Values.prometheus.prometheusSpec.containers | indent 4 }}
++{{ tpl .Values.prometheus.prometheusSpec.containers $ | indent 4 }}
+ {{- end }}
+ {{- if .Values.prometheus.prometheusSpec.initContainers }}
+   initContainers:

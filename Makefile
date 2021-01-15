@@ -1,26 +1,12 @@
-ci: bootstrap
-	./scripts/ci
+CHARTS_BUILD_SCRIPT_VERSION := fdf0565
 
-prepare: bootstrap
-	./scripts/prepare
+pull-scripts:
+	./scripts/pull-scripts
 
-bootstrap:
-	./scripts/bootstrap
+TARGETS := prepare patch charts clean sync validate rebase docs
 
-charts: bootstrap prepare
-	./scripts/generate-charts
+$(TARGETS):
+	@ls ./bin/charts-build-scripts 1>/dev/null 2>/dev/null || ./scripts/pull-scripts
+	./bin/charts-build-scripts $@
 
-patch: bootstrap
-	./scripts/generate-patch
-
-validate: bootstrap
-	./scripts/validate
-
-mirror: bootstrap
-	./scripts/image-mirror
-
-clean:
-	./scripts/clean
-
-.DEFAULT_GOAL := ci
-
+.PHONY: $(TARGETS)

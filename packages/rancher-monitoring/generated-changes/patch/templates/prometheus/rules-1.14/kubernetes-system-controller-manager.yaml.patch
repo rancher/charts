@@ -1,0 +1,31 @@
+--- charts-original/templates/prometheus/rules-1.14/kubernetes-system-controller-manager.yaml
++++ charts/templates/prometheus/rules-1.14/kubernetes-system-controller-manager.yaml
+@@ -4,7 +4,8 @@
+ https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack/hack
+ */ -}}
+ {{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion .Values.kubeTargetVersionOverride }}
+-{{- if and (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.defaultRules.create .Values.kubeControllerManager.enabled }}
++{{- if and (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.defaultRules.create }}
++{{- if (include "exporter.kubeControllerManager.enabled" .)}}
+ apiVersion: monitoring.coreos.com/v1
+ kind: PrometheusRule
+ metadata:
+@@ -24,14 +25,15 @@
+   groups:
+   - name: kubernetes-system-controller-manager
+     rules:
+-{{- if .Values.kubeControllerManager.enabled }}
++{{- if (include "exporter.kubeControllerManager.enabled" .)}}
+     - alert: KubeControllerManagerDown
+       annotations:
+         message: KubeControllerManager has disappeared from Prometheus target discovery.
+         runbook_url: {{ .Values.defaultRules.runbookUrl }}alert-name-kubecontrollermanagerdown
+-      expr: absent(up{job="kube-controller-manager"} == 1)
++      expr: absent(up{job="{{ include "exporter.kubeControllerManager.jobName" . }}"} == 1)
+       for: 15m
+       labels:
+         severity: critical
+ {{- end }}
++{{- end }}
+ {{- end }}
+\ No newline at end of file

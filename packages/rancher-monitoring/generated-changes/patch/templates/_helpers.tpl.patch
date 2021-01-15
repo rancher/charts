@@ -1,0 +1,64 @@
+--- charts-original/templates/_helpers.tpl
++++ charts/templates/_helpers.tpl
+@@ -1,3 +1,61 @@
++# Rancher
++{{- define "system_default_registry" -}}
++{{- if .Values.global.cattle.systemDefaultRegistry -}}
++{{- printf "%s/" .Values.global.cattle.systemDefaultRegistry -}}
++{{- end -}}
++{{- end -}}
++
++# Special Exporters
++{{- define "exporter.kubeEtcd.enabled" -}}
++{{- if or .Values.kubeEtcd.enabled .Values.rkeEtcd.enabled .Values.kubeAdmEtcd.enabled .Values.rke2Etcd.enabled -}}
++"true"
++{{- end -}}
++{{- end }}
++
++{{- define "exporter.kubeControllerManager.enabled" -}}
++{{- if or .Values.kubeControllerManager.enabled .Values.rkeControllerManager.enabled .Values.k3sServer.enabled .Values.kubeAdmControllerManager.enabled .Values.rke2ControllerManager.enabled -}}
++"true"
++{{- end -}}
++{{- end }}
++
++{{- define "exporter.kubeScheduler.enabled" -}}
++{{- if or .Values.kubeScheduler.enabled .Values.rkeScheduler.enabled .Values.k3sServer.enabled .Values.kubeAdmScheduler.enabled .Values.rke2Scheduler.enabled -}}
++"true"
++{{- end -}}
++{{- end }}
++
++{{- define "exporter.kubeProxy.enabled" -}}
++{{- if or .Values.kubeProxy.enabled .Values.rkeProxy.enabled .Values.k3sServer.enabled .Values.kubeAdmProxy.enabled .Values.rke2Proxy.enabled -}}
++"true"
++{{- end -}}
++{{- end }}
++
++{{- define "exporter.kubeControllerManager.jobName" -}}
++{{- if .Values.k3sServer.enabled -}}
++k3s-server
++{{- else -}}
++kube-controller-manager
++{{- end -}}
++{{- end }}
++
++{{- define "exporter.kubeScheduler.jobName" -}}
++{{- if .Values.k3sServer.enabled -}}
++k3s-server
++{{- else -}}
++kube-scheduler
++{{- end -}}
++{{- end }}
++
++{{- define "exporter.kubeProxy.jobName" -}}
++{{- if .Values.k3sServer.enabled -}}
++k3s-server
++{{- else -}}
++kube-proxy
++{{- end -}}
++{{- end }}
++
++# Prometheus Operator
++
+ {{/* vim: set filetype=mustache: */}}
+ {{/* Expand the name of the chart. This is suffixed with -alertmanager, which means subtract 13 from longest 63 available */}}
+ {{- define "kube-prometheus-stack.name" -}}
