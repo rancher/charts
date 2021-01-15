@@ -23,14 +23,14 @@ This repository branch contains a `configuration.yaml` file that is used to spec
 #### Sync
 
 This branch syncs with the generated assets from the following branches:
-- dev-v2.5-source at https://github.com/rancher/charts.git
+- dev-v2.5-source at https://github.com/aiyengar2/charts.git
 
 To release a new version of a chart, please open the relevant PRs to one of these branches. Merging should trigger a sync workflow on pushing to these branches.
 
 #### Validate
 
 This branch validates against the generated assets of the following branches to make sure it isn't overriding already released charts.
-- main at https://github.com/rancher/charts.git (only latest assets)
+- main at https://github.com/aiyengar2/charts.git (only latest assets)
 
 Before submitting any PRs, a Github Workflow will check to see if your package doesn't break any already released packages in these repository branches.
 
