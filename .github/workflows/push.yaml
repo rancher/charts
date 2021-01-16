@@ -17,11 +17,11 @@ jobs:
     - name: Pull in all relevant branches
       run: git fetch origin dev-v2.5-source-alt dev-v2.5-alt main-alt
 
-    - name: Checkout staging branch
-      run: git checkout origin/dev-v2.5-alt
-
     - name: Synchronize
       run: sudo make sync
       
     - name: Add assets to branch
-      run: git add . && git -c user.name="actions" -c user.email="actions@github.com" commit -m "Generated changes" && git push origin dev-v2.5-alt
+      run: git add . && git -c user.name="actions" -c user.email="actions@github.com" commit -m "$(git log -b dev-v2.5-source-alt --oneline -n1 --pretty=format:'%B')" || true
+
+    - name: Push assets
+      run: git push origin dev-v2.5-alt
