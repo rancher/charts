@@ -1,0 +1,27 @@
+name: CI-push
+
+on:
+  push:
+    branches:
+      - dev-v2.5-source-alt
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Pull scripts
+      run: sudo make pull-scripts
+
+    - name: Pull in all relevant branches
+      run: git fetch origin dev-v2.5-source-alt dev-v2.5-alt main-alt
+
+    - name: Checkout staging branch
+      run: git checkout origin/dev-v2.5-alt
+
+    - name: Synchronize
+      run: sudo make sync
+      
+    - name: Add assets to branch
+      run: git add . && git -c user.name="actions" -c user.email="actions@github.com" commit -m "Generated changes" && git push origin dev-v2.5-alt
