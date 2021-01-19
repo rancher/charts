@@ -35,7 +35,7 @@
  
  affinity: {}
  
-@@ -76,4 +81,50 @@
+@@ -76,4 +81,69 @@
  monitoring:
    # Create a Prometheus Operator ServiceMonitor object
    serviceMonitor:
@@ -49,19 +49,30 @@
 +  rke:
 +    enabled: false
 +    fluentbit:
++      mountPath: ""
 +      log_level: "info"
 +      mem_buffer_limit: "5MB"
 +  rke2:
 +    enabled: false
++    fluentbit:
++      mountPath: ""
 +  k3s:
 +    enabled: false
++    fluentbit:
++      mountPath: ""
 +    container_engine: "systemd"
 +  aks:
 +    enabled: false
++    fluentbit:
++      mountPath: ""
 +  eks:
 +    enabled: false
++    fluentbit:
++      mountPath: ""
 +  gke:
 +    enabled: false
++    fluentbit:
++      mountPath: ""
 +
 +images:
 +  config_reloader:
@@ -77,13 +88,21 @@
 +    repository: rancher/banzaicloud-fluentd
 +    tag: v1.11.5-alpine-1
 +
-+fluentbit_tolerations:
-+  - key: node-role.kubernetes.io/controlplane
-+    value: "true"
-+    effect: NoSchedule
-+  - key: node-role.kubernetes.io/etcd
-+    value: "true"
-+    effect: NoExecute
++fluentbit:
++  # This "mountPath" applies to the root Logging CR, which is always created when installing this
++  # chart. If you would like to change the "mountPath" for vendor Logging CRs, such as RKE, use
++  # the "mountPath" for your provider/vendor in "additionalLoggingSources".
++  mountPath: ""
++  # These "tolerations" apply to every Logging CR, including vendor Logging CRs enabled in
++  # "additionalLoggingSources". Unlike "mountPath", changing "tolerations" affects every Logging CR
++  # installed.
++  tolerations:
++    - key: node-role.kubernetes.io/controlplane
++      value: "true"
++      effect: NoSchedule
++    - key: node-role.kubernetes.io/etcd
++      value: "true"
++      effect: NoExecute
 +
 +global:
 +  cattle:
