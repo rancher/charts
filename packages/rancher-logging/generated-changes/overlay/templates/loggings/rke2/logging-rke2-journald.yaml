@@ -17,6 +17,11 @@ spec:
       - source: "/etc/rancher/logging/logs/"
         destination: "/etc/rancher/logging/logs/"
         readOnly: true
+    {{- if .Values.rbac.psp.enabled }}
+    security:
+      podSecurityPolicyCreate: true
+      roleBasedAccessControlCreate: true
+    {{- end }}
   {{- if .Values.additionalLoggingSources.rke2.fluentbit.mountPath }}
     mountPath: {{ .Values.additionalLoggingSources.rke2.fluentbit.mountPath }}
   {{- end }}
@@ -37,6 +42,11 @@ spec:
       repository: {{ template "system_default_registry" . }}{{ .Values.images.config_reloader.repository }}
       tag: {{ .Values.images.config_reloader.tag }}
     disablePvc: {{ .Values.disablePvc }}
+    {{- if .Values.rbac.psp.enabled }}
+    security:
+      podSecurityPolicyCreate: true
+      roleBasedAccessControlCreate: true
+    {{- end }}
     {{- with .Values.tolerations }}
     tolerations:
       {{- toYaml . | nindent 6 }}

@@ -19,6 +19,11 @@ spec:
       - source: "/var/log/"
         destination: "/var/log"
         readOnly: true
+    {{- if .Values.rbac.psp.enabled }}
+    security:
+      podSecurityPolicyCreate: true
+      roleBasedAccessControlCreate: true
+    {{- end }}
   {{- if .Values.additionalLoggingSources.k3s.fluentbit.mountPath }}
     mountPath: {{ .Values.additionalLoggingSources.k3s.fluentbit.mountPath }}
   {{- end }}
@@ -39,6 +44,11 @@ spec:
       repository: {{ template "system_default_registry" . }}{{ .Values.images.config_reloader.repository }}
       tag: {{ .Values.images.config_reloader.tag }}
     disablePvc: {{ .Values.disablePvc }}
+    {{- if .Values.rbac.psp.enabled }}
+    security:
+      podSecurityPolicyCreate: true
+      roleBasedAccessControlCreate: true
+    {{- end }}
     {{- with .Values.tolerations }}
     tolerations:
       {{- toYaml . | nindent 6 }}
