@@ -35,7 +35,7 @@
  rbac:
    enabled: true
    psp:
-@@ -80,3 +87,73 @@
+@@ -80,3 +87,70 @@
      additionalLabels: {}
      metricRelabelings: []
      relabelings: []
@@ -46,18 +46,18 @@
 +  rke:
 +    enabled: false
 +    fluentbit:
-+      mountPath: ""
 +      log_level: "info"
 +      mem_buffer_limit: "5MB"
++      mountPath: ""
 +  rke2:
 +    enabled: false
 +    fluentbit:
 +      mountPath: ""
 +  k3s:
 +    enabled: false
++    container_engine: "systemd"
 +    fluentbit:
 +      mountPath: ""
-+    container_engine: "systemd"
 +  aks:
 +    enabled: false
 +    fluentbit:
@@ -85,14 +85,11 @@
 +    repository: rancher/banzaicloud-fluentd
 +    tag: v1.11.5-alpine-9
 +
++# These "fluentbit" settings apply to every Logging CR, including vendor Logging CRs enabled in
++# "additionalLoggingSources". Changing these affects every Logging CR installed. However, you can
++# override the "mountPath" setting in the corresponding Logging CR(s) for a given vendor (i.e. k3s).
 +fluentbit:
-+  # This "mountPath" applies to the root Logging CR, which is always created when installing this
-+  # chart. If you would like to change the "mountPath" for vendor Logging CRs, such as RKE, use
-+  # the "mountPath" for your provider/vendor in "additionalLoggingSources".
 +  mountPath: ""
-+  # These "tolerations" apply to every Logging CR, including vendor Logging CRs enabled in
-+  # "additionalLoggingSources". Unlike "mountPath", changing "tolerations" affects every Logging CR
-+  # installed.
 +  tolerations:
 +    - key: node-role.kubernetes.io/controlplane
 +      value: "true"
