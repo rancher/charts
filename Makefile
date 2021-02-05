@@ -3,6 +3,9 @@ CHARTS_BUILD_SCRIPT_VERSION := fdf0565
 pull-scripts:
 	./scripts/pull-scripts
 
+release:
+	./scripts/release-assets
+
 TARGETS := prepare patch charts clean sync validate rebase docs
 
 $(TARGETS):
