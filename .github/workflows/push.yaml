@@ -3,7 +3,7 @@ name: CI-push
 on:
   push:
     branches:
-      - dev-v2.5-source-alt
+      - dev-v2.5-source
 
 jobs:
   build:
@@ -15,16 +15,16 @@ jobs:
       run: sudo make pull-scripts
 
     - name: Pull in all relevant branches
-      run: git fetch origin dev-v2.5-source-alt dev-v2.5-alt main-alt
+      run: git fetch origin dev-v2.5-source dev-v2.5 release-v2.5
 
     - name: Checkout staging branch
-      run: git checkout dev-v2.5-alt
+      run: git checkout dev-v2.5
 
     - name: Synchronize
       run: sudo make sync
       
     - name: Add assets to branch
-      run: git add . && git -c user.name="actions" -c user.email="actions@github.com" commit -m "$(git log -b dev-v2.5-source-alt --oneline -n1 --pretty=format:'%B')" || true
+      run: git add . && git -c user.name="actions" -c user.email="actions@github.com" commit -m "$(git log -b dev-v2.5-source --oneline -n1 --pretty=format:'%B')" || true
 
     - name: Push assets
-      run: git push origin dev-v2.5-alt
+      run: git push origin dev-v2.5
