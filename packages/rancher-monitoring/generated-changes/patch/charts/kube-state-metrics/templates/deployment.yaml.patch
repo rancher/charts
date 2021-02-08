@@ -1,0 +1,19 @@
+--- charts-original/charts/kube-state-metrics/templates/deployment.yaml
++++ charts/charts/kube-state-metrics/templates/deployment.yaml
+@@ -44,6 +44,7 @@
+         fsGroup: {{ .Values.securityContext.fsGroup }}
+         runAsGroup: {{ .Values.securityContext.runAsGroup }}
+         runAsUser: {{ .Values.securityContext.runAsUser }}
++        runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+       {{- end }}
+     {{- if .Values.priorityClassName }}
+       priorityClassName: {{ .Values.priorityClassName }}
+@@ -154,7 +155,7 @@
+         - --pod-namespace=$(POD_NAMESPACE)
+ {{ end }}
+         imagePullPolicy: {{ .Values.image.pullPolicy }}
+-        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
++        image: "{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+         ports:
+         - containerPort: 8080
+         livenessProbe:

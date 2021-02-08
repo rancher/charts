@@ -1,0 +1,19 @@
+--- charts-original/charts/grafana/templates/podsecuritypolicy.yaml
++++ charts/charts/grafana/templates/podsecuritypolicy.yaml
+@@ -6,13 +6,9 @@
+   namespace: {{ template "grafana.namespace" . }}
+   labels:
+     {{- include "grafana.labels" . | nindent 4 }}
+-  annotations:
+-    seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'docker/default'
+-    seccomp.security.alpha.kubernetes.io/defaultProfileName:  'docker/default'
+-    {{- if .Values.rbac.pspUseAppArmor }}
+-    apparmor.security.beta.kubernetes.io/allowedProfileNames: 'runtime/default'
+-    apparmor.security.beta.kubernetes.io/defaultProfileName:  'runtime/default'
+-    {{- end }}
++{{- if .Values.rbac.pspAnnotations }}
++    annotations: {{ toYaml .Values.rbac.pspAnnotations | nindent 4 }}
++{{- end }}
+ spec:
+   privileged: false
+   allowPrivilegeEscalation: false

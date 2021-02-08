@@ -27,7 +27,7 @@ provider: kubernetes
 {{- if .Values.clients.proxyUrl -}}
 {{ printf "%s" .Values.clients.proxyUrl }}
 {{- else -}}
-{{ printf "http://%s.%s.svc.cluster.local:%d" (include "pushProxy.proxy.name" .) .Release.Namespace (int .Values.proxy.port) }}
+{{ printf "http://%s.%s.svc:%d" (include "pushProxy.proxy.name" .) .Release.Namespace (int .Values.proxy.port) }}
 {{- end -}}{{- end -}}
 
 # Client
