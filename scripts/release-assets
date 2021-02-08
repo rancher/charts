@@ -1,0 +1,20 @@
+#!/bin/bash
+set -e
+
+cd $(dirname $0)
+
+cd ..
+
+mkdir -p released
+
+if ! [[ -d assets ]] || ! [[ -d charts ]]; then
+    echo "No assets to move to released/"
+    exit 0
+fi
+
+cp -R assets/ released/assets
+rm released/assets/README.md
+rm -R $(ls -1 -d charts/*/) $(ls -1 -d assets/*/)
+
+helm repo index --merge ./released/assets/index.yaml --url released/assets released/assets
+cp released/assets/index.yaml index.yaml
