@@ -1,5 +1,3 @@
-CHARTS_BUILD_SCRIPT_VERSION := fdf0565
-
 pull-scripts:
 	./scripts/pull-scripts
 
