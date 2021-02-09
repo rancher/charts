@@ -23,7 +23,7 @@ spec:
               name: indir
             - mountPath: /var/lib/rancher/logging/
               name: outdir
-            - mountPath: /var/lib/docker/containers/
+            - mountPath: {{ .Values.global.dockerRootDirectory | default "/var/lib/docker/containers/" | quote }}
               name: containers
             - mountPath: /tail-db
               name: tail-db
@@ -41,7 +41,7 @@ spec:
             type: DirectoryOrCreate
         - name: containers
           hostPath:
-            path: /var/lib/docker/containers/
+            path: {{ .Values.global.dockerRootDirectory | default "/var/lib/docker/containers/" | quote }}
             type: DirectoryOrCreate
         - name: tail-db
           hostPath:
@@ -102,7 +102,7 @@ metadata:
 spec:
   allowPrivilegeEscalation: false
   allowedHostPaths:
-  - pathPrefix: /var/lib/docker/containers/
+  - pathPrefix: {{ .Values.global.dockerRootDirectory | default "/var/lib/docker/containers/" | quote }}
     readOnly: false
   - pathPrefix: /var/lib/rancher/rke/log/
     readOnly: false

@@ -36,7 +36,7 @@
  rbac:
    enabled: true
    psp:
-@@ -80,3 +88,74 @@
+@@ -80,3 +88,62 @@
      additionalLabels: {}
      metricRelabelings: []
      relabelings: []
@@ -49,28 +49,17 @@
 +    fluentbit:
 +      log_level: "info"
 +      mem_buffer_limit: "5MB"
-+      mountPath: ""
 +  rke2:
 +    enabled: false
-+    fluentbit:
-+      mountPath: ""
 +  k3s:
 +    enabled: false
 +    container_engine: "systemd"
-+    fluentbit:
-+      mountPath: ""
 +  aks:
 +    enabled: false
-+    fluentbit:
-+      mountPath: ""
 +  eks:
 +    enabled: false
-+    fluentbit:
-+      mountPath: ""
 +  gke:
 +    enabled: false
-+    fluentbit:
-+      mountPath: ""
 +
 +images:
 +  config_reloader:
@@ -87,13 +76,10 @@
 +    tag: v1.11.5-alpine-9
 +
 +# These "fluentd" and "fluentbit" settings apply to every Logging CR, including vendor Logging CRs
-+# enabled in "additionalLoggingSources". Changing these affects every Logging CR installed. However,
-+# you can override the "fluentbit.mountPath" setting in the corresponding Logging CR(s) for a given
-+# vendor (i.e. k3s).
++# enabled in "additionalLoggingSources". Changing these affects every Logging CR installed.
 +fluentd:
 +  resources: {}
 +fluentbit:
-+  mountPath: ""
 +  resources: {}
 +  tolerations:
 +    - key: node-role.kubernetes.io/controlplane
@@ -104,10 +90,12 @@
 +      effect: NoExecute
 +
 +global:
-+  # This psp settings differs from the upstream "rbac.psp" by only enabling psp settings for the
++  cattle:
++    systemDefaultRegistry: ""
++  # Change the "dockerRootDirectory" if the default Docker directory has changed.
++  dockerRootDirectory: ""
++  # This psp setting differs from the upstream "rbac.psp" by only enabling psp settings for the
 +  # overlay files, which include the Logging CRs created, whereas the upstream "rbac.psp" affects the
 +  # logging operator.
 +  psp:
 +    enabled: true
-+  cattle:
-+    systemDefaultRegistry: ""
