@@ -7,6 +7,12 @@ A Rancher created chart that packages the istioctl binary to install via a helm 
 ## Chart Dependencies
 - rancher-kiali-server-crd chart
 
+# Uninstallation Requirements 
+To ensure rancher-istio uninstalls correctly, you must uninstall rancher-istio prior to uninstalling chart dependencies (see installation requirements for chart dependencies). This is because all definitions need to be available in order to properly build the rancher-istio objects for removal.
+
+If you remove dependent CRD charts prior to removing rancher-istio, you may encounter the following error::
+
+`Error: uninstallation completed with 1 error(s): unable to build kubernetes objects for delete: unable to recognize "": no matches for kind "MonitoringDashboard" in version "monitoring.kiali.io/v1alpha1"`
 
 # Addons
 
