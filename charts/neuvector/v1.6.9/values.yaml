@@ -1,0 +1,145 @@
+# Default values for neuvector.
+# This is a YAML-formatted file.
+# Declare variables to be passed into the templates.
+
+openshift: false
+
+registry: docker.io
+tag: latest
+imagePullSecrets:
+psp: false
+serviceAccount: default
+
+controller:
+  # If false, controller will not be installed
+  enabled: true
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  image:
+    repository: neuvector/controller
+  replicas: 3
+  disruptionbudget: 0
+  priorityClassName:
+  apisvc:
+    type:
+  pvc:
+    enabled: false
+    accessModes:
+      - ReadWriteMany
+    storageClass:
+  azureFileShare:
+    enabled: false
+    secretName:
+    shareName:
+  federation:
+    mastersvc:
+      type:
+    managedsvc:
+      type:
+  ingress:
+    enabled: false
+    host:  # MUST be set, if ingress is enabled
+    path: "/"  # or this could be "/api", but might need "rewrite-target" annotation
+    annotations:
+      ingress.kubernetes.io/protocol: https
+      # ingress.kubernetes.io/rewrite-target: /
+    tls: false
+    secretName:
+  configmap:
+    enabled: false
+    data:
+      # eulainitcfg.yaml: |
+      #  ...
+      # ldapinitcfg.yaml: |
+      #  ...
+      # oidcinitcfg.yaml: |
+      # ...
+      # samlinitcfg.yaml: |
+      # ...
+      # sysinitcfg.yaml: |
+      # ...
+      # userinitcfg.yaml: |
+      # ...
+
+enforcer:
+  # If false, enforcer will not be installed
+  enabled: true
+  image:
+    repository: neuvector/enforcer
+  priorityClassName:
+  tolerations:
+    - effect: NoSchedule
+      key: node-role.kubernetes.io/master
+
+manager:
+  # If false, manager will not be installed
+  enabled: true
+  image:
+    repository: neuvector/manager
+  priorityClassName:
+  env:
+    ssl: true
+  svc:
+    type: NodePort
+  ingress:
+    enabled: false
+    host:  # MUST be set, if ingress is enabled
+    path: "/"
+    annotations: {}
+      # kubernetes.io/ingress.class: my-nginx
+      # nginx.ingress.kubernetes.io/whitelist-source-range: "1.1.1.1"
+      # nginx.ingress.kubernetes.io/rewrite-target: /
+      # nginx.ingress.kubernetes.io/enable-rewrite-log: "true"
+    tls: false
+    secretName:  # my-tls-secret
+
+cve:
+  updater:
+    # If false, cve updater will not be installed
+    enabled: true
+    image:
+      repository: neuvector/updater
+      tag: latest
+    schedule: "0 0 * * *"
+    priorityClassName:
+  scanner:
+    enabled: true
+    replicas: 3
+    dockerPath: ""
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+    image:
+      repository: neuvector/scanner
+    priorityClassName:
+
+docker:
+  path: /var/run/docker.sock
+
+resources: {}
+  # limits:
+  #   cpu: 400m
+  #   memory: 2792Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 2280Mi
+
+containerd:
+  enabled: false
+  path: /var/run/containerd/containerd.sock
+
+crio:
+  enabled: false
+  path: /var/run/crio/crio.sock
+
+admissionwebhook:
+  type: ClusterIP
+
+crdwebhook:
+  enabled: true
+  type: ClusterIP
