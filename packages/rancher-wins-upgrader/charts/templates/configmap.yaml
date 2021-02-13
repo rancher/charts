@@ -1,0 +1,14 @@
+{{- range .Values.winsConfigs }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "winsUpgrader.name" $ }}-{{ .name }}
+  namespace: {{ template "winsUpgrader.namespace" $ }}
+  labels: {{ include "winsUpgrader.labels" $ | nindent 4 }}
+data:
+  config: |- 
+{{ tpl .config $ | indent 4 }}
+  upgrade.ps1: |-
+{{ $.Files.Get "scripts/upgrade.ps1" | indent 4 }}
+---
+{{- end }}
