@@ -37,5 +37,9 @@ function Transfer-File
 }
 
 Create-Directory -Path "c:\host\etc\rancher\wins"
-Transfer-File -Src "c:\scripts\config" -Dst "c:\host\etc\rancher\wins\config"
+
 Transfer-File -Src "c:\Windows\wins.exe" -Dst "c:\host\etc\rancher\wins\wins.exe"
+Write-Host "Waiting 5 seconds for the rancher-wins service to pick up the new binary..."
+Start-Sleep -s 5
+Transfer-File -Src "c:\scripts\config" -Dst "c:\host\etc\rancher\wins\config"
+Write-Host "Upgrade complete."
