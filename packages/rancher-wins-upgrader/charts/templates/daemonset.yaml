@@ -23,6 +23,13 @@ spec:
 {{- end }}
       serviceAccountName: {{ template "winsUpgrader.name" $ }}
       containers:
+      - name: noop
+        image: {{ template "system_default_registry" $ }}{{ .image.repository }}:{{ .image.tag }}
+        command: ["pwsh", "-f", "c:/scripts/noop.ps1"]
+        volumeMounts:
+        - name: upgrade-scripts
+          mountPath: c:/scripts/
+      initContainers:
       - name: wins-upgrader
         image: {{ template "system_default_registry" $ }}{{ .image.repository }}:{{ .image.tag }}
         command: ["pwsh", "-f", "c:/scripts/upgrade.ps1"]

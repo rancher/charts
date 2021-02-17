@@ -39,6 +39,3 @@ function Transfer-File
 Create-Directory -Path "c:\host\etc\rancher\wins"
 Transfer-File -Src "c:\scripts\config" -Dst "c:\host\etc\rancher\wins\config"
 Transfer-File -Src "c:\Windows\wins.exe" -Dst "c:\host\etc\rancher\wins\wins.exe"
-
-# Sleep forever, since a DaemonSet's restartPolicy must be Always
-while(1) { Start-Sleep -s 3600 }
