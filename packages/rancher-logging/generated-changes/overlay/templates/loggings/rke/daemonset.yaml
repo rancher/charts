@@ -1,4 +1,5 @@
 {{- if .Values.additionalLoggingSources.rke.enabled }}
+{{- $containers := printf "%s/containers/" (default "/var/lib/docker" .Values.global.dockerRootDirectory) }}
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -23,7 +24,7 @@ spec:
               name: indir
             - mountPath: /var/lib/rancher/logging/
               name: outdir
-            - mountPath: {{ .Values.global.dockerRootDirectory | default "/var/lib/docker/containers/" | quote }}
+            - mountPath: {{ $containers }}
               name: containers
             - mountPath: /tail-db
               name: tail-db
@@ -41,7 +42,7 @@ spec:
             type: DirectoryOrCreate
         - name: containers
           hostPath:
-            path: {{ .Values.global.dockerRootDirectory | default "/var/lib/docker/containers/" | quote }}
+            path: {{ $containers }}
             type: DirectoryOrCreate
         - name: tail-db
           hostPath:
@@ -102,7 +103,7 @@ metadata:
 spec:
   allowPrivilegeEscalation: false
   allowedHostPaths:
-  - pathPrefix: {{ .Values.global.dockerRootDirectory | default "/var/lib/docker/containers/" | quote }}
+  - pathPrefix: {{ $containers }}
     readOnly: false
   - pathPrefix: /var/lib/rancher/rke/log/
     readOnly: false

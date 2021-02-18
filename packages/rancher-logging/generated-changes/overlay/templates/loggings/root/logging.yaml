@@ -1,3 +1,4 @@
+{{- $containers := printf "%s/containers/" (default "/var/lib/docker" .Values.global.dockerRootDirectory) }}
 apiVersion: logging.banzaicloud.io/v1beta1
 kind: Logging
 metadata:
@@ -17,7 +18,11 @@ spec:
       roleBasedAccessControlCreate: true
     {{- end }}
   {{- if .Values.global.dockerRootDirectory }}
-    mountPath: {{ .Values.global.dockerRootDirectory }}
+    mountPath: {{ $containers }}
+    extraVolumeMounts:
+      - source: {{ $containers }}
+        destination: {{ $containers }}
+        readOnly: true
   {{- end }}
   {{- $total_tolerations := concat (.Values.tolerations) (.Values.fluentbit.tolerations) }}
   {{- with $total_tolerations }}
