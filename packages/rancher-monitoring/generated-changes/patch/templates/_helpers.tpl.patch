@@ -1,6 +1,6 @@
 --- charts-original/templates/_helpers.tpl
 +++ charts/templates/_helpers.tpl
-@@ -1,3 +1,61 @@
+@@ -1,3 +1,72 @@
 +# Rancher
 +{{- define "system_default_registry" -}}
 +{{- if .Values.global.cattle.systemDefaultRegistry -}}
@@ -54,6 +54,17 @@
 +k3s-server
 +{{- else -}}
 +kube-proxy
++{{- end -}}
++{{- end }}
++
++{{- define "kubelet.serviceMonitor.resourcePath" -}}
++{{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion .Values.kubeTargetVersionOverride }}
++{{- if not (eq .Values.kubelet.serviceMonitor.resourcePath "/metrics/resource/v1alpha1") -}}
++{{ .Values.kubelet.serviceMonitor.resourcePath }}
++{{- else if semverCompare ">=1.20.0-0" $kubeTargetVersion -}}
++/metrics/resource
++{{- else -}}
++/metrics/resource/v1alpha1
 +{{- end -}}
 +{{- end }}
 +
