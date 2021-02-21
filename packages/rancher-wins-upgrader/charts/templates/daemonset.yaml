@@ -43,13 +43,23 @@ spec:
         env:
         - name: HELM_REVISION_NUMBER
           value: {{ $.Release.Revision | quote }}
+{{- if $.Values.masquerade.enabled }}
+        - name: WINS_UPGRADE_PATH
+          value: {{ $.Values.masquerade.as }}
+{{- end }}
       volumes:
       - name: wins-pipe
         hostPath:
           path: \\.\pipe\rancher_wins
       - name: wins
         hostPath:
+{{- if $.Values.masquerade.enabled }}
+          path: {{ include "winsUpgrader.winsMasqueradeHostPath" $ }}
+          type: DirectoryOrCreate
+{{- else }}
           path: {{ include "winsUpgrader.winsHostPath" $ }}
+          type: DirectoryOrCreate
+{{- end }}
       - name: upgrade-scripts
         configMap:
           name: {{ template "winsUpgrader.name" $ }}-{{ .name }}

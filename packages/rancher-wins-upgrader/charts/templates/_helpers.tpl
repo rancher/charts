@@ -33,6 +33,10 @@ provider: kubernetes
 {{ .Values.prefixPath | replace "\\\\" "/" }}etc/rancher/wins
 {{- end -}}
 
+{{- define "winsUpgrader.winsMasqueradeHostPath" -}}
+{{ .Values.masquerade.as | replace "\\\\" "\\" | replace "\\" "/" | dir }}
+{{- end -}}
+
 {{- define "winsUpgrader.nodeSelector" -}}
 {{- if semverCompare "<1.14-0" .Capabilities.KubeVersion.GitVersion -}}
 beta.kubernetes.io/os: windows
