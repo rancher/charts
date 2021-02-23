@@ -34,7 +34,7 @@ provider: kubernetes
 {{- end -}}
 
 {{- define "winsUpgrader.winsMasqueradeHostPath" -}}
-{{ .Values.masquerade.as | replace "\\\\" "\\" | replace "\\" "/" | dir }}
+{{ required "Must provide name for .Values.masquerade.as if enabled" .Values.masquerade.as | replace "\\\\" "\\" | replace "\\" "/" | dir }}
 {{- end -}}
 
 {{- define "winsUpgrader.nodeSelector" -}}

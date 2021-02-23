@@ -2,7 +2,7 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: {{ template "winsUpgrader.name" $ }}-{{ .name }}
+  name: {{ template "winsUpgrader.name" $ }}-{{ required "Must provide name for .Values.winsConfigs[].name" .name }}
   namespace: {{ template "winsUpgrader.namespace" $ }}
   labels: {{ include "winsUpgrader.labels" $ | nindent 4 }}
 spec:
@@ -24,7 +24,7 @@ spec:
       serviceAccountName: {{ template "winsUpgrader.name" $ }}
       containers:
       - name: noop
-        image: {{ template "system_default_registry" $ }}{{ .image.repository }}:{{ .image.tag }}
+        image: {{ template "system_default_registry" $ }}{{ required "Must provide name for .Values.winsConfigs[].image.repository" .image.repository }}:{{ required "Must provide name for .Values.winsConfigs[].tag" .image.tag }}
         command: ["pwsh", "-f", "c:/scripts/noop.ps1"]
         volumeMounts:
         - name: upgrade-scripts
@@ -64,4 +64,7 @@ spec:
         configMap:
           name: {{ template "winsUpgrader.name" $ }}-{{ .name }}
 ---
+{{- end }}
+{{- if not .Values.winsConfigs }}
+{{- fail "Cannot install chart unless at least one config is provided in .Values.winsConfigs" }}
 {{- end }}
