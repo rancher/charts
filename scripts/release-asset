@@ -31,6 +31,18 @@ for asset in $@; do
     mv "assets/${asset}" "to-be-released/${asset}"
 done
 
+# Remove charts
+for chart in $(find charts -type d -mindepth 3 -maxdepth 3); do
+    # Replace final / with -
+    asset=$(echo ${chart} | rev | sed 's/\//-/' | rev).tgz
+    # Remove charts/ prefix
+    asset=${asset#'charts/'}
+    for deleted_asset in $@; do
+        deleted_asset=${deleted_asset#'assets/'}
+        [ "${deleted_asset}" == "${asset}" ] && rm -rf ${chart}
+    done
+done
+
 # Update released/assets/index.yaml
 helm repo index --merge ./released/assets/index.yaml --url released/assets to-be-released
 cp to-be-released/index.yaml ./released/assets/index.yaml
@@ -48,3 +60,4 @@ done
 
 rm -rf to-be-released
 find assets -type d -empty -delete
+find charts -type d -empty -delete
