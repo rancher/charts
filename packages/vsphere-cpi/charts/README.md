@@ -48,9 +48,10 @@ If using this chart to migrate volumes provisioned by the in-tree provider to th
 node.cloudprovider.kubernetes.io/uninitialized=true:NoSchedule
 ```
 
-A script [taints.sh](../taints.sh) has been added for your convenience, and it can be executed with the following command:
-```
-# Optionally, a path to a kube config can be provided for cases
-# where the script needs to be executed from outside of the cluster
-./taints.sh <optional-path-to-kubeconfig>
+To perform this operation on all nodes in your cluster, the following script has been provided for your convenience:
+```bash
+# Note: Since this script uses kubectl, ensure that you run `export KUBECONFIG=<path-to-kubeconfig-for-cluster>` before running this script
+for node in $(kubectl get nodes | awk '{print $1}' | tail -n +2); do
+	kubectl taint node $node node.cloudprovider.kubernetes.io/uninitialized=true:NoSchedule
+done
 ```
