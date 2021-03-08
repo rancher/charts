@@ -19,8 +19,6 @@ spec:
         - name: fluentd
           image: "{{ template "system_default_registry" . }}{{ .Values.images.fluentbit.repository }}:{{ .Values.images.fluentbit.tag }}"
           volumeMounts:
-            - mountPath: /etc/rancher/logging/logs/
-              name: logdir
             - mountPath: /fluent-bit/etc/
               name: config
       {{- with .Values.tolerations }}
@@ -33,9 +31,6 @@ spec:
       {{- end }}
       serviceAccountName: "{{ .Release.Name }}-rke2-journald-aggregator"
       volumes:
-        - name: logdir
-          hostPath:
-            path: /etc/rancher/logging/logs/
         - name: config
           configMap:
             name: "{{ .Release.Name }}-rke2"
@@ -80,9 +75,6 @@ metadata:
   namespace: "{{ .Release.Namespace }}"
 spec:
   allowPrivilegeEscalation: false
-  allowedHostPaths:
-  - pathPrefix: /etc/rancher/logging/logs
-    readOnly: false
   fsGroup:
     rule: RunAsAny
   readOnlyRootFilesystem: true
