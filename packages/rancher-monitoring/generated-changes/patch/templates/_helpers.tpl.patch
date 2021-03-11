@@ -1,12 +1,28 @@
 --- charts-original/templates/_helpers.tpl
 +++ charts/templates/_helpers.tpl
-@@ -1,3 +1,94 @@
+@@ -1,3 +1,110 @@
 +# Rancher
 +{{- define "system_default_registry" -}}
 +{{- if .Values.global.cattle.systemDefaultRegistry -}}
 +{{- printf "%s/" .Values.global.cattle.systemDefaultRegistry -}}
 +{{- end -}}
 +{{- end -}}
++
++{{/*
++https://github.com/helm/helm/issues/4535#issuecomment-477778391
++Usage: {{ include "call-nested" (list . "SUBCHART_NAME" "TEMPLATE") }}
++e.g. {{ include "call-nested" (list . "grafana" "grafana.fullname") }}
++*/}}
++{{- define "call-nested" }}
++{{- $dot := index . 0 }}
++{{- $subchart := index . 1 | splitList "." }}
++{{- $template := index . 2 }}
++{{- $values := $dot.Values }}
++{{- range $subchart }}
++{{- $values = index $values . }}
++{{- end }}
++{{- include $template (dict "Chart" (dict "Name" (last $subchart)) "Values" $values "Release" $dot.Release "Capabilities" $dot.Capabilities) }}
++{{- end }}
 +
 +# Special Exporters
 +{{- define "exporter.kubeEtcd.enabled" -}}
