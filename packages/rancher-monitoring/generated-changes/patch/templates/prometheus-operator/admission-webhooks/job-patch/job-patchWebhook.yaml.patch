@@ -12,3 +12,28 @@
            {{- end }}
            imagePullPolicy: {{ .Values.prometheusOperator.admissionWebhooks.patch.image.pullPolicy }}
            args:
+@@ -47,18 +47,18 @@
+ {{ toYaml .Values.prometheusOperator.admissionWebhooks.patch.resources | indent 12 }}
+       restartPolicy: OnFailure
+       serviceAccountName: {{ template "kube-prometheus-stack.fullname" . }}-admission
+-      {{- with .Values.prometheusOperator.admissionWebhooks.patch.nodeSelector }}
+-      nodeSelector:
++      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }} 
++{{- with .Values.prometheusOperator.admissionWebhooks.patch.nodeSelector }}
+ {{ toYaml . | indent 8 }}
+-      {{- end }}
++{{- end }}
+       {{- with .Values.prometheusOperator.admissionWebhooks.patch.affinity }}
+       affinity:
+ {{ toYaml . | indent 8 }}
+       {{- end }}
+-      {{- with .Values.prometheusOperator.admissionWebhooks.patch.tolerations }}
+-      tolerations:
++      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }} 
++{{- with .Values.prometheusOperator.admissionWebhooks.patch.tolerations }}
+ {{ toYaml . | indent 8 }}
+-      {{- end }}
++{{- end }}
+       securityContext:
+         runAsGroup: 2000
+         runAsNonRoot: true

@@ -43,3 +43,26 @@
            {{- end }}
            imagePullPolicy: {{ .Values.prometheusOperator.tlsProxy.image.pullPolicy }}
            args:
+@@ -130,16 +130,16 @@
+       hostNetwork: true
+       dnsPolicy: ClusterFirstWithHostNet
+ {{- end }}
+-    {{- with .Values.prometheusOperator.nodeSelector }}
+-      nodeSelector:
++      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }} 
++{{- with .Values.prometheusOperator.nodeSelector }}
+ {{ toYaml . | indent 8 }}
+-    {{- end }}
++{{- end }}
+     {{- with .Values.prometheusOperator.affinity }}
+       affinity:
+ {{ toYaml . | indent 8 }}
+     {{- end }}
+-    {{- with .Values.prometheusOperator.tolerations }}
+-      tolerations:
++      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }} 
++{{- with .Values.prometheusOperator.tolerations }}
+ {{ toYaml . | indent 8 }}
+-    {{- end }}
++{{- end }}
+ {{- end }}
