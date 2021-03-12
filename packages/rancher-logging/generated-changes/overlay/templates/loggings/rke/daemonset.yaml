@@ -22,12 +22,10 @@ spec:
           volumeMounts:
             - mountPath: /var/lib/rancher/rke/log/
               name: indir
-            - mountPath: /var/lib/rancher/logging/
-              name: outdir
             - mountPath: {{ $containers }}
               name: containers
             - mountPath: /tail-db
-              name: tail-db
+              name: positiondb
             - mountPath: /fluent-bit/etc/fluent-bit.conf
               name: config
               subPath: fluent-bit.conf
@@ -36,18 +34,12 @@ spec:
           hostPath:
             path: /var/lib/rancher/rke/log/
             type: DirectoryOrCreate
-        - name: outdir
-          hostPath:
-            path: /var/lib/rancher/logging/
-            type: DirectoryOrCreate
         - name: containers
           hostPath:
             path: {{ $containers }}
             type: DirectoryOrCreate
-        - name: tail-db
-          hostPath:
-            path: /var/lib/rancher/logging/tail-db/
-            type: DirectoryOrCreate
+        - name: positiondb
+          emptyDir: {}
         - name: config
           configMap:
             name: "{{ .Release.Name }}-rke"
