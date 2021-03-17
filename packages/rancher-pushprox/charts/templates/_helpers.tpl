@@ -6,6 +6,28 @@
 {{- end -}}
 {{- end -}}
 
+# Windows Support
+
+{{/*
+Windows cluster will add default taint for linux nodes,
+add below linux tolerations to workloads could be scheduled to those linux nodes
+*/}}
+
+{{- define "linux-node-tolerations" -}}
+- key: "cattle.io/os"
+  value: "linux"
+  effect: "NoSchedule"
+  operator: "Equal"
+{{- end -}}
+
+{{- define "linux-node-selector" -}}
+{{- if semverCompare "<1.14-0" .Capabilities.KubeVersion.GitVersion -}}
+beta.kubernetes.io/os: linux
+{{- else -}}
+kubernetes.io/os: linux
+{{- end -}}
+{{- end -}}
+
 # General
 
 {{- define "pushprox.namespace" -}}
@@ -27,7 +49,7 @@ provider: kubernetes
 {{- if .Values.clients.proxyUrl -}}
 {{ printf "%s" .Values.clients.proxyUrl }}
 {{- else -}}
-{{ printf "http://%s.%s.svc.cluster.local:%d" (include "pushProxy.proxy.name" .) .Release.Namespace (int .Values.proxy.port) }}
+{{ printf "http://%s.%s.svc:%d" (include "pushProxy.proxy.name" .) .Release.Namespace (int .Values.proxy.port) }}
 {{- end -}}{{- end -}}
 
 # Client

@@ -23,9 +23,23 @@ To limit scraping to specific namespaces, set `prometheus.prometheusSpec.ignoreN
 
 **Custom Prometheus Installation with Kiali**
 
-To use a custom Monitoring installation, set the `kiali.external_services.prometheus` url in the values.yaml. This url depends on the values for `nameOverride`, `namespaceOverride`, and `prometheus.service.port`:
+To use a custom Monitoring installation, set the `kiali.external_services.prometheus` url in the values.yaml. This url depends on the values for `nameOverride`, `namespaceOverride`, and `prometheus.service.port` in your rancher-monitoring or other monitoring instance:
 ```
 http://{{ .Values.nameOverride }}-prometheus.{{ .Values.namespaceOverride }}.svc:{{ prometheus.service.port }}
+```
+**Custom Grafana Installation with Kiali**
+
+To use a custom Grafana installation, set the `kiali.external_services.grafana` url in the values.yaml. This url depends on the values for `nameOverride`, `namespaceOverride`, and `granfa.service.port` in your rancher-monitoring or other grafana instance:
+```
+http://{{ .Values.nameOverride }}-grafana.{{ .Values.namespaceOverride }}.svc:{{ grafana.service.port }}
+```
+**Custom Tracing Installation with Kiali**
+
+To use a custom Tracing installation, set the `kiali.external_services.tracing` url and update the `.Values.tracing.contextPath` in the rancher-istio values.yaml.
+
+This url depends on the values for `namespaceOverride`, and `.Values.service.externalPort` in your rancher-tracing or other tracing instance.:
+```
+http://tracing.{{ .Values.namespaceOverride }}.svc:{{ .Values.service.externalPort }}/{{ .Values.tracing.contextPath }}
 ```
 
 For more information on how to use the feature, refer to our [docs](https://rancher.com/docs/rancher/v2.x/en/istio/v2.5/).

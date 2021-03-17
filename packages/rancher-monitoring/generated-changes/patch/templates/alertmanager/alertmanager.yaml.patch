@@ -1,0 +1,31 @@
+--- charts-original/templates/alertmanager/alertmanager.yaml
++++ charts/templates/alertmanager/alertmanager.yaml
+@@ -9,7 +9,7 @@
+ {{ include "kube-prometheus-stack.labels" . | indent 4 }}
+ spec:
+ {{- if .Values.alertmanager.alertmanagerSpec.image }}
+-  baseImage: {{ .Values.alertmanager.alertmanagerSpec.image.repository }}
++  baseImage: {{ template "system_default_registry" . }}{{ .Values.alertmanager.alertmanagerSpec.image.repository }}
+   version: {{ .Values.alertmanager.alertmanagerSpec.image.tag }}
+   {{- if .Values.alertmanager.alertmanagerSpec.image.sha }}
+   sha: {{ .Values.alertmanager.alertmanagerSpec.image.sha }}
+@@ -25,8 +25,8 @@
+ {{- else }}
+   externalUrl: http://{{ template "kube-prometheus-stack.fullname" . }}-alertmanager.{{ template "kube-prometheus-stack.namespace" . }}:{{ .Values.alertmanager.service.port }}
+ {{- end }}
++  nodeSelector: {{ include "linux-node-selector" . | nindent 4 }}
+ {{- if .Values.alertmanager.alertmanagerSpec.nodeSelector }}
+-  nodeSelector:
+ {{ toYaml .Values.alertmanager.alertmanagerSpec.nodeSelector | indent 4 }}
+ {{- end }}
+   paused: {{ .Values.alertmanager.alertmanagerSpec.paused }}
+@@ -88,8 +88,8 @@
+               alertmanager: {{ template "kube-prometheus-stack.fullname" . }}-alertmanager
+ {{- end }}
+ {{- end }}
++  tolerations: {{ include "linux-node-tolerations" . | nindent 4 }}
+ {{- if .Values.alertmanager.alertmanagerSpec.tolerations }}
+-  tolerations:
+ {{ toYaml .Values.alertmanager.alertmanagerSpec.tolerations | indent 4 }}
+ {{- end }}
+ {{- if .Values.global.imagePullSecrets }}
