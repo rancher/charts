@@ -1,0 +1,119 @@
+--- charts-original/templates/prometheus/rules-1.14/node-exporter.yaml
++++ charts/templates/prometheus/rules-1.14/node-exporter.yaml
+@@ -31,11 +31,11 @@
+         summary: Filesystem is predicted to run out of space within the next 24 hours.
+       expr: |-
+         (
+-          node_filesystem_avail_bytes{job="node-exporter",fstype!=""} / node_filesystem_size_bytes{job="node-exporter",fstype!=""} * 100 < 40
++          node_filesystem_avail_bytes{job=~"node-exporter|windows-exporter",fstype!=""} / node_filesystem_size_bytes{job=~"node-exporter|windows-exporter",fstype!=""} * 100 < 40
+         and
+-          predict_linear(node_filesystem_avail_bytes{job="node-exporter",fstype!=""}[6h], 24*60*60) < 0
++          predict_linear(node_filesystem_avail_bytes{job=~"node-exporter|windows-exporter",fstype!=""}[6h], 24*60*60) < 0
+         and
+-          node_filesystem_readonly{job="node-exporter",fstype!=""} == 0
++          node_filesystem_readonly{job=~"node-exporter|windows-exporter",fstype!=""} == 0
+         )
+       for: 1h
+       labels:
+@@ -47,11 +47,11 @@
+         summary: Filesystem is predicted to run out of space within the next 4 hours.
+       expr: |-
+         (
+-          node_filesystem_avail_bytes{job="node-exporter",fstype!=""} / node_filesystem_size_bytes{job="node-exporter",fstype!=""} * 100 < 15
++          node_filesystem_avail_bytes{job=~"node-exporter|windows-exporter",fstype!=""} / node_filesystem_size_bytes{job=~"node-exporter|windows-exporter",fstype!=""} * 100 < 15
+         and
+-          predict_linear(node_filesystem_avail_bytes{job="node-exporter",fstype!=""}[6h], 4*60*60) < 0
++          predict_linear(node_filesystem_avail_bytes{job=~"node-exporter|windows-exporter",fstype!=""}[6h], 4*60*60) < 0
+         and
+-          node_filesystem_readonly{job="node-exporter",fstype!=""} == 0
++          node_filesystem_readonly{job=~"node-exporter|windows-exporter",fstype!=""} == 0
+         )
+       for: 1h
+       labels:
+@@ -63,9 +63,9 @@
+         summary: Filesystem has less than 5% space left.
+       expr: |-
+         (
+-          node_filesystem_avail_bytes{job="node-exporter",fstype!=""} / node_filesystem_size_bytes{job="node-exporter",fstype!=""} * 100 < 5
++          node_filesystem_avail_bytes{job=~"node-exporter|windows-exporter",fstype!=""} / node_filesystem_size_bytes{job=~"node-exporter|windows-exporter",fstype!=""} * 100 < 5
+         and
+-          node_filesystem_readonly{job="node-exporter",fstype!=""} == 0
++          node_filesystem_readonly{job=~"node-exporter|windows-exporter",fstype!=""} == 0
+         )
+       for: 1h
+       labels:
+@@ -77,9 +77,9 @@
+         summary: Filesystem has less than 3% space left.
+       expr: |-
+         (
+-          node_filesystem_avail_bytes{job="node-exporter",fstype!=""} / node_filesystem_size_bytes{job="node-exporter",fstype!=""} * 100 < 3
++          node_filesystem_avail_bytes{job=~"node-exporter|windows-exporter",fstype!=""} / node_filesystem_size_bytes{job=~"node-exporter|windows-exporter",fstype!=""} * 100 < 3
+         and
+-          node_filesystem_readonly{job="node-exporter",fstype!=""} == 0
++          node_filesystem_readonly{job=~"node-exporter|windows-exporter",fstype!=""} == 0
+         )
+       for: 1h
+       labels:
+@@ -91,11 +91,11 @@
+         summary: Filesystem is predicted to run out of inodes within the next 24 hours.
+       expr: |-
+         (
+-          node_filesystem_files_free{job="node-exporter",fstype!=""} / node_filesystem_files{job="node-exporter",fstype!=""} * 100 < 40
++          node_filesystem_files_free{job=~"node-exporter|windows-exporter",fstype!=""} / node_filesystem_files{job=~"node-exporter|windows-exporter",fstype!=""} * 100 < 40
+         and
+-          predict_linear(node_filesystem_files_free{job="node-exporter",fstype!=""}[6h], 24*60*60) < 0
++          predict_linear(node_filesystem_files_free{job=~"node-exporter|windows-exporter",fstype!=""}[6h], 24*60*60) < 0
+         and
+-          node_filesystem_readonly{job="node-exporter",fstype!=""} == 0
++          node_filesystem_readonly{job=~"node-exporter|windows-exporter",fstype!=""} == 0
+         )
+       for: 1h
+       labels:
+@@ -107,11 +107,11 @@
+         summary: Filesystem is predicted to run out of inodes within the next 4 hours.
+       expr: |-
+         (
+-          node_filesystem_files_free{job="node-exporter",fstype!=""} / node_filesystem_files{job="node-exporter",fstype!=""} * 100 < 20
++          node_filesystem_files_free{job=~"node-exporter|windows-exporter",fstype!=""} / node_filesystem_files{job=~"node-exporter|windows-exporter",fstype!=""} * 100 < 20
+         and
+-          predict_linear(node_filesystem_files_free{job="node-exporter",fstype!=""}[6h], 4*60*60) < 0
++          predict_linear(node_filesystem_files_free{job=~"node-exporter|windows-exporter",fstype!=""}[6h], 4*60*60) < 0
+         and
+-          node_filesystem_readonly{job="node-exporter",fstype!=""} == 0
++          node_filesystem_readonly{job=~"node-exporter|windows-exporter",fstype!=""} == 0
+         )
+       for: 1h
+       labels:
+@@ -123,9 +123,9 @@
+         summary: Filesystem has less than 5% inodes left.
+       expr: |-
+         (
+-          node_filesystem_files_free{job="node-exporter",fstype!=""} / node_filesystem_files{job="node-exporter",fstype!=""} * 100 < 5
++          node_filesystem_files_free{job=~"node-exporter|windows-exporter",fstype!=""} / node_filesystem_files{job=~"node-exporter|windows-exporter",fstype!=""} * 100 < 5
+         and
+-          node_filesystem_readonly{job="node-exporter",fstype!=""} == 0
++          node_filesystem_readonly{job=~"node-exporter|windows-exporter",fstype!=""} == 0
+         )
+       for: 1h
+       labels:
+@@ -137,9 +137,9 @@
+         summary: Filesystem has less than 3% inodes left.
+       expr: |-
+         (
+-          node_filesystem_files_free{job="node-exporter",fstype!=""} / node_filesystem_files{job="node-exporter",fstype!=""} * 100 < 3
++          node_filesystem_files_free{job=~"node-exporter|windows-exporter",fstype!=""} / node_filesystem_files{job=~"node-exporter|windows-exporter",fstype!=""} * 100 < 3
+         and
+-          node_filesystem_readonly{job="node-exporter",fstype!=""} == 0
++          node_filesystem_readonly{job=~"node-exporter|windows-exporter",fstype!=""} == 0
+         )
+       for: 1h
+       labels:
+@@ -175,7 +175,7 @@
+         description: Node Exporter text file collector failed to scrape.
+         runbook_url: {{ .Values.defaultRules.runbookUrl }}alert-name-nodetextfilecollectorscrapeerror
+         summary: Node Exporter text file collector failed to scrape.
+-      expr: node_textfile_scrape_error{job="node-exporter"} == 1
++      expr: node_textfile_scrape_error{job=~"node-exporter|windows-exporter"} == 1
+       labels:
+         severity: warning
+     - alert: NodeClockSkewDetected

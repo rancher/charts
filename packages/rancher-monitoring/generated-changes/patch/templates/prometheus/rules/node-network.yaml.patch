@@ -1,0 +1,27 @@
+--- charts-original/templates/prometheus/rules/node-network.yaml
++++ charts/templates/prometheus/rules/node-network.yaml
+@@ -27,21 +27,21 @@
+     - alert: NetworkReceiveErrors
+       annotations:
+         message: Network interface "{{`{{`}} $labels.device {{`}}`}}" showing receive errors on node-exporter {{`{{`}} $labels.namespace {{`}}`}}/{{`{{`}} $labels.pod {{`}}`}}"
+-      expr: rate(node_network_receive_errs_total{job="node-exporter",device!~"veth.+"}[2m]) > 0
++      expr: rate(node_network_receive_errs_total{job=~"node-exporter|windows-exporter",device!~"veth.+"}[2m]) > 0
+       for: 2m
+       labels:
+         severity: warning
+     - alert: NetworkTransmitErrors
+       annotations:
+         message: Network interface "{{`{{`}} $labels.device {{`}}`}}" showing transmit errors on node-exporter {{`{{`}} $labels.namespace {{`}}`}}/{{`{{`}} $labels.pod {{`}}`}}"
+-      expr: rate(node_network_transmit_errs_total{job="node-exporter",device!~"veth.+"}[2m]) > 0
++      expr: rate(node_network_transmit_errs_total{job=~"node-exporter|windows-exporter",device!~"veth.+"}[2m]) > 0
+       for: 2m
+       labels:
+         severity: warning
+     - alert: NodeNetworkInterfaceFlapping
+       annotations:
+         message: Network interface "{{`{{`}} $labels.device {{`}}`}}" changing it's up status often on node-exporter {{`{{`}} $labels.namespace {{`}}`}}/{{`{{`}} $labels.pod {{`}}`}}"
+-      expr: changes(node_network_up{job="node-exporter",device!~"veth.+"}[2m]) > 2
++      expr: changes(node_network_up{job=~"node-exporter|windows-exporter",device!~"veth.+"}[2m]) > 2
+       for: 2m
+       labels:
+         severity: warning

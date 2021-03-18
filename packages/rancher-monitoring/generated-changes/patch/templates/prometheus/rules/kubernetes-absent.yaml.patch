@@ -27,3 +27,20 @@
        for: 15m
        labels:
          severity: critical
+@@ -108,6 +108,16 @@
+       labels:
+         severity: critical
+ {{- end }}
++{{- if .Values.windowsExporter.enabled }}
++    - alert: WindowsExporterDown
++      annotations:
++        message: WindowsExporter has disappeared from Prometheus target discovery.
++        runbook_url: {{ .Values.defaultRules.runbookUrl }}alert-name-windowsexporterdown
++      expr: absent(up{job="windows-exporter"} == 1)
++      for: 15m
++      labels:
++        severity: critical
++{{- end }}
+     - alert: PrometheusDown
+       annotations:
+         message: Prometheus has disappeared from Prometheus target discovery.
