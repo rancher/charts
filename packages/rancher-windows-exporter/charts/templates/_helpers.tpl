@@ -26,7 +26,7 @@ The longest name that gets created adds and extra 37 characters, so truncation s
 {{- define "windowsExporter.labels" -}}
 k8s-app: {{ template "windowsExporter.name" . }}
 release: {{ .Release.Name }}
-component: "kube-windows"
+component: "windows-exporter"
 provider: kubernetes
 {{- end -}}
 
