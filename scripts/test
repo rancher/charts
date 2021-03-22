@@ -1,0 +1,35 @@
+#!/bin/bash
+
+cd $(dirname $0)
+
+source bootstrap
+
+cd ..
+
+if [ -z "${PACKAGES}" ]; then
+    # Default to running all unit tests
+    PACKAGES=$(find packages -type d -mindepth 1 -maxdepth 1 | cut -d'/' -f2 | xargs)
+fi
+
+echo "Running unit tests on PACKAGES=(${PACKAGES})"
+
+echo "> Ensuring that all packages exist..."
+for package in ${PACKAGES}; do
+    if ! [ -d packages/${package} ]; then
+        echo "Package ${package} does not exist"
+        exit 1
+    fi
+done
+
+for package in ${PACKAGES}; do
+    echo "> Running ${package} tests..."
+    if ! [[ -f packages/${package}/test.yaml && -d packages/${package}/tests ]]; then
+        echo ">> No tests specified. Skipping..."
+        continue
+    fi
+    if ! [[ -d packages/${package}/tests/cases && -n "$(ls -A packages/rancher-monitoring/tests/cases)" ]]; then
+        echo ">> No test cases specified. Skipping..."
+        continue
+    fi
+
+done

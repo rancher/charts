@@ -1,0 +1,20 @@
+#!/bin/bash
+set -e
+
+cd $(dirname $0)
+
+source bootstrap
+
+cleanup() {
+    set +e
+    rm -rf ../assets
+    rm -rf ../charts
+    rm -rf ../index.yaml
+}
+
+trap 'cleanup' EXIT
+
+./generate-charts
+./test
+./integration
+./validation
