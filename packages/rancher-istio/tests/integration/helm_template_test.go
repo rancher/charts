@@ -3,7 +3,9 @@ package test
 import (
 	"fmt"
 	"github.com/stretchr/testify/require"
+	"io/ioutil"
 	"k8s.io/api/batch/v1"
+	"log"
 	"os"
 	"testing"
 
@@ -13,12 +15,21 @@ import (
 )
 
 func TestHelmTemplateSucceeds(t *testing.T) {
-	changed := os.Getenv("CHANGED_PATHS")
-	logger.Log(t, fmt.Sprintf("Changed paths: %s ", changed))
 	wd, _ := os.Getwd()
-	logger.Log(t, fmt.Sprintf("Current Working Directory: %s ", wd))
-	helmChartPath := fmt.Sprintf("%s/../../../packages/rancher-istio/charts", wd)
-	logger.Log(t, fmt.Sprintf("HelmchartPath: %s ", helmChartPath))
+	chart := os.Getenv("CHART")
+	if chart == "" {
+		files, err := ioutil.ReadDir(fmt.Sprintf("%s/../../../generated-charts", wd))
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		for _, f := range files {
+			fmt.Println(f.Name())
+		}
+	}
+
+	logger.Log(t, fmt.Sprintf("Running common rests for: %s ", chart))
+	helmChartPath := fmt.Sprintf("%s/../../../packages/%s/charts", wd, chart)
 	releaseName := "rancher-istio"
 	namespaceName := "istio-system"
 	options := &helm.Options{
@@ -28,7 +39,7 @@ func TestHelmTemplateSucceeds(t *testing.T) {
 	output := helm.RenderTemplate(t, options, helmChartPath, releaseName, []string{"templates/istio-install-job.yaml"})
 	var job v1.Job
 	helm.UnmarshalK8SYaml(t, output, &job)
-	require.Equal(t, namespaceName, job.Namespace)
+	require.Equal(t, "boots", job.Namespace)
 }
 
 // func TestSystemDefaultRegistry(t *testing.T) {
