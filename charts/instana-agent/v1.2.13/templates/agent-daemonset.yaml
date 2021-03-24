@@ -1,0 +1,162 @@
+{{- if or .Values.agent.key .Values.agent.keysSecret }}
+{{- if or .Values.zone.name .Values.cluster.name }}
+{{- $fullname := include "instana-agent.fullname" . -}}
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ $fullname }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "instana-agent.commonLabels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "instana-agent.selectorLabels" . | nindent 6 }}
+  updateStrategy:
+    type: {{ .Values.agent.updateStrategy.type }}
+    {{- if eq .Values.agent.updateStrategy.type "RollingUpdate" }}
+    rollingUpdate:
+      maxUnavailable: {{ .Values.agent.updateStrategy.rollingUpdate.maxUnavailable }}
+    {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "instana-agent.commonLabels" . | nindent 8 }}
+        instana/agent-mode: {{ .Values.agent.mode | default "APM" | quote }}
+      annotations:
+      {{- if .Values.agent.pod.annotations }}
+        {{- toYaml .Values.agent.pod.annotations | nindent 8 }}
+      {{- end }}
+        # To ensure that changes to agent.configuration_yaml or agent.additional_backends trigger a Pod recreation, we keep a SHA here
+        # Unfortunately, we cannot use the lookup function to check on the values in the configmap, otherwise we break Helm < 3.2
+        instana-configuration-hash: {{ .Values.agent.configuration_yaml | cat ";" | cat ( join "," .Values.agent.additionalBackends ) | sha1sum }}
+    spec:
+      serviceAccountName: {{ template "instana-agent.serviceAccountName" . }}
+      {{- if .Values.agent.pod.nodeSelector }}
+      nodeSelector:
+      {{- range $key, $value := .Values.agent.pod.nodeSelector }}
+        {{ $key }}: {{ $value | quote }}
+      {{- end }}
+      {{- end }}
+      hostIPC: true
+      hostNetwork: true
+      hostPID: true
+      {{- if .Values.agent.pod.priorityClassName }}
+      priorityClassName: {{ .Values.agent.pod.priorityClassName | quote }}
+      {{- end }}
+      dnsPolicy: ClusterFirstWithHostNet
+      {{- if typeIs "[]interface {}" .Values.agent.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.agent.image.pullSecrets | nindent 8 }}
+      {{- else if .Values.agent.image.name | hasPrefix "containers.instana.io" }}
+      imagePullSecrets:
+        - name: containers-instana-io
+      {{- end }}
+      containers:
+        - name: instana-agent
+          image: {{ include "image" .Values.agent.image | quote}}
+          imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
+          env:
+            {{- if .Values.agent.mode }}
+            - name: INSTANA_AGENT_MODE
+              value: {{ .Values.agent.mode | quote }}
+            {{- end }}
+            {{- include "instana-agent.commonEnv" . | nindent 12 }}
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: dev
+              mountPath: /dev
+            - name: run
+              mountPath: /run
+            - name: var-run
+              mountPath: /var/run
+            {{- if not (or .Values.openshift (.Capabilities.APIVersions.Has "apps.openshift.io/v1")) }}
+            - name: var-run-kubo
+              mountPath: /var/vcap/sys/run/docker
+            {{- end }}
+            - name: sys
+              mountPath: /sys
+            - name: var-log
+              mountPath: /var/log
+            - name: var-lib
+              mountPath: /var/lib/containers/storage
+            - name: machine-id
+              mountPath: /etc/machine-id
+            - name: configuration
+              subPath: configuration.yaml
+              mountPath: /root/configuration.yaml
+            {{- include "instana-agent.commonVolumeMounts" . | nindent 12 }}
+            {{- if .Values.agent.configuration.autoMountConfigEntries }}
+            {{- include "volumeMountsForConfigFileInConfigMap" . | nindent 12 }}
+            {{- end }}
+            {{- if .Values.kubernetes.deployment.enabled }}
+            - name: configuration
+              subPath: configuration-disable-kubernetes-sensor.yaml
+              mountPath: /opt/instana/agent/etc/instana/configuration-disable-kubernetes-sensor.yaml
+            {{- end }}
+            {{- if .Values.opentelemetry.enabled }}
+            - name: configuration
+              subPath: configuration-opentelemetry.yaml
+              mountPath: /opt/instana/agent/etc/instana/configuration-opentelemetry.yaml
+            {{- end }}
+            {{- if .Values.prometheus.remoteWrite.enabled }}
+            - name: configuration
+              subPath: configuration-prometheus-remote-write.yaml
+              mountPath: /opt/instana/agent/etc/instana/configuration-prometheus-remote-write.yaml
+            {{- end }}
+          livenessProbe:
+            {{- include "instana-agent.livenessProbe" . | nindent 12 }}
+          resources:
+            requests:
+              {{- include "instana-agent.resources" .Values.agent.pod.requests | nindent 14 }}
+            limits:
+              {{- include "instana-agent.resources" .Values.agent.pod.limits | nindent 14 }}
+          ports:
+            - containerPort: 42699
+        {{- if not .Values.kubernetes.deployment.enabled }}
+        {{- include "leader-elector.container" . | nindent 8 }}
+        {{- end }}
+      {{- if .Values.agent.pod.tolerations }}
+      tolerations:
+        {{- toYaml .Values.agent.pod.tolerations | nindent 8 }}
+      {{- end }}
+      {{- if .Values.agent.pod.affinity }}
+      affinity:
+        {{- toYaml .Values.agent.pod.affinity | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: dev
+          hostPath:
+            path: /dev
+        - name: run
+          hostPath:
+            path: /run
+        - name: var-run
+          hostPath:
+            path: /var/run
+        {{- if not (or .Values.openshift (.Capabilities.APIVersions.Has "apps.openshift.io/v1")) }}
+        # Systems based on the kubo BOSH release (that is, VMware TKGI and older PKS) do not keep the Docker
+        # socket in /var/run/docker.sock , but rather in /var/vcap/sys/run/docker/docker.sock .
+        # The Agent images will check if there is a Docker socket here and, if so, adjust the symlinking before
+        # starting the Agent. See https://github.com/cloudfoundry-incubator/kubo-release/issues/329
+        - name: var-run-kubo
+          hostPath:
+            path: /var/vcap/sys/run/docker
+        {{- end }}
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: var-log
+          hostPath:
+            path: /var/log
+        - name: var-lib
+          hostPath:
+            path: /var/lib/containers/storage
+        - name: machine-id
+          hostPath:
+            path: /etc/machine-id
+        {{- include "instana-agent.commonVolumes" . | nindent 8 }}
+{{- end }}
+{{- end }}

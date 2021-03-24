@@ -2,12 +2,22 @@
 # name: instana-agent
 
 agent:
-  # agent.key is the secret token which your agent uses to authenticate to Instana's servers.
-  key: null
   # agent.mode is used to set agent mode and it can be APM, INFRASTRUCTURE or AWS
   # mode: APM
-  # agent.downloadKey is optional, if used it doesn't have to match agent.key
+
+  # agent.key is the secret token which your agent uses to authenticate to Instana's servers.
+  key: null
+  # agent.downloadKey is key, sometimes known ass "sales key", that allows you to download,
+  # software from Instana.
   # downloadKey: null
+
+  # Rather than specifying the agent key and optionally the download key, you can "bring your
+  # own secret" creating it in the namespace in which you install the `instana-agent` and
+  # specify its name in the `keysSecret` field. The secret you create must contains
+  # a field called `key` and optionally one called `downloadKey`, which contain, respectively,
+  # the values you'd otherwise set in `.agent.key` and `agent.downloadKey`.
+  # keysSecret: null
+
   # agent.listenAddress is the IP address the agent HTTP server will listen to.
   # listenAddress: *
 
@@ -26,10 +36,23 @@ agent:
   image:
     # agent.image.name is the name of the container image of the Instana agent.
     name: instana/agent
-    # agent.image.tag is the tag name of the agent container image.
+    # agent.image.digest is the digest (a.k.a. Image ID) of the agent container image; if specified, it has priority over agent.image.tag, which will be ignored.
+    #digest:
+    # agent.image.tag is the tag name of the agent container image; if agent.image.digest is specified, this property is ignored.
     tag: latest
     # agent.image.pullPolicy specifies when to pull the image container.
     pullPolicy: Always
+    # agent.image.pullSecrets allows you to override the default pull secret that is created when agent.image.name starts with "containers.instana.io"
+    # Setting agent.image.pullSecrets prevents the creation of the default "containers-instana-io" secret.
+    # pullSecrets:
+    #   - name: my_awesome_secret_instead
+    # If you want no imagePullSecrets to be specified in the agent pod, you can just pass an empty array to agent.image.pullSecrets
+    # pullSecrets: []
+
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
 
   pod:
     # agent.pod.annotations are additional annotations to be added to the agent pods.
@@ -39,18 +62,24 @@ agent:
     #   https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
     tolerations: []
 
+    # agent.pod.affinity are affinities to influence agent pod assignment.
+    # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+    affinity: {}
+
     # agent.pod.priorityClassName is the name of an existing PriorityClass that should be set on the agent pods
     #   https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/
     priorityClassName: null
 
+    # agent.pod.requests and agent.pod.limits adjusts the resource assignments for the DaemonSet agent 
+    #   regardless of the kubernetes.deployment.enabled setting
     requests:
       # agent.pod.requests.memory is the requested memory allocation in MiB for the agent pods.
-      memory: 512
+      memory: 512Mi
       # agent.pod.requests.cpu are the requested CPU units allocation for the agent pods.
       cpu: 0.5
     limits:
       # agent.pod.limits.memory set the memory allocation limits in MiB for the agent pods.
-      memory: 512
+      memory: 512Mi
       # agent.pod.limits.cpu sets the CPU units allocation limits for the agent pods.
       cpu: 1.5
 
@@ -73,8 +102,49 @@ agent:
   #   INSTANA_AGENT_TAGS: dev
   env: {}
 
+  configuration:
+    # When setting this to true, the Helm chart will automatically look up the entries
+    # of the default instana-agent ConfigMap, and mount as agent configuration files
+    # under /opt/instana/agent/etc/instana all entries with keys that match the
+    # 'configuration-*.yaml' scheme
+    #
+    # IMPORTANT: Needs Helm 3.1+ as it is built on the `lookup` function
+    # IMPORTANT: Editing the ConfigMap adding keys requires a `helm upgrade` to take effect
+    autoMountConfigEntries: false
+
   configuration_yaml: |
-    # Place agent configuration here
+    # Manual a-priori configuration. Configuration will be only used when the sensor
+    # is actually installed by the agent.
+    # The commented out example values represent example configuration and are not
+    # necessarily defaults. Defaults are usually 'absent' or mentioned separately.
+    # Changes are hot reloaded unless otherwise mentioned.
+
+    # It is possible to create files called 'configuration-abc.yaml' which are
+    # merged with this file in file system order. So 'configuration-cde.yaml' comes
+    # after 'configuration-abc.yaml'. Only nested structures are merged, values are
+    # overwritten by subsequent configurations.
+
+    # Secrets
+    # To filter sensitive data from collection by the agent, all sensors respect
+    # the following secrets configuration. If a key collected by a sensor matches
+    # an entry from the list, the value is redacted.
+    #com.instana.secrets:
+    #  matcher: 'contains-ignore-case' # 'contains-ignore-case', 'contains', 'regex'
+    #  list:
+    #    - 'key'
+    #    - 'password'
+    #    - 'secret'
+
+    # Host
+    #com.instana.plugin.host:
+    #  tags:
+    #    - 'dev'
+    #    - 'app1'
+
+    # Hardware & Zone
+    #com.instana.plugin.generic.hardware:
+    #  enabled: true # disabled by default
+    #  availability-zone: 'zone'
 
   # agent.redactKubernetesSecrets sets the INSTANA_KUBERNETES_REDACT_SECRETS environment variable.
   # redactKubernetesSecrets: null
@@ -82,9 +152,6 @@ agent:
   # agent.host.repository sets a host path to be mounted as the agent maven repository (for debugging or development purposes)
   host:
     repository: null
-
-  # agent.supportOpenshift specifies whether the cluster role should include openshift permissions
-  # supportOpenshift: true
 
 cluster:
   # cluster.name represents the name that will be assigned to this cluster in Instana
@@ -94,13 +161,31 @@ leaderElector:
   image:
     # leaderElector.image.name is the name of the container image of the leader elector.
     name: instana/leader-elector
-    # leaderElector.image.tag is the tag name of the agent container image.
+    # leaderElector.image.digest is the digest (a.k.a. Image ID) of the leader elector container image; if specified, it has priority over leaderElector.image.digest, which will be ignored.
+    #digest:
+    # leaderElector.image.tag is the tag name of the agent container image; if leaderElector.image.digest is specified, this property is ignored.
     tag: 0.5.4
   port: 42655
+
+# openshift specifies whether the cluster role should include openshift permissions and other tweaks to the YAML.
+# The chart will try to auto-detect if the cluster is OpenShift, so you will likely not even need to set this explicitly.
+# openshift: true
 
 rbac:
   # Specifies whether RBAC resources should be created
   create: true
+
+service:
+  # Specifies whether to create the instana-agent service to expose within the cluster the Prometheus remote-write, OpenTelemetry GRCP endpoint and other APIs
+  # Note: Requires Kubernetes 1.17+, as it uses topologyKeys
+  create: false
+
+opentelemetry:
+  enabled: false # If true, it will also apply `service.create=true`
+
+prometheus:
+  remoteWrite:
+    enabled: false # If true, it will also apply `service.create=true`
 
 serviceAccount:
   # Specifies whether a ServiceAccount should be created
@@ -120,3 +205,23 @@ podSecurityPolicy:
 zone:
   # zone.name is the custom zone that detected technologies will be assigned to
   name: null
+
+kubernetes:
+  # Configures use of a Deployment for the Kubernetes sensor rather than as a potential member of the DaemonSet
+  deployment:
+    # Specifies whether or not to enable the Deployment and turn off the Kubernetes sensor in the DaemonSet
+    enabled: false
+    replicas: 2 # By default, hot standby; if the cluster has only one node, however, this may cause `helm install/upgrade --wait` to fail due to anti-affinity among these pods
+
+    # kubernetes.deployment.pod adjusts the resource assignments for the agent independently of the DaemonSet agent when kubernetes.deployment.enabled=true
+    pod:
+      requests:
+        # kubernetes.deployment.pod.requests.memory is the requested memory allocation in MiB for the agent pods.
+        memory: 1024Mi
+        # kubernetes.deployment.pod.requests.cpu are the requested CPU units allocation for the agent pods.
+        cpu: 720m
+      limits:
+        # kubernetes.deployment.pod.limits.memory set the memory allocation limits in MiB for the agent pods.
+        memory: 3072Mi
+        # kubernetes.deployment.pod.limits.cpu sets the CPU units allocation limits for the agent pods.
+        cpu: 4

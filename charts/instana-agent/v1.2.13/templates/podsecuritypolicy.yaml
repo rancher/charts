@@ -1,5 +1,6 @@
-{{- if .Values.rbac.create -}}
-{{- if (and .Values.podSecurityPolicy.enable (not .Values.podSecurityPolicy.name)) -}}
+{{- if .Values.rbac.create }}
+{{- if (and .Values.podSecurityPolicy.enable (not .Values.podSecurityPolicy.name)) }}
+---
 kind: PodSecurityPolicy
 apiVersion: policy/v1beta1
 metadata:
@@ -21,9 +22,11 @@ spec:
   allowedHostPaths:
     - pathPrefix: "/dev"
       readOnly: false
-    - pathPrefix:  "/run"
+    - pathPrefix: "/run"
       readOnly: false
     - pathPrefix: "/var/run"
+      readOnly: false
+    - pathPrefix: "/var/vcap/sys/run/docker"
       readOnly: false
     - pathPrefix: "/sys"
       readOnly: false
@@ -51,5 +54,5 @@ spec:
     rule: "RunAsAny"
   fsGroup:
     rule: "RunAsAny"
-{{- end -}}
-{{- end -}}
+{{- end }}
+{{- end }}
