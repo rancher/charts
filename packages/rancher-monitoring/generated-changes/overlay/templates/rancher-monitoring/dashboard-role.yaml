@@ -1,10 +1,10 @@
 {{- if and .Values.global.rbac.create .Values.global.rbac.userRoles.create .Values.grafana.enabled }}
-{{- if or .Values.grafana.sidecar.dashboards.enabled .Values.grafana.defaultDashboardsEnabled }}
+{{- if .Values.grafana.defaultDashboardsEnabled }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: monitoring-dashboard-admin
-  namespace: {{ .Values.grafana.sidecar.dashboards.searchNamespace }}
+  namespace: {{ .Values.grafana.defaultDashboards.namespace }}
   labels: {{ include "kube-prometheus-stack.labels" . | nindent 4 }}
 rules:
 - apiGroups:
@@ -18,7 +18,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: monitoring-dashboard-edit
-  namespace: {{ .Values.grafana.sidecar.dashboards.searchNamespace }}
+  namespace: {{ .Values.grafana.defaultDashboards.namespace }}
   labels: {{ include "kube-prometheus-stack.labels" . | nindent 4 }}
 rules:
 - apiGroups:
@@ -32,7 +32,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: monitoring-dashboard-view
-  namespace: {{ .Values.grafana.sidecar.dashboards.searchNamespace }}
+  namespace: {{ .Values.grafana.defaultDashboards.namespace }}
   labels: {{ include "kube-prometheus-stack.labels" . | nindent 4 }}
 rules:
 - apiGroups:
