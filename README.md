@@ -17,8 +17,8 @@ This repository branch contains a `configuration.yaml` file that is used to spec
 #### Validate
 
 This branch validates against the generated assets of the following branches to make sure it isn't overriding already released charts.
-- dev-v2.5 at https://github.com/rancher/charts.git
-- release-v2.5 at https://github.com/rancher/charts.git (only latest assets)
+- dev-v2.6 at https://github.com/rancher/charts.git
+- release-v2.6 at https://github.com/rancher/charts.git (only latest assets)
 
 Before submitting any PRs, a Github Workflow will check to see if your package doesn't break any already released packages in these repository branches.
 

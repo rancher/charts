@@ -3,6 +3,14 @@ set -e
 
 cd $(dirname $0)
 
+if [[ -z ${BRANCH} ]]; then
+    branch=$(git rev-parse --abbrev-ref HEAD)
+else
+    branch=${BRANCH}
+fi
+
+echo "Using branch ${branch}"
+
 if [[ -z ${REPOSITORY} ]]; then
     echo "Need to provide REPOSITORY as environment variable"
     exit 1
@@ -16,7 +24,6 @@ mkdir -p ./repository
 cd repository
 
 # Pull in branch
-branch=$(git rev-parse --abbrev-ref HEAD)
 echo "Pulling in ${REPOSITORY}@${branch}"
 git clone --depth 1 --branch ${branch} ${REPOSITORY} . > /dev/null 2>&1
 
