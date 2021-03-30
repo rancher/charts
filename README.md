@@ -22,7 +22,7 @@ This repository branch contains a `configuration.yaml` file that is used to spec
 #### Sync
 
 This branch syncs with the generated assets from the following branches:
-- dev-v2.5 at https://github.com/rancher/charts.git (only latest assets)
+- dev-v2.6 at https://github.com/rancher/charts.git (only latest assets)
 
 To release a new version of a chart, please open the relevant PRs to one of these branches. 
 
