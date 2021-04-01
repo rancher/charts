@@ -10,7 +10,7 @@
  apiVersion: monitoring.coreos.com/v1
  kind: PrometheusRule
  metadata:
-@@ -24,14 +25,16 @@
+@@ -24,15 +25,16 @@
    groups:
    - name: kubernetes-system-controller-manager
      rules:
@@ -18,11 +18,10 @@
 +{{- if (include "exporter.kubeControllerManager.enabled" .)}}
      - alert: KubeControllerManagerDown
        annotations:
--        message: KubeControllerManager has disappeared from Prometheus target discovery.
-+        description: KubeControllerManager has disappeared from Prometheus target discovery.
+         description: KubeControllerManager has disappeared from Prometheus target discovery.
          runbook_url: {{ .Values.defaultRules.runbookUrl }}alert-name-kubecontrollermanagerdown
+         summary: Target disappeared from Prometheus target discovery.
 -      expr: absent(up{job="kube-controller-manager"} == 1)
-+        summary: Target disappeared from Prometheus target discovery.
 +      expr: absent(up{job="{{ include "exporter.kubeControllerManager.jobName" . }}"} == 1)
        for: 15m
        labels:
