@@ -15,7 +15,7 @@ jobs:
       run: sudo make pull-scripts
 
     - name: Pull in all relevant branches
-      run: git fetch origin dev-v2.5-source dev-v2.5 release-v2.5
+      run: git fetch origin dev-v2.5-source dev-v2.5 release-v2.5 dev-v2.6 release-v2.6
 
     - name: Checkout staging branch
       run: git checkout dev-v2.5
@@ -28,3 +28,15 @@ jobs:
 
     - name: Push assets
       run: git push origin dev-v2.5
+
+    - name: (temporary) Checkout staging branch
+      run: git checkout dev-v2.6
+
+    - name: (temporary) Synchronize
+      run: sudo make sync
+      
+    - name: (temporary) Add assets to branch
+      run: git add . && git -c user.name="actions" -c user.email="actions@github.com" commit -m "$(git log -b dev-v2.5-source --oneline -n1 --pretty=format:'%B')" || true
+
+    - name: (temporary) Push assets
+      run: git push origin dev-v2.6
