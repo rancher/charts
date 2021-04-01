@@ -45,7 +45,11 @@ spec:
   tag: {{ .Values.tag }}
   revision: {{ .Values.revision }}
   meshConfig:
-    enablePrometheusMerge: {{ .Values.meshConfig.enablePrometheusMerge }}
+    defaultConfig:
+      proxyMetadata:
+      {{- if .Values.dns.enabled }}
+        ISTIO_META_DNS_CAPTURE: "true"
+      {{- end }}
   values:
     gateways:
       istio-egressgateway:
