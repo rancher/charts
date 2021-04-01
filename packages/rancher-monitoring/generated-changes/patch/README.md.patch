@@ -9,7 +9,39 @@
  helm repo update
  ```
  
-@@ -127,7 +127,41 @@
+@@ -40,7 +40,7 @@
+ By default this chart installs additional, dependent charts:
+ 
+ - [stable/kube-state-metrics](https://github.com/helm/charts/tree/master/stable/kube-state-metrics)
+-- [stable/prometheus-node-exporter](https://github.com/prometheus-community/helm-charts/tree/main/prometheus-node-exporter)
++- [stable/prometheus-node-exporter](https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus-node-exporter)
+ - [grafana/grafana](https://github.com/grafana/helm-charts/tree/main/charts/grafana)
+ 
+ To disable dependencies during installation, see [multiple releases](#multiple-releases) below.
+@@ -70,6 +70,7 @@
+ kubectl delete crd podmonitors.monitoring.coreos.com
+ kubectl delete crd alertmanagers.monitoring.coreos.com
+ kubectl delete crd thanosrulers.monitoring.coreos.com
++kubectl delete crd probes.monitoring.coreos.com
+ ```
+ 
+ ## Upgrading Chart
+@@ -85,6 +86,14 @@
+ 
+ A major chart version change (like v1.2.3 -> v2.0.0) indicates that there is an incompatible breaking change needing manual actions.
+ 
++### From 9.x to 10.x
++
++Version 10 upgrades prometheus-operator to from 0.38.x 0.42.x. Starting with 0.40.x an additional `Probes` CRD is introduced. Helm does not automatically upgrade or install new CRDs on a chart upgrade, so you have to install the CRD manually before updating:
++
++```console
++kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/release-0.42/example/prometheus-operator-crd/monitoring.coreos.com_probes.yaml
++```
++
+ ### From 8.x to 9.x
+ 
+ Version 9 of the helm chart removes the existing `additionalScrapeConfigsExternal` in favour of `additionalScrapeConfigsSecret`. This change lets users specify the secret name and secret key to use for the additional scrape configuration of prometheus. This is useful for users that have prometheus-operator as a subchart and also have a template that creates the additional scrape configuration.
+@@ -127,7 +136,41 @@
  helm show values prometheus-community/kube-prometheus-stack
  ```
  
@@ -52,7 +84,47 @@
  
  ### Multiple releases
  
-@@ -221,7 +255,7 @@
+@@ -150,12 +193,13 @@
+ 1. Create CRDs
+ 
+     ```console
+-    kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/release-0.38/example/prometheus-operator-crd/monitoring.coreos.com_alertmanagers.yaml
+-    kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/release-0.38/example/prometheus-operator-crd/monitoring.coreos.com_podmonitors.yaml
+-    kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/release-0.38/example/prometheus-operator-crd/monitoring.coreos.com_prometheuses.yaml
+-    kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/release-0.38/example/prometheus-operator-crd/monitoring.coreos.com_prometheusrules.yaml
+-    kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/release-0.38/example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml
+-    kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/release-0.38/example/prometheus-operator-crd/monitoring.coreos.com_thanosrulers.yaml
++    kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/release-0.42/example/prometheus-operator-crd/monitoring.coreos.com_alertmanagers.yaml
++    kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/release-0.42/example/prometheus-operator-crd/monitoring.coreos.com_podmonitors.yaml
++    kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/release-0.42/example/prometheus-operator-crd/monitoring.coreos.com_prometheuses.yaml
++    kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/release-0.42/example/prometheus-operator-crd/monitoring.coreos.com_prometheusrules.yaml
++    kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/release-0.42/example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml
++    kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/release-0.42/example/prometheus-operator-crd/monitoring.coreos.com_thanosrulers.yaml
++    kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/release-0.42/example/prometheus-operator-crd/monitoring.coreos.com_probes.yaml
+     ```
+ 
+ 2. Wait for CRDs to be created, which should only take a few seconds
+@@ -196,9 +240,16 @@
+ 
+ ## prometheus.io/scrape
+ 
+-The prometheus operator does not support annotation-based discovery of services, using the `serviceMonitor` CRD in its place as it provides far more configuration options. For information on how to use servicemonitors, please see the documentation on the `prometheus-operator/prometheus-operator` documentation here: [Running Exporters](https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/user-guides/running-exporters.md)
+-
+-By default, Prometheus discovers ServiceMonitors within its namespace, that are labeled with the same release tag as the prometheus-operator release. Sometimes, you may need to discover custom ServiceMonitors, for example used to scrape data from third-party applications. An easy way of doing this, without compromising the default ServiceMonitors discovery, is allowing Prometheus to discover all ServiceMonitors within its namespace, without applying label filtering. To do so, you can set `prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues` to `false`.
++The prometheus operator does not support annotation-based discovery of services, using the `PodMonitor` or `ServiceMonitor` CRD in its place as they provide far more configuration options.
++For information on how to use PodMonitors/ServiceMonitors, please see the documentation on the `prometheus-operator/prometheus-operator` documentation here:
++- [ServiceMonitors](https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/user-guides/getting-started.md#include-servicemonitors)
++- [PodMonitors](https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/user-guides/getting-started.md#include-podmonitors)
++- [Running Exporters](https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/user-guides/running-exporters.md)
++
++By default, Prometheus discovers PodMonitors and ServiceMonitors within its namespace, that are labeled with the same release tag as the prometheus-operator release.
++Sometimes, you may need to discover custom PodMonitors/ServiceMonitors, for example used to scrape data from third-party applications.
++An easy way of doing this, without compromising the default PodMonitors/ServiceMonitors discovery, is allowing Prometheus to discover all PodMonitors/ServiceMonitors within its namespace, without applying label filtering.
++To do so, you can set `prometheus.prometheusSpec.podMonitorSelectorNilUsesHelmValues` and `prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues` to `false`.
+ 
+ ## Migrating from coreos/prometheus-operator chart
+ 
+@@ -221,7 +272,7 @@
  
  #### CoreOS CRDs
  
