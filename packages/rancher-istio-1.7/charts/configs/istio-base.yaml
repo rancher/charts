@@ -40,6 +40,10 @@ spec:
       enabled: {{ .Values.istiodRemote.enabled }}
     pilot:
       enabled: {{ .Values.pilot.enabled }}
+    policy:
+      enabled: {{ .Values.policy.enabled }}
+    telemetry:
+      enabled: {{ .Values.telemetry.v1.enabled }}
   hub: {{ .Values.systemDefaultRegistry | default "docker.io" }}
   profile: default
   tag: {{ .Values.tag }}
@@ -68,12 +72,25 @@ spec:
       coreDNSImage: {{ template "system_default_registry" . }}{{ .Values.istiocoredns.image.repository }}
       coreDNSPluginImage: {{ template "system_default_registry" . }}{{ .Values.istiocoredns.pluginImage.repository }}:{{ .Values.istiocoredns.pluginImage.tag }}
       coreDNSTag: {{ .Values.istiocoredns.image.tag }}
+    {{- if or .Values.policy.enabled .Values.telemetry.v1.enabled }}
+    mixer:
+      {{- if .Values.policy.enabled }}
+      policy:
+        image: {{ template "system_default_registry" . }}{{ .Values.policy.repository }}:{{ .Values.policy.tag }}
+      {{- end }}
+      {{- if .Values.telemetry.v1.enabled }}
+      telemetry:
+        image: {{ template "system_default_registry" . }}{{ .Values.telemetry.v1.repository }}:{{ .Values.telemetry.v1.tag }}
+      {{- end }}
+    {{- end }}
     {{- if .Values.pilot.enabled }}
     pilot:
       image: {{ template "system_default_registry" . }}{{ .Values.pilot.repository }}:{{ .Values.pilot.tag }}
     {{- end }}
     telemetry:
       enabled: {{ .Values.telemetry.enabled }}
+      v1:
+        enabled: {{ .Values.telemetry.v1.enabled }}
       v2:
         enabled: {{ .Values.telemetry.v2.enabled }}
     {{- if .Values.cni.enabled }}
