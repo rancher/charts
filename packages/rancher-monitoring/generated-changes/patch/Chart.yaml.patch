@@ -1,23 +1,7 @@
 --- charts-original/Chart.yaml
 +++ charts/Chart.yaml
-@@ -1,35 +1,47 @@
-+annotations:
-+  artifacthub.io/links: |
-+    - name: Chart Source
-+      url: https://github.com/prometheus-community/helm-charts
-+    - name: Upstream Project
-+      url: https://github.com/prometheus-operator/kube-prometheus
-+  artifacthub.io/operator: "true"
-+  catalog.cattle.io/certified: rancher
-+  catalog.cattle.io/namespace: cattle-monitoring-system
-+  catalog.cattle.io/release-name: rancher-monitoring
-+  catalog.cattle.io/ui-component: monitoring
-+  catalog.cattle.io/provides-gvr: monitoring.coreos.com.prometheus/v1
-+  catalog.cattle.io/display-name: "Monitoring"
-+  catalog.cattle.io/auto-install: rancher-monitoring-crd=match
-+  catalog.cattle.io/requests-cpu: "4500m"
-+  catalog.cattle.io/requests-memory: "4000Mi"
- apiVersion: v1
+@@ -1,35 +1,203 @@
+-apiVersion: v1
 -description: kube-prometheus-stack collects Kubernetes manifests, Grafana dashboards, and Prometheus rules combined with documentation and scripts to provide easy to operate end-to-end Kubernetes cluster monitoring with Prometheus using the Prometheus Operator.
 -icon: https://raw.githubusercontent.com/prometheus/prometheus.github.io/master/assets/prometheus_logo-cb55bb5c346.png
 -engine: gotpl
@@ -37,42 +21,211 @@
 -  - https://github.com/prometheus-community/helm-charts
 -  - https://github.com/prometheus-operator/kube-prometheus
 -version: 11.0.0
- appVersion: 0.43.0
+-appVersion: 0.43.0
 -tillerVersion: ">=2.12.0"
 -kubeVersion: ">=1.16.0-0"
-+description: Collects several related Helm charts, Grafana dashboards, and Prometheus rules combined with documentation and scripts to provide easy to operate end-to-end Kubernetes cluster monitoring with Prometheus using the Prometheus Operator.
-+engine: gotpl
++name: rancher-monitoring
  home: https://github.com/prometheus-operator/kube-prometheus
-+icon: https://raw.githubusercontent.com/prometheus/prometheus.github.io/master/assets/prometheus_logo-cb55bb5c346.png
++sources:
++- https://github.com/prometheus-community/helm-charts
++- https://github.com/prometheus-operator/kube-prometheus
++version: 12.0.0
++description: Collects several related Helm charts, Grafana dashboards, and Prometheus rules combined with documentation and scripts to provide easy to operate end-to-end Kubernetes cluster monitoring with Prometheus using the Prometheus Operator.
  keywords:
  - operator
  - prometheus
  - kube-prometheus
--annotations:
--  "artifacthub.io/operator": "true"
--  "artifacthub.io/links": |
--    - name: Chart Source
--      url: https://github.com/prometheus-community/helm-charts
--    - name: Upstream Project
--      url: https://github.com/prometheus-operator/kube-prometheus
 +- monitoring
-+kubeVersion: ">=1.16.0-0"
 +maintainers:
 +- name: vsliouniaev
++  email: ""
++  url: ""
 +- name: bismarck
-+- email: gianrubio@gmail.com
-+  name: gianrubio
-+- email: github.gkarthiks@gmail.com
-+  name: gkarthiks
-+- email: scott@r6by.com
-+  name: scottrigby
-+- email: miroslav.hadzhiev@gmail.com
-+  name: Xtigyro
-+- email: arvind.iyengar@suse.com
-+  name: Arvind
-+name: rancher-monitoring
-+sources:
-+- https://github.com/prometheus-community/helm-charts
-+- https://github.com/prometheus-operator/kube-prometheus
-+tillerVersion: ">=2.12.0"
-+version: 11.0.0
++  email: ""
++  url: ""
++- name: gianrubio
++  email: gianrubio@gmail.com
++  url: ""
++- name: gkarthiks
++  email: github.gkarthiks@gmail.com
++  url: ""
++- name: scottrigby
++  email: scott@r6by.com
++  url: ""
++- name: Xtigyro
++  email: miroslav.hadzhiev@gmail.com
++  url: ""
++- name: Arvind
++  email: arvind.iyengar@suse.com
++  url: ""
++icon: https://raw.githubusercontent.com/prometheus/prometheus.github.io/master/assets/prometheus_logo-cb55bb5c346.png
++apiversion: v2
++condition: ""
++tags: ""
++appversion: 0.43.2
++deprecated: false
+ annotations:
+-  "artifacthub.io/operator": "true"
+-  "artifacthub.io/links": |
++  artifacthub.io/links: |
+     - name: Chart Source
+       url: https://github.com/prometheus-community/helm-charts
+     - name: Upstream Project
+       url: https://github.com/prometheus-operator/kube-prometheus
++  artifacthub.io/operator: "true"
++  catalog.cattle.io/certified: rancher
++  catalog.cattle.io/namespace: cattle-monitoring-system
++  catalog.cattle.io/release-name: rancher-monitoring
++  catalog.cattle.io/ui-component: monitoring
++  catalog.cattle.io/provides-gvr: monitoring.coreos.com.prometheus/v1
++  catalog.cattle.io/display-name: "Monitoring"
++  catalog.cattle.io/auto-install: rancher-monitoring-crd=match
++  catalog.cattle.io/requests-cpu: "4500m"
++  catalog.cattle.io/requests-memory: "4000Mi"
++kubeversion: '>=1.16.0-0'
++dependencies:
++- name: grafana
++  version: ""
++  repository: file://./charts/grafana
++  condition: grafana.enabled
++  tags: []
++  enabled: false
++  importvalues: []
++  alias: ""
++- name: k3sServer
++  version: ""
++  repository: file://./charts/k3sServer
++  condition: k3sServer.enabled
++  tags: []
++  enabled: false
++  importvalues: []
++  alias: ""
++- name: kube-state-metrics
++  version: ""
++  repository: file://./charts/kube-state-metrics
++  condition: kubeStateMetrics.enabled
++  tags: []
++  enabled: false
++  importvalues: []
++  alias: ""
++- name: kubeAdmControllerManager
++  version: ""
++  repository: file://./charts/kubeAdmControllerManager
++  condition: kubeAdmControllerManager.enabled
++  tags: []
++  enabled: false
++  importvalues: []
++  alias: ""
++- name: kubeAdmEtcd
++  version: ""
++  repository: file://./charts/kubeAdmEtcd
++  condition: kubeAdmEtcd.enabled
++  tags: []
++  enabled: false
++  importvalues: []
++  alias: ""
++- name: kubeAdmProxy
++  version: ""
++  repository: file://./charts/kubeAdmProxy
++  condition: kubeAdmProxy.enabled
++  tags: []
++  enabled: false
++  importvalues: []
++  alias: ""
++- name: kubeAdmScheduler
++  version: ""
++  repository: file://./charts/kubeAdmScheduler
++  condition: kubeAdmScheduler.enabled
++  tags: []
++  enabled: false
++  importvalues: []
++  alias: ""
++- name: prometheus-adapter
++  version: ""
++  repository: file://./charts/prometheus-adapter
++  condition: prometheus-adapter.enabled
++  tags: []
++  enabled: false
++  importvalues: []
++  alias: ""
++- name: prometheus-node-exporter
++  version: ""
++  repository: file://./charts/prometheus-node-exporter
++  condition: nodeExporter.enabled
++  tags: []
++  enabled: false
++  importvalues: []
++  alias: ""
++- name: rke2ControllerManager
++  version: ""
++  repository: file://./charts/rke2ControllerManager
++  condition: rke2ControllerManager.enabled
++  tags: []
++  enabled: false
++  importvalues: []
++  alias: ""
++- name: rke2Etcd
++  version: ""
++  repository: file://./charts/rke2Etcd
++  condition: rke2Etcd.enabled
++  tags: []
++  enabled: false
++  importvalues: []
++  alias: ""
++- name: rke2Proxy
++  version: ""
++  repository: file://./charts/rke2Proxy
++  condition: rke2Proxy.enabled
++  tags: []
++  enabled: false
++  importvalues: []
++  alias: ""
++- name: rke2Scheduler
++  version: ""
++  repository: file://./charts/rke2Scheduler
++  condition: rke2Scheduler.enabled
++  tags: []
++  enabled: false
++  importvalues: []
++  alias: ""
++- name: rkeControllerManager
++  version: ""
++  repository: file://./charts/rkeControllerManager
++  condition: rkeControllerManager.enabled
++  tags: []
++  enabled: false
++  importvalues: []
++  alias: ""
++- name: rkeEtcd
++  version: ""
++  repository: file://./charts/rkeEtcd
++  condition: rkeEtcd.enabled
++  tags: []
++  enabled: false
++  importvalues: []
++  alias: ""
++- name: rkeProxy
++  version: ""
++  repository: file://./charts/rkeProxy
++  condition: rkeProxy.enabled
++  tags: []
++  enabled: false
++  importvalues: []
++  alias: ""
++- name: rkeScheduler
++  version: ""
++  repository: file://./charts/rkeScheduler
++  condition: rkeScheduler.enabled
++  tags: []
++  enabled: false
++  importvalues: []
++  alias: ""
++- name: windowsExporter
++  version: ""
++  repository: file://./charts/windowsExporter
++  condition: windowsExporter.enabled
++  tags: []
++  enabled: false
++  importvalues: []
++  alias: ""
++type: application
