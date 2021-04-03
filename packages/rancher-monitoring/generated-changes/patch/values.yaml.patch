@@ -463,6 +463,15 @@
      annotations: {}
  
    ## Configuration for creating an Ingress that will map to each Alertmanager replica service
+@@ -331,7 +710,7 @@
+     nodePort: 30904
+ 
+     ## Loadbalancer source IP ranges
+-    ## Only used if servicePerReplica.type is "loadbalancer"
++    ## Only used if servicePerReplica.type is "LoadBalancer"
+     loadBalancerSourceRanges: []
+     ## Service type
+     ##
 @@ -352,7 +731,7 @@
      ## Of type: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#tlsconfig
      tlsConfig: {}
@@ -636,7 +645,22 @@
  
    ## If your kube controller manager is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1012,7 +1490,7 @@
+@@ -891,12 +1369,14 @@
+   ## If using kubeControllerManager.endpoints only the port and targetPort are used
+   ##
+   service:
++    enabled: true
+     port: 10252
+     targetPort: 10252
+     # selector:
+     #   component: kube-controller-manager
+ 
+   serviceMonitor:
++    enabled: true
+     ## Scrape interval. If not set, the Prometheus default scrape interval is used.
+     ##
+     interval: ""
+@@ -1012,7 +1492,7 @@
  ## Component scraping etcd
  ##
  kubeEtcd:
@@ -645,7 +669,23 @@
  
    ## If your etcd is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1072,7 +1550,7 @@
+@@ -1024,6 +1504,7 @@
+   ## Etcd service. If using kubeEtcd.endpoints only the port and targetPort are used
+   ##
+   service:
++    enabled: true
+     port: 2379
+     targetPort: 2379
+     # selector:
+@@ -1041,6 +1522,7 @@
+   ##   keyFile: /etc/prometheus/secrets/etcd-client-cert/etcd-client-key
+   ##
+   serviceMonitor:
++    enabled: true
+     ## Scrape interval. If not set, the Prometheus default scrape interval is used.
+     ##
+     interval: ""
+@@ -1072,7 +1554,7 @@
  ## Component scraping kube scheduler
  ##
  kubeScheduler:
@@ -654,7 +694,22 @@
  
    ## If your kube scheduler is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1125,7 +1603,7 @@
+@@ -1084,12 +1566,14 @@
+   ## If using kubeScheduler.endpoints only the port and targetPort are used
+   ##
+   service:
++    enabled: true
+     port: 10251
+     targetPort: 10251
+     # selector:
+     #   component: kube-scheduler
+ 
+   serviceMonitor:
++    enabled: true
+     ## Scrape interval. If not set, the Prometheus default scrape interval is used.
+     ##
+     interval: ""
+@@ -1125,7 +1609,7 @@
  ## Component scraping kube proxy
  ##
  kubeProxy:
@@ -663,7 +718,22 @@
  
    ## If your kube proxy is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1202,6 +1680,13 @@
+@@ -1135,12 +1619,14 @@
+   # - 10.141.4.24
+ 
+   service:
++    enabled: true
+     port: 10249
+     targetPort: 10249
+     # selector:
+     #   k8s-app: kube-proxy
+ 
+   serviceMonitor:
++    enabled: true
+     ## Scrape interval. If not set, the Prometheus default scrape interval is used.
+     ##
+     interval: ""
+@@ -1202,6 +1688,13 @@
      create: true
    podSecurityPolicy:
      enabled: true
@@ -677,7 +747,7 @@
  
  ## Deploy node exporter as a daemonset to all nodes
  ##
-@@ -1251,6 +1736,16 @@
+@@ -1251,6 +1744,16 @@
    extraArgs:
      - --collector.filesystem.ignored-mount-points=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
      - --collector.filesystem.ignored-fs-types=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$
@@ -694,7 +764,7 @@
  
  ## Manages Prometheus and Alertmanager components
  ##
-@@ -1281,7 +1776,7 @@
+@@ -1281,7 +1784,7 @@
      patch:
        enabled: true
        image:
@@ -703,7 +773,23 @@
          tag: v1.5.0
          sha: ""
          pullPolicy: IfNotPresent
-@@ -1420,13 +1915,13 @@
+@@ -1351,13 +1854,13 @@
+     additionalPorts: []
+ 
+   ## Loadbalancer IP
+-  ## Only use if service.type is "loadbalancer"
++  ## Only use if service.type is "LoadBalancer"
+   ##
+     loadBalancerIP: ""
+     loadBalancerSourceRanges: []
+ 
+   ## Service type
+-  ## NodePort, ClusterIP, loadbalancer
++  ## NodePort, ClusterIP, LoadBalancer
+   ##
+     type: ClusterIP
+ 
+@@ -1420,13 +1923,13 @@
  
    ## Resource limits & requests
    ##
@@ -724,7 +810,7 @@
  
    # Required for use in managed kubernetes clusters (such as AWS EKS) with custom CNI (such as calico),
    # because control-plane managed by AWS cannot communicate with pods' IP CIDR and admission webhooks are not working
-@@ -1479,7 +1974,7 @@
+@@ -1479,7 +1982,7 @@
    ## Prometheus-operator image
    ##
    image:
@@ -733,7 +819,7 @@
      tag: v0.46.0
      sha: ""
      pullPolicy: IfNotPresent
-@@ -1495,7 +1990,7 @@
+@@ -1495,7 +1998,7 @@
    ## Prometheus-config-reloader image to use for config and rule reloading
    ##
    prometheusConfigReloaderImage:
@@ -742,7 +828,31 @@
      tag: v0.46.0
      sha: ""
  
-@@ -1553,7 +2048,7 @@
+@@ -1540,6 +2043,23 @@
+     portName: grpc
+     port: 10901
+     targetPort: "grpc"
++    clusterIP: "None"
++
++    ## Service type
++    ##
++    type: ClusterIP
++
++    ## Port to expose on each node
++    ##
++    nodePort: 30901
++
++    ## Service type
++    ##
++    type: ClusterIP
++
++    ## Port to expose on each node
++    ##
++    nodePort: 30901
+ 
+   ## Configuration for Prometheus service
+   ##
+@@ -1553,7 +2073,7 @@
      port: 9090
  
      ## To be used with a proxy extraContainer port
@@ -751,7 +861,25 @@
  
      ## List of IP addresses at which the Prometheus server service is available
      ## Ref: https://kubernetes.io/docs/user-guide/services/#external-ips
-@@ -1805,7 +2300,7 @@
+@@ -1566,7 +2086,7 @@
+     nodePort: 30090
+ 
+     ## Loadbalancer IP
+-    ## Only use if service.type is "loadbalancer"
++    ## Only use if service.type is "LoadBalancer"
+     loadBalancerIP: ""
+     loadBalancerSourceRanges: []
+     ## Service type
+@@ -1594,7 +2114,7 @@
+     nodePort: 30091
+ 
+     ## Loadbalancer source IP ranges
+-    ## Only used if servicePerReplica.type is "loadbalancer"
++    ## Only used if servicePerReplica.type is "LoadBalancer"
+     loadBalancerSourceRanges: []
+     ## Service type
+     ##
+@@ -1805,7 +2325,7 @@
      ## Image of Prometheus.
      ##
      image:
@@ -760,7 +888,7 @@
        tag: v2.24.0
        sha: ""
  
-@@ -1868,6 +2363,11 @@
+@@ -1868,6 +2388,11 @@
      ##
      externalUrl: ""
  
@@ -772,7 +900,7 @@
      ## Define which Nodes the Pods are scheduled on.
      ## ref: https://kubernetes.io/docs/user-guide/node-selection/
      ##
-@@ -1900,7 +2400,7 @@
+@@ -1900,13 +2425,13 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the PrometheusRule resources created
      ##
@@ -780,8 +908,25 @@
 +    ruleSelectorNilUsesHelmValues: false
  
      ## PrometheusRules to be selected for target discovery.
-     ## If {}, select all ServiceMonitors
-@@ -1925,7 +2425,7 @@
+-    ## If {}, select all ServiceMonitors
++    ## If {}, select all PrometheusRules
+     ##
+     ruleSelector: {}
+-    ## Example which select all prometheusrules resources
++    ## Example which select all PrometheusRules resources
+     ## with label "prometheus" with values any of "example-rules" or "example-rules-2"
+     # ruleSelector:
+     #   matchExpressions:
+@@ -1916,7 +2441,7 @@
+     #         - example-rules
+     #         - example-rules-2
+     #
+-    ## Example which select all prometheusrules resources with label "role" set to "example-rules"
++    ## Example which select all PrometheusRules resources with label "role" set to "example-rules"
+     # ruleSelector:
+     #   matchLabels:
+     #     role: example-rules
+@@ -1925,7 +2450,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the servicemonitors created
      ##
@@ -790,7 +935,7 @@
  
      ## ServiceMonitors to be selected for target discovery.
      ## If {}, select all ServiceMonitors
-@@ -1948,7 +2448,7 @@
+@@ -1948,7 +2473,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the podmonitors created
      ##
@@ -799,7 +944,7 @@
  
      ## PodMonitors to be selected for target discovery.
      ## If {}, select all PodMonitors
-@@ -2075,9 +2575,13 @@
+@@ -2075,9 +2600,13 @@
  
      ## Resource limits & requests
      ##
@@ -816,7 +961,7 @@
  
      ## Prometheus StorageSpec for persistent data
      ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/user-guides/storage.md
-@@ -2100,7 +2604,13 @@
+@@ -2100,7 +2629,13 @@
      #    medium: Memory
  
      # Additional volumes on the output StatefulSet definition.
@@ -831,7 +976,7 @@
  
      # Additional VolumeMounts on the output StatefulSet definition.
      volumeMounts: []
-@@ -2207,9 +2717,34 @@
+@@ -2207,9 +2742,34 @@
      ##
      thanos: {}
  
@@ -867,7 +1012,7 @@
  
      ## InitContainers allows injecting additional initContainers. This is meant to allow doing some changes
      ## (permissions, dir tree) on mounted volumes before starting prometheus
-@@ -2217,7 +2752,7 @@
+@@ -2217,7 +2777,7 @@
  
      ## PortName to use for Prometheus.
      ##
@@ -876,3 +1021,19 @@
  
      ## ArbitraryFSAccessThroughSMs configures whether configuration based on a service monitor can access arbitrary files
      ## on the file system of the Prometheus container e.g. bearer token files.
+@@ -2234,9 +2794,14 @@
+     ## configs, and they will only discover endpoints within their current namespace. Defaults to false.
+     ignoreNamespaceSelectors: false
+ 
++    ## EnforcedNamespaceLabel enforces adding a namespace label of origin for each alert and metric that is user created.
++    ## The label value will always be the namespace of the object that is being created.
++    ## Disabled by default
++    enforcedNamespaceLabel: ""
++
+     ## PrometheusRulesExcludedFromEnforce - list of prometheus rules to be excluded from enforcing of adding namespace labels.
+     ## Works only if enforcedNamespaceLabel set to true. Make sure both ruleNamespace and ruleName are set for each pair
+-    prometheusRulesExcludedFromEnforce: false
++    prometheusRulesExcludedFromEnforce: []
+ 
+     ## QueryLogFile specifies the file to which PromQL queries are logged. Note that this location must be writable,
+     ## and can be persisted using an attached volume. Alternatively, the location can be set to a stdout location such
