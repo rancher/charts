@@ -41,40 +41,15 @@
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.initContainers }}
    initContainers:
-@@ -266,11 +269,9 @@
+@@ -266,6 +269,7 @@
  {{- if .Values.prometheus.prometheusSpec.disableCompaction }}
    disableCompaction: {{ .Values.prometheus.prometheusSpec.disableCompaction }}
  {{- end }}
 +{{- if .Values.prometheus.prometheusSpec.portName }}
    portName: {{ .Values.prometheus.prometheusSpec.portName }}
  {{- end }}
--{{- if .Values.prometheus.prometheusSpec.enforcedNamespaceLabel }}
--  enforcedNamespaceLabel: {{ .Values.prometheus.prometheusSpec.enforcedNamespaceLabel }}
--{{- end }}
  {{- if .Values.prometheus.prometheusSpec.volumes }}
-   volumes:
- {{ toYaml .Values.prometheus.prometheusSpec.volumes | indent 4 }}
-@@ -292,10 +293,18 @@
- {{- if .Values.prometheus.prometheusSpec.ignoreNamespaceSelectors }}
-   ignoreNamespaceSelectors: {{ .Values.prometheus.prometheusSpec.ignoreNamespaceSelectors }}
- {{- end }}
--{{- if .Values.prometheus.prometheusSpec.prometheusRulesExcludedFromEnforce }}
-+{{- if .Values.prometheus.prometheusSpec.enforcedNamespaceLabel }}
-+  enforcedNamespaceLabel: {{ .Values.prometheus.prometheusSpec.enforcedNamespaceLabel }}
-+{{- $prometheusDefaultRulesExcludedFromEnforce := (include "rules.names" .) | fromYaml }}
-   prometheusRulesExcludedFromEnforce:
-+{{- range $prometheusDefaultRulesExcludedFromEnforce.rules }}
-+    - ruleNamespace: "{{ template "kube-prometheus-stack.namespace" $ }}"
-+      ruleName: "{{ printf "%s-%s" (include "kube-prometheus-stack.fullname" $) . | trunc 63 | trimSuffix "-" }}"
-+{{- end }}
-+{{- if .Values.prometheus.prometheusSpec.prometheusRulesExcludedFromEnforce }}
- {{ toYaml .Values.prometheus.prometheusSpec.prometheusRulesExcludedFromEnforce | indent 4 }}
- {{- end }}
-+{{- end }}
- {{- if .Values.prometheus.prometheusSpec.queryLogFile }}
-   queryLogFile: {{ .Values.prometheus.prometheusSpec.queryLogFile }}
- {{- end }}
-@@ -305,3 +314,4 @@
+@@ -310,3 +314,4 @@
  {{- if .Values.prometheus.prometheusSpec.allowOverlappingBlocks }}
    allowOverlappingBlocks: {{ .Values.prometheus.prometheusSpec.allowOverlappingBlocks }}
  {{- end }}
