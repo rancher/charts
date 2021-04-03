@@ -9,6 +9,15 @@
    version: {{ .Values.prometheus.prometheusSpec.image.tag }}
    {{- if .Values.prometheus.prometheusSpec.image.sha }}
    sha: {{ .Values.prometheus.prometheusSpec.image.sha }}
+@@ -40,7 +40,7 @@
+ {{- end }}
+ {{- if .Values.prometheus.prometheusSpec.externalLabels }}
+   externalLabels:
+-{{ toYaml .Values.prometheus.prometheusSpec.externalLabels | indent 4}}
++{{ tpl (toYaml .Values.prometheus.prometheusSpec.externalLabels | indent 4) . }}
+ {{- end }}
+ {{- if .Values.prometheus.prometheusSpec.prometheusExternalLabelNameClear }}
+   prometheusExternalLabelName: ""
 @@ -59,8 +59,11 @@
  {{- else }}
    externalUrl: http://{{ template "kube-prometheus-stack.fullname" . }}-prometheus.{{ template "kube-prometheus-stack.namespace" . }}:{{ .Values.prometheus.service.port }}
@@ -22,7 +31,7 @@
  {{ toYaml .Values.prometheus.prometheusSpec.nodeSelector | indent 4 }}
  {{- end }}
    paused: {{ .Values.prometheus.prometheusSpec.paused }}
-@@ -216,8 +219,8 @@
+@@ -216,10 +219,14 @@
                - {key: prometheus, operator: In, values: [{{ template "kube-prometheus-stack.fullname" . }}-prometheus]}
  {{- end }}
  {{- end }}
@@ -31,8 +40,14 @@
 -  tolerations:
  {{ toYaml .Values.prometheus.prometheusSpec.tolerations | indent 4 }}
  {{- end }}
++{{- if .Values.prometheus.prometheusSpec.topologySpreadConstraints }}
++  topologySpreadConstraints:
++{{ toYaml .Values.prometheus.prometheusSpec.topologySpreadConstraints | indent 4 }}
++{{- end }}
  {{- if .Values.global.imagePullSecrets }}
-@@ -246,7 +249,7 @@
+   imagePullSecrets:
+ {{ toYaml .Values.global.imagePullSecrets | indent 4 }}
+@@ -246,7 +253,7 @@
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.containers }}
    containers:
@@ -41,7 +56,7 @@
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.initContainers }}
    initContainers:
-@@ -262,6 +265,7 @@
+@@ -262,6 +269,7 @@
  {{- if .Values.prometheus.prometheusSpec.disableCompaction }}
    disableCompaction: {{ .Values.prometheus.prometheusSpec.disableCompaction }}
  {{- end }}
@@ -49,7 +64,7 @@
    portName: {{ .Values.prometheus.prometheusSpec.portName }}
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.enforcedNamespaceLabel }}
-@@ -301,3 +305,4 @@
+@@ -301,3 +309,4 @@
  {{- if .Values.prometheus.prometheusSpec.allowOverlappingBlocks }}
    allowOverlappingBlocks: {{ .Values.prometheus.prometheusSpec.allowOverlappingBlocks }}
  {{- end }}
