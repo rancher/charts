@@ -9,7 +9,7 @@
    version: {{ .Values.prometheus.prometheusSpec.image.tag }}
    {{- if .Values.prometheus.prometheusSpec.image.sha }}
    sha: {{ .Values.prometheus.prometheusSpec.image.sha }}
-@@ -59,12 +59,16 @@
+@@ -59,8 +59,11 @@
  {{- else }}
    externalUrl: http://{{ template "kube-prometheus-stack.fullname" . }}-prometheus.{{ template "kube-prometheus-stack.namespace" . }}:{{ .Values.prometheus.service.port }}
  {{- end }}
@@ -22,44 +22,8 @@
  {{ toYaml .Values.prometheus.prometheusSpec.nodeSelector | indent 4 }}
  {{- end }}
    paused: {{ .Values.prometheus.prometheusSpec.paused }}
-   replicas: {{ .Values.prometheus.prometheusSpec.replicas }}
-+  shards: {{ .Values.prometheus.prometheusSpec.shards }}
-   logLevel:  {{ .Values.prometheus.prometheusSpec.logLevel }}
-   logFormat:  {{ .Values.prometheus.prometheusSpec.logFormat }}
-   listenLocal: {{ .Values.prometheus.prometheusSpec.listenLocal }}
-@@ -72,6 +76,9 @@
- {{- if .Values.prometheus.prometheusSpec.scrapeInterval }}
-   scrapeInterval: {{ .Values.prometheus.prometheusSpec.scrapeInterval }}
- {{- end }}
-+{{- if .Values.prometheus.prometheusSpec.scrapeTimeout }}
-+  scrapeTimeout: {{ .Values.prometheus.prometheusSpec.scrapeTimeout }}
-+{{- end }}
- {{- if .Values.prometheus.prometheusSpec.evaluationInterval }}
-   evaluationInterval: {{ .Values.prometheus.prometheusSpec.evaluationInterval }}
- {{- end }}
-@@ -197,9 +204,9 @@
-       requiredDuringSchedulingIgnoredDuringExecution:
-       - topologyKey: {{ .Values.prometheus.prometheusSpec.podAntiAffinityTopologyKey }}
-         labelSelector:
--          matchLabels:
--            app: prometheus
--            prometheus: {{ template "kube-prometheus-stack.fullname" . }}-prometheus
-+          matchExpressions:
-+            - {key: app, operator: In, values: [prometheus]}
-+            - {key: prometheus, operator: In, values: [{{ template "kube-prometheus-stack.fullname" . }}-prometheus]}
- {{- else if eq .Values.prometheus.prometheusSpec.podAntiAffinity "soft" }}
-     podAntiAffinity:
-       preferredDuringSchedulingIgnoredDuringExecution:
-@@ -207,13 +214,13 @@
-         podAffinityTerm:
-           topologyKey: {{ .Values.prometheus.prometheusSpec.podAntiAffinityTopologyKey }}
-           labelSelector:
--            matchLabels:
--              app: prometheus
--              prometheus: {{ template "kube-prometheus-stack.fullname" . }}-prometheus
-+            matchExpressions:
-+              - {key: app, operator: In, values: [prometheus]}
-+              - {key: prometheus, operator: In, values: [{{ template "kube-prometheus-stack.fullname" . }}-prometheus]}
+@@ -216,8 +219,8 @@
+               - {key: prometheus, operator: In, values: [{{ template "kube-prometheus-stack.fullname" . }}-prometheus]}
  {{- end }}
  {{- end }}
 +  tolerations: {{ include "linux-node-tolerations" . | nindent 4 }}
@@ -68,7 +32,7 @@
  {{ toYaml .Values.prometheus.prometheusSpec.tolerations | indent 4 }}
  {{- end }}
  {{- if .Values.global.imagePullSecrets }}
-@@ -242,7 +249,7 @@
+@@ -246,7 +249,7 @@
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.containers }}
    containers:
@@ -77,7 +41,7 @@
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.initContainers }}
    initContainers:
-@@ -258,6 +265,7 @@
+@@ -262,6 +265,7 @@
  {{- if .Values.prometheus.prometheusSpec.disableCompaction }}
    disableCompaction: {{ .Values.prometheus.prometheusSpec.disableCompaction }}
  {{- end }}
@@ -85,34 +49,8 @@
    portName: {{ .Values.prometheus.prometheusSpec.portName }}
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.enforcedNamespaceLabel }}
-@@ -271,3 +279,30 @@
-   volumeMounts:
- {{ toYaml .Values.prometheus.prometheusSpec.volumeMounts | indent 4 }}
+@@ -301,3 +305,4 @@
+ {{- if .Values.prometheus.prometheusSpec.allowOverlappingBlocks }}
+   allowOverlappingBlocks: {{ .Values.prometheus.prometheusSpec.allowOverlappingBlocks }}
  {{- end }}
-+{{- if .Values.prometheus.prometheusSpec.arbitraryFSAccessThroughSMs }}
-+  arbitraryFSAccessThroughSMs:
-+{{ toYaml .Values.prometheus.prometheusSpec.arbitraryFSAccessThroughSMs | indent 4 }}
-+{{- end }}
-+{{- if .Values.prometheus.prometheusSpec.overrideHonorLabels }}
-+  overrideHonorLabels: {{ .Values.prometheus.prometheusSpec.overrideHonorLabels }}
-+{{- end }}
-+{{- if .Values.prometheus.prometheusSpec.overrideHonorTimestamps }}
-+  overrideHonorTimestamps: {{ .Values.prometheus.prometheusSpec.overrideHonorTimestamps }}
-+{{- end }}
-+{{- if .Values.prometheus.prometheusSpec.ignoreNamespaceSelectors }}
-+  ignoreNamespaceSelectors: {{ .Values.prometheus.prometheusSpec.ignoreNamespaceSelectors }}
-+{{- end }}
-+{{- if .Values.prometheus.prometheusSpec.prometheusRulesExcludedFromEnforce }}
-+  prometheusRulesExcludedFromEnforce:
-+{{ toYaml .Values.prometheus.prometheusSpec.prometheusRulesExcludedFromEnforce | indent 4 }}
-+{{- end }}
-+{{- if .Values.prometheus.prometheusSpec.queryLogFile }}
-+  queryLogFile: {{ .Values.prometheus.prometheusSpec.queryLogFile }}
-+{{- end }}
-+{{- if .Values.prometheus.prometheusSpec.enforcedSampleLimit }}
-+  enforcedSampleLimit: {{ .Values.prometheus.prometheusSpec.enforcedSampleLimit }}
-+{{- end }}
-+{{- if .Values.prometheus.prometheusSpec.allowOverlappingBlocks }}
-+  allowOverlappingBlocks: {{ .Values.prometheus.prometheusSpec.allowOverlappingBlocks }}
-+{{- end }}
 +{{- end }}
