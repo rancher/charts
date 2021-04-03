@@ -1,8 +1,12 @@
 --- charts-original/values.yaml
 +++ charts/values.yaml
-@@ -1,7 +1,17 @@
+@@ -1,7 +1,21 @@
++autoscaling:
++  enabled: false
  rbac:
    create: true
++  ## Use an existing ClusterRole/Role (depending on rbac.namespaced false/true)
++  # useExistingRole: name-of-some-(cluster)role
    pspEnabled: true
 -  pspUseAppArmor: true
 +  pspAnnotations: {}
@@ -11,7 +15,7 @@
 +  ## Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/#seccomp
 +  ## Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/#sysctl
 +  ##
-+  # seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'docker/default'
++  # seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'docker/default,runtime/default'
 +  # seccomp.security.alpha.kubernetes.io/defaultProfileName:  'docker/default'
 +  # apparmor.security.beta.kubernetes.io/allowedProfileNames: 'runtime/default'
 +  # apparmor.security.beta.kubernetes.io/defaultProfileName:  'runtime/default'
@@ -19,16 +23,26 @@
    namespaced: false
    extraRoleRules: []
    # - apiGroups: []
-@@ -49,7 +59,7 @@
+@@ -16,6 +30,7 @@
+   name:
+   nameTest:
+ #  annotations:
++#    eks.amazonaws.com/role-arn: arn:aws:iam::123456789000:role/iam-role-name-here
+ 
+ replicas: 1
+ 
+@@ -49,8 +64,8 @@
  # schedulerName: "default-scheduler"
  
  image:
 -  repository: grafana/grafana
+-  tag: 7.2.0
 +  repository: rancher/mirrored-grafana-grafana
-   tag: 7.2.0
++  tag: 7.2.1
    sha: ""
    pullPolicy: IfNotPresent
-@@ -63,12 +73,15 @@
+ 
+@@ -63,12 +78,15 @@
  
  testFramework:
    enabled: true
@@ -46,16 +60,18 @@
    runAsUser: 472
    runAsGroup: 472
    fsGroup: 472
-@@ -91,7 +104,7 @@
+@@ -91,8 +109,8 @@
  # priorityClassName:
  
  downloadDashboardsImage:
 -  repository: curlimages/curl
+-  tag: 7.70.0
 +  repository: rancher/mirrored-curlimages-curl
-   tag: 7.70.0
++  tag: 7.73.0
    sha: ""
    pullPolicy: IfNotPresent
-@@ -244,7 +257,7 @@
+ 
+@@ -244,7 +262,7 @@
    ## initChownData container image
    ##
    image:
@@ -64,16 +80,90 @@
      tag: "1.31.1"
      sha: ""
      pullPolicy: IfNotPresent
-@@ -486,7 +499,7 @@
+@@ -284,6 +302,27 @@
+ # schedulerName:
+ 
+ ## Extra environment variables that will be pass onto deployment pods
++##
++## to provide grafana with access to CloudWatch on AWS EKS:
++## 1. create an iam role of type "Web identity" with provider oidc.eks.* (note the provider for later)
++## 2. edit the "Trust relationships" of the role, add a line inside the StringEquals clause using the
++## same oidc eks provider as noted before (same as the existing line)
++## also, replace NAMESPACE and prometheus-operator-grafana with the service account namespace and name
++##
++##  "oidc.eks.us-east-1.amazonaws.com/id/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX:sub": "system:serviceaccount:NAMESPACE:prometheus-operator-grafana",
++##
++## 3. attach a policy to the role, you can use a built in policy called CloudWatchReadOnlyAccess
++## 4. use the following env: (replace 123456789000 and iam-role-name-here with your aws account number and role name)
++##
++## env:
++##   AWS_ROLE_ARN: arn:aws:iam::123456789000:role/iam-role-name-here
++##   AWS_WEB_IDENTITY_TOKEN_FILE: /var/run/secrets/eks.amazonaws.com/serviceaccount/token
++##   AWS_REGION: us-east-1
++##
++## 5. uncomment the EKS section in extraSecretMounts: below
++## 6. uncomment the annotation section in the serviceAccount: above
++## make sure to replace arn:aws:iam::123456789000:role/iam-role-name-here with your role arn
++
+ env: {}
+ 
+ ## "valueFrom" environment variable references that will be added to deployment pods
+@@ -312,6 +351,18 @@
+   #   secretName: grafana-secret-files
+   #   readOnly: true
+   #   subPath: ""
++  #
++  # for AWS EKS (cloudwatch) use the following (see also instruction in env: above)
++  # - name: aws-iam-token
++  #   mountPath: /var/run/secrets/eks.amazonaws.com/serviceaccount
++  #   readOnly: true
++  #   projected:
++  #     defaultMode: 420
++  #     sources:
++  #       - serviceAccountToken:
++  #           audience: sts.amazonaws.com
++  #           expirationSeconds: 86400
++  #           path: token
+ 
+ ## Additional grafana server volume mounts
+ # Defines additional volume mounts.
+@@ -339,6 +390,14 @@
+ #      url: http://prometheus-prometheus-server
+ #      access: proxy
+ #      isDefault: true
++#    - name: CloudWatch
++#        type: cloudwatch
++#        access: proxy
++#        uid: cloudwatch
++#        editable: false
++#        jsonData:
++#          authType: credentials
++#          defaultRegion: us-east-1
+ 
+ ## Configure notifiers
+ ## ref: http://docs.grafana.org/administration/provisioning/#alert-notification-channels
+@@ -486,8 +545,8 @@
  ## Requires at least Grafana 5 to work and can't be used together with parameters dashboardProviders, datasources and dashboards
  sidecar:
    image:
 -    repository: kiwigrid/k8s-sidecar
+-    tag: 0.1.209
 +    repository: rancher/mirrored-kiwigrid-k8s-sidecar
-     tag: 0.1.209
++    tag: 1.1.0
      sha: ""
    imagePullPolicy: IfNotPresent
-@@ -537,6 +550,10 @@
+   resources: {}
+@@ -513,6 +572,9 @@
+     # Otherwise the namespace in which the sidecar is running will be used.
+     # It's also possible to specify ALL to search in all namespaces
+     searchNamespace: null
++    # If specified, the sidecar will look for annotation with this name to create folder and put graph here.
++    # You can use this parameter together with `provider.foldersFromFilesStructure`to annotate configmaps and create folder structure.
++    folderAnnotation: null
+     # provider configuration that lets grafana manage the dashboards
+     provider:
+       # name of the provider, should be unique
+@@ -537,6 +599,10 @@
      # Otherwise the namespace in which the sidecar is running will be used.
      # It's also possible to specify ALL to search in all namespaces
      searchNamespace: null
@@ -84,7 +174,7 @@
    notifiers:
      enabled: false
      # label that the configmaps with notifiers are marked with
-@@ -561,9 +578,9 @@
+@@ -561,13 +627,17 @@
    replicas: 1
    image:
      # image-renderer Image repository
@@ -96,3 +186,11 @@
      # image-renderer Image sha (optional)
      sha: ""
      # image-renderer ImagePullPolicy
+     pullPolicy: Always
++  # extra environment variables
++  env: {}
++    # RENDERING_ARGS: --disable-gpu,--window-size=1280x758
++    # RENDERING_MODE: clustered
+   # image-renderer deployment securityContext
+   securityContext: {}
+   # image-renderer deployment Host Aliases

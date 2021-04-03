@@ -76,7 +76,18 @@
      {{- end }}
      imagePullPolicy: {{ .Values.sidecar.imagePullPolicy }}
      env:
-@@ -187,9 +192,9 @@
+@@ -179,6 +184,10 @@
+       - name: SKIP_TLS_VERIFY
+         value: "{{ .Values.sidecar.skipTlsVerify }}"
+       {{- end }}
++      {{- if .Values.sidecar.dashboards.folderAnnotation }}
++      - name: FOLDER_ANNOTATION
++        value: "{{ .Values.sidecar.dashboards.folderAnnotation }}"
++      {{- end }}
+     resources:
+ {{ toYaml .Values.sidecar.resources | indent 6 }}
+     volumeMounts:
+@@ -187,9 +196,9 @@
  {{- end}}
    - name: {{ .Chart.Name }}
      {{- if .Values.image.sha }}
@@ -88,7 +99,7 @@
      {{- end }}
      imagePullPolicy: {{ .Values.image.pullPolicy }}
    {{- if .Values.command }}
-@@ -285,7 +290,7 @@
+@@ -285,7 +294,7 @@
      {{- end }}
      ports:
        - name: {{ .Values.service.portName }}
@@ -97,7 +108,7 @@
          protocol: TCP
        - name: {{ .Values.podPortName }}
          containerPort: 3000
-@@ -358,17 +363,17 @@
+@@ -358,17 +367,17 @@
  {{- with .Values.extraContainers }}
  {{ tpl . $ | indent 2 }}
  {{- end }}
@@ -121,3 +132,19 @@
  {{- end }}
  volumes:
    - name: config
+@@ -434,10 +443,15 @@
+     emptyDir: {}
+ {{- end -}}
+ {{- range .Values.extraSecretMounts }}
++{{- if .secretName }}
+   - name: {{ .name }}
+     secret:
+       secretName: {{ .secretName }}
+       defaultMode: {{ .defaultMode }}
++{{- else if .projected }}
++  - name: {{ .name }}
++    projected: {{- toYaml .projected | nindent 6 }}
++{{- end }}
+ {{- end }}
+ {{- range .Values.extraVolumeMounts }}
+   - name: {{ .name }}
