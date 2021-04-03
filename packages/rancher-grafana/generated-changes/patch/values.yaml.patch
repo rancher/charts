@@ -19,17 +19,15 @@
    namespaced: false
    extraRoleRules: []
    # - apiGroups: []
-@@ -49,8 +59,8 @@
+@@ -49,7 +59,7 @@
  # schedulerName: "default-scheduler"
  
  image:
 -  repository: grafana/grafana
--  tag: 7.1.5
 +  repository: rancher/mirrored-grafana-grafana
-+  tag: 7.2.0
+   tag: 7.2.0
    sha: ""
    pullPolicy: IfNotPresent
- 
 @@ -63,12 +73,15 @@
  
  testFramework:
@@ -66,36 +64,16 @@
      tag: "1.31.1"
      sha: ""
      pullPolicy: IfNotPresent
-@@ -437,7 +450,7 @@
-  #    scopes: user:email,read:org
-  #    auth_url: https://github.com/login/oauth/authorize
-  #    token_url: https://github.com/login/oauth/access_token
-- #    api_url: https://github.com/user
-+ #    api_url: https://api.github.com/user
-  #    team_ids:
-  #    allowed_organizations:
-  #    client_id:
-@@ -486,8 +499,8 @@
+@@ -486,7 +499,7 @@
  ## Requires at least Grafana 5 to work and can't be used together with parameters dashboardProviders, datasources and dashboards
  sidecar:
    image:
 -    repository: kiwigrid/k8s-sidecar
--    tag: 0.1.151
 +    repository: rancher/mirrored-kiwigrid-k8s-sidecar
-+    tag: 0.1.209
+     tag: 0.1.209
      sha: ""
    imagePullPolicy: IfNotPresent
-   resources: {}
-@@ -527,6 +540,8 @@
-       disableDelete: false
-       # allow updating provisioned dashboards from the UI
-       allowUiUpdates: false
-+      # allow Grafana to replicate dashboard structure from filesystem
-+      foldersFromFilesStructure: false
-   datasources:
-     enabled: false
-     # label that the configmaps with datasources are marked with
-@@ -535,6 +550,10 @@
+@@ -537,6 +550,10 @@
      # Otherwise the namespace in which the sidecar is running will be used.
      # It's also possible to specify ALL to search in all namespaces
      searchNamespace: null
@@ -106,53 +84,15 @@
    notifiers:
      enabled: false
      # label that the configmaps with notifiers are marked with
-@@ -547,3 +566,49 @@
- ## Override the deployment namespace
- ##
- namespaceOverride: ""
-+
-+## Number of old ReplicaSets to retain
-+##
-+revisionHistoryLimit: 10
-+
-+## Add a seperate remote image renderer deployment/service
-+imageRenderer:
-+  # Enable the image-renderer deployment & service
-+  enabled: false
-+  replicas: 1
-+  image:
-+    # image-renderer Image repository
+@@ -561,9 +578,9 @@
+   replicas: 1
+   image:
+     # image-renderer Image repository
+-    repository: grafana/grafana-image-renderer
 +    repository: rancher/grafana-grafana-image-renderer
-+    # image-renderer Image tag
+     # image-renderer Image tag
+-    tag: latest
 +    tag: 2.0.1
-+    # image-renderer Image sha (optional)
-+    sha: ""
-+    # image-renderer ImagePullPolicy
-+    pullPolicy: Always
-+  # image-renderer deployment securityContext
-+  securityContext: {}
-+  # image-renderer deployment Host Aliases
-+  hostAliases: []
-+  # image-renderer deployment priority class
-+  priorityClassName: ''
-+  service:
-+    # image-renderer service port name
-+    portName: 'http'
-+    # image-renderer service port used by both service and deployment
-+    port: 8081
-+  # name of the image-renderer port on the pod
-+  podPortName: http
-+  # number of image-renderer replica sets to keep
-+  revisionHistoryLimit: 10
-+  networkPolicy:
-+    # Enable a NetworkPolicy to limit inbound traffic to only the created grafana pods
-+    limitIngress: true
-+    # Enable a NetworkPolicy to limit outbound traffic to only the created grafana pods
-+    limitEgress: false
-+  resources: {}
-+#   limits:
-+#     cpu: 100m
-+#     memory: 100Mi
-+#   requests:
-+#     cpu: 50m
-+#     memory: 50Mi
+     # image-renderer Image sha (optional)
+     sha: ""
+     # image-renderer ImagePullPolicy
