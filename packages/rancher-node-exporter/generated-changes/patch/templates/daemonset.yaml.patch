@@ -1,16 +1,6 @@
 --- charts-original/templates/daemonset.yaml
 +++ charts/templates/daemonset.yaml
-@@ -21,9 +21,7 @@
-       {{- toYaml .Values.podAnnotations | nindent 8 }}
-       {{- end }}
-     spec:
--{{- if and .Values.rbac.create .Values.serviceAccount.create }}
-       serviceAccountName: {{ template "prometheus-node-exporter.serviceAccountName" . }}
--{{- end }}
- {{- if .Values.securityContext }}
-       securityContext:
- {{ toYaml .Values.securityContext | indent 8 }}
-@@ -33,15 +31,21 @@
+@@ -31,7 +31,7 @@
  {{- end }}
        containers:
          - name: node-exporter
@@ -19,64 +9,15 @@
            imagePullPolicy: {{ .Values.image.pullPolicy }}
            args:
              - --path.procfs=/host/proc
-             - --path.sysfs=/host/sys
-+            {{- if .Values.hostRootFsMount }}
-+            - --path.rootfs=/host/root
-+            {{- end }}
-             - --web.listen-address=$(HOST_IP):{{ .Values.service.port }}
- {{- if .Values.extraArgs }}
- {{ toYaml .Values.extraArgs | indent 12 }}
- {{- end }}
-+          {{- with .Values.containerSecurityContext }}
-+          securityContext: {{ toYaml . | nindent 12 }}
-+          {{- end }}
-           env:
-           - name: HOST_IP
-             {{- if .Values.service.listenOnAllInterfaces }}
-@@ -54,7 +58,7 @@
-             {{- end }}
-           ports:
-             - name: metrics
--              containerPort: {{ .Values.service.targetPort }}
-+              containerPort: {{ .Values.service.port }}
-               protocol: TCP
-           livenessProbe:
-             httpGet:
-@@ -73,6 +77,12 @@
-             - name: sys
-               mountPath: /host/sys
-               readOnly: true
-+            {{- if .Values.hostRootFsMount }}
-+            - name: root
-+              mountPath: /host/root
-+              mountPropagation: HostToContainer
-+              readOnly: true
-+            {{- end }}
-             {{- if .Values.extraHostVolumeMounts }}
-             {{- range $_, $mount := .Values.extraHostVolumeMounts }}
-             - name: {{ $mount.name }}
-@@ -95,6 +105,12 @@
-             - name: {{ $mount.name }}
-               mountPath: {{ $mount.mountPath }}
-             {{- end }}
-+            {{- if .Values.secrets }}
-+            {{- range $_, $mount := .Values.secrets }}
-+            - name: {{ .name }}
-+              mountPath: {{ .mountPath }}
-+            {{- end }}
-+            {{- end }}
-             {{- end }}
- {{- if .Values.sidecars }}
- {{ toYaml .Values.sidecars | indent 8 }}
-@@ -113,14 +129,18 @@
+@@ -129,18 +129,18 @@
        affinity:
  {{ toYaml .Values.affinity | indent 8 }}
  {{- end }}
 +      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
-+{{- with .Values.dnsConfig }}
-+      dnsConfig:
-+{{ toYaml . | indent 8 }}
-+{{- end }}
+ {{- with .Values.dnsConfig }}
+       dnsConfig:
+ {{ toYaml . | indent 8 }}
+ {{- end }}
  {{- if .Values.nodeSelector }}
 -      nodeSelector:
 -{{ toYaml .Values.nodeSelector | indent 8 }}
@@ -93,26 +34,3 @@
        volumes:
          - name: proc
            hostPath:
-@@ -128,6 +148,11 @@
-         - name: sys
-           hostPath:
-             path: /sys
-+        {{- if .Values.hostRootFsMount }}
-+        - name: root
-+          hostPath:
-+            path: /
-+        {{- end }}
-         {{- if .Values.extraHostVolumeMounts }}
-         {{- range $_, $mount := .Values.extraHostVolumeMounts }}
-         - name: {{ $mount.name }}
-@@ -149,3 +174,10 @@
-             name: {{ $mount.name }}
-         {{- end }}
-         {{- end }}
-+        {{- if .Values.secrets }}
-+        {{- range $_, $mount := .Values.secrets }}
-+        - name: {{ $mount.name }}
-+          secret:
-+            secretName: {{ $mount.name }}
-+        {{- end }}
-+        {{- end }}

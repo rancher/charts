@@ -1,85 +1,15 @@
 --- charts-original/values.yaml
 +++ charts/values.yaml
-@@ -2,8 +2,8 @@
+@@ -2,7 +2,7 @@
  # This is a YAML-formatted file.
  # Declare variables to be passed into your templates.
  image:
 -  repository: quay.io/prometheus/node-exporter
--  tag: v1.0.1
 +  repository: rancher/mirrored-prom-node-exporter
-+  tag: v1.1.2
+   tag: v1.1.2
    pullPolicy: IfNotPresent
  
- service:
-@@ -20,6 +20,9 @@
-     enabled: false
-     additionalLabels: {}
-     namespace: ""
-+    scheme: http
-+    bearerTokenFile:
-+    tlsConfig: {}
- 
-     relabelings: []
-     scrapeTimeout: 10s
-@@ -48,6 +51,7 @@
-   # The name of the ServiceAccount to use.
-   # If not set and create is true, a name is generated using the fullname template
-   name:
-+  annotations: {}
-   imagePullSecrets: []
- 
- securityContext:
-@@ -56,6 +60,11 @@
-   runAsNonRoot: true
-   runAsUser: 65534
- 
-+containerSecurityContext: {}
-+  # capabilities:
-+  #   add:
-+  #   - SYS_TIME
-+
- rbac:
-   ## If true, create & use RBAC resources
-   ##
-@@ -71,6 +80,10 @@
- # Expose the service to the host network
- hostNetwork: true
- 
-+## If true, node-exporter pods mounts host / at /host/root
-+##
-+hostRootFsMount: true
-+
- ## Assign a group of affinity scheduling rules
- ##
- affinity: {}
-@@ -84,11 +97,25 @@
- #                 - target-host-name
- 
- # Annotations to be added to node exporter pods
--podAnnotations: {}
-+podAnnotations:
-+  # Fix for very slow GKE cluster upgrades
-+  cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
- 
- # Extra labels to be added to node exporter pods
- podLabels: {}
- 
-+# Custom DNS configuration to be added to prometheus-node-exporter pods
-+dnsConfig: {}
-+# nameservers:
-+#   - 1.2.3.4
-+# searches:
-+#   - ns1.svc.cluster-domain.example
-+#   - my.dns.search.suffix
-+# options:
-+#   - name: ndots
-+#     value: "2"
-+#   - name: edns0
-+
- ## Assign a nodeSelector if operating a hybrid cluster
- ##
- nodeSelector: {}
-@@ -98,6 +125,8 @@
+@@ -125,6 +125,8 @@
  tolerations:
    - effect: NoSchedule
      operator: Exists
@@ -88,14 +18,3 @@
  
  ## Assign a PriorityClassName to pods if set
  # priorityClassName: ""
-@@ -122,7 +151,9 @@
- configmaps: []
- # - name: <configMapName>
- #   mountPath: <mountPath>
--
-+secrets: []
-+# - name: <secretName>
-+#   mountPath: <mountPatch>
- ## Override the deployment namespace
- ##
- namespaceOverride: ""
