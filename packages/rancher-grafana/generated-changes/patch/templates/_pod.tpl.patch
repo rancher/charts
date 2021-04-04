@@ -29,19 +29,7 @@
      {{- end }}
      imagePullPolicy: {{ .Values.downloadDashboardsImage.pullPolicy }}
      command: ["/bin/sh"]
-@@ -56,6 +55,11 @@
-       - name: "{{ $key }}"
-         value: "{{ $value }}"
- {{- end }}
-+{{- if .Values.downloadDashboards.envFromSecret }}
-+    envFrom:
-+      - secretRef:
-+          name: {{ tpl .Values.downloadDashboards.envFromSecret . }}
-+{{- end }}
-     volumeMounts:
-       - name: config
-         mountPath: "/etc/grafana/download_dashboards.sh"
-@@ -74,16 +78,25 @@
+@@ -79,11 +78,16 @@
  {{- if .Values.sidecar.datasources.enabled }}
    - name: {{ template "grafana.name" . }}-sc-datasources
      {{- if .Values.sidecar.image.sha }}
@@ -60,16 +48,7 @@
      env:
        - name: METHOD
          value: LIST
-       - name: LABEL
-         value: "{{ .Values.sidecar.datasources.label }}"
-+      {{- if .Values.sidecar.datasources.labelValue }}
-+      - name: LABEL_VALUE
-+        value: {{ quote .Values.sidecar.datasources.labelValue }}
-+      {{- end }}
-       - name: FOLDER
-         value: "/etc/grafana/provisioning/datasources"
-       - name: RESOURCE
-@@ -109,9 +122,9 @@
+@@ -118,9 +122,9 @@
  {{- if .Values.sidecar.notifiers.enabled }}
    - name: {{ template "grafana.name" . }}-sc-notifiers
      {{- if .Values.sidecar.image.sha }}
@@ -81,7 +60,7 @@
      {{- end }}
      imagePullPolicy: {{ .Values.sidecar.imagePullPolicy }}
      env:
-@@ -154,9 +167,9 @@
+@@ -163,9 +167,9 @@
  {{- if .Values.sidecar.dashboards.enabled }}
    - name: {{ template "grafana.name" . }}-sc-dashboard
      {{- if .Values.sidecar.image.sha }}
@@ -93,18 +72,7 @@
      {{- end }}
      imagePullPolicy: {{ .Values.sidecar.imagePullPolicy }}
      env:
-@@ -164,6 +177,10 @@
-         value: {{ .Values.sidecar.dashboards.watchMethod }}
-       - name: LABEL
-         value: "{{ .Values.sidecar.dashboards.label }}"
-+      {{- if .Values.sidecar.dashboards.labelValue }}
-+      - name: LABEL_VALUE
-+        value: {{ quote .Values.sidecar.dashboards.labelValue }}
-+      {{- end }}
-       - name: FOLDER
-         value: "{{ .Values.sidecar.dashboards.folder }}{{- with .Values.sidecar.dashboards.defaultFolderName }}/{{ . }}{{- end }}"
-       - name: RESOURCE
-@@ -192,9 +209,9 @@
+@@ -205,9 +209,9 @@
  {{- end}}
    - name: {{ .Chart.Name }}
      {{- if .Values.image.sha }}
@@ -116,18 +84,7 @@
      {{- end }}
      imagePullPolicy: {{ .Values.image.pullPolicy }}
    {{- if .Values.command }}
-@@ -203,6 +220,10 @@
-       - {{ . }}
-     {{- end }}
-   {{- end}}
-+{{- if .Values.containerSecurityContext }}
-+    securityContext:
-+{{- toYaml .Values.containerSecurityContext | nindent 6 }}
-+{{- end }}
-     volumeMounts:
-       - name: config
-         mountPath: "/etc/grafana/grafana.ini"
-@@ -290,7 +311,7 @@
+@@ -307,7 +311,7 @@
      {{- end }}
      ports:
        - name: {{ .Values.service.portName }}
@@ -136,16 +93,7 @@
          protocol: TCP
        - name: {{ .Values.podPortName }}
          containerPort: 3000
-@@ -333,7 +354,7 @@
-       - name: GF_RENDERING_SERVER_URL
-         value: http://{{ template "grafana.fullname" . }}-image-renderer.{{ template "grafana.namespace" . }}:{{ .Values.imageRenderer.service.port }}/render
-       - name: GF_RENDERING_CALLBACK_URL
--        value: http://{{ template "grafana.fullname" . }}.{{ template "grafana.namespace" . }}:{{ .Values.service.port }}/
-+        value: http://{{ template "grafana.fullname" . }}.{{ template "grafana.namespace" . }}:{{ .Values.service.port }}/{{ .Values.imageRenderer.grafanaSubPath }}
-       {{ end }}
-     {{- range $key, $value := .Values.envValueFrom }}
-       - name: {{ $key | quote }}
-@@ -363,17 +384,17 @@
+@@ -380,17 +384,17 @@
  {{- with .Values.extraContainers }}
  {{ tpl . $ | indent 2 }}
  {{- end }}
@@ -169,30 +117,3 @@
  {{- end }}
  volumes:
    - name: config
-@@ -419,8 +440,16 @@
- # nothing
- {{- else }}
-   - name: storage
-+{{- if .Values.persistence.inMemory.enabled }}
-+    emptyDir:
-+      medium: Memory
-+{{- if .Values.persistence.inMemory.sizeLimit }}
-+      sizeLimit: {{ .Values.persistence.inMemory.sizeLimit }}
-+{{- end -}}
-+{{- else }}
-     emptyDir: {}
- {{- end -}}
-+{{- end -}}
- {{- if .Values.sidecar.dashboards.enabled }}
-   - name: sc-dashboard-volume
-     emptyDir: {}
-@@ -447,6 +476,9 @@
- {{- else if .projected }}
-   - name: {{ .name }}
-     projected: {{- toYaml .projected | nindent 6 }}
-+{{- else if .csi }}
-+  - name: {{ .name }}
-+    csi: {{- toYaml .csi | nindent 6 }}
- {{- end }}
- {{- end }}
- {{- range .Values.extraVolumeMounts }}
