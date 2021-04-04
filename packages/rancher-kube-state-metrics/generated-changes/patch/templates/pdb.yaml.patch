@@ -1,0 +1,17 @@
+--- charts-original/templates/pdb.yaml
++++ charts/templates/pdb.yaml
+@@ -9,9 +9,12 @@
+     helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+     app.kubernetes.io/instance: "{{ .Release.Name }}"
+     app.kubernetes.io/managed-by: "{{ .Release.Service }}"
++{{- if .Values.customLabels }}
++{{ toYaml .Values.customLabels | indent 4 }}
++{{- end }}
+ spec:
+   selector:
+     matchLabels:
+       app.kubernetes.io/name: {{ template "kube-state-metrics.name" . }}
+ {{ toYaml .Values.podDisruptionBudget | indent 2 }}
+-{{- end -}}
+\ No newline at end of file
++{{- end -}}

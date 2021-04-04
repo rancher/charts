@@ -1,6 +1,14 @@
 --- charts-original/templates/deployment.yaml
 +++ charts/templates/deployment.yaml
-@@ -44,6 +44,7 @@
+@@ -12,6 +12,7 @@
+     helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+     app.kubernetes.io/instance: "{{ .Release.Name }}"
+     app.kubernetes.io/managed-by: "{{ .Release.Service }}"
++    app.kubernetes.io/version: "{{ .Chart.AppVersion }}"
+ {{- if .Values.customLabels }}
+ {{ toYaml .Values.customLabels | indent 4 }}
+ {{- end }}
+@@ -44,6 +45,7 @@
          fsGroup: {{ .Values.securityContext.fsGroup }}
          runAsGroup: {{ .Values.securityContext.runAsGroup }}
          runAsUser: {{ .Values.securityContext.runAsUser }}
@@ -8,16 +16,49 @@
        {{- end }}
      {{- if .Values.priorityClassName }}
        priorityClassName: {{ .Values.priorityClassName }}
-@@ -154,7 +155,7 @@
+@@ -62,6 +64,11 @@
+               fieldPath: metadata.namespace
+ {{- end }}
+         args:
++{{  if .Values.extraArgs  }}
++        {{- range .Values.extraArgs  }}
++        - {{ . }}
++        {{- end  }}
++{{  end  }}
+ {{  if .Values.collectors.certificatesigningrequests  }}
+         - --collectors=certificatesigningrequests
+ {{  end  }}
+@@ -147,14 +154,27 @@
+         - --collectors=volumeattachments
+ {{  end  }}
+ {{ if .Values.namespace }}
+-        - --namespace={{ .Values.namespace }}
++        - --namespace={{ .Values.namespace | join "," }}
+ {{ end }}
+ {{ if .Values.autosharding.enabled }}
+         - --pod=$(POD_NAME)
          - --pod-namespace=$(POD_NAMESPACE)
  {{ end }}
++{{ if .Values.kubeconfig.enabled }}
++        - --kubeconfig=/opt/k8s/.kube/config
++{{ end }}
++{{ if .Values.selfMonitor.telemetryHost }}
++        - --telemetry-host={{ .Values.selfMonitor.telemetryHost }}
++{{ end }}
++        - --telemetry-port=8081
++{{- if .Values.kubeconfig.enabled }}
++        volumeMounts:
++        - name: kubeconfig
++          mountPath: /opt/k8s/.kube/
++          readOnly: true
++{{- end }}
          imagePullPolicy: {{ .Values.image.pullPolicy }}
 -        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
 +        image: "{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}"
          ports:
          - containerPort: 8080
          livenessProbe:
-@@ -181,11 +182,11 @@
+@@ -181,11 +201,17 @@
        affinity:
  {{ toYaml .Values.affinity | indent 8 }}
  {{- end }}
@@ -31,3 +72,9 @@
 -      tolerations:
  {{ toYaml .Values.tolerations | indent 8 }}
  {{- end }}
++{{- if .Values.kubeconfig.enabled}}
++      volumes:
++        - name: kubeconfig
++          secret:
++            secretName: {{ template "kube-state-metrics.fullname" . }}-kubeconfig
++{{- end }}
