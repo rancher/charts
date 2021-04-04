@@ -4,7 +4,7 @@ Do not change in-place! In order to change this file first read following link:
 https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack/hack
 */ -}}
 {{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion .Values.kubeTargetVersionOverride }}
-{{- if and (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.defaultRules.create .Values.kubeStateMetrics.enabled .Values.defaultRules.rules.kubeStateMetrics }}
+{{- if and (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.defaultRules.create .Values.defaultRules.rules.kubeStateMetrics }}
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
@@ -26,8 +26,9 @@ spec:
     rules:
     - alert: KubeStateMetricsListErrors
       annotations:
-        message: kube-state-metrics is experiencing errors at an elevated rate in list operations. This is likely causing it to not be able to expose metrics about Kubernetes objects correctly or at all.
+        description: kube-state-metrics is experiencing errors at an elevated rate in list operations. This is likely causing it to not be able to expose metrics about Kubernetes objects correctly or at all.
         runbook_url: {{ .Values.defaultRules.runbookUrl }}alert-name-kubestatemetricslisterrors
+        summary: kube-state-metrics is experiencing errors in list operations.
       expr: |-
         (sum(rate(kube_state_metrics_list_total{job="kube-state-metrics",result="error"}[5m]))
           /
@@ -36,10 +37,14 @@ spec:
       for: 15m
       labels:
         severity: critical
+{{- if .Values.defaultRules.additionalRuleLabels }}
+{{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+{{- end }}
     - alert: KubeStateMetricsWatchErrors
       annotations:
-        message: kube-state-metrics is experiencing errors at an elevated rate in watch operations. This is likely causing it to not be able to expose metrics about Kubernetes objects correctly or at all.
+        description: kube-state-metrics is experiencing errors at an elevated rate in watch operations. This is likely causing it to not be able to expose metrics about Kubernetes objects correctly or at all.
         runbook_url: {{ .Values.defaultRules.runbookUrl }}alert-name-kubestatemetricswatcherrors
+        summary: kube-state-metrics is experiencing errors in watch operations.
       expr: |-
         (sum(rate(kube_state_metrics_watch_total{job="kube-state-metrics",result="error"}[5m]))
           /
@@ -48,4 +53,7 @@ spec:
       for: 15m
       labels:
         severity: critical
+{{- if .Values.defaultRules.additionalRuleLabels }}
+{{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+{{- end }}
 {{- end }}

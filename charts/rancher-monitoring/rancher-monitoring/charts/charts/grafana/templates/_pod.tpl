@@ -55,6 +55,11 @@ initContainers:
       - name: "{{ $key }}"
         value: "{{ $value }}"
 {{- end }}
+{{- if .Values.downloadDashboards.envFromSecret }}
+    envFrom:
+      - secretRef:
+          name: {{ tpl .Values.downloadDashboards.envFromSecret . }}
+{{- end }}
     volumeMounts:
       - name: config
         mountPath: "/etc/grafana/download_dashboards.sh"
@@ -78,11 +83,20 @@ initContainers:
     image: "{{ template "system_default_registry" . }}{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}"
     {{- end }}
     imagePullPolicy: {{ .Values.sidecar.imagePullPolicy }}
+    {{- if .Values.sidecar.datasources.envFromSecret }}
+    envFrom:
+      - secretRef:
+          name: {{ tpl .Values.sidecar.datasources.envFromSecret . }}
+    {{- end }}
     env:
       - name: METHOD
         value: LIST
       - name: LABEL
         value: "{{ .Values.sidecar.datasources.label }}"
+      {{- if .Values.sidecar.datasources.labelValue }}
+      - name: LABEL_VALUE
+        value: {{ quote .Values.sidecar.datasources.labelValue }}
+      {{- end }}
       - name: FOLDER
         value: "/etc/grafana/provisioning/datasources"
       - name: RESOURCE
@@ -163,6 +177,10 @@ containers:
         value: {{ .Values.sidecar.dashboards.watchMethod }}
       - name: LABEL
         value: "{{ .Values.sidecar.dashboards.label }}"
+      {{- if .Values.sidecar.dashboards.labelValue }}
+      - name: LABEL_VALUE
+        value: {{ quote .Values.sidecar.dashboards.labelValue }}
+      {{- end }}
       - name: FOLDER
         value: "{{ .Values.sidecar.dashboards.folder }}{{- with .Values.sidecar.dashboards.defaultFolderName }}/{{ . }}{{- end }}"
       - name: RESOURCE
@@ -178,6 +196,10 @@ containers:
       {{- if .Values.sidecar.skipTlsVerify }}
       - name: SKIP_TLS_VERIFY
         value: "{{ .Values.sidecar.skipTlsVerify }}"
+      {{- end }}
+      {{- if .Values.sidecar.dashboards.folderAnnotation }}
+      - name: FOLDER_ANNOTATION
+        value: "{{ .Values.sidecar.dashboards.folderAnnotation }}"
       {{- end }}
     resources:
 {{ toYaml .Values.sidecar.resources | indent 6 }}
@@ -198,6 +220,10 @@ containers:
       - {{ . }}
     {{- end }}
   {{- end}}
+{{- if .Values.containerSecurityContext }}
+    securityContext:
+{{- toYaml .Values.containerSecurityContext | nindent 6 }}
+{{- end }}
     volumeMounts:
       - name: config
         mountPath: "/etc/grafana/grafana.ini"
@@ -324,14 +350,20 @@ containers:
             name: {{ .Values.smtp.existingSecret }}
             key: {{ .Values.smtp.passwordKey | default "password" }}
       {{- end }}
+      {{ if .Values.imageRenderer.enabled }}
+      - name: GF_RENDERING_SERVER_URL
+        value: http://{{ template "grafana.fullname" . }}-image-renderer.{{ template "grafana.namespace" . }}:{{ .Values.imageRenderer.service.port }}/render
+      - name: GF_RENDERING_CALLBACK_URL
+        value: http://{{ template "grafana.fullname" . }}.{{ template "grafana.namespace" . }}:{{ .Values.service.port }}/{{ .Values.imageRenderer.grafanaSubPath }}
+      {{ end }}
     {{- range $key, $value := .Values.envValueFrom }}
       - name: {{ $key | quote }}
         valueFrom:
 {{ toYaml $value | indent 10 }}
     {{- end }}
 {{- range $key, $value := .Values.env }}
-      - name: "{{ $key }}"
-        value: "{{ $value }}"
+      - name: "{{ tpl $key $ }}"
+        value: "{{ tpl (print $value) $ }}"
 {{- end }}
     {{- if .Values.envFromSecret }}
     envFrom:
@@ -408,7 +440,15 @@ volumes:
 # nothing
 {{- else }}
   - name: storage
+{{- if .Values.persistence.inMemory.enabled }}
+    emptyDir:
+      medium: Memory
+{{- if .Values.persistence.inMemory.sizeLimit }}
+      sizeLimit: {{ .Values.persistence.inMemory.sizeLimit }}
+{{- end -}}
+{{- else }}
     emptyDir: {}
+{{- end -}}
 {{- end -}}
 {{- if .Values.sidecar.dashboards.enabled }}
   - name: sc-dashboard-volume
@@ -428,10 +468,18 @@ volumes:
     emptyDir: {}
 {{- end -}}
 {{- range .Values.extraSecretMounts }}
+{{- if .secretName }}
   - name: {{ .name }}
     secret:
       secretName: {{ .secretName }}
       defaultMode: {{ .defaultMode }}
+{{- else if .projected }}
+  - name: {{ .name }}
+    projected: {{- toYaml .projected | nindent 6 }}
+{{- else if .csi }}
+  - name: {{ .name }}
+    csi: {{- toYaml .csi | nindent 6 }}
+{{- end }}
 {{- end }}
 {{- range .Values.extraVolumeMounts }}
   - name: {{ .name }}

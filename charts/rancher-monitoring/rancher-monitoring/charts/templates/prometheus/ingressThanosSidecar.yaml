@@ -1,9 +1,14 @@
 {{- if and .Values.prometheus.enabled .Values.prometheus.thanosIngress.enabled }}
+{{- $pathType := .Values.prometheus.thanosIngress.pathType | default "" }}
 {{- $serviceName := printf "%s-%s" (include "kube-prometheus-stack.fullname" .) "prometheus" }}
 {{- $thanosPort := .Values.prometheus.thanosIngress.servicePort -}}
 {{- $routePrefix := list .Values.prometheus.prometheusSpec.routePrefix }}
 {{- $paths := .Values.prometheus.thanosIngress.paths | default $routePrefix -}}
+{{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1beta1" }}
+apiVersion: networking.k8s.io/v1beta1
+{{ else }}
 apiVersion: extensions/v1beta1
+{{ end -}}
 kind: Ingress
 metadata:
 {{- if .Values.prometheus.thanosIngress.annotations }}
@@ -18,6 +23,11 @@ metadata:
 {{ toYaml .Values.prometheus.thanosIngress.labels | indent 4 }}
 {{- end }}
 spec:
+  {{- if or (.Capabilities.APIVersions.Has "networking.k8s.io/v1") (.Capabilities.APIVersions.Has "networking.k8s.io/v1beta1") }}
+  {{- if .Values.prometheus.thanosIngress.ingressClassName }}
+  ingressClassName: {{ .Values.prometheus.thanosIngress.ingressClassName }}
+  {{- end }}
+  {{- end }}
   rules:
   {{- if .Values.prometheus.thanosIngress.hosts }}
   {{- range $host := .Values.prometheus.thanosIngress.hosts }}
@@ -26,6 +36,9 @@ spec:
         paths:
   {{- range $p := $paths }}
           - path: {{ tpl $p $ }}
+            {{- if $pathType }}
+            pathType: {{ $pathType }}
+            {{- end }}
             backend:
               serviceName: {{ $serviceName }}
               servicePort: {{ $thanosPort }}
@@ -36,6 +49,9 @@ spec:
         paths:
   {{- range $p := $paths }}
           - path: {{ tpl $p $ }}
+            {{- if $pathType }}
+            pathType: {{ $pathType }}
+            {{- end }}
             backend:
               serviceName: {{ $serviceName }}
               servicePort: {{ $thanosPort }}

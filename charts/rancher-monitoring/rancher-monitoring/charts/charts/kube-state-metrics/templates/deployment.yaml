@@ -12,6 +12,7 @@ metadata:
     helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
     app.kubernetes.io/instance: "{{ .Release.Name }}"
     app.kubernetes.io/managed-by: "{{ .Release.Service }}"
+    app.kubernetes.io/version: "{{ .Chart.AppVersion }}"
 {{- if .Values.customLabels }}
 {{ toYaml .Values.customLabels | indent 4 }}
 {{- end }}
@@ -63,6 +64,11 @@ spec:
               fieldPath: metadata.namespace
 {{- end }}
         args:
+{{  if .Values.extraArgs  }}
+        {{- range .Values.extraArgs  }}
+        - {{ . }}
+        {{- end  }}
+{{  end  }}
 {{  if .Values.collectors.certificatesigningrequests  }}
         - --collectors=certificatesigningrequests
 {{  end  }}
@@ -148,12 +154,25 @@ spec:
         - --collectors=volumeattachments
 {{  end  }}
 {{ if .Values.namespace }}
-        - --namespace={{ .Values.namespace }}
+        - --namespace={{ .Values.namespace | join "," }}
 {{ end }}
 {{ if .Values.autosharding.enabled }}
         - --pod=$(POD_NAME)
         - --pod-namespace=$(POD_NAMESPACE)
 {{ end }}
+{{ if .Values.kubeconfig.enabled }}
+        - --kubeconfig=/opt/k8s/.kube/config
+{{ end }}
+{{ if .Values.selfMonitor.telemetryHost }}
+        - --telemetry-host={{ .Values.selfMonitor.telemetryHost }}
+{{ end }}
+        - --telemetry-port=8081
+{{- if .Values.kubeconfig.enabled }}
+        volumeMounts:
+        - name: kubeconfig
+          mountPath: /opt/k8s/.kube/
+          readOnly: true
+{{- end }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         image: "{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         ports:
@@ -189,4 +208,10 @@ spec:
       tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
 {{- if .Values.tolerations }}
 {{ toYaml .Values.tolerations | indent 8 }}
+{{- end }}
+{{- if .Values.kubeconfig.enabled}}
+      volumes:
+        - name: kubeconfig
+          secret:
+            secretName: {{ template "kube-state-metrics.fullname" . }}-kubeconfig
 {{- end }}

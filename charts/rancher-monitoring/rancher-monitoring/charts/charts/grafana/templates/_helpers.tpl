@@ -1,3 +1,32 @@
+# Rancher
+{{- define "system_default_registry" -}}
+{{- if .Values.global.cattle.systemDefaultRegistry -}}
+{{- printf "%s/" .Values.global.cattle.systemDefaultRegistry -}}
+{{- end -}}
+{{- end -}}
+
+# Windows Support
+
+{{/*
+Windows cluster will add default taint for linux nodes,
+add below linux tolerations to workloads could be scheduled to those linux nodes
+*/}}
+
+{{- define "linux-node-tolerations" -}}
+- key: "cattle.io/os"
+  value: "linux"
+  effect: "NoSchedule"
+  operator: "Equal"
+{{- end -}}
+
+{{- define "linux-node-selector" -}}
+{{- if semverCompare "<1.14-0" .Capabilities.KubeVersion.GitVersion -}}
+beta.kubernetes.io/os: linux
+{{- else -}}
+kubernetes.io/os: linux
+{{- end -}}
+{{- end -}}
+
 {{/* vim: set filetype=mustache: */}}
 {{/*
 Expand the name of the chart.
@@ -71,6 +100,9 @@ helm.sh/chart: {{ include "grafana.chart" . }}
 app.kubernetes.io/version: {{ .Values.image.tag | default .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- if .Values.extraLabels }}
+{{ toYaml .Values.extraLabels }}
+{{- end }}
 {{- end -}}
 
 {{/*
@@ -79,4 +111,35 @@ Selector labels
 {{- define "grafana.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "grafana.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end -}}
+
+{{/*
+Common labels
+*/}}
+{{- define "grafana.imageRenderer.labels" -}}
+helm.sh/chart: {{ include "grafana.chart" . }}
+{{ include "grafana.imageRenderer.selectorLabels" . }}
+{{- if or .Chart.AppVersion .Values.image.tag }}
+app.kubernetes.io/version: {{ .Values.image.tag | default .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end -}}
+
+{{/*
+Selector labels ImageRenderer
+*/}}
+{{- define "grafana.imageRenderer.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "grafana.name" . }}-image-renderer
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end -}}
+
+{{/*
+Return the appropriate apiVersion for rbac.
+*/}}
+{{- define "rbac.apiVersion" -}}
+{{- if .Capabilities.APIVersions.Has "rbac.authorization.k8s.io/v1" }}
+{{- print "rbac.authorization.k8s.io/v1" -}}
+{{- else -}}
+{{- print "rbac.authorization.k8s.io/v1beta1" -}}
+{{- end -}}
 {{- end -}}

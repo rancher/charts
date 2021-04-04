@@ -1,8 +1,12 @@
+global:
+  cattle:
+    systemDefaultRegistry: ""
+
 # Default values for kube-state-metrics.
 prometheusScrape: true
 image:
-  repository: rancher/mirrored-coreos-kube-state-metrics
-  tag: v1.9.7
+  repository: rancher/mirrored-kube-state-metrics-kube-state-metrics
+  tag: v1.9.8
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
@@ -16,6 +20,11 @@ autosharding:
   enabled: false
 
 replicas: 1
+
+# List of additional cli arguments to configure kube-state-metrics
+# for example: --enable-gzip-encoding, --log-file, etc.
+# all the possible args can be found here: https://github.com/kubernetes/kube-state-metrics/blob/master/docs/cli-arguments.md
+extraArgs: []
 
 service:
   port: 8080
@@ -32,6 +41,12 @@ hostNetwork: false
 rbac:
   # If true, create & use RBAC resources
   create: true
+
+  # Set to a rolename to use existing role - skipping role creating - but still doing serviceaccount and rolebinding to it, rolename set here.
+  # useExistingRole: your-existing-role
+
+  # If set to false - Run without Cluteradmin privs needed - ONLY works if namespace is also set (if useExistingRole is set this name is used as ClusterRole or Role to bind to)
+  useClusterRole: true
 
 serviceAccount:
   # Specifies whether a ServiceAccount should be created, require rbac true
@@ -131,6 +146,12 @@ collectors:
   verticalpodautoscalers: false
   volumeattachments: true
 
+# Enabling kubeconfig will pass the --kubeconfig argument to the container
+kubeconfig:
+  enabled: false
+  # base64 encoded kube-config file
+  secret:
+
 # Namespace to be enabled for collecting resources. By default all namespaces are collected.
 # namespace: ""
 
@@ -154,3 +175,10 @@ resources: {}
 ## For example: kubeTargetVersionOverride: 1.14.9
 ##
 kubeTargetVersionOverride: ""
+
+# Enable self metrics configuration for service and Service Monitor
+# Default values for telemetry configuration can be overriden
+selfMonitor:
+  enabled: false
+  # telemetryHost: 0.0.0.0
+  # telemetryPort: 8081

@@ -1,4 +1,5 @@
 {{- if and .Values.alertmanager.enabled .Values.alertmanager.ingress.enabled }}
+{{- $pathType := .Values.alertmanager.ingress.pathType | default "" }}
 {{- $serviceName := printf "%s-%s" (include "kube-prometheus-stack.fullname" .) "alertmanager" }}
 {{- $servicePort := .Values.alertmanager.service.port -}}
 {{- $routePrefix := list .Values.alertmanager.alertmanagerSpec.routePrefix }}
@@ -23,6 +24,11 @@ metadata:
 {{- end }}
 {{ include "kube-prometheus-stack.labels" . | indent 4 }}
 spec:
+  {{- if or (.Capabilities.APIVersions.Has "networking.k8s.io/v1") (.Capabilities.APIVersions.Has "networking.k8s.io/v1beta1") }}
+  {{- if .Values.alertmanager.ingress.ingressClassName }}
+  ingressClassName: {{ .Values.alertmanager.ingress.ingressClassName }}
+  {{- end }}
+  {{- end }}
   rules:
   {{- if .Values.alertmanager.ingress.hosts }}
   {{- range $host := .Values.alertmanager.ingress.hosts }}
@@ -31,6 +37,9 @@ spec:
         paths:
   {{- range $p := $paths }}
           - path: {{ tpl $p $ }}
+            {{- if $pathType }}
+            pathType: {{ $pathType }}
+            {{- end }}
             backend:
               serviceName: {{ $serviceName }}
               servicePort: {{ $servicePort }}
@@ -41,6 +50,9 @@ spec:
         paths:
   {{- range $p := $paths }}
           - path: {{ tpl $p $ }}
+            {{- if $pathType }}
+            pathType: {{ $pathType }}
+            {{- end }}
             backend:
               serviceName: {{ $serviceName }}
               servicePort: {{ $servicePort }}
@@ -48,6 +60,6 @@ spec:
   {{- end -}}
   {{- if .Values.alertmanager.ingress.tls }}
   tls:
-{{ toYaml .Values.alertmanager.ingress.tls | indent 4 }}
+{{ tpl (toYaml .Values.alertmanager.ingress.tls | indent 4) . }}
   {{- end -}}
 {{- end -}}
