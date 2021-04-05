@@ -12,3 +12,24 @@
            {{- end }}
            imagePullPolicy: {{ .Values.imageRenderer.image.pullPolicy }}
          {{- if .Values.imageRenderer.command }}
+@@ -97,16 +97,16 @@
+           resources:
+ {{ toYaml . | indent 12 }}
+       {{- end }}
+-      {{- with .Values.imageRenderer.nodeSelector }}
+-      nodeSelector:
++      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
++      {{- if .Values.imageRenderer.nodeSelector }}
+ {{ toYaml . | indent 8 }}
+       {{- end }}
+       {{- with .Values.imageRenderer.affinity }}
+       affinity:
+ {{ toYaml . | indent 8 }}
+       {{- end }}
+-      {{- with .Values.imageRenderer.tolerations }}
+-      tolerations:
++      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
++      {{- if .Values.imageRenderer.tolerations }}
+ {{ toYaml . | indent 8 }}
+       {{- end }}
+       volumes:
