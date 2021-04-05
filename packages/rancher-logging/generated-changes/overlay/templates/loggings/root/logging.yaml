@@ -8,6 +8,21 @@ metadata:
 {{ include "logging-operator.labels" . | indent 4 }}
 spec:
   controlNamespace: {{ .Release.Namespace }}
+  {{- if .Values.global.windows.enabled }}
+  nodeAgents:
+    - name: win-agent
+      profile: windows
+      nodeAgentFluentbit:
+        daemonSet:
+          spec:
+            template:
+              spec:
+                containers:
+                - image: "{{ .Values.images.nodeagent_fluentbit.repository }}:{{ .Values.images.nodeagent_fluentbit.tag }}"
+                  name: fluent-bit
+        tls:
+          enabled: {{ .Values.nodeAgents.tls.enabled | default false }}
+  {{- end }}
   fluentbit:
     image:
       repository: {{ template "system_default_registry" . }}{{ .Values.images.fluentbit.repository }}
