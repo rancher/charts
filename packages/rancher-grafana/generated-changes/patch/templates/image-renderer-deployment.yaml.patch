@@ -1,6 +1,15 @@
 --- charts-original/templates/image-renderer-deployment.yaml
 +++ charts/templates/image-renderer-deployment.yaml
-@@ -63,9 +63,9 @@
+@@ -42,6 +42,8 @@
+       {{- end }}
+       {{- if .Values.imageRenderer.serviceAccountName }}
+       serviceAccountName: "{{ .Values.imageRenderer.serviceAccountName }}"
++      {{- else }}
++      serviceAccountName: {{ template "grafana.serviceAccountName" . }}
+       {{- end }}
+       {{- if .Values.imageRenderer.securityContext }}
+       securityContext:
+@@ -63,9 +65,9 @@
        containers:
          - name: {{ .Chart.Name }}-image-renderer
            {{- if .Values.imageRenderer.image.sha }}
@@ -12,7 +21,7 @@
            {{- end }}
            imagePullPolicy: {{ .Values.imageRenderer.image.pullPolicy }}
          {{- if .Values.imageRenderer.command }}
-@@ -97,16 +97,16 @@
+@@ -97,16 +99,16 @@
            resources:
  {{ toYaml . | indent 12 }}
        {{- end }}
