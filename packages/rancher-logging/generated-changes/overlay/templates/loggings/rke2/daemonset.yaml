@@ -18,9 +18,17 @@ spec:
       containers:
         - name: fluentd
           image: "{{ template "system_default_registry" . }}{{ .Values.images.fluentbit.repository }}:{{ .Values.images.fluentbit.tag }}"
+          {{- if .Values.global.seLinux.enabled }}
+          securityContext:
+            seLinuxOptions:
+              type: rke_logreader_t
+          {{- end }}
           volumeMounts:
             - mountPath: /fluent-bit/etc/
               name: config
+            - mountPath: /run/log/journal
+              name: journal
+              readOnly: true
       {{- with .Values.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
@@ -34,6 +42,9 @@ spec:
         - name: config
           configMap:
             name: "{{ .Release.Name }}-rke2"
+        - name: journal
+          hostPath:
+            path: /run/log/journal
 ---
 apiVersion: v1
 kind: ServiceAccount
