@@ -12,9 +12,9 @@
            {{- end }}
            imagePullPolicy: "{{ .Values.prometheusOperator.image.pullPolicy }}"
            args:
-@@ -64,14 +64,14 @@
-             - --logtostderr=true
-             - --localhost=127.0.0.1
+@@ -66,9 +66,9 @@
+             - --alertmanager-default-base-image={{ .Values.prometheusOperator.alertmanagerDefaultBaseImage }}
+             {{- end }}
              {{- if .Values.prometheusOperator.prometheusConfigReloaderImage.sha }}
 -            - --prometheus-config-reloader={{ .Values.prometheusOperator.prometheusConfigReloaderImage.repository }}:{{ .Values.prometheusOperator.prometheusConfigReloaderImage.tag }}@sha256:{{ .Values.prometheusOperator.prometheusConfigReloaderImage.sha }}
 +            - --prometheus-config-reloader={{ template "system_default_registry" . }}{{ .Values.prometheusOperator.prometheusConfigReloaderImage.repository }}:{{ .Values.prometheusOperator.prometheusConfigReloaderImage.tag }}@sha256:{{ .Values.prometheusOperator.prometheusConfigReloaderImage.sha }}
@@ -22,27 +22,8 @@
 -            - --prometheus-config-reloader={{ .Values.prometheusOperator.prometheusConfigReloaderImage.repository }}:{{ .Values.prometheusOperator.prometheusConfigReloaderImage.tag }}
 +            - --prometheus-config-reloader={{ template "system_default_registry" . }}{{ .Values.prometheusOperator.prometheusConfigReloaderImage.repository }}:{{ .Values.prometheusOperator.prometheusConfigReloaderImage.tag }}
              {{- end }}
-             {{- if .Values.prometheusOperator.configmapReloadImage.sha }}
--            - --config-reloader-image={{ .Values.prometheusOperator.configmapReloadImage.repository }}:{{ .Values.prometheusOperator.configmapReloadImage.tag }}@sha256:{{ .Values.prometheusOperator.configmapReloadImage.sha }}
-+            - --config-reloader-image={{ template "system_default_registry" . }}{{ .Values.prometheusOperator.configmapReloadImage.repository }}:{{ .Values.prometheusOperator.configmapReloadImage.tag }}@sha256:{{ .Values.prometheusOperator.configmapReloadImage.sha }}
-             {{- else }}
--            - --config-reloader-image={{ .Values.prometheusOperator.configmapReloadImage.repository }}:{{ .Values.prometheusOperator.configmapReloadImage.tag }}
-+            - --config-reloader-image={{ template "system_default_registry" . }}{{ .Values.prometheusOperator.configmapReloadImage.repository }}:{{ .Values.prometheusOperator.configmapReloadImage.tag }}
-             {{- end }}
              - --config-reloader-cpu={{ .Values.prometheusOperator.configReloaderCpu }}
              - --config-reloader-memory={{ .Values.prometheusOperator.configReloaderMemory }}
-@@ -89,9 +89,9 @@
-         {{- if .Values.prometheusOperator.tlsProxy.enabled }}
-         - name: tls-proxy
-           {{- if .Values.prometheusOperator.tlsProxy.image.sha }}
--          image: {{ .Values.prometheusOperator.tlsProxy.image.repository }}:{{ .Values.prometheusOperator.tlsProxy.image.tag }}@sha256:{{ .Values.prometheusOperator.tlsProxy.image.sha }}
-+          image: {{ template "system_default_registry" . }}{{ .Values.prometheusOperator.tlsProxy.image.repository }}:{{ .Values.prometheusOperator.tlsProxy.image.tag }}@sha256:{{ .Values.prometheusOperator.tlsProxy.image.sha }}
-           {{- else }}
--          image: {{ .Values.prometheusOperator.tlsProxy.image.repository }}:{{ .Values.prometheusOperator.tlsProxy.image.tag }}
-+          image: {{ template "system_default_registry" . }}{{ .Values.prometheusOperator.tlsProxy.image.repository }}:{{ .Values.prometheusOperator.tlsProxy.image.tag }}
-           {{- end }}
-           imagePullPolicy: {{ .Values.prometheusOperator.tlsProxy.image.pullPolicy }}
-           args:
 @@ -130,16 +130,16 @@
        hostNetwork: true
        dnsPolicy: ClusterFirstWithHostNet
