@@ -4,8 +4,8 @@
  {{ toYaml .Values.prometheus.prometheusSpec.apiserverConfig | indent 4}}
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.image }}
--  baseImage: {{ .Values.prometheus.prometheusSpec.image.repository }}
-+  baseImage: {{ template "system_default_registry" . }}{{ .Values.prometheus.prometheusSpec.image.repository }}
+-  image: {{ .Values.prometheus.prometheusSpec.image.repository }}:{{ .Values.prometheus.prometheusSpec.image.tag }}
++  image: {{ template "system_default_registry" . }}{{ .Values.prometheus.prometheusSpec.image.repository }}:{{ .Values.prometheus.prometheusSpec.image.tag }}
    version: {{ .Values.prometheus.prometheusSpec.image.tag }}
    {{- if .Values.prometheus.prometheusSpec.image.sha }}
    sha: {{ .Values.prometheus.prometheusSpec.image.sha }}
@@ -22,8 +22,8 @@
  {{ toYaml .Values.prometheus.prometheusSpec.nodeSelector | indent 4 }}
  {{- end }}
    paused: {{ .Values.prometheus.prometheusSpec.paused }}
-@@ -196,8 +199,8 @@
-               prometheus: {{ template "kube-prometheus-stack.fullname" . }}-prometheus
+@@ -216,8 +219,8 @@
+               - {key: prometheus, operator: In, values: [{{ template "kube-prometheus-stack.fullname" . }}-prometheus]}
  {{- end }}
  {{- end }}
 +  tolerations: {{ include "linux-node-tolerations" . | nindent 4 }}
@@ -31,8 +31,8 @@
 -  tolerations:
  {{ toYaml .Values.prometheus.prometheusSpec.tolerations | indent 4 }}
  {{- end }}
- {{- if .Values.global.imagePullSecrets }}
-@@ -226,7 +229,7 @@
+ {{- if .Values.prometheus.prometheusSpec.topologySpreadConstraints }}
+@@ -250,7 +253,7 @@
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.containers }}
    containers:
@@ -41,16 +41,16 @@
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.initContainers }}
    initContainers:
-@@ -242,6 +245,7 @@
+@@ -266,6 +269,7 @@
  {{- if .Values.prometheus.prometheusSpec.disableCompaction }}
    disableCompaction: {{ .Values.prometheus.prometheusSpec.disableCompaction }}
  {{- end }}
 +{{- if .Values.prometheus.prometheusSpec.portName }}
    portName: {{ .Values.prometheus.prometheusSpec.portName }}
  {{- end }}
- {{- if .Values.prometheus.prometheusSpec.enforcedNamespaceLabel }}
-@@ -255,3 +259,4 @@
-   volumeMounts:
- {{ toYaml .Values.prometheus.prometheusSpec.volumeMounts | indent 4 }}
+ {{- if .Values.prometheus.prometheusSpec.volumes }}
+@@ -310,3 +314,4 @@
+ {{- if .Values.prometheus.prometheusSpec.allowOverlappingBlocks }}
+   allowOverlappingBlocks: {{ .Values.prometheus.prometheusSpec.allowOverlappingBlocks }}
  {{- end }}
 +{{- end }}
