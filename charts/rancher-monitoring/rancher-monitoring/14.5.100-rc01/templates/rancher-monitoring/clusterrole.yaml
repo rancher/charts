@@ -1,0 +1,131 @@
+{{- if and .Values.global.rbac.create .Values.global.rbac.userRoles.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: monitoring-admin
+  labels: {{ include "kube-prometheus-stack.labels" . | nindent 4 }}
+  {{- if .Values.global.rbac.userRoles.aggregateToDefaultRoles }}
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+  {{- end }}
+rules:
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - alertmanagers
+  - prometheuses
+  - prometheuses/finalizers
+  - alertmanagers/finalizers
+  verbs:
+  - 'get'
+  - 'list'
+  - 'watch'
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - thanosrulers
+  - thanosrulers/finalizers
+  - servicemonitors
+  - podmonitors
+  - prometheusrules
+  - podmonitors
+  - probes
+  - probes/finalizers
+  - alertmanagerconfigs
+  verbs:
+  - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: monitoring-edit
+  labels: {{ include "kube-prometheus-stack.labels" . | nindent 4 }}
+  {{- if .Values.global.rbac.userRoles.aggregateToDefaultRoles }}
+    rbac.authorization.k8s.io/aggregate-to-edit: "true"
+  {{- end }}
+rules:
+rules:
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - alertmanagers
+  - prometheuses
+  - prometheuses/finalizers
+  - alertmanagers/finalizers
+  verbs:
+  - 'get'
+  - 'list'
+  - 'watch'
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - thanosrulers
+  - thanosrulers/finalizers
+  - servicemonitors
+  - podmonitors
+  - prometheusrules
+  - podmonitors
+  - probes
+  - alertmanagerconfigs
+  verbs:
+  - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: monitoring-view
+  labels: {{ include "kube-prometheus-stack.labels" . | nindent 4 }}
+  {{- if .Values.global.rbac.userRoles.aggregateToDefaultRoles }}
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
+  {{- end }}
+rules:
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - alertmanagers
+  - prometheuses
+  - prometheuses/finalizers
+  - alertmanagers/finalizers
+  - thanosrulers
+  - thanosrulers/finalizers
+  - servicemonitors
+  - podmonitors
+  - prometheusrules
+  - podmonitors
+  - probes
+  - probes/finalizers
+  - alertmanagerconfigs
+  verbs:
+  - 'get'
+  - 'list'
+  - 'watch'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: monitoring-ui-view
+  labels: {{ include "kube-prometheus-stack.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - services/proxy
+  resourceNames:
+  - "http:{{ template "kube-prometheus-stack.fullname" . }}-prometheus:{{ .Values.prometheus.service.port }}"
+  - "https:{{ template "kube-prometheus-stack.fullname" . }}-prometheus:{{ .Values.prometheus.service.port }}"
+  - "http:{{ template "kube-prometheus-stack.fullname" . }}-alertmanager:{{ .Values.alertmanager.service.port }}"
+  - "https:{{ template "kube-prometheus-stack.fullname" . }}-alertmanager:{{ .Values.alertmanager.service.port }}"
+  - "http:{{ include "call-nested" (list . "grafana" "grafana.fullname") }}:{{ .Values.grafana.service.port }}"
+  - "https:{{ include "call-nested" (list . "grafana" "grafana.fullname") }}:{{ .Values.grafana.service.port }}"
+  verbs:
+  - 'get'
+- apiGroups:
+  - ""
+  resourceNames:
+  - {{ template "kube-prometheus-stack.fullname" . }}-prometheus
+  - {{ template "kube-prometheus-stack.fullname" . }}-alertmanager
+  - {{ include "call-nested" (list . "grafana" "grafana.fullname") }}
+  resources:
+  - endpoints
+  verbs:
+  - list
+{{- end }}
