@@ -1,0 +1,81 @@
+{{- if .Values.global.rbac.pspEnabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: istio-psp
+  namespace: {{ template "istio.namespace" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: istio-psp
+subjects:
+  - kind: ServiceAccount
+    name: istio-egressgateway-service-account
+  - kind: ServiceAccount
+    name: istio-ingressgateway-service-account
+  - kind: ServiceAccount
+    name: istio-mixer-service-account
+  - kind: ServiceAccount
+    name: istio-operator-authproxy
+  - kind: ServiceAccount
+    name: istiod-service-account
+  - kind: ServiceAccount
+    name: istio-sidecar-injector-service-account
+  - kind: ServiceAccount
+    name: istiocoredns-service-account
+  - kind: ServiceAccount
+    name: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: istio-psp
+  namespace: {{ template "istio.namespace" . }}
+rules:
+- apiGroups:
+  - policy
+  resourceNames:
+  - istio-psp
+  resources:
+  - podsecuritypolicies
+  verbs:
+  - use
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: istio-psp
+  namespace: {{ template "istio.namespace" . }}
+spec:
+  allowPrivilegeEscalation: false
+  forbiddenSysctls:
+  - '*'
+  fsGroup:
+      ranges:
+        - max: 65535
+          min: 1
+      rule: MustRunAs
+  requiredDropCapabilities:
+  - ALL
+  runAsUser:
+      rule: MustRunAsNonRoot
+  runAsGroup:
+      rule: MustRunAs
+      ranges:
+      - min: 1
+        max: 65535
+  seLinux:
+      rule: RunAsAny
+  supplementalGroups:
+      ranges:
+        - max: 65535
+          min: 1
+      rule: MustRunAs
+  volumes:
+  - configMap
+  - emptyDir
+  - projected
+  - secret
+  - downwardAPI
+  - persistentVolumeClaim
+{{- end }}
