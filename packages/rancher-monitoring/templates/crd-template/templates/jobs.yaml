@@ -7,7 +7,7 @@ metadata:
     app: {{ .Chart.Name }}
   annotations:
     "helm.sh/hook": post-install, post-upgrade, post-rollback
-    "helm.sh/hook-delete-policy": hook-succeeded
+    "helm.sh/hook-delete-policy": before-hook-creation, hook-succeeded, hook-failed
 spec:
   template:
     metadata:
@@ -19,6 +19,20 @@ spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
+      initContainers:
+        - name: delete-crds
+          image: {{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: IfNotPresent
+          command:
+          - /bin/kubectl
+          - delete
+          - --ignore-not-found=true
+          - -f
+          - /etc/config/crd-manifest.yaml
+          volumeMounts:
+            - name: crd-manifest
+              readOnly: true
+              mountPath: /etc/config
       containers:
         - name: create-crds
           image: {{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
@@ -49,7 +63,7 @@ metadata:
     app: {{ .Chart.Name }}
   annotations:
     "helm.sh/hook": pre-delete
-    "helm.sh/hook-delete-policy": hook-succeeded
+    "helm.sh/hook-delete-policy": before-hook-creation, hook-succeeded, hook-failed
 spec:
   template:
     metadata:
