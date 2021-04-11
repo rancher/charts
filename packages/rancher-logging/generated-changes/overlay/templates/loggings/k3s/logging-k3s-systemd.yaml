@@ -38,6 +38,10 @@ spec:
       {{- toYaml . | nindent 6 }}
   {{- end }}
   fluentd:
+    {{- if .Values.fluentd.replicas }}
+    scaling:
+      replicas: {{ .Values.fluentd.replicas }}
+    {{- end }}
     image:
       repository: {{ template "system_default_registry" . }}{{ .Values.images.fluentd.repository }}
       tag: {{ .Values.images.fluentd.tag }}
@@ -50,11 +54,11 @@ spec:
       podSecurityPolicyCreate: true
       roleBasedAccessControlCreate: true
     {{- end }}
-    {{- with .Values.tolerations }}
+    {{- with (default .Values.tolerations .Values.fluentd.tolerations) }}
     tolerations:
       {{- toYaml . | nindent 6 }}
     {{- end }}
-    {{- with .Values.nodeSelector }}
+    {{- with (default .Values.nodeSelector .Values.fluentd.nodeSelector) }}
     nodeSelector:
       {{- toYaml . | nindent 6 }}
     {{- end }}
@@ -65,4 +69,10 @@ spec:
     {{- with .Values.fluentd.livenessProbe }}
     livenessProbe: {{- toYaml . | nindent 6 }}
     {{- end }}
+    {{- if not .Values.disablePvc }}
+    {{- with .Values.fluentd.bufferStorageVolume }}
+    bufferStorageVolume:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- end }} 
 {{- end }}
