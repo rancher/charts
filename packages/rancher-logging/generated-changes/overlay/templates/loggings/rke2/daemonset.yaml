@@ -26,8 +26,11 @@ spec:
           volumeMounts:
             - mountPath: /fluent-bit/etc/
               name: config
-            - mountPath: /run/log/journal
+            - mountPath: {{ .Values.systemdLogPath | default "/var/log/journal" }}
               name: journal
+              readOnly: true
+            - mountPath: /etc/machine-id
+              name: machine-id
               readOnly: true
       {{- with .Values.tolerations }}
       tolerations:
@@ -44,7 +47,10 @@ spec:
             name: "{{ .Release.Name }}-rke2"
         - name: journal
           hostPath:
-            path: /run/log/journal
+            path: {{ .Values.systemdLogPath | default "/var/log/journal" }}
+        - name: machine-id
+          hostPath:
+            path: /etc/machine-id
 ---
 apiVersion: v1
 kind: ServiceAccount
