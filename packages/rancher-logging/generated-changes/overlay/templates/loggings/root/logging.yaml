@@ -18,10 +18,32 @@ spec:
             template:
               spec:
                 containers:
-                - image: "{{ .Values.images.nodeagent_fluentbit.repository }}:{{ .Values.images.nodeagent_fluentbit.tag }}"
+                - image: "{{ template "system_default_registry" . }}{{ .Values.images.nodeagent_fluentbit.repository }}:{{ .Values.images.nodeagent_fluentbit.tag }}"
                   name: fluent-bit
         tls:
           enabled: {{ .Values.nodeAgents.tls.enabled | default false }}
+    {{- if .Values.additionalLoggingSources.rke.enabled }}
+    - name: win-agent-rke
+      profile: windows
+      nodeAgentFluentbit:
+        filterKubernetes:
+          Kube_Tag_Prefix: "kuberentes.C.var.lib.rancher.rke.log."
+        inputTail:
+          Path: "C:\\var\\lib\\rancher\\rke\\log"
+        extraVolumeMounts:
+        - source: "/var/lib/rancher/rke/log"
+          destination: "/var/lib/rancher/rke/log"
+          readOnly: true
+        daemonSet:
+          spec:
+            template:
+              spec:
+                containers:
+                - image: "{{ template "system_default_registry" . }}{{ .Values.images.nodeagent_fluentbit.repository }}:{{ .Values.images.nodeagent_fluentbit.tag }}"
+                  name: fluent-bit
+        tls:
+          enabled: {{ .Values.nodeAgents.tls.enabled | default false }}
+    {{- end }}
   {{- end }}
   fluentbit:
     image:
