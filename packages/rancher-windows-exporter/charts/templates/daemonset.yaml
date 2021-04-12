@@ -44,6 +44,14 @@ spec:
         - name: wins-pipe
           mountPath: \\.\pipe\rancher_wins
       initContainers:
+      - name: check-wins-version
+        image: {{ template "system_default_registry" . }}{{ .Values.clients.image.repository }}:{{ .Values.clients.image.tag }}
+        command: ["pwsh", "-f", "c:/scripts/check-wins-version.ps1"]
+        volumeMounts:
+        - name: wins-pipe
+          mountPath: \\.\pipe\rancher_wins
+        - name: exporter-scripts
+          mountPath: c:/scripts/
       - name: exporter-node-binary-copy
         image: {{ template "system_default_registry" . }}{{ .Values.clients.image.repository }}:{{ .Values.clients.image.tag }}
         command: ["pwsh", "-f", "c:/scripts/copy-binary.ps1"]
