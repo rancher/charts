@@ -36,5 +36,9 @@ function Transfer-File
     $null = Copy-Item -Force -Path $Src -Destination $Dst
 }
 
+# Copy binary
 Create-Directory -Path "c:\host\etc\windows-exporter"
 Transfer-File -Src "c:\etc\windows-exporter\windows-exporter.exe" -Dst "c:\host\etc\windows-exporter\windows-exporter.exe"
+
+# Run wins
+Invoke-Expression -Command c:\entry.ps1

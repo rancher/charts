@@ -33,6 +33,7 @@ spec:
           mountPath: c:/scripts/
       - name: exporter-node
         image: {{ template "system_default_registry" . }}{{ .Values.clients.image.repository }}:{{ .Values.clients.image.tag }}
+        command: ["pwsh", "-f", "c:/scripts/run.ps1"]
 {{- if .Values.clients.args }}
         args: {{ .Values.clients.args }}
 {{- end }}
@@ -43,13 +44,17 @@ spec:
         volumeMounts:
         - name: wins-pipe
           mountPath: \\.\pipe\rancher_wins
-      initContainers:
-      - name: exporter-node-binary-copy
-        image: {{ template "system_default_registry" . }}{{ .Values.clients.image.repository }}:{{ .Values.clients.image.tag }}
-        command: ["pwsh", "-f", "c:/scripts/copy-binary.ps1"]
-        volumeMounts:
         - name: binary-host-path
           mountPath: c:/host/etc/windows-exporter
+        - name: exporter-scripts
+          mountPath: c:/scripts/
+      initContainers:
+      - name: check-wins-version
+        image: {{ template "system_default_registry" . }}{{ .Values.clients.image.repository }}:{{ .Values.clients.image.tag }}
+        command: ["pwsh", "-f", "c:/scripts/check-wins-version.ps1"]
+        volumeMounts:
+        - name: wins-pipe
+          mountPath: \\.\pipe\rancher_wins
         - name: exporter-scripts
           mountPath: c:/scripts/
       volumes:
