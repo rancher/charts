@@ -56,6 +56,18 @@ spec:
           {{- with .Values.resources }}
           resources: {{ toYaml .Values.resources | nindent 12 }}
           {{- end }}
+        - name: config-reloader
+          securityContext: {{ toYaml .Values.securityContext | nindent 12 }}
+          image: {{ include "system_default_registry" . }}{{ .Values.configReloader.repository }}:{{ .Values.configReloader.tag }}
+          imagePullPolicy: {{ .Values.configReloader.pullPolicy }}
+          args:
+            - -volume-dir=/watch-config
+            - -webhook-method=POST
+            - -webhook-status-code=200
+            - -webhook-url=http://127.0.0.1:{{ .Values.service.port }}/-/reload
+          volumeMounts:
+            - mountPath: /watch-config
+              name: config-volume
       volumes:
         - name: config-volume
           configMap:
