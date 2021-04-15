@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "prom2teams.fullname" . }}
+  namespace: {{ include "prom2teams.namespace" . }}
+  labels: {{ include "prom2teams.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "prom2teams.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "prom2teams.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ include "prom2teams.fullname" . }}
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{ toYaml . | nindent 8 }}
+    {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "prom2teams.fullname" . }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{ include "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8089
+              protocol: TCP
+          volumeMounts:
+            - name: config
+              mountPath: /opt/prom2teams/helmconfig/
+          env:
+          - name: APP_CONFIG_FILE
+            value: {{ .Values.prom2teams.config | quote }}
+          - name: PROM2TEAMS_PORT
+            value: {{ .Values.prom2teams.port | quote }}
+          - name: PROM2TEAMS_HOST
+            value: {{ .Values.prom2teams.ip | quote }}
+          - name: PROM2TEAMS_CONNECTOR
+            value: {{ .Values.prom2teams.connector | quote }}
+          - name: PROM2TEAMS_GROUP_ALERTS_BY
+            value: {{ .Values.prom2teams.group_alerts_by | quote }}
+          resources: {{ toYaml .Values.resources | nindent 12 }}
+        {{- if .Values.securityContext.enabled }}
+          securityContext:
+            privileged: false
+            readOnlyRootFilesystem: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+        {{- end }}
+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
+      {{- if .Values.nodeSelector }}
+      {{- toYaml .Values.nodeSelector | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity: {{ toYaml . | nindent 8 }}
+    {{- end }}
+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+      {{- if .Values.tolerations }}
+      {{- toYaml .Values.tolerations | nindent 8 }}
+      {{- end }}
+    {{- if .Values.securityContext.enabled }}
+      securityContext:
+        runAsNonRoot: {{ if eq (int .Values.securityContext.runAsUser) 0 }}false{{ else }}true{{ end }}
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.securityContext.runAsGroup }}
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+    {{- end }}
+
