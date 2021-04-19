@@ -15,11 +15,14 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 29,
+  "id": 28,
+  "iteration": 1618265214337,
   "links": [],
   "panels": [
     {
-      "aliasColors": {},
+      "aliasColors": {
+        "{{pod}}": "#3797d5"
+      },
       "bars": false,
       "dashLength": 10,
       "dashes": false,
@@ -63,10 +66,28 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "1 - (avg(irate(windows_cpu_time_total{mode=\"idle\"}[$__rate_interval])))",
+          "expr": "(sum(rate(container_cpu_cfs_throttled_seconds_total{namespace=~\"$namespace\"}[$__rate_interval])) by (pod)) * on(pod) kube_pod_info{namespace=~\"$namespace\", created_by_kind=\"$kind\", created_by_name=\"$workload\"}",
           "interval": "",
-          "legendFormat": "CPU usage",
+          "legendFormat": "CFS throttled ({{pod}})",
           "refId": "A"
+        },
+        {
+          "expr": "(sum(rate(container_cpu_system_seconds_total{namespace=~\"$namespace\"}[$__rate_interval])) by (pod) OR sum(rate(windows_container_cpu_usage_seconds_kernelmode{namespace=~\"$namespace\"}[$__rate_interval])) by (pod)) * on(pod) kube_pod_info{namespace=~\"$namespace\", created_by_kind=\"$kind\", created_by_name=\"$workload\"}",
+          "interval": "",
+          "legendFormat": "System ({{pod}})",
+          "refId": "B"
+        },
+        {
+          "expr": "(sum(rate(container_cpu_usage_seconds_total{namespace=~\"$namespace\"}[$__rate_interval])) by (pod) OR sum(rate(windows_container_cpu_usage_seconds_total{namespace=~\"$namespace\"}[$__rate_interval])) by (pod)) * on(pod) kube_pod_info{namespace=~\"$namespace\", created_by_kind=\"$kind\", created_by_name=\"$workload\"}",
+          "interval": "",
+          "legendFormat": "Total ({{pod}})",
+          "refId": "C"
+        },
+        {
+          "expr": "(sum(rate(container_cpu_user_seconds_total{namespace=~\"$namespace\"}[$__rate_interval])) by (pod) OR sum(rate(windows_container_cpu_usage_seconds_usermode{namespace=~\"$namespace\"}[$__rate_interval])) by (pod)) * on(pod) kube_pod_info{namespace=~\"$namespace\", created_by_kind=\"$kind\", created_by_name=\"$workload\"}",
+          "interval": "",
+          "legendFormat": "User ({{pod}})",
+          "refId": "D"
         }
       ],
       "thresholds": [],
@@ -89,120 +110,8 @@
       },
       "yaxes": [
         {
-          "decimals": 1,
-          "format": "percentunit",
-          "label": null,
-          "logBase": 1,
-          "max": "1",
-          "min": "0",
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": null,
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Load5({{instance}})"
-            },
-            "properties": []
-          }
-        ]
-      },
-      "fill": 0,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 8,
-        "y": 0
-      },
-      "hiddenSeries": false,
-      "id": 3,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": false,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "percentage": false,
-      "pluginVersion": "7.1.5",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "sum(avg_over_time(windows_system_processor_queue_length[5m])) by (instance)",
-          "interval": "",
-          "legendFormat": "Load5({{instance}})",
-          "refId": "A"
-        },
-        {
-          "expr": "sum(avg_over_time(windows_system_processor_queue_length[1m])) by (instance)",
-          "interval": "",
-          "legendFormat": "Load1({{instance}})",
-          "refId": "B"
-        },
-        {
-          "expr": "sum(avg_over_time(windows_system_processor_queue_length[15m])) by (instance)",
-          "interval": "",
-          "legendFormat": "Load15({{instance}})",
-          "refId": "C"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Load Average",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
+          "decimals": null,
+          "format": "cpu",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -224,7 +133,9 @@
       }
     },
     {
-      "aliasColors": {},
+      "aliasColors": {
+        "{{pod}}": "#3797d5"
+      },
       "bars": false,
       "dashLength": 10,
       "dashes": false,
@@ -240,7 +151,7 @@
       "gridPos": {
         "h": 7,
         "w": 8,
-        "x": 16,
+        "x": 8,
         "y": 0
       },
       "hiddenSeries": false,
@@ -268,9 +179,9 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "1 - sum(windows_os_physical_memory_free_bytes) / sum(windows_cs_physical_memory_bytes)",
+          "expr": "(sum(container_memory_working_set_bytes{namespace=~\"$namespace\"} OR windows_container_memory_usage_commit_bytes{namespace=~\"$namespace\"}) by (pod)) * on(pod) kube_pod_info{namespace=~\"$namespace\", created_by_kind=\"$kind\", created_by_name=\"$workload\"}",
           "interval": "",
-          "legendFormat": "Memory usage",
+          "legendFormat": "({{pod}})",
           "refId": "A"
         }
       ],
@@ -295,201 +206,7 @@
       "yaxes": [
         {
           "decimals": 1,
-          "format": "percentunit",
-          "label": null,
-          "logBase": 1,
-          "max": "1",
-          "min": "0",
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": null,
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "fill": 0,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 0,
-        "y": 7
-      },
-      "hiddenSeries": false,
-      "id": 5,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": false,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "percentage": false,
-      "pluginVersion": "7.1.5",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "1 - sum(windows_logical_disk_free_bytes{volume!~\"(HarddiskVolume.+|[A-Z]:.+)\"}) / sum(windows_logical_disk_size_bytes{volume!~\"(HarddiskVolume.+|[A-Z]:.+)\"})",
-          "interval": "",
-          "legendFormat": "Disk usage",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Disk Utilization",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "decimals": 1,
-          "format": "percentunit",
-          "label": null,
-          "logBase": 1,
-          "max": "1",
-          "min": "0",
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {
-        "{{instance}}": "#3797d5"
-      },
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": null,
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "fill": 0,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 8,
-        "y": 7
-      },
-      "hiddenSeries": false,
-      "id": 6,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": false,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "percentage": false,
-      "pluginVersion": "7.1.5",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "sum(irate(windows_logical_disk_read_bytes_total[$__rate_interval]))",
-          "interval": "",
-          "legendFormat": "Read",
-          "refId": "A"
-        },
-        {
-          "expr": "sum(irate(windows_logical_disk_write_bytes_total[$__rate_interval]))",
-          "interval": "",
-          "legendFormat": "Write",
-          "refId": "B"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Disk I/O",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "decimals": 1,
-          "format": "Bps",
+          "format": "kbytes",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -512,7 +229,7 @@
     },
     {
       "aliasColors": {
-        "{{instance}}": "#3797d5"
+        "{{pod}}": "#3797d5"
       },
       "bars": false,
       "dashLength": 10,
@@ -530,7 +247,7 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 7
+        "y": 0
       },
       "hiddenSeries": false,
       "id": 7,
@@ -557,39 +274,39 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(irate(windows_net_packets_received_errors{nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*'}[$__rate_interval]))",
+          "expr": "(sum(rate(container_network_receive_packets_total{namespace=~\"$namespace\"}[$__rate_interval])) by (pod) OR sum(rate(windows_container_network_receive_packets_total{namespace=~\"$namespace\"}[$__rate_interval])) by (pod)) * on(pod) kube_pod_info{namespace=~\"$namespace\", created_by_kind=\"$kind\", created_by_name=\"$workload\"}",
           "interval": "",
-          "legendFormat": "Receive errors",
+          "legendFormat": "Receive Total ({{pod}})",
           "refId": "A"
         },
         {
-          "expr": "sum(irate(windows_net_packets_received_total{nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*'}[$__rate_interval]))",
+          "expr": "(sum(rate(container_network_transmit_packets_total{namespace=~\"$namespace\"}[$__rate_interval])) by (pod) OR sum(rate(windows_container_network_transmit_packets_total{namespace=~\"$namespace\"}[$__rate_interval])) by (pod)) * on(pod) kube_pod_info{namespace=~\"$namespace\", created_by_kind=\"$kind\", created_by_name=\"$workload\"}",
           "interval": "",
-          "legendFormat": "Receive packets",
+          "legendFormat": "Transmit Total ({{pod}})",
           "refId": "B"
         },
         {
-          "expr": "sum(irate(windows_net_packets_outbound_errors{nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*'}[$__rate_interval]))",
+          "expr": "(sum(rate(container_network_receive_packets_dropped_total{namespace=~\"$namespace\"}[$__rate_interval])) by (pod) OR sum(rate(windows_container_network_receive_packets_dropped_total{namespace=~\"$namespace\"}[$__rate_interval])) by (pod)) * on(pod) kube_pod_info{namespace=~\"$namespace\", created_by_kind=\"$kind\", created_by_name=\"$workload\"}",
           "interval": "",
-          "legendFormat": "Transmit errors",
+          "legendFormat": "Receive Dropped ({{pod}})",
           "refId": "C"
         },
         {
-          "expr": "sum(irate(windows_net_packets_received_discarded{nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*'}[$__rate_interval]))",
+          "expr": "(sum(rate(container_network_receive_errors_total{namespace=~\"$namespace\"}[$__rate_interval])) by (pod)) * on(pod) kube_pod_info{namespace=~\"$namespace\", created_by_kind=\"$kind\", created_by_name=\"$workload\"}",
           "interval": "",
-          "legendFormat": "Receive dropped",
+          "legendFormat": "Receive Errors ({{pod}})",
           "refId": "D"
         },
         {
-          "expr": "sum(irate(windows_net_packets_outbound_discarded{nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*'}[$__rate_interval]))",
+          "expr": "(sum(rate(container_network_transmit_errors_total{namespace=~\"$namespace\"}[$__rate_interval])) by (pod)) * on(pod) kube_pod_info{namespace=~\"$namespace\", created_by_kind=\"$kind\", created_by_name=\"$workload\"}",
           "interval": "",
-          "legendFormat": "Transmit dropped",
+          "legendFormat": "Transmit Errors ({{pod}})",
           "refId": "E"
         },
         {
-          "expr": "sum(irate(windows_net_packets_sent_total{nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*'}[$__rate_interval]))",
+          "expr": "(sum(rate(container_network_transmit_packets_dropped_total{namespace=~\"$namespace\"}[$__rate_interval])) by (pod) OR sum(rate(windows_container_network_transmit_packets_dropped_total{namespace=~\"$namespace\"}[$__rate_interval])) by (pod)) * on(pod) kube_pod_info{namespace=~\"$namespace\", created_by_kind=\"$kind\", created_by_name=\"$workload\"}",
           "interval": "",
-          "legendFormat": "Transmit packets",
+          "legendFormat": "Transmit Dropped ({{pod}})",
           "refId": "F"
         }
       ],
@@ -597,7 +314,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Network Packets",
+      "title": "Network Traffic",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -637,7 +354,7 @@
     },
     {
       "aliasColors": {
-        "{{instance}}": "#3797d5"
+        "{{pod}}": "#3797d5"
       },
       "bars": false,
       "dashLength": 10,
@@ -655,7 +372,7 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 14
+        "y": 7
       },
       "hiddenSeries": false,
       "id": 8,
@@ -682,15 +399,15 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(irate(windows_net_packets_sent_total{nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*'}[$__rate_interval]))",
+          "expr": "(sum(rate(container_network_receive_bytes_total{namespace=~\"$namespace\"}[$__rate_interval])) by (pod) OR sum(rate(windows_container_network_receive_bytes_total{namespace=~\"$namespace\"}[$__rate_interval])) by (pod)) * on(pod) kube_pod_info{namespace=~\"$namespace\", created_by_kind=\"$kind\", created_by_name=\"$workload\"}",
           "interval": "",
-          "legendFormat": "Transmit",
+          "legendFormat": "Receive Total ({{pod}})",
           "refId": "A"
         },
         {
-          "expr": "sum(irate(windows_net_packets_received_total{nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*'}[$__rate_interval]))",
+          "expr": "(sum(rate(container_network_transmit_bytes_total{namespace=~\"$namespace\"}[$__rate_interval])) by (pod) OR sum(rate(windows_container_network_transmit_bytes_total{namespace=~\"$namespace\"}[$__rate_interval])) by (pod)) * on(pod) kube_pod_info{namespace=~\"$namespace\", created_by_kind=\"$kind\", created_by_name=\"$workload\"}",
           "interval": "",
-          "legendFormat": "Receive",
+          "legendFormat": "Transmit Total ({{pod}})",
           "refId": "B"
         }
       ],
@@ -735,16 +452,167 @@
         "align": false,
         "alignLevel": null
       }
+    },
+    {
+      "aliasColors": {
+        "{{pod}}": "#3797d5"
+      },
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 7
+      },
+      "hiddenSeries": false,
+      "id": 6,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": false,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.5",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "(sum(rate(container_fs_writes_bytes_total{namespace=~\"$namespace\"}[$__rate_interval])) by (pod)) * on(pod) kube_pod_info{namespace=~\"$namespace\", created_by_kind=\"$kind\", created_by_name=\"$workload\"}",
+          "interval": "",
+          "legendFormat": "Write ({{pod}})",
+          "refId": "A"
+        },
+        {
+          "expr": "(sum(rate(container_fs_reads_bytes_total{namespace=~\"$namespace\"}[$__rate_interval])) by (pod)) * on(pod) kube_pod_info{namespace=~\"$namespace\", created_by_kind=\"$kind\", created_by_name=\"$workload\"}",
+          "interval": "",
+          "legendFormat": "Read ({{pod}})",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Disk I/O",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 1,
+          "format": "Bps",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
     }
   ],
+  "refresh": false,
   "schemaVersion": 26,
   "style": "dark",
   "tags": [],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "allValue": null,
+        "hide": 0,
+        "includeAll": false,
+        "label": null,
+        "multi": false,
+        "name": "namespace",
+        "query": "query_result(kube_pod_info{namespace!=\"\"} * on(pod) group_right(namespace, created_by_kind, created_by_name) count({__name__=~\"container_.*|windows_container_.*\", pod!=\"\"}) by (pod))",
+        "refresh": 2,
+        "regex": "/.*namespace=\"([^\"]*)\"/",
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "hide": 0,
+        "includeAll": false,
+        "label": null,
+        "multi": false,
+        "name": "kind",
+        "query": "query_result(kube_pod_info{namespace=\"$namespace\", created_by_kind!=\"\"} * on(pod) group_right(namespace, created_by_kind, created_by_name) count({__name__=~\"container_.*|windows_container_.*\", pod!=\"\"}) by (pod))",
+        "refresh": 2,
+        "regex": "/.*created_by_kind=\"([^\"]*)\"/",
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "hide": 0,
+        "includeAll": false,
+        "label": null,
+        "multi": false,
+        "name": "workload",
+        "query": "query_result(kube_pod_info{namespace=\"$namespace\", created_by_kind=\"$kind\", created_by_name!=\"\"} * on(pod) group_right(namespace, created_by_kind, created_by_name) count({__name__=~\"container_.*|windows_container_.*\", pod!=\"\"}) by (pod))",
+        "refresh": 2,
+        "regex": "/.*created_by_name=\"([^\"]*)\"/",
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      }
+    ]
   },
   "time": {
-    "from": "now-5m",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {
@@ -762,7 +630,7 @@
     ]
   },
   "timezone": "",
-  "title": "Rancher / Windows / Cluster Metrics Summary",
-  "uid": "rancher-windows-summary-1",
-  "version": 3
+  "title": "Rancher / Workload (Pods)",
+  "uid": "rancher-workload-pods-1",
+  "version": 8
 }

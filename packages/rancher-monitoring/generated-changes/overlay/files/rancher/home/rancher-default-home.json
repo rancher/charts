@@ -98,7 +98,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "(1 - avg(irate(node_cpu_seconds_total{mode=\"idle\"}[5m]))) * 100",
+          "expr": "(1 - (avg(irate({__name__=~\"node_cpu_seconds_total|windows_cpu_time_total\",mode=\"idle\"}[5m])))) * 100",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -107,7 +107,7 @@
         }
       ],
       "thresholds": "65, 90",
-      "title": "CPU usage (5m avg)",
+      "title": "CPU Utilization",
       "type": "singlestat",
       "valueFontSize": "80%",
       "valueMaps": [
@@ -190,7 +190,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "(1 - sum(node_memory_MemAvailable_bytes{})/ sum(node_memory_MemTotal_bytes{})) * 100",
+          "expr": "(1 - sum({__name__=~\"node_memory_MemAvailable_bytes|windows_os_physical_memory_free_bytes\"}) / sum({__name__=~\"node_memory_MemTotal_bytes|windows_cs_physical_memory_bytes\"})) * 100",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -199,7 +199,7 @@
         }
       ],
       "thresholds": "65, 90",
-      "title": "Memory usage",
+      "title": "Memory Utilization",
       "type": "singlestat",
       "valueFontSize": "80%",
       "valueMaps": [
@@ -283,18 +283,17 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "(sum(node_filesystem_size_bytes{device!~\"rootfs|HarddiskVolume.+\"})\n     - sum(node_filesystem_free_bytes{device!~\"rootfs|HarddiskVolume.+\"})) / sum(node_filesystem_size_bytes{device!~\"rootfs|HarddiskVolume.+\"}) * 100",
+          "expr": "1 - (((sum(node_filesystem_free_bytes{device!~\"rootfs|HarddiskVolume.+\"}) OR on() vector(0)) + (sum(windows_logical_disk_free_bytes{volume!~\"(HarddiskVolume.+|[A-Z]:.+)\"}) OR on() vector(0))) / ((sum(node_filesystem_size_bytes{device!~\"rootfs|HarddiskVolume.+\"}) OR on() vector(0)) + (sum(windows_logical_disk_size_bytes{volume!~\"(HarddiskVolume.+|[A-Z]:.+)\"}) OR on() vector(0))))",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
-          "legendFormat": "",
           "metric": "",
           "refId": "A",
           "step": 10
         }
       ],
       "thresholds": "65, 90",
-      "title": "Filesystem usage",
+      "title": "Disk Utilization",
       "type": "singlestat",
       "valueFontSize": "80%",
       "valueMaps": [
@@ -378,7 +377,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "(1 - (avg(irate(node_cpu_seconds_total{mode=\"idle\"}[5m])))) * sum(kube_node_status_allocatable_cpu_cores{})",
+          "expr": "sum(irate({__name__=~\"node_cpu_seconds_total|windows_cpu_time_total\",mode!=\"idle\"}[5m]))",
           "format": "time_series",
           "interval": "10s",
           "intervalFactor": 1,
@@ -387,7 +386,7 @@
         }
       ],
       "thresholds": "",
-      "title": "Used",
+      "title": "CPU Used",
       "type": "singlestat",
       "valueFontSize": "50%",
       "valueMaps": [
@@ -471,7 +470,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum (kube_node_status_allocatable_cpu_cores{})",
+          "expr": "sum(kube_node_status_allocatable_cpu_cores{})",
           "interval": "10s",
           "intervalFactor": 1,
           "refId": "A",
@@ -479,7 +478,7 @@
         }
       ],
       "thresholds": "",
-      "title": "Total",
+      "title": "CPU Total",
       "type": "singlestat",
       "valueFontSize": "50%",
       "valueMaps": [
@@ -563,7 +562,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum(node_memory_MemTotal_bytes{device!~\"rootfs|HarddiskVolume.+\"}) - sum(node_memory_MemAvailable_bytes{device!~\"rootfs|HarddiskVolume.+\"})",
+          "expr": "sum({__name__=~\"node_memory_MemTotal_bytes|windows_cs_physical_memory_bytes\"}) - sum({__name__=~\"node_memory_MemAvailable_bytes|windows_os_physical_memory_free_bytes\"})",
           "interval": "10s",
           "intervalFactor": 1,
           "refId": "A",
@@ -571,7 +570,7 @@
         }
       ],
       "thresholds": "",
-      "title": "Used",
+      "title": "Memory Used",
       "type": "singlestat",
       "valueFontSize": "50%",
       "valueMaps": [
@@ -663,7 +662,7 @@
         }
       ],
       "thresholds": "",
-      "title": "Total",
+      "title": "Memory Total",
       "type": "singlestat",
       "valueFontSize": "50%",
       "valueMaps": [
@@ -747,7 +746,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum(node_filesystem_size_bytes{device!~\"rootfs|HarddiskVolume.+\",})\n     - sum(node_filesystem_free_bytes{device!~\"rootfs|HarddiskVolume.+\"})",
+          "expr": "(sum(node_filesystem_size_bytes{device!~\"rootfs|HarddiskVolume.+\"}) - sum(node_filesystem_free_bytes{device!~\"rootfs|HarddiskVolume.+\"}) OR on() vector(0)) + (sum(windows_logical_disk_size_bytes{volume!~\"(HarddiskVolume.+|[A-Z]:.+)\"}) - sum(windows_logical_disk_free_bytes{volume!~\"(HarddiskVolume.+|[A-Z]:.+)\"}) OR on() vector(0))",
           "interval": "10s",
           "intervalFactor": 1,
           "refId": "A",
@@ -755,7 +754,7 @@
         }
       ],
       "thresholds": "",
-      "title": "Used",
+      "title": "Disk Used",
       "type": "singlestat",
       "valueFontSize": "50%",
       "valueMaps": [
@@ -839,7 +838,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum(node_filesystem_size_bytes{device!~\"rootfs|HarddiskVolume.+\"})",
+          "expr": "(sum(node_filesystem_size_bytes{device!~\"rootfs|HarddiskVolume.+\"}) OR on() vector(0)) + (sum(windows_logical_disk_size_bytes{volume!~\"(HarddiskVolume.+|[A-Z]:.+)\"}) OR on() vector(0))",
           "interval": "10s",
           "intervalFactor": 1,
           "refId": "A",
@@ -847,7 +846,7 @@
         }
       ],
       "thresholds": "",
-      "title": "Total",
+      "title": "Disk Total",
       "type": "singlestat",
       "valueFontSize": "50%",
       "valueMaps": [
@@ -906,7 +905,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "1- (avg(irate(node_cpu_seconds_total{mode=\"idle\"}[5m])))",
+          "expr": "1 - (avg(irate({__name__=~\"node_cpu_seconds_total|windows_cpu_time_total\",mode=\"idle\"}[$__rate_interval])))",
           "format": "time_series",
           "hide": false,
           "instant": false,
@@ -915,11 +914,11 @@
           "refId": "A"
         },
         {
-          "expr": "1- (avg(irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) by (node))",
+          "expr": "1 - avg(irate({__name__=~\"node_cpu_seconds_total|windows_cpu_time_total\", mode=\"idle\"}[$__rate_interval])) by (instance)",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
-          "legendFormat": "{{ node }}",
+          "legendFormat": "{{ instance }}",
           "refId": "B"
         }
       ],
@@ -927,7 +926,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "CPU usage (5m avg)",
+      "title": "CPU Usage",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -1011,7 +1010,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "100 * (1 - sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes))",
+          "expr": "100 * (1 - sum({__name__=~\"node_memory_MemAvailable_bytes|windows_os_physical_memory_free_bytes\"}) / sum({__name__=~\"node_memory_MemTotal_bytes|windows_cs_physical_memory_bytes\"}))",
           "format": "time_series",
           "hide": false,
           "instant": false,
@@ -1020,11 +1019,11 @@
           "refId": "A"
         },
         {
-          "expr": "100 * (1- sum(node_memory_MemAvailable_bytes) by (node) / sum(node_memory_MemTotal_bytes) by (node))",
+          "expr": "100 * (1- sum({__name__=~\"node_memory_MemAvailable_bytes|windows_os_physical_memory_free_bytes\"}) by (instance) / sum({__name__=~\"node_memory_MemTotal_bytes|windows_cs_physical_memory_bytes\"}) by (instance))",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
-          "legendFormat": "{{ node }}",
+          "legendFormat": "{{ instance }}",
           "refId": "B"
         }
       ],
@@ -1032,7 +1031,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Memory usage",
+      "title": "Memory Usage",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -1118,28 +1117,28 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "(sum(node_filesystem_size_bytes{device!~\"rootfs|HarddiskVolume.+\"})\n     - sum(node_filesystem_free_bytes{device!~\"rootfs|HarddiskVolume.+\"})\n    ) / sum(node_filesystem_size_bytes{device!~\"rootfs|HarddiskVolume.+\"}) * 100 ",
-          "format": "time_series",
-          "hide": false,
-          "instant": false,
-          "intervalFactor": 1,
+          "expr": "(1 - ((sum(node_filesystem_free_bytes{device!~\"rootfs|HarddiskVolume.+\"}) OR on() vector(0)) + (sum(windows_logical_disk_free_bytes{volume!~\"(HarddiskVolume.+|[A-Z]:.+)\"} OR on() vector(0)))) / ((sum(node_filesystem_size_bytes{device!~\"rootfs|HarddiskVolume.+\"}) OR on() vector(0)) + (sum(windows_logical_disk_size_bytes{volume!~\"(HarddiskVolume.+|[A-Z]:.+)\"}) OR on() vector(0)))) * 100",
           "legendFormat": "Cluster",
           "refId": "A"
         },
         {
-          "expr": "((sum(node_filesystem_size_bytes{device!~\"rootfs|HarddiskVolume.+\"}) by (node) - sum(node_filesystem_free_bytes{device!~\"rootfs|HarddiskVolume.+\"}) by (node)) / sum(node_filesystem_size_bytes{device!~\"rootfs|HarddiskVolume.+\"}) by (node)) * 100\n",
-          "format": "time_series",
+          "expr": "(1 - (sum(node_filesystem_free_bytes{device!~\"rootfs|HarddiskVolume.+\"}) by (instance)) / sum(node_filesystem_size_bytes{device!~\"rootfs|HarddiskVolume.+\"}) by (instance)) * 100",
           "hide": false,
-          "intervalFactor": 1,
-          "legendFormat": "{{ node }}",
+          "legendFormat": "{{ instance }}",
           "refId": "B"
+        },
+        {
+          "expr": "(1 - (sum(windows_logical_disk_free_bytes{volume!~\"(HarddiskVolume.+|[A-Z]:.+)\"}) by (instance)) / sum(windows_logical_disk_size_bytes{volume!~\"(HarddiskVolume.+|[A-Z]:.+)\"}) by (instance)) * 100",
+          "hide": false,
+          "legendFormat": "{{ instance }}",
+          "refId": "C"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Filesystem usage",
+      "title": "Disk Usage",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -1237,7 +1236,7 @@
     "list": []
   },
   "time": {
-    "from": "now-5m",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {

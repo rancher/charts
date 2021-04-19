@@ -15,15 +15,17 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 32,
+  "id": 28,
   "links": [],
   "panels": [
     {
-      "aliasColors": {},
+      "aliasColors": {
+        "{{mode}}": "#3797d5"
+      },
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "Prometheus",
+      "datasource": null,
       "fieldConfig": {
         "defaults": {
           "custom": {}
@@ -63,23 +65,17 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(etcd_network_client_grpc_received_bytes_total{job=\"kube-etcd\"}[5m])) by (instance)",
+          "expr": "avg(irate({__name__=~\"node_cpu_seconds_total|windows_cpu_time_total\", instance=\"$instance\"}[$__rate_interval])) by (mode)",
           "interval": "",
-          "legendFormat": "Client traffic in({{instance}})",
+          "legendFormat": "{{mode}}",
           "refId": "A"
-        },
-        {
-          "expr": "sum(rate(etcd_network_client_grpc_sent_bytes_total{job=\"kube-etcd\"}[5m])) by (instance)",
-          "interval": "",
-          "legendFormat": "Client traffic out({{instance}})",
-          "refId": "B"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "GRPC Client Traffic",
+      "title": "CPU Utilization",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -95,11 +91,11 @@
       },
       "yaxes": [
         {
-          "decimals": null,
-          "format": "Kbits",
+          "decimals": 1,
+          "format": "percentunit",
           "label": null,
           "logBase": 1,
-          "max": null,
+          "max": "1",
           "min": "0",
           "show": true
         },
@@ -131,7 +127,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Load5({{instance}})"
+              "options": "Load[5m]"
             },
             "properties": []
           }
@@ -170,17 +166,29 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(etcd_debugging_mvcc_db_total_size_in_bytes) by (instance)",
+          "expr": "sum(node_load5{instance=~\"$instance\"} OR avg_over_time(windows_system_processor_queue_length{instance=~\"$instance\"}[5m]))",
           "interval": "",
-          "legendFormat": "DB size({{instance}})",
+          "legendFormat": "Load[5m]",
           "refId": "A"
+        },
+        {
+          "expr": "sum(node_load1{instance=~\"$instance\"} OR avg_over_time(windows_system_processor_queue_length{instance=~\"$instance\"}[1m]))",
+          "interval": "",
+          "legendFormat": "Load[1m]",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(node_load15{instance=~\"$instance\"} OR avg_over_time(windows_system_processor_queue_length{instance=~\"$instance\"}[15m]))",
+          "interval": "",
+          "legendFormat": "Load[15m]",
+          "refId": "C"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "DB Size",
+      "title": "Load Average",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -196,7 +204,7 @@
       },
       "yaxes": [
         {
-          "format": "bytes",
+          "format": "short",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -262,23 +270,17 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(grpc_server_started_total{grpc_service=\"etcdserverpb.Watch\",grpc_type=\"bidi_stream\"}) by (instance) - sum(grpc_server_handled_total{grpc_service=\"etcdserverpb.Watch\",grpc_type=\"bidi_stream\"}) by (instance)",
+          "expr": "1 - (node_memory_MemAvailable_bytes{instance=~\"$instance\"} OR windows_os_physical_memory_free_bytes{instance=~\"$instance\"}) / (node_memory_MemTotal_bytes{instance=~\"$instance\"} OR windows_cs_physical_memory_bytes{instance=~\"$instance\"})",
           "interval": "",
-          "legendFormat": "Watch streams({{instance}})",
+          "legendFormat": "Total",
           "refId": "A"
-        },
-        {
-          "expr": "sum(grpc_server_started_total{grpc_service=\"etcdserverpb.Lease\",grpc_type=\"bidi_stream\"}) by (instance) - sum(grpc_server_handled_total{grpc_service=\"etcdserverpb.Lease\",grpc_type=\"bidi_stream\"}) by (instance)",
-          "interval": "",
-          "legendFormat": "Lease watch stream({{instance}})",
-          "refId": "B"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Active Streams",
+      "title": "Memory Utilization",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -295,11 +297,11 @@
       "yaxes": [
         {
           "decimals": 1,
-          "format": "short",
+          "format": "percentunit",
           "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
+          "max": "1",
+          "min": "0",
           "show": true
         },
         {
@@ -317,7 +319,9 @@
       }
     },
     {
-      "aliasColors": {},
+      "aliasColors": {
+        "{{device}}": "#3797d5"
+      },
       "bars": false,
       "dashLength": 10,
       "dashes": false,
@@ -361,35 +365,17 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(etcd_server_proposals_committed_total[5m])) by (instance)",
+          "expr": "1 - (sum(node_filesystem_free_bytes{device!~\"rootfs|HarddiskVolume.+\", instance=~\"$instance\"} OR windows_logical_disk_free_bytes{volume!~\"(HarddiskVolume.+|[A-Z]:.+)\", instance=~\"$instance\"}) by (device) / sum(node_filesystem_size_bytes{device!~\"rootfs|HarddiskVolume.+\", instance=~\"$instance\"} OR windows_logical_disk_size_bytes{volume!~\"(HarddiskVolume.+|[A-Z]:.+)\", instance=~\"$instance\"}) by (device))",
           "interval": "",
-          "legendFormat": "Proposal commit rate({{instance}})",
+          "legendFormat": "{{device}}",
           "refId": "A"
-        },
-        {
-          "expr": "sum(rate(etcd_server_proposals_applied_total[5m])) by (instance)",
-          "interval": "",
-          "legendFormat": "Proposal applied({{instance}})",
-          "refId": "B"
-        },
-        {
-          "expr": "sum(rate(etcd_server_proposals_failed_total[5m])) by (instance)",
-          "interval": "",
-          "legendFormat": "Proposal failed({{instance}})",
-          "refId": "C"
-        },
-        {
-          "expr": "sum(etcd_server_proposals_pending) by (instance)",
-          "interval": "",
-          "legendFormat": "Proposal pending({{instance}})",
-          "refId": "D"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Raft Proposals",
+      "title": "Disk Utilization",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -406,11 +392,11 @@
       "yaxes": [
         {
           "decimals": 1,
-          "format": "short",
+          "format": "percentunit",
           "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
+          "max": "1",
+          "min": "0",
           "show": true
         },
         {
@@ -429,7 +415,7 @@
     },
     {
       "aliasColors": {
-        "{{instance}}": "#3797d5"
+        "{{device}}": "#3797d5"
       },
       "bars": false,
       "dashLength": 10,
@@ -474,15 +460,15 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(grpc_server_started_total{grpc_type=\"unary\"}[5m])) by (instance)",
+          "expr": "sum(rate(node_disk_read_bytes_total{instance=~\"$instance\"}[$__rate_interval]) OR rate(windows_logical_disk_read_bytes_total{instance=~\"$instance\"}[$__rate_interval])) by (device)",
           "interval": "",
-          "legendFormat": "Rpc rate({{instance}})",
+          "legendFormat": "Read ({{device}})",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(grpc_server_handled_total{grpc_type=\"unary\",grpc_code!=\"OK\"}[5m])) by (instance)",
+          "expr": "sum(rate(node_disk_written_bytes_total{instance=~\"$instance\"}[$__rate_interval]) OR rate(windows_logical_disk_write_bytes_total{instance=~\"$instance\"}[$__rate_interval])) by (device)",
           "interval": "",
-          "legendFormat": "Rpc failed rate ({{instance}})",
+          "legendFormat": "Write ({{device}})",
           "refId": "B"
         }
       ],
@@ -490,7 +476,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "RPC Rate",
+      "title": "Disk I/O",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -506,8 +492,8 @@
       },
       "yaxes": [
         {
-          "decimals": 0,
-          "format": "ops",
+          "decimals": 1,
+          "format": "Bps",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -515,7 +501,6 @@
           "show": true
         },
         {
-          "decimals": null,
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -531,7 +516,7 @@
     },
     {
       "aliasColors": {
-        "{{instance}}": "#3797d5"
+        "{{device}}": "#3797d5"
       },
       "bars": false,
       "dashLength": 10,
@@ -576,23 +561,47 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.99, sum(rate(etcd_disk_wal_fsync_duration_seconds_bucket[5m])) by (instance, le))",
+          "expr": "sum(rate(node_network_receive_errs_total{device!~\"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*\", instance=~\"$instance\"}[$__rate_interval])) by (device) OR sum(rate(windows_net_packets_received_errors{nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*', instance=~\"$instance\"}[$__rate_interval])) by (device)",
           "interval": "",
-          "legendFormat": "WAL fsync({{instance}})",
+          "legendFormat": "Receive Errors ({{device}})",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(etcd_disk_backend_commit_duration_seconds_bucket[5m])) by (instance, le))",
+          "expr": "sum(rate(node_network_receive_packets_total{device!~\"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*\", instance=~\"$instance\"}[$__rate_interval])) by (device) OR sum(rate(windows_net_packets_received_total{nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*', instance=~\"$instance\"}[$__rate_interval])) by (device)",
           "interval": "",
-          "legendFormat": "DB fsync({{instance}})",
+          "legendFormat": "Receive Total ({{device}})",
           "refId": "B"
+        },
+        {
+          "expr": "sum(rate(node_network_transmit_errs_total{device!~\"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*\", instance=~\"$instance\"}[$__rate_interval])) by (device) OR sum(rate(windows_net_packets_outbound_errors{nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*', instance=~\"$instance\"}[$__rate_interval])) by (device)",
+          "interval": "",
+          "legendFormat": "Transmit Errors ({{device}})",
+          "refId": "C"
+        },
+        {
+          "expr": "sum(rate(node_network_receive_drop_total{device!~\"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*\", instance=~\"$instance\"}[$__rate_interval])) by (device) OR sum(rate(windows_net_packets_received_discarded{nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*', instance=~\"$instance\"}[$__rate_interval])) by (device)",
+          "interval": "",
+          "legendFormat": "Receive Dropped ({{device}})",
+          "refId": "D"
+        },
+        {
+          "expr": "sum(rate(node_network_transmit_drop_total{device!~\"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*\", instance=~\"$instance\"}[$__rate_interval])) by (device) OR sum(rate(windows_net_packets_outbound_discarded{nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*', instance=~\"$instance\"}[$__rate_interval])) by (device)",
+          "interval": "",
+          "legendFormat": "Transmit Dropped ({{device}})",
+          "refId": "E"
+        },
+        {
+          "expr": "sum(rate(node_network_transmit_packets_total{device!~\"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*\", instance=~\"$instance\"}[$__rate_interval])) by (device) OR sum(rate(windows_net_packets_sent_total{nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*', instance=~\"$instance\"}[$__rate_interval])) by (device)",
+          "interval": "",
+          "legendFormat": "Transmit Total ({{device}})",
+          "refId": "F"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Disk Sync Duration",
+      "title": "Network Traffic",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -608,8 +617,109 @@
       },
       "yaxes": [
         {
-          "decimals": 2,
-          "format": "ms",
+          "decimals": 1,
+          "format": "pps",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {
+        "{{device}}": "#3797d5"
+      },
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 14
+      },
+      "hiddenSeries": false,
+      "id": 8,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": false,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.5",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "sum(rate(node_network_transmit_bytes_total{device!~\"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*\", instance=~\"$instance\"}[$__rate_interval]) OR rate(windows_net_packets_sent_total{nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*', instance=~\"$instance\"}[$__rate_interval])) by (device)",
+          "interval": "",
+          "legendFormat": "Transmit Total ({{device}})",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(node_network_receive_bytes_total{device!~\"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*\", instance=~\"$instance\"}[$__rate_interval]) OR rate(windows_net_packets_received_total{nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*', instance=~\"$instance\"}[$__rate_interval])) by (device)",
+          "interval": "",
+          "legendFormat": "Receive Total ({{device}})",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Network I/O",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 1,
+          "format": "Bps",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -635,10 +745,27 @@
   "style": "dark",
   "tags": [],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "allValue": null,
+        "hide": 0,
+        "includeAll": false,
+        "label": null,
+        "multi": false,
+        "name": "instance",
+        "query": "label_values({__name__=~\"node_exporter_build_info|windows_exporter_build_info\"}, instance)",
+        "refresh": 2,
+        "regex": "",
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      }
+    ]
   },
   "time": {
-    "from": "now-5m",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {
@@ -656,7 +783,7 @@
     ]
   },
   "timezone": "",
-  "title": "Rancher / Etcd Metrics Detail",
-  "uid": "rancher-etcd-detail-1",
-  "version": 5
+  "title": "Rancher / Node (Detail)",
+  "uid": "rancher-node-detail-1",
+  "version": 3
 }
