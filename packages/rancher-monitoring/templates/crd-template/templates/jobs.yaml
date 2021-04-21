@@ -19,15 +19,29 @@ spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
+      initContainers:
+        - name: set-preserve-unknown-fields-false
+          image: {{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: IfNotPresent
+          command:
+          - /bin/sh
+          - -c
+          - >
+            {{- range $path, $_ :=  (.Files.Glob  "crd-manifest/**.yaml") }}
+            {{- $crd := get (get ($.Files.Get $path | fromYaml) "metadata") "name" }}
+            if [[ -n "$(kubectl get crd {{ $crd }} -o jsonpath='{.spec.preserveUnknownFields}')" ]]; then
+              kubectl patch crd {{ $crd }} -p '{"spec": {"preserveUnknownFields": false, "versions": [{"name": "v1", "served": false, "storage": true}]}}' --type="merge" || true;
+            fi;
+            {{- end }}
       containers:
         - name: create-crds
           image: {{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
           imagePullPolicy: IfNotPresent
           command:
-          - /bin/kubectl
-          - apply
-          - -f
-          - /etc/config/crd-manifest.yaml
+          - /bin/sh
+          - -c
+          - >
+            kubectl apply -f /etc/config/crd-manifest.yaml
           volumeMounts:
             - name: crd-manifest
               readOnly: true
@@ -66,10 +80,13 @@ spec:
           image: {{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
           imagePullPolicy: IfNotPresent
           command:
-          - /bin/kubectl
-          - apply
-          - -f
-          - /etc/config/crd-manifest.yaml
+          - /bin/sh
+          - -c
+          - >
+            {{- range $path, $_ :=  (.Files.Glob  "crd-manifest/**.yaml") }}
+            {{- $crd := get (get ($.Files.Get $path | fromYaml) "metadata") "name" }}
+            kubectl patch crd {{ $crd }} -p '{"metadata": {"finalizers": []}}' || true;
+            {{- end }}
           volumeMounts:
             - name: crd-manifest
               readOnly: true
@@ -79,10 +96,10 @@ spec:
           image: {{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
           imagePullPolicy: IfNotPresent
           command:
-          - /bin/kubectl
-          - delete
-          - -f
-          - /etc/config/crd-manifest.yaml
+          - /bin/sh
+          - -c
+          - >
+            kubectl delete -f /etc/config/crd-manifest.yaml
           volumeMounts:
             - name: crd-manifest
               readOnly: true
