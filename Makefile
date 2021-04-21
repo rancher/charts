@@ -1,8 +1,8 @@
 pull-scripts:
 	./scripts/pull-scripts
 
-release:
-	./scripts/release-assets
+stage-release:
+	./scripts/stage-release
 
 TARGETS := prepare patch charts clean sync validate rebase docs
 
