@@ -20,7 +20,7 @@ If you remove dependent CRD charts prior to removing rancher-istio, you may enco
 
 Kiali allows you to view and manage your istio-based service mesh through an easy to use dashboard.
 
-####  Dependencies
+###  Dependencies
 - rancher-monitoring chart or other Prometheus installation
 
 This dependecy installs the required CRDs for installing Kiali. Since Kiali is bundled in with Istio in this chart, if you do not have these dependencies installed, your Istio installation will fail. If you do not plan on using Kiali, set `kiali.enabled=false` when installing Istio for a succesful installation.
@@ -34,7 +34,7 @@ To limit scraping to specific namespaces, set `prometheus.prometheusSpec.ignoreN
 1. Add a Service Monitor or Pod Monitor in the namespace with the targets you want to scrape.
 1. Add an additionalScrapeConfig to your rancher-monitoring instance to scrape all targets in all namespaces.
 
-####  External Services
+###  External Kiali Services
 
 ##### Prometheus
 The `kiali.external_services.prometheus` url is set in the values.yaml:
@@ -51,11 +51,20 @@ http://{{ .Values.nameOverride }}-grafana.{{ .Values.namespaceOverride }}.svc:{{
 The url depends on the default values for `nameOverride`, `namespaceOverride`, and `grafana.service.port` being set in your rancher-monitoring or other monitoring instance.
 
 ##### Tracing
-The `kiali.external_services.tracing` url and `.Values.tracing.contextPath` is set in the rancher-istio values.yaml:
+The `kiali.external_services.tracing.url`, `kiali.external_services.tracing.in_cluster_url` and `.Values.tracing.contextPath` is set in the rancher-istio values.yaml. 
+
+To ensure traces work for your services in the Kiali dashboard, you must set `kiali.external_services.tracing.url` and `kiali.external_services.tracing.in_cluster_url` key value using the complete external url to your tracing instance.
 ```
-http://tracing.{{ .Values.namespaceOverride }}.svc:{{ .Values.service.externalPort }}/{{ .Values.tracing.contextPath }}
+https://<your domain>/k8s/clusters/<cluster id>/api/v1/namespaces/{{ .Values.namespaceOverride }}/services/http:{{ .Values.namespaceOverride }}.svc:{{ .Values.service.externalPort }}/{{ .Values.tracing.contextPath }}
+```
+An example with all the values filled in:
+```
+https://111.222.333.44/k8s/clusters/c-zbpdp/api/v1/namespaces/istio-system/services/http:tracing:16686/proxy/jaeger
 ```
 The url depends on the default values for `namespaceOverride`, and `.Values.service.externalPort` being set in your rancher-tracing or other tracing instance.
+
+> **Note:** If you are having a hard time determining the complete url value, deploy Istio with Kiali and Tracing enabled.
+Navigate to the Jaeger dashboard and copy the url from the browser up to the {{ .Values.tracing.contextPath }} context path to use as your complete url value. The context path is `/jaeger` by default.
 
 ## Jaeger
 

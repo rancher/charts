@@ -35,11 +35,13 @@ http://{{ .Values.nameOverride }}-grafana.{{ .Values.namespaceOverride }}.svc:{{
 ```
 **Custom Tracing Installation with Kiali**
 
-To use a custom Tracing installation, set the `kiali.external_services.tracing` url and update the `.Values.tracing.contextPath` in the rancher-istio values.yaml.
+The `kiali.external_services.tracing.url`, `kiali.external_services.tracing.in_cluster_url` and `.Values.tracing.contextPath` is set in the rancher-istio values.yaml.
 
-This url depends on the values for `namespaceOverride`, and `.Values.service.externalPort` in your rancher-tracing or other tracing instance.:
+To ensure traces work for your services in the Kiali dashboard, you must set `kiali.external_services.tracing.url` and `kiali.external_services.tracing.in_cluster_url` key value using the complete external url to your tracing instance.
 ```
-http://tracing.{{ .Values.namespaceOverride }}.svc:{{ .Values.service.externalPort }}/{{ .Values.tracing.contextPath }}
+https://<your domain>/k8s/clusters/<cluster id>/api/v1/namespaces/{{ .Values.namespaceOverride }}/services/http:{{ .Values.namespaceOverride }}.svc:{{ .Values.service.externalPort }}/{{ .Values.tracing.contextPath }}
 ```
+
+The url depends on the default values for `namespaceOverride`, and `.Values.service.externalPort` being set in your rancher-tracing or other tracing instance.
 
 For more information on how to use the feature, refer to our [docs](https://rancher.com/docs/rancher/v2.x/en/istio/v2.5/).
