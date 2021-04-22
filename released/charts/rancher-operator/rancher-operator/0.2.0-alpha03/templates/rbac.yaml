@@ -1,0 +1,67 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rancher-operator
+rules:
+- apiGroups:
+  - ""
+  - "rancher.cattle.io"
+  - "management.cattle.io"
+  - "fleet.cattle.io"
+  - "rke.cattle.io"
+  - "cluster.x-k8s.io"
+  - "rbac.authorization.k8s.io"
+  - "rke-node.cattle.io"
+  resources:
+  - "*"
+  verbs:
+  - "*"
+- apiGroups:
+  - "apiregistration.k8s.io"
+  resources:
+  - "apiservices"
+  verbs:
+  - list
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  - deployments
+  verbs:
+  - list
+  - get
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - "*"
+- apiGroups:
+  - "admissionregistration.k8s.io"
+  resources:
+  - "validatingwebhookconfigurations"
+  - "mutatingwebhookconfigurations"
+  verbs:
+  - "*"
+- apiGroups:
+  - "apiextensions.k8s.io"
+  resources:
+  - "customresourcedefinitions"
+  verbs:
+  - "*"
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rancher-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rancher-operator
+subjects:
+- kind: ServiceAccount
+  name: rancher-operator
+  namespace: {{.Release.Namespace}}
