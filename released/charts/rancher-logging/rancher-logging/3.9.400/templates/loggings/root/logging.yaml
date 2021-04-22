@@ -8,6 +8,7 @@ metadata:
 {{ include "logging-operator.labels" . | indent 4 }}
 spec:
   controlNamespace: {{ .Release.Namespace }}
+  {{- if not (kindIs "invalid" .Values.global.cattle.windows.enabled) }}
   {{- if .Values.global.cattle.windows.enabled }}
   nodeAgents:
     - name: win-agent
@@ -44,6 +45,7 @@ spec:
         tls:
           enabled: {{ .Values.nodeAgents.tls.enabled | default false }}
     {{- end }}
+  {{- end }}
   {{- end }}
   fluentbit:
     image:
