@@ -28,3 +28,12 @@ jobs:
 
     - name: Push assets
       run: git push origin dev-v2.6
+
+    - name: Stage released/ directory
+      run: FROM_WORKFLOW=1 RELEASE_REPO_URL=https://github.com/rancher/charts.git RELEASE_BRANCH=release-v2.6 make stage-release
+
+    - name: Add released/ to branch
+      run: git add . && git -c user.name="actions" -c user.email="actions@github.com" commit -m "Regenerate released directory" -m "$(git log -b dev-v2.5-source --oneline -n1 --pretty=format:'%B')" || true
+
+    - name: Push assets
+      run: git push origin dev-v2.6
