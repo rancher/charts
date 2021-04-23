@@ -64,3 +64,13 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- "" -}}
 {{- end -}}
 {{- end -}}
+
+{{- define "windowsEnabled" }}
+  {{- if not (kindIs "invalid" .Values.global.cattle.windows) }}
+  {{- if not (kindIs "invalid" .Values.global.cattle.windows.enabled) }}
+  {{- if .Values.global.cattle.windows.enabled }}
+true
+  {{- end }}
+  {{- end }}
+  {{- end }}
+{{- end }}
