@@ -358,11 +358,13 @@ global:
     systemDefaultRegistry: ""
     ## Windows Monitoring
     ## ref: https://github.com/rancher/charts/tree/dev-v2.5-source/packages/rancher-windows-exporter
-    ## Runs https://github.com/prometheus-community/windows_exporter as a DaemonSet
-    ## Relies on the existence of a wins server of version v0.1.0+ on every Windows host to allow 
-    ## windows_exporter to run as a host process that can publish host metrics to a port on the Pod
-    windows:
-      enabled: false
+    ##
+    ## Deploys a DaemonSet of Prometheus exporters based on https://github.com/prometheus-community/windows_exporter.
+    ## Every Windows host must have a wins version of 0.1.0+ to use this chart (default as of Rancher 2.5.8).
+    ## To upgrade wins versions on Windows hosts, see https://github.com/rancher/wins/tree/master/charts/rancher-wins-upgrader.
+    ##
+    # windows:
+    #   enabled: false
   kubectl:
      repository: rancher/kubectl
      tag: v1.20.2
@@ -1763,8 +1765,8 @@ prometheusOperator:
     enabled: true
     # Value must match version names from https://golang.org/pkg/crypto/tls/#pkg-constants
     tlsMinVersion: VersionTLS13
-    # The default webhook port is 10250 in order to work out-of-the-box in GKE private clusters and avoid adding firewall rules.
-    internalPort: 10250
+    # Users who are deploying this chart in GKE private clusters will need to add firewall rules to expose this port for admissions webhooks
+    internalPort: 8443
 
   ## Admission webhook support for PrometheusRules resources added in Prometheus Operator 0.30 can be enabled to prevent incorrectly formatted
   ## rules from making their way into prometheus and potentially preventing the container from starting
