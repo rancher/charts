@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eks-config-operator
+  namespace: cattle-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      ke.cattle.io/operator: eks
+  template:
+    metadata:
+      labels:
+        ke.cattle.io/operator: eks
+    spec:
+      serviceAccountName: eks-operator
+      containers:
+      - name: eks-operator
+        image: {{ template "system_default_registry" . }}{{ .Values.eksOperator.image.repository }}:{{ .Values.eksOperator.image.tag }}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: HTTP_PROXY
+          value: {{ .Values.httpProxy }}
+        - name: HTTPS_PROXY
+          value: {{ .Values.httpsProxy }}
+        - name: NO_PROXY
+          value: {{ .Values.noProxy }}
