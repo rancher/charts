@@ -63,8 +63,8 @@ kubernetes.io/os: windows
 {{- end }}
 {{- end -}}
 
-{{- define "windowsExporter.validatePathPrefix" -}}
-{{- $pathPrefix := (required "Must provide value for .Values.global.cattle.rkeWindowsPathPrefix" .Values.global.cattle.rkeWindowsPathPrefix) -}}
+{{- define "winsUpgrader.validatePathPrefix" -}}
+{{- $pathPrefix := (default "C:/" .Values.global.cattle.rkeWindowsPathPrefix) -}}
 {{- if (contains "\\" $pathPrefix) -}}
 {{- fail ".Values.global.cattle.rkeWindowsPathPrefix must not contain backslashes" -}}
 {{- else if (not (hasSuffix "/" $pathPrefix)) -}}

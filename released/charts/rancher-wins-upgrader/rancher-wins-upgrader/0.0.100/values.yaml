@@ -24,18 +24,18 @@ winsConfigs:
     proxy: rancher_wins_proxy
     whiteList:
       processPaths:
-        - {{ .Values.global.cattle.rkeWindowsPathPrefix }}etc/rancher/wins/wins-upgrade.exe
-        - {{ .Values.global.cattle.rkeWindowsPathPrefix }}etc/windows-exporter/windows-exporter.exe
-        - {{ .Values.global.cattle.rkeWindowsPathPrefix }}etc/wmi-exporter/wmi-exporter.exe
-        - {{ .Values.global.cattle.rkeWindowsPathPrefix }}etc/kubernetes/bin/kube-proxy.exe
-        - {{ .Values.global.cattle.rkeWindowsPathPrefix }}etc/kubernetes/bin/kubelet.exe
-        - {{ .Values.global.cattle.rkeWindowsPathPrefix }}etc/nginx/nginx.exe
-        - {{ .Values.global.cattle.rkeWindowsPathPrefix }}opt/bin/flanneld.exe
+        - {{ default "C:/" .Values.global.cattle.rkeWindowsPathPrefix }}etc/rancher/wins/wins-upgrade.exe
+        - {{ default "C:/" .Values.global.cattle.rkeWindowsPathPrefix }}etc/windows-exporter/windows-exporter.exe
+        - {{ default "C:/" .Values.global.cattle.rkeWindowsPathPrefix }}etc/wmi-exporter/wmi-exporter.exe
+        - {{ default "C:/" .Values.global.cattle.rkeWindowsPathPrefix }}etc/kubernetes/bin/kube-proxy.exe
+        - {{ default "C:/" .Values.global.cattle.rkeWindowsPathPrefix }}etc/kubernetes/bin/kubelet.exe
+        - {{ default "C:/" .Values.global.cattle.rkeWindowsPathPrefix }}etc/nginx/nginx.exe
+        - {{ default "C:/" .Values.global.cattle.rkeWindowsPathPrefix }}opt/bin/flanneld.exe
       proxyPorts:
         - 9796
     upgrade:
       mode: watching
-      watchingPath: {{ .Values.global.cattle.rkeWindowsPathPrefix }}etc/rancher/wins/wins.exe
+      watchingPath: {{ default "C:/" .Values.global.cattle.rkeWindowsPathPrefix }}etc/rancher/wins/wins.exe
   # By default, `kubernetes.io/os: windows` or `beta.kubernetes.io/os: windows` will be included
   nodeSelector: {}
   # If provided, these tolerations will be used. Otherwise, it defaults to `[ {operator: Exists} ]`
@@ -57,4 +57,4 @@ masquerade:
   # wmi_exporter is the only default whitelisted process that may or may not be run on the host, since
   # it is only ever deployed if the Windows cluster is also using Prometheus-based Windows monitoring (e.g. Rancher Monitoring V1)
   # All of the other default whitelisted processes are required for the Kubernetes cluster to operate
-  as: "{{ .Values.global.cattle.rkeWindowsPathPrefix  }}etc/wmi-exporter/wmi-exporter.exe"
+  as: '{{ default "C:/" .Values.global.cattle.rkeWindowsPathPrefix  }}etc/wmi-exporter/wmi-exporter.exe'
