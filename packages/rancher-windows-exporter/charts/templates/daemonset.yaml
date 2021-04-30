@@ -1,3 +1,4 @@
+{{ include "windowsExporter.validatePathPrefix" . }}
 {{- if .Values.clients }}{{ if .Values.clients.enabled }}
 apiVersion: apps/v1
 kind: DaemonSet
@@ -45,7 +46,7 @@ spec:
         - name: wins-pipe
           mountPath: \\.\pipe\rancher_wins
         - name: binary-host-path
-          mountPath: c:/host/etc/windows-exporter
+          mountPath: C:/host/etc/windows-exporter
         - name: exporter-scripts
           mountPath: c:/scripts/
       initContainers:
@@ -66,7 +67,7 @@ spec:
           path: \\.\pipe\rancher_wins_proxy
       - name: binary-host-path
         hostPath:
-          path: c:/etc/windows-exporter
+          path: {{ .Values.global.cattle.rkeWindowsPathPrefix }}etc/windows-exporter
           type: DirectoryOrCreate
       - name: exporter-scripts
         configMap:
