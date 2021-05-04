@@ -39,17 +39,17 @@ function Transfer-File
 if ($env:WINS_UPGRADE_PATH) {
     $winsUpgradePath = $env:WINS_UPGRADE_PATH
 } else {
-    $winsUpgradePath = "c:\etc\rancher\wins\wins-upgrade.exe"
+    $winsUpgradePath = "C:\etc\rancher\wins\wins-upgrade.exe"
 }
 $winsUpgradeDir = Split-Path -Path $winsUpgradePath
 $winsUpgradeFilename = Split-Path -Path $winsUpgradePath -Leaf
 
 Create-Directory -Path $winsUpgradeDir
-Transfer-File -Src "c:\Windows\wins.exe" -Dst $winsUpgradePath
+Transfer-File -Src "C:\Windows\wins.exe" -Dst $winsUpgradePath
 
-Create-Directory -Path "c:\host\etc\rancher\wins"
-Transfer-File -Src $winsUpgradePath -Dst "c:\host\etc\rancher\wins\$winsUpgradeFilename"
-Transfer-File -Src "c:\scripts\config" -Dst "c:\host\etc\rancher\wins\config"
+Create-Directory -Path "C:\host\etc\rancher\wins"
+Transfer-File -Src $winsUpgradePath -Dst "C:\host\etc\rancher\wins\$winsUpgradeFilename"
+Transfer-File -Src "C:\scripts\config" -Dst "C:\host\etc\rancher\wins\config"
 
 $winsOut = wins.exe cli prc run --path=$winsUpgradePath --args="up --wins-args=`'--config=$winsUpgradeDir\config`'"
 
