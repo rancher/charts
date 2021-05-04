@@ -36,11 +36,16 @@ function Transfer-File
     $null = Copy-Item -Force -Path $Src -Destination $Dst
 }
 
-if ($env:WINS_UPGRADE_PATH) {
-    $winsUpgradePath = $env:WINS_UPGRADE_PATH
-} else {
-    $winsUpgradePath = "C:\etc\rancher\wins\wins-upgrade.exe"
+$prefixPath = 'C:\'
+if ($env:CATTLE_PREFIX_PATH) {
+    $prefixPath = $env:CATTLE_PREFIX_PATH
 }
+$winsUpgradePath = $('{0}etc\rancher\wins\wins-upgrade.exe' -f $prefixPath)
+if ($env:WINS_UPGRADE_PATH) {
+    $winsUpgradePath = $('{0}{1}' -f $prefixPath -f $env:WINS_UPGRADE_PATH)
+}
+
+
 $winsUpgradeDir = Split-Path -Path $winsUpgradePath
 $winsUpgradeFilename = Split-Path -Path $winsUpgradePath -Leaf
 

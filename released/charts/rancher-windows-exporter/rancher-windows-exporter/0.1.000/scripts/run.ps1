@@ -36,9 +36,43 @@ function Transfer-File
     $null = Copy-Item -Force -Path $Src -Destination $Dst
 }
 
-# Copy binary
-Create-Directory -Path "c:\host\etc\windows-exporter"
-Transfer-File -Src "c:\etc\windows-exporter\windows-exporter.exe" -Dst "c:\host\etc\windows-exporter\windows-exporter.exe"
+# Copy binary into host
+Create-Directory -Path "C:\host\etc\windows-exporter"
+Transfer-File -Src "C:\etc\windows-exporter\windows-exporter.exe" -Dst "C:\host\etc\windows-exporter\windows-exporter.exe"
 
-# Run wins
-Invoke-Expression -Command c:\entry.ps1
+# Copy binary into prefix path, since wins expects the same path on the host and on the container
+$prefixPath = 'C:\'
+if ($env:CATTLE_PREFIX_PATH) {
+    $prefixPath = $env:CATTLE_PREFIX_PATH
+}
+$winsDirPath = $('{0}etc\windows-exporter' -f $prefixPath)
+$winsPath = $('{0}\windows-exporter.exe' -f $winsDirPath)
+
+Create-Directory -Path $winsDirPath
+Transfer-File -Src "C:\etc\windows-exporter\windows-exporter.exe" $winsPath
+
+# Run wins with defaults
+$listenPort = "9796"
+$enabledCollectors = "net,os,service,system,cpu,cs,logical_disk"
+$maxRequests = "5"
+
+if ($env:LISTEN_PORT) {
+    $listenPort = $env:LISTEN_PORT
+}
+
+if ($env:ENABLED_COLLECTORS) {
+    $enabledCollectors = $env:ENABLED_COLLECTORS
+}
+
+if ($env:MAX_REQUESTS) {
+    $maxRequests = $env:MAX_REQUESTS
+}
+
+# format "UDP:4789 TCP:8080"
+$winsExposes = $('TCP:{0}' -f $listenPort)
+
+# format "--a=b --c=d"
+$winsArgs = $('--collectors.enabled={0} --telemetry.addr=:{1} --telemetry.max-requests={2} --telemetry.path=/metrics' -f $enabledCollectors, $listenPort, $maxRequests)
+
+
+wins.exe cli prc run --path $winsPath --exposes $winsExposes --args "$winsArgs"
