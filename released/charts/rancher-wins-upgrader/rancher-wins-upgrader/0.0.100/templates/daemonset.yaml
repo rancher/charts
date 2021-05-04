@@ -25,27 +25,27 @@ spec:
       containers:
       - name: noop
         image: {{ template "system_default_registry" $ }}{{ required "Must provide name for .Values.winsConfigs[].image.repository" .image.repository }}:{{ required "Must provide name for .Values.winsConfigs[].tag" .image.tag }}
-        command: ["pwsh", "-f", "c:/scripts/noop.ps1"]
+        command: ["pwsh", "-f", "C:/scripts/noop.ps1"]
         volumeMounts:
         - name: upgrade-scripts
-          mountPath: c:/scripts/
+          mountPath: C:/scripts
       initContainers:
       - name: wins-upgrader
         image: {{ template "system_default_registry" $ }}{{ .image.repository }}:{{ .image.tag }}
-        command: ["pwsh", "-f", "c:/scripts/upgrade.ps1"]
+        command: ["pwsh", "-f", "C:/scripts/upgrade.ps1"]
         volumeMounts:
         - name: wins-pipe
           mountPath: \\.\pipe\rancher_wins
         - name: wins
-          mountPath: c:/host/etc/rancher/wins
+          mountPath: C:/host/etc/rancher/wins
         - name: upgrade-scripts
-          mountPath: c:/scripts/
+          mountPath: C:/scripts
         env:
         - name: HELM_REVISION_NUMBER
           value: {{ $.Release.Revision | quote }}
 {{- if $.Values.masquerade.enabled }}
         - name: WINS_UPGRADE_PATH
-          value: {{ $.Values.masquerade.as }}
+          value: {{ include "winsUpgrader.winsMasqueradePath" $ }}
 {{- end }}
       volumes:
       - name: wins-pipe

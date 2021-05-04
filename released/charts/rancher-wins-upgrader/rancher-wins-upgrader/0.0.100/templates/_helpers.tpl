@@ -30,20 +30,24 @@ provider: kubernetes
 {{- end -}}
 
 {{- define "winsUpgrader.validatePathPrefix" -}}
-{{- $pathPrefix := (default "C:/" .Values.global.cattle.rkeWindowsPathPrefix) -}}
-{{- if (contains "\\" $pathPrefix) -}}
-{{- fail ".Values.global.cattle.rkeWindowsPathPrefix must not contain backslashes" -}}
-{{- else if (not (hasSuffix "/" $pathPrefix)) -}}
-{{- fail ".Values.global.cattle.rkeWindowsPathPrefix must end in '/'" -}}
+{{- if .Values.global.cattle.rkeWindowsPathPrefix -}}
+{{- $prefixPath := (.Values.global.cattle.rkeWindowsPathPrefix | replace "/" "\\") -}}
+{{- if (not (hasSuffix "\\" $prefixPath)) -}}
+{{- fail (printf ".Values.global.cattle.rkeWindowsPathPrefix must end in '/' or '\\', found %s" $prefixPath) -}}
+{{- end -}}
 {{- end -}}
 {{- end -}}
 
 {{- define "winsUpgrader.winsHostPath" -}}
-{{ default "C:/" .Values.global.cattle.rkeWindowsPathPrefix }}etc/rancher/wins
+{{ default "C:\\" .Values.global.cattle.rkeWindowsPathPrefix | replace "\\\\" "\\" | replace "\\" "/" }}etc/rancher/wins
+{{- end -}}
+
+{{- define "winsUpgrader.winsMasqueradePath" -}}
+{{ tpl .Values.masquerade.as . | required "Must provide name for .Values.masquerade.as if enabled" | replace "\\\\" "\\" | replace "\\" "/" }}
 {{- end -}}
 
 {{- define "winsUpgrader.winsMasqueradeHostPath" -}}
-{{ tpl .Values.masquerade.as . | required "Must provide name for .Values.masquerade.as if enabled" | replace "\\\\" "\\" | replace "\\" "/" | dir }}
+{{ include "winsUpgrader.winsMasqueradePath" . | dir }}
 {{- end -}}
 
 {{- define "winsUpgrader.nodeSelector" -}}
