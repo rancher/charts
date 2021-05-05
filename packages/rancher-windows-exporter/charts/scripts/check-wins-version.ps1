@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 
-$winsPath = "C:\Windows\wins.exe"
+$winsPath = "c:\Windows\wins.exe"
 $minWinsVersion = [System.Version]"0.1.0"
 
 function Get-Wins-Version
