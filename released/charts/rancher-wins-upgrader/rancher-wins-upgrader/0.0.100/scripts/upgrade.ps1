@@ -42,7 +42,7 @@ if ($env:CATTLE_PREFIX_PATH) {
 }
 $winsUpgradePath = $('{0}etc\rancher\wins\wins-upgrade.exe' -f $prefixPath)
 if ($env:WINS_UPGRADE_PATH) {
-    $winsUpgradePath = $('{0}{1}' -f $prefixPath -f $env:WINS_UPGRADE_PATH)
+    $winsUpgradePath = $env:WINS_UPGRADE_PATH
 }
 
 
