@@ -37,11 +37,11 @@ function Transfer-File
 }
 
 # Copy binary into host
-Create-Directory -Path "C:\host\etc\windows-exporter"
-Transfer-File -Src "C:\etc\windows-exporter\windows-exporter.exe" -Dst "C:\host\etc\windows-exporter\windows-exporter.exe"
+Create-Directory -Path "c:\host\etc\windows-exporter"
+Transfer-File -Src "c:\etc\windows-exporter\windows-exporter.exe" -Dst "c:\host\etc\windows-exporter\windows-exporter.exe"
 
 # Copy binary into prefix path, since wins expects the same path on the host and on the container
-$prefixPath = 'C:\'
+$prefixPath = 'c:\'
 if ($env:CATTLE_PREFIX_PATH) {
     $prefixPath = $env:CATTLE_PREFIX_PATH
 }
@@ -49,7 +49,7 @@ $winsDirPath = $('{0}etc\windows-exporter' -f $prefixPath)
 $winsPath = $('{0}\windows-exporter.exe' -f $winsDirPath)
 
 Create-Directory -Path $winsDirPath
-Transfer-File -Src "C:\etc\windows-exporter\windows-exporter.exe" $winsPath
+Transfer-File -Src "c:\etc\windows-exporter\windows-exporter.exe" $winsPath
 
 # Run wins with defaults
 $listenPort = "9796"

@@ -39,7 +39,7 @@ provider: kubernetes
 {{- end -}}
 
 {{- define "winsUpgrader.winsHostPath" -}}
-{{ default "C:\\" .Values.global.cattle.rkeWindowsPathPrefix | replace "\\\\" "\\" | replace "\\" "/" }}etc/rancher/wins
+{{ default "c:\\" .Values.global.cattle.rkeWindowsPathPrefix | replace "\\\\" "\\" | replace "\\" "/" }}etc/rancher/wins
 {{- end -}}
 
 {{- define "winsUpgrader.winsMasqueradePath" -}}

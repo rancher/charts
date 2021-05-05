@@ -24,7 +24,7 @@ If the second requirement is not met, there are two options to reconcile:
 
 This is the recommended approach for updating your Windows hosts, but it requires the user to log onto every Windows host to upgrade the wins config. After logging onto each host, you will need to do manually update the wins config.
 
-By default, the wins config is located in `C:\etc\rancher\wins\config`, but you could use the following powershell command to identify the command line arguments passed into the `rancher-wins` service (`--config` corresponds to the config path on the host):
+By default, the wins config is located in `c:\etc\rancher\wins\config`, but you could use the following powershell command to identify the command line arguments passed into the `rancher-wins` service (`--config` corresponds to the config path on the host):
 ```powershell
 (Get-CimInstance Win32_Service -Filter 'Name = "rancher-wins"').PathName
 ```
