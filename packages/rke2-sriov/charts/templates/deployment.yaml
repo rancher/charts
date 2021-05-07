@@ -1,0 +1,86 @@
+{{- if not (.Capabilities.APIVersions.Has "k8s.cni.cncf.io/v1/NetworkAttachmentDefinition") -}}
+{{- required "rke2-multus is required but not found!" "" -}}
+{{- end -}}
+apiVersion: sriovnetwork.openshift.io/v1
+kind: SriovOperatorConfig
+metadata:
+  name: default
+  namespace: {{ .Release.Namespace }}
+spec:
+  # Add fields here
+  enableInjector: {{ .Values.injector.enable }}
+  enableOperatorWebhook: {{ .Values.webhook.enable }}
+  configDaemonNodeSelector: {feature.node.kubernetes.io/network-sriov.capable: "true"}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sriov-network-operator
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: sriov-network-operator
+  template:
+    metadata:
+      labels:
+        name: sriov-network-operator
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/master: "true"
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+        operator: Exists
+      serviceAccountName: sriov-network-operator
+      containers:
+        - name: sriov-network-operator
+          # Replace this with the built image name
+          image: {{ template "system_default_registry" . }}{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag }}
+          command:
+          - sriov-network-operator
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: SRIOV_CNI_IMAGE
+              value: {{ template "system_default_registry" . }}{{ .Values.cni.image.repository }}:{{ .Values.cni.image.tag }}
+            - name: SRIOV_INFINIBAND_CNI_IMAGE
+              value: {{ template "system_default_registry" . }}{{ .Values.cni_infiniband.image.repository }}:{{ .Values.cni_infiniband.image.tag }}
+            - name: SRIOV_DEVICE_PLUGIN_IMAGE
+              value: {{ template "system_default_registry" . }}{{ .Values.device_plugin.image.repository }}:{{ .Values.device_plugin.image.tag }}
+            - name: NETWORK_RESOURCES_INJECTOR_IMAGE
+              value: {{ template "system_default_registry" . }}{{ .Values.injector.image.repository }}:{{ .Values.injector.image.tag }}
+            - name: OPERATOR_NAME
+              value: sriov-network-operator
+            - name: SRIOV_NETWORK_CONFIG_DAEMON_IMAGE
+              value: {{ template "system_default_registry" . }}{{ .Values.config_daemon.image.repository }}:{{ .Values.config_daemon.image.tag }}
+            - name: SRIOV_NETWORK_WEBHOOK_IMAGE
+              value: {{ template "system_default_registry" . }}{{ .Values.webhook.image.repository }}:{{ .Values.webhook.image.tag }}
+            - name: RESOURCE_PREFIX
+              value: rancher.io
+            - name: ENABLE_ADMISSION_CONTROLLER
+              value: "false"
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: RELEASE_VERSION
+              value: {{ .Values.operator.image.tag }}
+            - name: SRIOV_CNI_BIN_PATH
+              value: /opt/cni/bin
+            - name: CLUSTER_TYPE
+              value: "kubernetes"
+            {{- if or .Values.webhook.enable .Values.injector.enable }}
+            {{- if not .Values.cert_manager }}
+            - name: WEBHOOK_CA_BUNDLE
+              value: "{{ template "sriov_operator_ca_cert" . }}"
+            {{- end }}
+            {{- end }}
