@@ -1,6 +1,6 @@
 --- charts-original/templates/_helpers.tpl
 +++ charts/templates/_helpers.tpl
-@@ -56,3 +56,21 @@
+@@ -56,3 +56,30 @@
  {{- end }}
  app.kubernetes.io/managed-by: {{ .Release.Service }}
  {{- end -}}
@@ -14,11 +14,20 @@
 +{{- end -}}
 +
 +{{- define "windowsEnabled" }}
-+  {{- if not (kindIs "invalid" .Values.global.cattle.windows) }}
-+  {{- if not (kindIs "invalid" .Values.global.cattle.windows.enabled) }}
-+  {{- if .Values.global.cattle.windows.enabled }}
++{{- if not (kindIs "invalid" .Values.global.cattle.windows) }}
++{{- if not (kindIs "invalid" .Values.global.cattle.windows.enabled) }}
++{{- if .Values.global.cattle.windows.enabled }}
 +true
-+  {{- end }}
-+  {{- end }}
-+  {{- end }}
++{{- end }}
++{{- end }}
++{{- end }}
++{{- end }}
++
++{{- define "windowsPathPrefix" }}
++{{- $temp := (default "c:\\" .Values.global.cattle.rkeWindowsPathPrefix | replace "\\" "/" | replace "//" "/") }}
++{{- if (hasSuffix "/" $temp) }}
++{{- trimSuffix "/" $temp }}
++{{- else }}
++{{- $temp }}
++{{- end }}
 +{{- end }}
