@@ -5,7 +5,7 @@ metadata:
   annotations:
     scheduler.alpha.kubernetes.io/critical-pod: ""
   labels:
-    component: cloud-controller-manager
+    component: vsphere-cloud-controller-manager
     tier: control-plane
     k8s-app: vsphere-cloud-controller-manager
   name: vsphere-cloud-controller-manager
@@ -36,7 +36,7 @@ spec:
         operator: Exists
       - effect: NoSchedule
         operator: Exists
-      serviceAccountName: cloud-controller-manager
+      serviceAccountName: vsphere-cloud-controller-manager
       containers:
         - name: vsphere-cloud-controller-manager
           image: "{{ template "system_default_registry" . }}{{ .Values.cloudControllerManager.image.repository }}:{{ .Values.cloudControllerManager.image.tag }}"
@@ -61,7 +61,7 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    component: cloud-controller-manager
+    component: vsphere-cloud-controller-manager
   name: vsphere-cloud-controller-manager
   namespace: {{ .Release.Namespace }}
 spec:
@@ -71,4 +71,4 @@ spec:
       protocol: TCP
       targetPort: 43001
   selector:
-    component: cloud-controller-manager
+    component: vsphere-cloud-controller-manager
