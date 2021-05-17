@@ -1,0 +1,94 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: resourcesets.resources.cattle.io
+spec:
+  group: resources.cattle.io
+  names:
+    kind: ResourceSet
+    plural: resourcesets
+  scope: Cluster
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      properties:
+        controllerReferences:
+          items:
+            properties:
+              apiVersion:
+                type: string
+              name:
+                type: string
+              namespace:
+                type: string
+              replicas:
+                type: integer
+              resource:
+                type: string
+            type: object
+          nullable: true
+          type: array
+        resourceSelectors:
+          items:
+            properties:
+              apiVersion:
+                type: string
+              kinds:
+                items:
+                  type: string
+                nullable: true
+                type: array
+              kindsRegexp:
+                type: string
+              labelSelectors:
+                nullable: true
+                properties:
+                  matchExpressions:
+                    items:
+                      properties:
+                        key:
+                          type: string
+                        operator:
+                          type: string
+                        values:
+                          items:
+                            type: string
+                          nullable: true
+                          type: array
+                      type: object
+                    nullable: true
+                    type: array
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    nullable: true
+                    type: object
+                type: object
+              namespaceRegexp:
+                type: string
+              namespaces:
+                items:
+                  type: string
+                nullable: true
+                type: array
+              resourceNameRegexp:
+                type: string
+              resourceNames:
+                items:
+                  type: string
+                nullable: true
+                type: array
+            type: object
+          nullable: true
+          required:
+          - apiVersion
+          type: array
+      required:
+      - resourceSelectors
+      type: object
+  version: v1
+  versions:
+  - name: v1
+    served: true
+    storage: true
