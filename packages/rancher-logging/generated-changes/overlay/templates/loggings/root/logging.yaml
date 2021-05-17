@@ -29,10 +29,25 @@ spec:
         filterKubernetes:
           Kube_Tag_Prefix: "kuberentes.C.var.lib.rancher.rke.log."
         inputTail:
-          Path: "C:\\var\\lib\\rancher\\rke\\log"
+          Path: "{{ template "windowsPathPrefix" . }}/var/lib/rancher/rke/log"
+          {{- if .Values.fluentbit.inputTail.Buffer_Chunk_Size }}
+          Buffer_Chunk_Size: {{ .Values.fluentbit.inputTail.Buffer_Chunk_Size }}
+          {{- end }}
+          {{- if .Values.fluentbit.inputTail.Buffer_Max_Size }}
+          Buffer_Max_Size: {{ .Values.fluentbit.inputTail.Buffer_Max_Size }}
+          {{- end }}
+          {{- if .Values.fluentbit.inputTail.Mem_Buf_Limit }}
+          Mem_Buf_Limit: {{ .Values.fluentbit.inputTail.Mem_Buf_Limit }}
+          {{- end }}
+          {{- if .Values.fluentbit.inputTail.Multiline_Flush }}
+          Multiline_Flush: {{ .Values.fluentbit.inputTail.Multiline_Flush }}
+          {{- end }}
+          {{- if .Values.fluentbit.inputTail.Skip_Long_Lines }}
+          Skip_Long_Lines: {{ .Values.fluentbit.inputTail.Skip_Long_Lines }}
+          {{- end }}
         extraVolumeMounts:
-        - source: "/var/lib/rancher/rke/log"
-          destination: "/var/lib/rancher/rke/log"
+        - source: "c:/var/lib/rancher/rke/log"
+          destination: "c:/var/lib/rancher/rke/log"
           readOnly: true
         daemonSet:
           spec:
@@ -49,6 +64,32 @@ spec:
     image:
       repository: {{ template "system_default_registry" . }}{{ .Values.images.fluentbit.repository }}
       tag: {{ .Values.images.fluentbit.tag }}
+    {{- if or .Values.fluentbit.inputTail.Buffer_Chunk_Size .Values.fluentbit.inputTail.Buffer_Max_Size .Values.fluentbit.inputTail.Mem_Buf_Limit .Values.fluentbit.inputTail.Multiline_Flush .Values.fluentbit.inputTail.Skip_Long_Lines }}
+    inputTail:
+      {{- if .Values.fluentbit.inputTail.Buffer_Chunk_Size }}
+      Buffer_Chunk_Size: {{ .Values.fluentbit.inputTail.Buffer_Chunk_Size }}
+      {{- end }}
+      {{- if .Values.fluentbit.inputTail.Buffer_Max_Size }}
+      Buffer_Max_Size: {{ .Values.fluentbit.inputTail.Buffer_Max_Size }}
+      {{- end }}
+      {{- if .Values.fluentbit.inputTail.Mem_Buf_Limit }}
+      Mem_Buf_Limit: {{ .Values.fluentbit.inputTail.Mem_Buf_Limit }}
+      {{- end }}
+      {{- if .Values.fluentbit.inputTail.Multiline_Flush }}
+      Multiline_Flush: {{ .Values.fluentbit.inputTail.Multiline_Flush }}
+      {{- end }}
+      {{- if .Values.fluentbit.inputTail.Skip_Long_Lines }}
+      Skip_Long_Lines: {{ .Values.fluentbit.inputTail.Skip_Long_Lines }}
+      {{- end }}
+    {{- end }}
+    {{- if not .Values.disablePvc }}
+    {{- with .Values.fluentbit.bufferStorage }}
+    bufferStorage: {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.fluentbit.bufferStorageVolume }}
+    bufferStorageVolume: {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- end }}
     {{- if or .Values.global.psp.enabled .Values.global.seLinux.enabled }}
     security:
     {{- end }}
@@ -61,26 +102,22 @@ spec:
         seLinuxOptions:
           type: rke_logreader_t
     {{- end }}
-  {{- if .Values.global.dockerRootDirectory }}
+    {{- if .Values.global.dockerRootDirectory }}
     mountPath: {{ $containers }}
     extraVolumeMounts:
       - source: {{ $containers }}
         destination: {{ $containers }}
         readOnly: true
-  {{- end }}
-  {{- $total_tolerations := concat (.Values.tolerations) (.Values.fluentbit.tolerations) }}
-  {{- with $total_tolerations }}
-    tolerations:
-      {{- toYaml . | nindent 6 }}
-  {{- end }}
-  {{- with .Values.nodeSelector }}
-    nodeSelector:
-      {{- toYaml . | nindent 6 }}
-  {{- end }}
-  {{- with .Values.fluentbit.resources }}
-    resources:
-      {{- toYaml . | nindent 6 }}
-  {{- end }}
+    {{- end }}
+    {{- with (concat (.Values.tolerations) (.Values.fluentbit.tolerations)) }}
+    tolerations: {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.nodeSelector }}
+    nodeSelector: {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.fluentbit.resources }}
+    resources: {{- toYaml . | nindent 6 }}
+    {{- end }}
   fluentd:
     image:
       repository: {{ template "system_default_registry" . }}{{ .Values.images.fluentd.repository }}
@@ -88,23 +125,29 @@ spec:
     configReloaderImage:
       repository: {{ template "system_default_registry" . }}{{ .Values.images.config_reloader.repository }}
       tag: {{ .Values.images.config_reloader.tag }}
+    {{- if not .Values.disablePvc }}
+    {{- with .Values.fluentd.bufferStorageVolume }}
+    bufferStorageVolume: {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- end }}
     disablePvc: {{ .Values.disablePvc }}
+    {{- if .Values.fluentd.replicas }}
+    scaling:
+      replicas: {{ .Values.fluentd.replicas }}
+    {{- end }}
     {{- if .Values.global.psp.enabled }}
     security:
       podSecurityPolicyCreate: true
       roleBasedAccessControlCreate: true
     {{- end }}
-    {{- with .Values.tolerations }}
-    tolerations:
-      {{- toYaml . | nindent 6 }}
+    {{- with (default .Values.tolerations .Values.fluentd.tolerations) }}
+    tolerations: {{- toYaml . | nindent 6 }}
     {{- end }}
-    {{- with .Values.nodeSelector }}
-    nodeSelector:
-      {{- toYaml . | nindent 6 }}
+    {{- with (default .Values.nodeSelector .Values.fluentd.nodeSelector) }}
+    nodeSelector: {{- toYaml . | nindent 6 }}
     {{- end }}
     {{- with .Values.fluentd.resources }}
-    resources:
-      {{- toYaml . | nindent 6 }}
+    resources: {{- toYaml . | nindent 6 }}
     {{- end }}
     {{- with .Values.fluentd.livenessProbe }}
     livenessProbe: {{- toYaml . | nindent 6 }}

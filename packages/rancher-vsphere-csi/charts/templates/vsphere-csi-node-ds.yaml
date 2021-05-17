@@ -18,6 +18,7 @@ spec:
         app: vsphere-csi-node
         role: vsphere-csi
     spec:
+      serviceAccountName: vsphere-csi-node
       dnsPolicy: "Default"
       containers:
       - name: node-driver-registrar
@@ -32,8 +33,6 @@ spec:
           value: /csi/csi.sock
         - name: DRIVER_REG_SOCK_PATH
           value: {{ .Values.csiNode.prefixPath }}/var/lib/kubelet/plugins/csi.vsphere.vmware.com/csi.sock
-        securityContext:
-          privileged: true
         volumeMounts:
         - name: plugin-dir
           mountPath: /csi
@@ -95,6 +94,10 @@ spec:
           mountPropagation: "Bidirectional"
         - name: device-dir
           mountPath: /dev
+        - name: blocks-dir
+          mountPath: /sys/block
+        - name: sys-devices-dir
+          mountPath: /sys/devices
         ports:
           - containerPort: 9808
             name: healthz
@@ -104,6 +107,8 @@ spec:
             port: healthz
           initialDelaySeconds: 10
           timeoutSeconds: 5
+          periodSeconds: 5
+          failureThreshold: 3
       - name: liveness-probe
         image: "{{ template "system_default_registry" . }}{{ .Values.csiNode.image.livenessProbe.repository }}:{{ .Values.csiNode.image.livenessProbe.tag }}"
         args:
@@ -132,6 +137,14 @@ spec:
       - name: device-dir
         hostPath:
           path: /dev
+      - name: blocks-dir
+        hostPath:
+          path: /sys/block
+          type: Directory
+      - name: sys-devices-dir
+        hostPath:
+          path: /sys/devices
+          type: Directory
       tolerations:
         - effect: NoExecute
           operator: Exists

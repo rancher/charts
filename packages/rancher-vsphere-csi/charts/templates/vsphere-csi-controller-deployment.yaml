@@ -25,10 +25,24 @@ spec:
         node-role.kubernetes.io/controlplane: "true"
       {{- end }}
       tolerations:
+        # Rancher specific change: These tolerations are intentionally different from upstream to avoid lessening the scope to only NoSchedule with a specific key
+        # - key: node-role.kubernetes.io/master
+        #   operator: Exists
+        #   effect: NoSchedule
         - operator: "Exists"
           effect: NoSchedule
         - operator: "Exists"
           effect: NoExecute
+        # uncomment below toleration if you need an aggressive pod eviction in case when
+        # node becomes not-ready or unreachable. Default is 300 seconds if not specified.
+        #- key: node.kubernetes.io/not-ready
+        #  operator: Exists
+        #  effect: NoExecute
+        #  tolerationSeconds: 30
+        #- key: node.kubernetes.io/unreachable
+        #  operator: Exists
+        #  effect: NoExecute
+        #  tolerationSeconds: 30
       dnsPolicy: "Default"
       containers:
         - name: csi-attacher
@@ -50,7 +64,10 @@ spec:
           args:
             - "--v=4"
             - "--timeout=300s"
+            - "--handle-volume-inuse-error=false"
             - "--csi-address=$(ADDRESS)"
+            - "--kube-api-qps=100"
+            - "--kube-api-burst=100"
             - "--leader-election"
           env:
             - name: ADDRESS
@@ -82,6 +99,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            - name: X_CSI_SERIAL_VOL_ACCESS_TIMEOUT
+              value: 3m
           volumeMounts:
             - mountPath: /etc/cloud
               name: vsphere-config-volume
@@ -91,6 +110,9 @@ spec:
           ports:
             - name: healthz
               containerPort: 9808
+              protocol: TCP
+            - name: prometheus
+              containerPort: 2112
               protocol: TCP
           livenessProbe:
             httpGet:
@@ -115,6 +137,10 @@ spec:
             - "--fss-name=internal-feature-states.csi.vsphere.vmware.com"
             - "--fss-namespace=$(CSI_NAMESPACE)"
           imagePullPolicy: "Always"
+          ports:
+            - containerPort: 2113
+              name: prometheus
+              protocol: TCP
           env:
             - name: FULL_SYNC_INTERVAL_MINUTES
               value: "30"
@@ -140,6 +166,8 @@ spec:
             - "--v=4"
             - "--timeout=300s"
             - "--csi-address=$(ADDRESS)"
+            - "--kube-api-qps=100"
+            - "--kube-api-burst=100"
             - "--leader-election"
             - "--default-fstype=ext4"
             # needed only for topology aware setup
@@ -161,12 +189,14 @@ spec:
 apiVersion: v1
 data:
   "csi-migration": {{ .Values.csiMigration.enabled | quote }}
+  "csi-auth-check": {{ .Values.csiAuthCheck.enabled | quote }}
+  "online-volume-extend": {{ .Values.onlineVolumeExtend.enabled | quote }}
 kind: ConfigMap
 metadata:
   name: internal-feature-states.csi.vsphere.vmware.com
   namespace: {{ .Release.Namespace }}
 ---
-apiVersion: storage.k8s.io/v1 # For k8s 1.17 or lower use storage.k8s.io/v1beta1
+apiVersion: storage.k8s.io/v1 # For k8s 1.17 use storage.k8s.io/v1beta1
 kind: CSIDriver
 metadata:
   name: csi.vsphere.vmware.com
@@ -174,3 +204,22 @@ spec:
   attachRequired: true
   podInfoOnMount: false
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vsphere-csi-controller
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: vsphere-csi-controller
+spec:
+  ports:
+    - name: ctlr
+      port: 2112
+      targetPort: 2112
+      protocol: TCP
+    - name: syncer
+      port: 2113
+      targetPort: 2113
+      protocol: TCP
+  selector:
+    app: vsphere-csi-controller
