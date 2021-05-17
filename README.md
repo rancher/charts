@@ -19,33 +19,62 @@ charts/
 
 This repository branch contains a `configuration.yaml` file that is used to specify how it interacts with other repository branches.
 
-#### Sync
-
-This branch syncs with the generated assets from the following branches:
-- dev-v2.5 at https://github.com/rancher/charts.git (only latest assets)
-
-To release a new version of a chart, please open the relevant PRs to one of these branches. 
-
-Merging should trigger a sync workflow on pushing to these branches.
-
 ### Cutting a Release
 
-In the Live branch, cutting a release requires you to run the `make sync` command.
+In the Live branch, cutting a release requires you to copy the contents of the Staging branch into your Live Branch, which can be done with the following simple Bash script.
 
-This command will automatically get the latest charts / resources merged into the the branches you sync with (as indicated in this branch's `configuration.yaml`) and will fail if any of those branches try to modify already released assets.
+```bash
+# Assuming that your upstream remote (e.g. https://github.com/rancher/charts.git) is named `upstream` 
+# Replace the following environment variables
+STAGING_BRANCH=dev-v2.x
+LIVE_BRANCH=release-v2.x
+FORKED_BRANCH=release-v2.x.y
+git fetch upstream
+git checkout upstream/${LIVE_BRANCH} -b ${FORKED_BRANCH}
+git branch -u origin/${FORKED_BRANCH}
+git checkout upstream/${STAGING_BRANCH} -- charts assets index.yaml
+git add charts assets index.yaml
+git commit -m "Releasing chart"
+git push --set-upstream origin ${FORKED_BRANCH}
+# Create your pull request!
+```
 
-If the `make sync` command fails, you might have to manually make changes to the contents of the Staging Branch to resolve any issues.
+Once complete, you should see the following:
+- The `assets/` and `charts/` directories have been updated to match the Staging branch. All entires should be additions, not modifications.
+- The `index.yaml`'s diff shows only adds additional entries and does not modify or remove existing ones.
 
-Once you successfully run the `make sync` command, the logs outputted will itemize the releaseCandidateVersions picked out from the Staging branch and make exactly two changes:
+No other changes are expected.
 
-1. It will update the `Chart.yaml`'s version for each chart to drop the `-rcXX` from it
+### Cutting an Out-Of-Band Chart Release
 
-2. It will update the `Chart.yaml`'s annotations for each chart to drop the `-rcXX` from it only for some special annotations (note: currently, the only special annotation we track is `catalog.cattle.io/auto-install`).
+Similar to the above steps, cutting an out-of-band chart release will involve porting over the new chart from the Staging branch via `git checkout`. However, you will need to manually regenerate the Helm index since you only want the index.yaml on the Live branch to be updated to include the single new chart.
 
-Once you successfully run the `make release` command, ensure the following is true:
-- The `assets/` and `charts/` directories each only have a single file contained within them: `README.md`
-- The `released/assets/` directory has a .tgz file for each releaseCandidateVersion of a Chart that was created during this release.
-- The `index.yaml` and `released/assets/index.yaml` both are identical and the `index.yaml`'s diff shows only two types of changes: a timestamp update or a modification of an existing URL from `assets/*` to `released/assets/*`.
+Use the following example Bash script to execute this change:
+
+```bash
+# Assuming that your upstream remote (e.g. https://github.com/rancher/charts.git) is named `upstream` 
+# Replace the following environment variables
+STAGING_BRANCH=dev-v2.x
+LIVE_BRANCH=release-v2.x
+FORKED_BRANCH=release-v2.x.y
+NEW_CHART_DIR=charts/rancher-monitoring/rancher-monitoring/X.Y.Z
+NEW_ASSET_TGZ=assets/rancher-monitoring/rancher-monitoring-X.Y.Z.tgz
+git fetch upstream
+git checkout upstream/${LIVE_BRANCH} -b ${FORKED_BRANCH}
+git branch -u origin/${FORKED_BRANCH}
+git checkout upstream/${STAGING_BRANCH} -- ${NEW_CHART_DIR} ${NEW_ASSET_TGZ}
+helm repo index --merge ./index.yaml --url assets assets; # FYI: This will generate new 'created' timestamps across *all charts*.
+mv assets/index.yaml index.yaml
+git add ${NEW_CHART_DIR} ${NEW_ASSET_TGZ} index.yaml
+git commit -m "Releasing out-of-band chart"
+git push --set-upstream origin ${FORKED_BRANCH}
+# Create your pull request!
+```
+
+Once complete, you should see the following:
+- The new chart should exist in `assets` and `charts`. Existing charts should not be modified.
+- The `index.yaml`'s diff should show an additional entry for your new chart.
+- The `index.yaml`'s diff should show modified `created` timestamps across all charts (due to the behavior of `helm repo index`).
 
 No other changes are expected.
 
@@ -55,8 +84,6 @@ No other changes are expected.
 
 `make pull-scripts`: Pulls in the version of the `charts-build-scripts` indicated in scripts.
 
-`make sync`: Syncs the assets in your current repository with the merged contents of all of the repository branches indicated in your configuration.yaml
-
 `make validate`: Validates your current repository branch against all the repository branches indicated in your configuration.yaml
 
-`make docs`: Pulls in the latest docs, scripts, etc. from the charts-build-scripts repository
+`make template`: Updates the current directory by applying the configuration.yaml on [upstream Go templates](https://github.com/rancher/charts-build-scripts/tree/master/templates/template) to pull in the most up-to-date docs, scripts, etc. from [rancher/charts-build-scripts](https://github.com/rancher/charts-build-scripts)
