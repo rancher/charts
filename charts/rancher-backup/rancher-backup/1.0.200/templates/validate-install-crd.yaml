@@ -1,0 +1,16 @@
+#{{- if gt (len (lookup "rbac.authorization.k8s.io/v1" "ClusterRole" "" "")) 0 -}}
+# {{- $found := dict -}}
+# {{- set $found "resources.cattle.io/v1/Backup" false -}}
+# {{- set $found "resources.cattle.io/v1/ResourceSet" false -}}
+# {{- set $found "resources.cattle.io/v1/Restore" false -}}
+# {{- range .Capabilities.APIVersions -}}
+# {{- if hasKey $found (toString .) -}}
+# 	{{- set $found (toString .) true -}}
+# {{- end -}}
+# {{- end -}}
+# {{- range $_, $exists := $found -}}
+# {{- if (eq $exists false) -}}
+# 	{{- required "Required CRDs are missing. Please install the rancher-backup-crd chart before installing this chart." "" -}}
+# {{- end -}}
+# {{- end -}}
+#{{- end -}}
