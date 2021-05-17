@@ -1,0 +1,59 @@
+--- charts-original/Chart.yaml
++++ charts/Chart.yaml
+@@ -1,17 +1,15 @@
+-name: kube-prometheus-stack
++name: rancher-monitoring
+ home: https://github.com/prometheus-operator/kube-prometheus
+ sources:
+ - https://github.com/prometheus-community/helm-charts
+ - https://github.com/prometheus-operator/kube-prometheus
+-version: 14.5.0
+-description: kube-prometheus-stack collects Kubernetes manifests, Grafana dashboards,
+-  and Prometheus rules combined with documentation and scripts to provide easy to
+-  operate end-to-end Kubernetes cluster monitoring with Prometheus using the Prometheus
+-  Operator.
++version: 14.5.1
++description: Collects several related Helm charts, Grafana dashboards, and Prometheus rules combined with documentation and scripts to provide easy to operate end-to-end Kubernetes cluster monitoring with Prometheus using the Prometheus Operator.
+ keywords:
+ - operator
+ - prometheus
+ - kube-prometheus
++- monitoring
+ maintainers:
+ - name: vsliouniaev
+   email: ""
+@@ -31,6 +29,9 @@
+ - name: Xtigyro
+   email: miroslav.hadzhiev@gmail.com
+   url: ""
++- name: Arvind
++  email: arvind.iyengar@suse.com
++  url: ""
+ icon: https://raw.githubusercontent.com/prometheus/prometheus.github.io/master/assets/prometheus_logo-cb55bb5c346.png
+ apiversion: v2
+ condition: ""
+@@ -44,6 +45,15 @@
+     - name: Upstream Project
+       url: https://github.com/prometheus-operator/kube-prometheus
+   artifacthub.io/operator: "true"
++  catalog.cattle.io/certified: rancher
++  catalog.cattle.io/namespace: cattle-monitoring-system
++  catalog.cattle.io/release-name: rancher-monitoring
++  catalog.cattle.io/ui-component: monitoring
++  catalog.cattle.io/provides-gvr: monitoring.coreos.com.prometheus/v1
++  catalog.cattle.io/display-name: "Monitoring"
++  catalog.cattle.io/auto-install: rancher-monitoring-crd=match
++  catalog.cattle.io/requests-cpu: "4500m"
++  catalog.cattle.io/requests-memory: "4000Mi"
+ kubeversion: '>=1.16.0-0'
+ dependencies:
+ - name: grafana
+@@ -185,7 +195,7 @@
+ - name: windowsExporter
+   version: ""
+   repository: file://./charts/windowsExporter
+-  condition: windowsExporter.enabled
++  condition: global.cattle.windows.enabled
+   tags: []
+   enabled: false
+   importvalues: []

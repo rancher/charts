@@ -1,0 +1,123 @@
+--- charts-original/values.yaml
++++ charts/values.yaml
+@@ -5,7 +5,7 @@
+ replicaCount: 1
+ 
+ image:
+-  repository: ghcr.io/banzaicloud/logging-operator
++  repository: rancher/mirrored-banzaicloud-logging-operator
+   tag: 3.9.4
+   pullPolicy: IfNotPresent
+ 
+@@ -37,9 +37,14 @@
+   #   cpu: 100m
+   #   memory: 128Mi
+ 
+-nodeSelector: {}
++nodeSelector:
++  kubernetes.io/os: linux
+ 
+-tolerations: []
++tolerations:
++  - key: cattle.io/os
++    operator: "Equal"
++    value: "linux"
++    effect: NoSchedule
+ 
+ affinity: {}
+ 
+@@ -55,6 +60,9 @@
+     # Labels to query http service
+     labels: {}
+ 
++# These "rbac" settings match the upstream defaults. For only using psp in the overlay files, which
++# include the default Logging CRs created, see the "global.psp" setting. To enable psp for the entire
++# chart, enable both "rbac.psp" and "global.psp" (this may require further changes to the chart).
+ rbac:
+   enabled: true
+   psp:
+@@ -85,3 +93,84 @@
+     additionalLabels: {}
+     metricRelabelings: []
+     relabelings: []
++
++disablePvc: true
++
++systemdLogPath: "/run/log/journal"
++
++additionalLoggingSources:
++  rke:
++    enabled: false
++    fluentbit:
++      log_level: "info"
++      mem_buffer_limit: "5MB"
++  rke2:
++    enabled: false
++  k3s:
++    enabled: false
++    container_engine: "systemd"
++  aks:
++    enabled: false
++  eks:
++    enabled: false
++  gke:
++    enabled: false
++
++images:
++  config_reloader:
++    repository: rancher/mirrored-jimmidyson-configmap-reload
++    tag: v0.4.0
++  fluentbit:
++    repository: rancher/mirrored-fluent-fluent-bit
++    tag: 1.6.10
++  fluentbit_debug:
++    repository: rancher/mirrored-fluent-fluent-bit
++    tag: 1.6.10-debug
++  fluentd:
++    repository: rancher/mirrored-banzaicloud-fluentd
++    tag: v1.11.5-alpine-12
++  nodeagent_fluentbit:
++    os: "windows,linux"
++    repository: rancher/fluent-bit
++    tag: 1.6.10
++
++# These settings apply to every Logging CR, including vendor Logging CRs enabled in "additionalLoggingSources".
++# Changing these affects every Logging CR installed.
++nodeAgents:
++  tls:
++    enabled: false
++fluentd:
++  resources: {}
++  livenessProbe:
++    tcpSocket:
++      port: 24240
++    initialDelaySeconds: 30
++    periodSeconds: 15
++fluentbit:
++  resources: {}
++  tolerations:
++    - key: node-role.kubernetes.io/controlplane
++      value: "true"
++      effect: NoSchedule
++    - key: node-role.kubernetes.io/etcd
++      value: "true"
++      effect: NoExecute
++
++global:
++  cattle:
++    systemDefaultRegistry: ""
++    # Uncomment the below two lines to either enable or disable Windows logging. If this chart is
++    # installed via the Rancher UI, it will set this value to "true" if the cluster is a Windows
++    # cluster. In that scenario, if you would like to disable Windows logging on Windows clusters,
++    # set the value below to "false".
++    # windows:
++    #   enabled: true
++  # Change the "dockerRootDirectory" if the default Docker directory has changed.
++  dockerRootDirectory: ""
++  # This psp setting differs from the upstream "rbac.psp" by only enabling psp settings for the
++  # overlay files, which include the Logging CRs created, whereas the upstream "rbac.psp" affects the
++  # logging operator.
++  psp:
++    enabled: true
++  seLinux:
++    enabled: false
