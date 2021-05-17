@@ -1,0 +1,183 @@
+#!/bin/bash
+set -e
+
+# Note: These scripts are only intended to migrate from the original build scripts to charts-build-scripts v0.1.x
+# A separate migration process is required for v0.2.x
+
+cd $(dirname $0)
+
+if [[ -z ${BRANCH} ]]; then
+    branch=$(git rev-parse --abbrev-ref HEAD)
+else
+    branch=${BRANCH}
+fi
+
+echo "Using branch ${branch}"
+
+if [[ -z ${REPOSITORY} ]]; then
+    echo "Need to provide REPOSITORY as environment variable"
+    exit 1
+fi
+
+cd ..
+
+# Setup
+rm -rf ./repository
+mkdir -p ./repository
+cd repository
+
+# Pull in branch
+echo "Pulling in ${REPOSITORY}@${branch}"
+git clone --depth 1 --branch ${branch} ${REPOSITORY} . > /dev/null 2>&1
+
+if ! (test -d packages); then
+    echo "There are no packages in this repository"
+    cd ..
+    rm -rf ./repository
+    exit 1
+fi
+
+# Run make prepare to get all the packages passed through the scripts
+make prepare
+
+# Copy the working directories of the packages after running prepare on them
+for package in packages/*; do
+    cp -R ${package} ../packages/
+done
+
+# Go back
+cd ..
+rm -rf ./repository
+
+# Initialize package
+for package in packages/*; do
+    if ! (test -d ${package}); then
+        continue
+    fi
+    # Add any overlay files and delete
+    if test -d ${package}/overlay; then
+        cp -R ${package}/overlay/* ${package}/charts # Usually happens on make charts
+        rm -rf ${package}/overlay
+    fi
+    # Delete the patch file
+    if test -f ${package}/*.patch; then
+        rm ${package}/*.patch
+    fi
+    # Remove comments from the Chart.yaml since this causes weird problems with Helm loading
+    if test -f ${package}/charts/Chart.yaml; then
+        sed -i '' '/^#/d' ${package}/charts/Chart.yaml
+    fi
+    # Local charts
+    if ! (test -f ${package}/package.yaml); then
+        # Local chart has no package.yaml
+        yq n 'url' 'local' > ${package}/package.yaml
+    elif [[ -z $(yq r ${package}/package.yaml 'url') ]]; then
+        # Local chart's package.yaml does not have url
+        yq w -i ${package}/package.yaml 'url' 'local'
+    fi
+    # Remove deprecated fields and add additional fields
+    if [[ -n $(yq r ${package}/package.yaml 'type') ]]; then
+        yq d -i ${package}/package.yaml 'type'
+    fi
+    if [[ -z $(yq r ${package}/package.yaml 'packageVersion') ]]; then
+        yq w -i ${package}/package.yaml 'packageVersion' '00'
+    fi
+done
+
+# Update the dependencies
+for package in packages/*; do    
+    if ! (test -d ${package} && test -d ${package}/charts/charts); then
+        continue
+    fi
+    # Untar any dependencies
+    for dependency in ${package}/charts/charts/*; do
+        if test -f ${dependency} && [[ ${dependency} == *.tgz ]]; then
+            # Untar the dependency
+            tar -xvzf ${dependency} -C ${package}/charts/charts > /dev/null 2>&1
+            rm ${dependency}
+        fi
+    done
+    # Move dependency into generated-changes
+    for dependency in ${package}/charts/charts/*; do
+        if test -d ${dependency}; then
+            dependency_name=$(basename -- ${dependency})
+            dependency_gc_dir=${package}/generated-changes/dependencies/${dependency_name}
+            mkdir -p ${dependency_gc_dir}
+            if test -d packages/$(basename -- ${dependency}); then
+                # It tracks another package in the repository
+                yq n 'url' "packages/${dependency_name}" > ${dependency_gc_dir}/dependency.yaml
+            elif test -f ${package}/charts/requirements.yaml; then
+                # Get the URL from the dependencies
+                repository=$(yq r ${package}/charts/requirements.yaml "dependencies[name == ${dependency_name}].repository")
+                version=$(yq r ${package}/charts/requirements.yaml "dependencies[name == ${dependency_name}].version")
+                url=$(curl -sLf ${repository}/index.yaml | cat | yq r - "entries.${dependency_name}.(version == ${version}).urls[0]")
+                if [[ -z ${url} ]]; then
+                    echo "Count not find download URL for ${dependency}"
+                    exit 1
+                fi
+                yq n 'url' ${url} > ${dependency_gc_dir}/dependency.yaml
+                unset url
+            else
+                # Has to be a local dependency
+                mkdir -p ${dependency_gc_dir}/charts
+                cp -R ${dependency}/* ${dependency_gc_dir}/charts
+                yq n 'url' 'local' > ${dependency_gc_dir}/dependency.yaml
+                yq w -i ${dependency_gc_dir}/dependency.yaml 'workingDir' 'charts'
+            fi
+            rmdir ${package}/charts/charts 2> /dev/null || echo "No directory to delete" > /dev/null
+        fi
+    done
+done
+
+# Update the CRD charts
+for package in packages/*; do    
+    if ! (test -d ${package} && [[ -n $(yq r ${package}/package.yaml 'generateCRDChart') ]]); then
+        continue
+    fi
+    if [[ $(yq r ${package}/package.yaml 'generateCRDChart.enabled') != "true" ]]; then
+        rm -rf ${package}/charts-crd
+        continue
+    fi
+    unset assume_ownership_of_crds
+    if [[ $(yq r ${package}/package.yaml 'generateCRDChart.assumeOwnershipOfCRDs') == "true" ]]; then
+        assume_ownership_of_crds=1
+    fi
+    # Copy template out to templates/crd-template
+    mkdir -p ${package}/templates/crd-template
+    mkdir -p ${package}/charts/crds
+    cp -R ${package}/charts-crd/* ${package}/templates/crd-template
+    if [[ -z ${assume_ownership_of_crds} ]]; then
+        mv ${package}/templates/crd-template/templates/* ${package}/charts/crds
+    else
+        mv ${package}/templates/crd-template/crd-manifest/* ${package}/charts/crds
+    fi
+    # Remove validate-install-crd.yaml file from original chart
+    rm ${package}/charts/templates/validate-install-crd.yaml
+    # Remove generateCRDChart from package.yaml
+    yq d -i ${package}/package.yaml 'generateCRDChart'
+done
+
+# Do a make patch with the current scripts
+PACKAGE="" make patch
+
+# Update the additional charts with the CRD charts
+for package in packages/*; do    
+    if ! (test -d ${package}); then
+        continue
+    fi
+    # Add back in to package.yaml as additional chart
+    if test -d ${package}/charts-crd; then
+        yq w -i ${package}/package.yaml 'additionalCharts[0].workingDir' 'charts-crd'
+        yq w -i ${package}/package.yaml 'additionalCharts[0].crdOptions.templateDirectory' 'crd-template'
+        if [[ -z ${assume_ownership_of_crds} ]]; then
+            yq w -i ${package}/package.yaml 'additionalCharts[0].crdOptions.crdDirectory' 'templates'
+        else
+            yq w -i ${package}/package.yaml 'additionalCharts[0].crdOptions.crdDirectory' 'crd-manifest'
+        fi
+        yq w -i ${package}/package.yaml 'additionalCharts[0].crdOptions.addCRDValidationToMainChart' 'true'
+        rm -rf ${package}/charts-crd
+    fi
+done
+
+# Clean up the current directory
+PACKAGE="" make clean

@@ -1,3 +1,3 @@
 ## Charts
 
-This folder contains the unarchived Helm charts that are currently being served at charts.rancher.io.
+This folder contains unarchived Helm charts that may or may not have been released yet.
