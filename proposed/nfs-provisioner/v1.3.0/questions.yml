@@ -1,0 +1,84 @@
+categories:
+- storage
+labels:
+  io.rancher.certified: experimental
+questions:
+- variable: defaultImage
+  default: true
+  description: "Use default Docker image"
+  label: Use Default Image
+  type: boolean
+  group: "Container Image Settings"
+  show_subquestion_if: false
+  subquestions:
+  - variable: image.repository
+    default: "gcr.io/k8s-staging-sig-storage/nfs-provisioner"
+    description: "Image repository"
+    type: string
+    label: NFS Image Name
+  - variable: image.tag
+    default: "v3.0.0"
+    description: "Image tag"
+    type: string
+    label: Image Tag
+- variable: storageClass.create
+  default: true
+  description: "Check to automatically create the StorageClass"
+  type: boolean
+  required: true
+  label: Create StorageClass
+  group: "StorageClass Settings"
+  show_subquestion_if: true
+  subquestions:
+  - variable: storageClass.name
+    description: "The name of the created StorageClass, defaults to 'nfs'."
+    type: string
+    label: StorageClass Name
+  - variable: storageClass.defaultClass
+    default: true
+    description: "Configure as the default StorageClass"
+    type: boolean
+    label: Default StorageClass
+  - variable: storageClass.reclaimPolicy
+    default: "Delete"
+    description: "ReclaimPolicy of the Created StorageClass"
+    required: true
+    type: enum
+    label: ReclaimPolicy
+    options:
+      - "Delete"
+      - "Retain"
+  - variable: storageClass.allowVolumeExpansion
+    default: true
+    description: "Configure the storage class to allow volume expansion"
+    type: boolean
+    label: VolumeExpansion
+- variable: persistence.enabled
+  default: false
+  description: "Use a persistent volume to back the NFS share (otherwise emptyDir volume is being used)"
+  type: boolean
+  required: true
+  label: Use Persistent Volume
+  show_subquestion_if: true
+  group: "Persistent Storage Settings"
+  subquestions:
+  - variable: persistence.size
+    default: "20Gi"
+    description: "Size of the Persistent Volume"
+    type: string
+    label: Persistent Volume Size
+  - variable: persistence.storageClass
+    default: ""
+    description: "If undefined or null, then the default StorageClass is used."
+    type: storageclass
+    label: Persistent Volume StorageClass
+- variable: service.type
+  default: "ClusterIP"
+  description: "The service type for exposing NFS"
+  type: enum
+  label: Service Type
+  group: "Service Settings"
+  required: true
+  options:
+  - "ClusterIP"
+  - "NodePort"

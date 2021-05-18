@@ -1,0 +1,19 @@
+{{- if .Values.rbac.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app: {{ include "nfs-provisioner.name" . }}
+    chart: {{ include "nfs-provisioner.chart" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+  name: {{ include "nfs-provisioner.fullname" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "nfs-provisioner.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "nfs-provisioner.fullname" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}
