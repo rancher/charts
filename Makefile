@@ -7,6 +7,9 @@ remove:
 forward-port:
 	./scripts/forward-port
 
+rebase:
+	./scripts/rebase
+
 TARGETS := prepare patch clean clean-cache charts list index unzip zip standardize validate template
 
 $(TARGETS):
