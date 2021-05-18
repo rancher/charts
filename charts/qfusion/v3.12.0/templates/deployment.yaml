@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qfusion-installer
+  labels:
+    app: qfusion-installer
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: qfusion-installer
+  template:
+    metadata:
+      labels:
+        app: qfusion-installer
+    spec:
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      serviceAccountName: qfusion-installer
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.global.registry }}/{{ .Values.global.repository }}/installer-operator:{{ .Chart.AppVersion }}"
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- with .Values.ext.cmName }}
+          volumeMounts:
+            - name: extprofiles
+              mountPath: /extProfiles
+              readOnly: true
+          {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.ext.cmName }}
+      volumes:
+        - name: extprofiles
+          configMap:
+            name: {{ .Values.ext.cmName }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}

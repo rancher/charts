@@ -1,0 +1,70 @@
+apiVersion: qfusion.woqutech.com/v1alpha1
+kind: InstallerOperator
+metadata:
+  name: {{.Release.Name}}
+spec:
+  cmdbConfig: {}
+  deployType: singleNode
+  esConfig:
+    nodeSelector:
+      nodeSelectorTerms: null
+  globalConfig:
+    global:
+      registry: {{ .Values.global.registry }}
+      repository: {{ .Values.global.repository }}
+    nodeExporter:
+      nodePort: false
+    tolerations:
+    - effect: NoSchedule
+      key: node-role.kubernetes.io/master
+      operator: Exists
+  prepareYaml: |2
+
+    apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: qfusion-admin
+    ---
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: dboperator
+      namespace: qfusion-admin
+      labels:
+        app: qfusion-admin-operator
+    ---
+    apiVersion: rbac.authorization.k8s.io/v1beta1
+    kind: ClusterRoleBinding
+    metadata:
+      name: dboperator-qfusion-admin
+      labels:
+        app: qfusion-admin-operator
+    subjects:
+      - kind: ServiceAccount
+        name: dboperator
+        namespace: qfusion-admin
+    roleRef:
+      kind: ClusterRole
+      name: cluster-admin
+      apiGroup: rbac.authorization.k8s.io
+    ---
+    apiVersion: v1
+    data:
+      timezone: |
+        Asia/Shanghai
+    kind: ConfigMap
+    metadata:
+      name: timezone
+      namespace: qfusion-admin
+  profiles: # 后面的优先级比前面高
+  - empty.profile
+  {{- with .Values.baseProfiles }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+  {{- with .Values.ext.profiles }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+  components:
+    webserver:
+      nodeExporter:
+        nodePort: true
