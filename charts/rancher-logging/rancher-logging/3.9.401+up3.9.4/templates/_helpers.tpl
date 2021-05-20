@@ -75,11 +75,14 @@ true
 {{- end }}
 {{- end }}
 
-{{- define "windowsPathPrefix" }}
-{{- $temp := (default "c:\\" .Values.global.cattle.rkeWindowsPathPrefix | replace "\\" "/" | replace "//" "/") }}
-{{- if (hasSuffix "/" $temp) }}
-{{- trimSuffix "/" $temp }}
-{{- else }}
-{{- $temp }}
-{{- end }}
-{{- end }}
+{{- define "windowsPathPrefix" -}}
+{{- trimSuffix "/" (default "c:\\" .Values.global.cattle.rkeWindowsPathPrefix | replace "\\" "/" | replace "//" "/" | replace "c:" "C:") -}}
+{{- end -}}
+
+{{- define "windowsKubernetesFilter" -}}
+{{- printf "kubernetes.%s" ((include "windowsPathPrefix" .) | replace ":" "" | replace "/" ".") -}}
+{{- end -}}
+
+{{- define "windowsInputTailMount" -}}
+{{- (include "windowsPathPrefix" .) | replace "C:" "" -}}
+{{- end -}}
