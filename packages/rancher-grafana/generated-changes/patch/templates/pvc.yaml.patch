@@ -1,0 +1,18 @@
+--- charts-original/templates/pvc.yaml
++++ charts/templates/pvc.yaml
+@@ -16,12 +16,14 @@
+   {{- end }}
+ spec:
+   accessModes:
++{{- $_ := required "Must provide at least one access mode for persistent volumes used by Grafana" .Values.persistence.accessModes }}
++{{- $_ := required "Must provide at least one access mode for persistent volumes used by Grafana" (first .Values.persistence.accessModes) }}
+     {{- range .Values.persistence.accessModes }}
+     - {{ . | quote }}
+     {{- end }}
+   resources:
+     requests:
+-      storage: {{ .Values.persistence.size | quote }}
++      storage: {{ required "Must provide size for persistent volumes used by Grafana" .Values.persistence.size | quote }}
+   {{- if .Values.persistence.storageClassName }}
+   storageClassName: {{ .Values.persistence.storageClassName }}
+   {{- end -}}
