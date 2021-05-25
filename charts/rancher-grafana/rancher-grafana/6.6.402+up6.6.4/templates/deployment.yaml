@@ -1,21 +1,28 @@
-{{- if and .Values.persistence.enabled (not .Values.persistence.existingClaim) (eq .Values.persistence.type "statefulset")}}
+{{ if (or (not .Values.persistence.enabled) (eq .Values.persistence.type "pvc")) }}
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: {{ template "grafana.fullname" . }}
   namespace: {{ template "grafana.namespace" . }}
   labels:
     {{- include "grafana.labels" . | nindent 4 }}
+{{- if .Values.labels }}
+{{ toYaml .Values.labels | indent 4 }}
+{{- end }}
 {{- with .Values.annotations }}
   annotations:
 {{ toYaml . | indent 4 }}
 {{- end }}
 spec:
   replicas: {{ .Values.replicas }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
   selector:
     matchLabels:
       {{- include "grafana.selectorLabels" . | nindent 6 }}
-  serviceName: {{ template "grafana.fullname" . }}-headless
+{{- with .Values.deploymentStrategy }}
+  strategy:
+{{ toYaml . | trim | indent 4 }}
+{{- end }}
   template:
     metadata:
       labels:
@@ -27,28 +34,15 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
         checksum/dashboards-json-config: {{ include (print $.Template.BasePath "/dashboards-json-configmap.yaml") . | sha256sum }}
         checksum/sc-dashboard-provider-config: {{ include (print $.Template.BasePath "/configmap-dashboard-provider.yaml") . | sha256sum }}
-  {{- if or (and (not .Values.admin.existingSecret) (not .Values.env.GF_SECURITY_ADMIN_PASSWORD__FILE) (not .Values.env.GF_SECURITY_ADMIN_PASSWORD)) (and .Values.ldap.enabled (not .Values.ldap.existingSecret)) }}
+{{- if or (and (not .Values.admin.existingSecret) (not .Values.env.GF_SECURITY_ADMIN_PASSWORD__FILE) (not .Values.env.GF_SECURITY_ADMIN_PASSWORD)) (and .Values.ldap.enabled (not .Values.ldap.existingSecret)) }}
         checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+{{- end }}
+{{- if .Values.envRenderSecret }}
+        checksum/secret-env: {{ include (print $.Template.BasePath "/secret-env.yaml") . | sha256sum }}
 {{- end }}
 {{- with .Values.podAnnotations }}
 {{ toYaml . | indent 8 }}
 {{- end }}
     spec:
       {{- include "grafana.pod" . | nindent 6 }}
-  volumeClaimTemplates:
-  - metadata:
-      name: storage
-    spec:
-{{- $_ := required "Must provide at least one access mode for persistent volumes used by Grafana" .Values.persistence.accessModes }}
-{{- $_ := required "Must provide at least one access mode for persistent volumes used by Grafana" (first .Values.persistence.accessModes) }}
-      accessModes: {{ .Values.persistence.accessModes }}
-      storageClassName: {{ .Values.persistence.storageClassName }}
-      resources:
-        requests:
-          storage: {{ required "Must provide size for persistent volumes used by Grafana" .Values.persistence.size }}
-      {{- with .Values.persistence.selectorLabels }}
-      selector:
-        matchLabels:
-{{ toYaml . | indent 10 }}
-      {{- end }}
 {{- end }}
