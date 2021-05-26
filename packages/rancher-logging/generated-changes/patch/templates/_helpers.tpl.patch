@@ -1,6 +1,6 @@
 --- charts-original/templates/_helpers.tpl
 +++ charts/templates/_helpers.tpl
-@@ -56,3 +56,33 @@
+@@ -56,3 +56,68 @@
  {{- end }}
  app.kubernetes.io/managed-by: {{ .Release.Service }}
  {{- end -}}
@@ -34,3 +34,39 @@
 +{{- define "windowsInputTailMount" -}}
 +{{- (include "windowsPathPrefix" .) | replace "C:" "" -}}
 +{{- end -}}
++
++{{/*
++Set the controlplane selector based on kubernetes distribution
++*/}}
++{{- define "controlplaneSelector" -}}
++{{- $master := or .Values.additionalLoggingSources.rke2.enabled .Values.additionalLoggingSources.k3s.enabled -}}
++{{- $defaultSelector := $master | ternary (dict "node-role.kubernetes.io/master" "true") (dict "node-role.kubernetes.io/controlplane" "true") -}}
++{{ default $defaultSelector .Values.additionalLoggingSources.kubeAudit.nodeSelector | toYaml }}
++{{- end -}}
++
++{{/*
++Set kube-audit file path prefix based on distribution
++*/}}
++{{- define "kubeAuditPathPrefix" -}}
++{{- if .Values.additionalLoggingSources.rke.enabled -}}
++{{ default "/var/log/kube-audit" .Values.additionalLoggingSources.kubeAudit.pathPrefix }}
++{{- else if .Values.additionalLoggingSources.rke2.enabled -}}
++{{ default "/var/lib/rancher/rke2/server/logs" .Values.additionalLoggingSources.kubeAudit.pathPrefix }}
++{{- else -}}
++{{ required "Directory PathPrefix of the kube-audit location is required" .Values.additionalLoggingSources.kubeAudit.pathPrefix }}
++{{- end -}}
++{{- end -}}
++
++{{/*
++Set kube-audit file name based on distribution
++*/}}
++{{- define "kubeAuditFilename" -}}
++{{- if .Values.additionalLoggingSources.rke.enabled -}}
++{{ default "audit-log.json" .Values.additionalLoggingSources.kubeAudit.auditFilename }}
++{{- else if .Values.additionalLoggingSources.rke2.enabled -}}
++{{ default "audit.log" .Values.additionalLoggingSources.kubeAudit.auditFilename }}
++{{- else -}}
++{{ required "Filename of the kube-audit log is required" .Values.additionalLoggingSources.kubeAudit.auditFilename }}
++{{- end -}}
++{{- end -}}
+\ No newline at end of file
