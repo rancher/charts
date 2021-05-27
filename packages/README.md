@@ -5,8 +5,7 @@
 A Package represents a grouping of one or more Helm Charts. It is declared within `packages/<package>/package.yaml` with the following spec:
 
 ```text
-version: # The version of the generated chart. This value will override the upstream chart's version. Mutually exclusive with packageVersion
-packageVersion: 1 # The value range is from 1 to 99. Mutually exclusive with version
+packageVersion: 0
 workingDir: # The directory within your package that will contain your working copy of the chart (e.g. charts)
 url: # A URL pointing to an UpstreamConfiguration
 subdirectory: # Optional field for a specific subdirectory for all upstreams
