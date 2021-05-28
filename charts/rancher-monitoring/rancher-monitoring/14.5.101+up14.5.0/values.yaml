@@ -87,16 +87,36 @@ rkeEtcd:
 ##
 k3sServer:
   enabled: false
-  metricsPort: 10249
+  metricsPort: 10250
   component: k3s-server
   clients:
     port: 10013
     useLocalhost: true
+    https:
+      enabled: true
+      useServiceAccountCredentials: true
+      insecureSkipVerify: true
     tolerations:
     - effect: "NoExecute"
       operator: "Exists"
     - effect: "NoSchedule"
       operator: "Exists"
+  endpoint:
+    honorLabels: true
+    relabelings:
+    - sourceLabels: [__metrics_path__]
+      targetLabel: metrics_path
+  additionalEndpoints:
+  - path: /metrics/cadvisor
+    honorLabels: true
+    relabelings:
+    - sourceLabels: [__metrics_path__]
+      targetLabel: metrics_path
+  - path: /metrics/probes
+    honorLabels: true
+    relabelings:
+    - sourceLabels: [__metrics_path__]
+      targetLabel: metrics_path
 
 ## KubeADM PushProx Monitoring
 ## ref: https://github.com/rancher/charts/tree/dev-v2.5-source/packages/rancher-pushprox
@@ -222,6 +242,54 @@ rke2Etcd:
     useLocalhost: true
     nodeSelector:
       node-role.kubernetes.io/etcd: "true"
+    tolerations:
+      - effect: "NoExecute"
+        operator: "Exists"
+      - effect: "NoSchedule"
+        operator: "Exists"
+
+## Additional PushProx Monitoring
+## ref: https://github.com/rancher/charts/tree/dev-v2.5-source/packages/rancher-pushprox
+##
+hardenedKubelet:
+  enabled: false
+  metricsPort: 10250
+  component: kubelet
+  clients:
+    port: 10015
+    useLocalhost: true
+    https:
+      enabled: true
+      useServiceAccountCredentials: true
+      insecureSkipVerify: true
+    tolerations:
+      - effect: "NoExecute"
+        operator: "Exists"
+      - effect: "NoSchedule"
+        operator: "Exists"
+  endpoint:
+    honorLabels: true
+    relabelings:
+    - sourceLabels: [__metrics_path__]
+      targetLabel: metrics_path
+  additionalEndpoints:
+  - path: /metrics/cadvisor
+    honorLabels: true
+    relabelings:
+    - sourceLabels: [__metrics_path__]
+      targetLabel: metrics_path
+  - path: /metrics/probes
+    honorLabels: true
+    relabelings:
+    - sourceLabels: [__metrics_path__]
+      targetLabel: metrics_path
+
+hardenedNodeExporter:
+  metricsPort: 9796
+  component: node-exporter
+  clients:
+    port: 10016
+    useLocalhost: true
     tolerations:
       - effect: "NoExecute"
         operator: "Exists"
@@ -1699,7 +1767,6 @@ kube-state-metrics:
 ## Deploy node exporter as a daemonset to all nodes
 ##
 nodeExporter:
-  enabled: true
 
   ## Use the value configured in prometheus-node-exporter.podLabels
   ##
@@ -2053,14 +2120,6 @@ prometheus:
     ##
     nodePort: 30901
 
-    ## Service type
-    ##
-    type: ClusterIP
-
-    ## Port to expose on each node
-    ##
-    nodePort: 30901
-
   ## Configuration for Prometheus service
   ##
   service:
@@ -2387,11 +2446,6 @@ prometheus:
     ## External URL at which Prometheus will be reachable.
     ##
     externalUrl: ""
-
-    ## Ignore NamespaceSelector settings from the PodMonitor and ServiceMonitor configs
-    ## If true, PodMonitors and ServiceMonitors can only discover Pods and Services within the namespace they are deployed into
-    ##
-    ignoreNamespaceSelectors: false
 
     ## Define which Nodes the Pods are scheduled on.
     ## ref: https://kubernetes.io/docs/user-guide/node-selection/
@@ -2955,3 +3009,8 @@ prometheus:
     ## https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/api.md#podmetricsendpoint
     ##
     # podMetricsEndpoints: []
+
+## Set tags to control subchart installs:
+tags:
+  nodeExporter: true
+  hardenedNodeExporter: false

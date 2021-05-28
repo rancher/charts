@@ -11,7 +11,12 @@ rules:
   resourceNames:
   - {{ template "pushProxy.client.name" . }}
 {{- if and .Values.clients.https.enabled .Values.clients.https.useServiceAccountCredentials }}
-- nonResourceURLs: ["/metrics"]
+- nonResourceURLs:
+  - "/metrics"
+  - "/metrics/cadvisor"
+  verbs: ["get"]
+- apiGroups: [""]
+  resources: ["nodes/metrics"]
   verbs: ["get"]
 {{- end }}
 ---

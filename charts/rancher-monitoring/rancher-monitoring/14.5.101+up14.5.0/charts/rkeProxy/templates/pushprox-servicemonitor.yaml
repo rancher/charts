@@ -13,6 +13,37 @@ spec:
     params:
       _scheme: [https]
     {{- end }}
+    {{- if .Values.endpoint.honorLabels }}
+    honorLabels: true
+    {{- end }}
+    {{- if .Values.endpoint.metricRelabelings }}
+    metricRelabelings:
+{{ tpl (toYaml .Values.endpoint.metricRelabelings | indent 4) . }}
+    {{- end }}
+    {{- if .Values.endpoint.relabelings }}
+    relabelings:
+{{ toYaml .Values.endpoint.relabelings | indent 4 }}
+    {{- end }}
+  {{- range .Values.additionalEndpoints }}
+  - port: metrics
+    proxyUrl: {{ template "pushProxy.proxyUrl" $ }}
+    {{- if $.Values.clients.https.enabled }}
+    params:
+      _scheme: [https]
+    {{- end }}
+    path: {{ .path }}
+    {{- if .honorLabels }}
+    honorLabels: true
+    {{- end }}
+    {{- if .metricRelabelings }}
+    metricRelabelings:
+{{ tpl (toYaml .metricRelabelings | indent 4) . }}
+    {{- end }}
+    {{- if .relabelings }}
+    relabelings:
+{{ toYaml .relabelings | indent 4 }}
+    {{- end }}
+  {{- end }}
   jobLabel: component
   podTargetLabels:
   - component

@@ -46,6 +46,24 @@ e.g. {{ include "call-nested" (list . "grafana" "grafana.fullname") }}
 {{- end -}}
 {{- end }}
 
+{{- define "exporter.kubelet.enabled" -}}
+{{- if or .Values.kubelet.enabled .Values.hardenedKubelet.enabled .Values.k3sServer.enabled -}}
+"true"
+{{- end -}}
+{{- end }}
+
+{{- define "exporter.kubeletService.enabled" -}}
+{{- if or .Values.hardenedKubelet.enabled .Values.prometheusOperator.kubeletService.enabled .Values.k3sServer.enabled -}}
+"true"
+{{- end -}}
+{{- end }}
+
+{{- define "exporter.nodeExporter.enabled" -}}
+{{- if or .Values.nodeExporter.enabled .Values.hardenedNodeExporter.enabled -}}
+"true"
+{{- end -}}
+{{- end }}
+
 {{- define "exporter.kubeControllerManager.jobName" -}}
 {{- if .Values.k3sServer.enabled -}}
 k3s-server
@@ -67,6 +85,14 @@ kube-scheduler
 k3s-server
 {{- else -}}
 kube-proxy
+{{- end -}}
+{{- end }}
+
+{{- define "exporter.kubelet.jobName" -}}
+{{- if .Values.k3sServer.enabled -}}
+k3s-server
+{{- else -}}
+kubelet
 {{- end -}}
 {{- end }}
 
