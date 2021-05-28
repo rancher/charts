@@ -30,11 +30,13 @@ spec:
             {{- range $path, $_ :=  (.Files.Glob  "crd-manifest/**.yaml") }}
             {{- $crd := get (get ($.Files.Get $path | fromYaml) "metadata") "name" }}
             if [[ -n "$(kubectl get crd {{ $crd }} -o jsonpath='{.spec.preserveUnknownFields}')" ]]; then
-                patch="{\"spec\": {\"preserveUnknownFields\": false}}"
+                patch="{\"spec\": {\"preserveUnknownFields\": false}}";
                 if [[ -z "$(kubectl get crd {{ $crd }} -o jsonpath='{.spec.versions[0].schema}' 2>&1)" ]]; then
-                  patch="{\"spec\": {\"preserveUnknownFields\": false, \"versions\": [{\"name\": \"v1\", \"served\": false, \"storage\": true}]}}"
+                  patch="{\"spec\": {\"preserveUnknownFields\": false, \"versions\": [{\"name\": \"v1\", \"served\": false, \"storage\": true}]}}";
                 fi
-                kubectl patch crd {{ $crd }} -p "${patch}" --type="merge";
+                if kubectl patch crd {{ $crd }} -p "${patch}" --type="merge"; then
+                {{- include "crd.established" $crd | nindent 18 }}
+                fi;
             fi;
             {{- end }}
       containers:
@@ -45,7 +47,20 @@ spec:
           - /bin/sh
           - -c
           - >
-            kubectl apply -f /etc/config/crd-manifest.yaml
+            echo "Applying CRDs...";
+            kubectl apply -f /etc/config/crd-manifest.yaml;
+            
+            echo "Waiting for CRDs to be recognized before finishing installation...";
+
+            {{- range $path, $_ :=  (.Files.Glob  "crd-manifest/**.yaml") }}
+            {{- $apiGroup := get (get ($.Files.Get $path | fromYaml) "spec") "group" }}
+            rm -rf $HOME/.kube/cache/discovery/*/{{ $apiGroup }};
+            {{- end }}
+
+            {{- range $path, $_ :=  (.Files.Glob  "crd-manifest/**.yaml") }}
+            {{- $crd := get (get ($.Files.Get $path | fromYaml) "metadata") "name" }}
+            {{- include "crd.established" $crd | nindent 12 }}
+            {{- end }}
           volumeMounts:
             - name: crd-manifest
               readOnly: true
@@ -89,7 +104,9 @@ spec:
           - >
             {{- range $path, $_ :=  (.Files.Glob  "crd-manifest/**.yaml") }}
             {{- $crd := get (get ($.Files.Get $path | fromYaml) "metadata") "name" }}
-            kubectl patch crd {{ $crd }} -p '{"metadata": {"finalizers": []}}' || true;
+            if kubectl patch crd {{ $crd }} -p '{"metadata": {"finalizers": []}}'; then
+              {{- include "crd.established" $crd | nindent 14 }}
+            fi;
             {{- end }}
           volumeMounts:
             - name: crd-manifest
