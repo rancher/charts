@@ -1,0 +1,27 @@
+--- charts-original/templates/prometheus/rules-1.14/kubernetes-system-kubelet.yaml
++++ charts/templates/prometheus/rules-1.14/kubernetes-system-kubelet.yaml
+@@ -96,7 +96,7 @@
+         description: Kubelet Pod startup 99th percentile latency is {{`{{`}} $value {{`}}`}} seconds on node {{`{{`}} $labels.node {{`}}`}}.
+         runbook_url: {{ .Values.defaultRules.runbookUrl }}alert-name-kubeletpodstartuplatencyhigh
+         summary: Kubelet Pod startup latency is too high.
+-      expr: histogram_quantile(0.99, sum(rate(kubelet_pod_worker_duration_seconds_bucket{job="kubelet", metrics_path="/metrics"}[5m])) by (instance, le)) * on(instance) group_left(node) kubelet_node_name{job="kubelet", metrics_path="/metrics"} > 60
++      expr: histogram_quantile(0.99, sum(rate(kubelet_pod_worker_duration_seconds_bucket{job="{{ include "exporter.kubelet.jobName" . }}", metrics_path="/metrics"}[5m])) by (instance, le)) * on(instance) group_left(node) kubelet_node_name{job="{{ include "exporter.kubelet.jobName" . }}", metrics_path="/metrics"} > 60
+       for: 15m
+       labels:
+         severity: warning
+@@ -171,13 +171,13 @@
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+-{{- if .Values.prometheusOperator.kubeletService.enabled }}
++{{- if (include "exporter.kubeletService.enabled" .) }}
+     - alert: KubeletDown
+       annotations:
+         description: Kubelet has disappeared from Prometheus target discovery.
+         runbook_url: {{ .Values.defaultRules.runbookUrl }}alert-name-kubeletdown
+         summary: Target disappeared from Prometheus target discovery.
+-      expr: absent(up{job="kubelet", metrics_path="/metrics"} == 1)
++      expr: absent(up{job="{{ include "exporter.kubelet.jobName" . }}", metrics_path="/metrics"} == 1)
+       for: 15m
+       labels:
+         severity: critical
