@@ -35,18 +35,7 @@ spec:
                   patch="{\"spec\": {\"preserveUnknownFields\": false, \"versions\": [{\"name\": \"v1\", \"served\": false, \"storage\": true}]}}";
                 fi
                 if kubectl patch crd {{ $crd }} -p "${patch}" --type="merge"; then
-                  echo "beginning wait for {{ $crd }} to be established...";
-                  num_tries=1;
-                  until kubectl get crd {{ $crd }} -o=jsonpath='{range .status.conditions[*]}{.type}={.status} {end}' | grep -qE 'Established=True'; do
-                    if (( num_tries == 30 )); then
-                      echo "timed out waiting for {{ $crd }}";
-                      exit 1;
-                    fi;
-                    num_tries=$(( num_tries + 1 ));
-                    echo "{{ $crd }} is not established. Sleeping for 2 seconds and trying again...";
-                    sleep 2;
-                  done;
-                  echo "successfully established {{ $crd }}";
+                {{- include "crd.established" $crd | nindent 18 }}
                 fi;
             fi;
             {{- end }}
@@ -70,18 +59,7 @@ spec:
 
             {{- range $path, $_ :=  (.Files.Glob  "crd-manifest/**.yaml") }}
             {{- $crd := get (get ($.Files.Get $path | fromYaml) "metadata") "name" }}
-            echo "beginning wait for {{ $crd }} to be established...";
-            num_tries=1;
-            until kubectl get crd {{ $crd }} -o=jsonpath='{range .status.conditions[*]}{.type}={.status} {end}' | grep -qE 'Established=True'; do
-              if (( num_tries == 30 )); then
-                echo "timed out waiting for {{ $crd }}";
-                exit 1;
-              fi;
-              num_tries=$(( num_tries + 1 ));
-              echo "{{ $crd }} is not established. Sleeping for 2 seconds and trying again...";
-              sleep 2;
-            done;
-            echo "successfully established {{ $crd }}";
+            {{- include "crd.established" $crd | nindent 12 }}
             {{- end }}
           volumeMounts:
             - name: crd-manifest
@@ -127,18 +105,7 @@ spec:
             {{- range $path, $_ :=  (.Files.Glob  "crd-manifest/**.yaml") }}
             {{- $crd := get (get ($.Files.Get $path | fromYaml) "metadata") "name" }}
             if kubectl patch crd {{ $crd }} -p '{"metadata": {"finalizers": []}}'; then
-              echo "beginning wait for {{ $crd }} to be established...";
-              num_tries=1;
-              until kubectl get crd {{ $crd }} -o=jsonpath='{range .status.conditions[*]}{.type}={.status} {end}' | grep -qE 'Established=True'; do
-                if (( num_tries == 30 )); then
-                  echo "timed out waiting for {{ $crd }}";
-                  exit 1;
-                fi;
-                num_tries=$(( num_tries + 1 ));
-                echo "{{ $crd }} is not established. Sleeping for 2 seconds and trying again...";
-                sleep 2;
-              done;
-              echo "successfully established {{ $crd }}";
+              {{- include "crd.established" $crd | nindent 14 }}
             fi;
             {{- end }}
           volumeMounts:
