@@ -14,6 +14,7 @@ spec:
       containers:
         - name: istioctl-installer
           image: {{ template "system_default_registry" . }}{{ .Values.installer.repository }}:{{ .Values.installer.tag }}
+          imagePullPolicy: '{{ .Values.installer.pullPolicy }}'
           env:
           - name: RELEASE_NAME
             value: {{ .Release.Name }}
@@ -41,6 +42,8 @@ spec:
           configMap:
             name: istio-installer-overlay
         {{- end }}
+      imagePullSecrets:
+{{ toYaml .Values.installer.pullSecrets | indent 8 }}
       serviceAccountName: istio-installer
       {{- if .Values.global.rbac.pspEnabled }}
       securityContext:
