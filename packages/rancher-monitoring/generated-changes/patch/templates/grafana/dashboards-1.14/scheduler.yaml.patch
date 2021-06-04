@@ -15,16 +15,20 @@
    name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" $) "scheduler" | trunc 63 | trimSuffix "-" }}
    annotations:
  {{ toYaml .Values.grafana.sidecar.dashboards.annotations | indent 4 }}
-@@ -107,7 +108,7 @@
+@@ -107,7 +108,11 @@
                          "tableColumn": "",
                          "targets": [
                              {
 -                                "expr": "sum(up{job=\"kube-scheduler\"})",
++                                {{- if .Values.k3sServer.enabled }}
++                                "expr": "sum(up{job=\"{{ include "exporter.kubeScheduler.jobName" . }}\", metrics_path=\"/metrics\"})",
++                                {{- else }}
 +                                "expr": "sum(up{job=\"{{ include "exporter.kubeScheduler.jobName" . }}\"})",
++                                {{- end }}
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "",
-@@ -176,28 +177,28 @@
+@@ -176,28 +181,28 @@
                          "steppedLine": false,
                          "targets": [
                              {
@@ -57,7 +61,7 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}instance{{`}}`}} volume",
-@@ -290,28 +291,28 @@
+@@ -290,28 +295,28 @@
                          "steppedLine": false,
                          "targets": [
                              {
@@ -90,7 +94,7 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}instance{{`}}`}} volume",
-@@ -417,28 +418,28 @@
+@@ -417,28 +422,28 @@
                          "steppedLine": false,
                          "targets": [
                              {
@@ -123,7 +127,7 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "5xx",
-@@ -531,7 +532,7 @@
+@@ -531,7 +536,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
@@ -132,7 +136,7 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}verb{{`}}`}} {{`{{`}}url{{`}}`}}",
-@@ -637,7 +638,7 @@
+@@ -637,7 +642,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
@@ -141,7 +145,7 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}verb{{`}}`}} {{`{{`}}url{{`}}`}}",
-@@ -743,7 +744,7 @@
+@@ -743,7 +748,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
@@ -150,7 +154,7 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}instance{{`}}`}}",
-@@ -836,7 +837,7 @@
+@@ -836,7 +841,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
@@ -159,7 +163,7 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}instance{{`}}`}}",
-@@ -929,7 +930,7 @@
+@@ -929,7 +934,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
@@ -168,7 +172,7 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}instance{{`}}`}}",
-@@ -1023,7 +1024,7 @@
+@@ -1023,7 +1028,7 @@
                      "options": [
  
                      ],
@@ -177,7 +181,7 @@
                      "refresh": 2,
                      "regex": "",
                      "sort": 1,
-@@ -1071,4 +1072,5 @@
+@@ -1071,4 +1076,5 @@
          "uid": "2e6b6a3b4bddf1427b3a55aa1311c656",
          "version": 0
      }
