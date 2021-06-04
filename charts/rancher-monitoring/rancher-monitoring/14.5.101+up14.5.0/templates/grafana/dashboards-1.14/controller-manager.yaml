@@ -108,7 +108,11 @@ data:
                         "tableColumn": "",
                         "targets": [
                             {
+                                {{- if .Values.k3sServer.enabled  }}
+                                "expr": "sum(up{job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\", metrics_path=\"/metrics\"})",
+                                {{- else }}
                                 "expr": "sum(up{job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\"})",
+                                {{- end }}
                                 "format": "time_series",
                                 "intervalFactor": 2,
                                 "legendFormat": "",

@@ -24,13 +24,13 @@ spec:
   groups:
   - name: k8s.rules
     rules:
-    - expr: sum(rate(container_cpu_usage_seconds_total{job="kubelet", image!="", container_name!=""}[5m])) by (namespace)
+    - expr: sum(rate(container_cpu_usage_seconds_total{job="{{ include "exporter.kubelet.jobName" . }}", image!="", container_name!=""}[5m])) by (namespace)
       record: namespace:container_cpu_usage_seconds_total:sum_rate
-    - expr: sum(container_memory_usage_bytes{job="kubelet", image!="", container_name!=""}) by (namespace)
+    - expr: sum(container_memory_usage_bytes{job="{{ include "exporter.kubelet.jobName" . }}", image!="", container_name!=""}) by (namespace)
       record: namespace:container_memory_usage_bytes:sum
     - expr: |-
         sum by (namespace, pod_name, container_name) (
-          rate(container_cpu_usage_seconds_total{job="kubelet", image!="", container_name!=""}[5m])
+          rate(container_cpu_usage_seconds_total{job="{{ include "exporter.kubelet.jobName" . }}", image!="", container_name!=""}[5m])
         )
       record: namespace_pod_name_container_name:container_cpu_usage_seconds_total:sum_rate
     - expr: |-

@@ -87,16 +87,46 @@ rkeEtcd:
 ##
 k3sServer:
   enabled: false
-  metricsPort: 10249
+  metricsPort: 10250
   component: k3s-server
   clients:
     port: 10013
     useLocalhost: true
+    https:
+      enabled: true
+      useServiceAccountCredentials: true
+      insecureSkipVerify: true
+    rbac:
+      additionalRules:
+      - nonResourceURLs: ["/metrics/cadvisor"]
+        verbs: ["get"]
+      - apiGroups: [""]
+        resources: ["nodes/metrics"]
+        verbs: ["get"]
     tolerations:
     - effect: "NoExecute"
       operator: "Exists"
     - effect: "NoSchedule"
       operator: "Exists"
+  serviceMonitor:
+    endpoints:
+    - port: metrics
+      honorLabels: true
+      relabelings:
+      - sourceLabels: [__metrics_path__]
+        targetLabel: metrics_path
+    - port: metrics
+      path: /metrics/cadvisor
+      honorLabels: true
+      relabelings:
+      - sourceLabels: [__metrics_path__]
+        targetLabel: metrics_path
+    - port: metrics
+      path: /metrics/probes
+      honorLabels: true
+      relabelings:
+      - sourceLabels: [__metrics_path__]
+        targetLabel: metrics_path
 
 ## KubeADM PushProx Monitoring
 ## ref: https://github.com/rancher/charts/tree/dev-v2.5-source/packages/rancher-pushprox
@@ -222,6 +252,72 @@ rke2Etcd:
     useLocalhost: true
     nodeSelector:
       node-role.kubernetes.io/etcd: "true"
+    tolerations:
+      - effect: "NoExecute"
+        operator: "Exists"
+      - effect: "NoSchedule"
+        operator: "Exists"
+
+## Additional PushProx Monitoring
+## ref: https://github.com/rancher/charts/tree/dev-v2.5-source/packages/rancher-pushprox
+##
+
+# hardenedKubelet can only be deployed if kubelet.enabled=true
+# If enabled, it replaces the ServiceMonitor deployed by the default kubelet option with a 
+# PushProx-based exporter that does not require a host port to be open to scrape metrics.
+hardenedKubelet:
+  enabled: false
+  metricsPort: 10250
+  component: kubelet
+  clients:
+    port: 10015
+    useLocalhost: true
+    https:
+      enabled: true
+      useServiceAccountCredentials: true
+      insecureSkipVerify: true
+    rbac:
+      additionalRules:
+      - nonResourceURLs: ["/metrics/cadvisor"]
+        verbs: ["get"]
+      - apiGroups: [""]
+        resources: ["nodes/metrics"]
+        verbs: ["get"]
+    tolerations:
+      - effect: "NoExecute"
+        operator: "Exists"
+      - effect: "NoSchedule"
+        operator: "Exists"
+  serviceMonitor:
+    endpoints:
+    - port: metrics
+      honorLabels: true
+      relabelings:
+      - sourceLabels: [__metrics_path__]
+        targetLabel: metrics_path
+    - port: metrics
+      path: /metrics/cadvisor
+      honorLabels: true
+      relabelings:
+      - sourceLabels: [__metrics_path__]
+        targetLabel: metrics_path
+    - port: metrics
+      path: /metrics/probes
+      honorLabels: true
+      relabelings:
+      - sourceLabels: [__metrics_path__]
+        targetLabel: metrics_path
+
+# hardenedNodeExporter can only be deployed if nodeExporter.enabled=true
+# If enabled, it replaces the ServiceMonitor deployed by the default nodeExporter with a 
+# PushProx-based exporter that does not require a host port to be open to scrape metrics.
+hardenedNodeExporter:
+  enabled: false
+  metricsPort: 9796
+  component: node-exporter
+  clients:
+    port: 10016
+    useLocalhost: true
     tolerations:
       - effect: "NoExecute"
         operator: "Exists"
