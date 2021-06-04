@@ -29,6 +29,7 @@ The following tables list the configurable parameters of the rancher-pushprox ch
 | Parameter | Description | Default |
 | ----- | ----------- | ------ |
 | `serviceMonitor.enabled` | Deploys a [Prometheus Operator](https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#servicemonitor) ServiceMonitor CR that is configured to scrape metrics on the hosts that the clients are deployed on via the proxy. Also deploys a Service that points to all pods with the expected client name that exposes the `metricsPort` selected | `true` |
+| `serviceMonitor.endpoints` | A list of endpoints that will be added to the ServiceMonitor based on the [Endpoint spec](https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/api.md#endpoint) | `[{port: metrics}]` |
 | `clients.enabled` | Deploys a DaemonSet of clients that are each capable of scraping endpoints on the hostNetwork it is deployed on | `true` |
 | `clients.port` |  The port where the client will publish PushProx client-specific metrics. If deploying multiple clients onto the same node, the clients should not have conflicting ports | `9369` |
 | `clients.proxyUrl` | Overrides the default proxyUrl setting of `http://pushprox-{{ .Values.component }}-proxy.{{ . Release.Namespace }}.svc.cluster.local:{{ .Values.proxy.port }}"` with the `proxyUrl` specified | `""` |
@@ -40,6 +41,7 @@ The following tables list the configurable parameters of the rancher-pushprox ch
 | `clients.https.certFile` | The path to the TLS cert file located within `clients.https.certDir`. Required and only used if `clients.https.enabled` is set | `""` |
 | `clients.https.keyFile` | The path to the TLS key file located within `clients.https.certDir`. Required and only used if `clients.https.enabled` is set | `""` |
 | `clients.https.caCertFile` | The path to the TLS cacert file located within `clients.https.certDir`. Required and only used if `clients.https.enabled` is set | `""` |
+| `clients.rbac.additionalRules` | Additional permissions to provide to the ServiceAccount bound to the client. This can be used to provide additional permissions for the client to scrape metrics from the k8s API. Only enabled if clients.https.enabled and clients.https.useServiceAccountCredentials are true | `[]` |
 | `clients.resources` | Set resource limits and requests for the client container | `{}` |
 | `clients.nodeSelector` | Select which nodes to deploy the clients on | `{}` |
 | `clients.tolerations` | Specify tolerations for clients | `[]` |

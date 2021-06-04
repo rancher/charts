@@ -6,13 +6,7 @@ metadata:
   namespace: {{ template "pushprox.namespace" . }}
   labels: {{ include "pushProxy.serviceMonitor.labels" . | nindent 4 }}
 spec:
-  endpoints:
-  - port: metrics
-    proxyUrl: {{ template "pushProxy.proxyUrl" . }}
-    {{- if .Values.clients.https.enabled }}
-    params:
-      _scheme: [https]
-    {{- end }}
+  endpoints: {{include "pushProxy.serviceMonitor.endpoints" . | nindent 4 }}
   jobLabel: component
   podTargetLabels:
   - component
