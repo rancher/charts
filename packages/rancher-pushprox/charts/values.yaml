@@ -23,8 +23,13 @@ component: "component"
 metricsPort: 2739
 
 # Configure ServiceMonitor that monitors metrics from the metricsPort endpoint
-serviceMonitor: 
+serviceMonitor:
   enabled: true
+  # A list of endpoints that will be added to the ServiceMonitor based on the Endpoint spec
+  # Source: https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/api.md#endpoint
+  # By default, proxyUrl and params._scheme will be overridden based on other values
+  endpoints:
+  - port: metrics
 
 clients:
   enabled: true
@@ -51,6 +56,12 @@ clients:
     certFile: ""
     keyFile: ""
     caCertFile: ""
+
+  rbac:
+    # Additional permissions to provide to the ServiceAccount bound to the client
+    # This can be used to provide additional permissions for the client to scrape metrics from the k8s API
+    # Only enabled if clients.https.enabled and clients.https.useServiceAccountCredentials are true
+    additionalRules: []
 
   # Resource limits
   resources: {}
