@@ -15,16 +15,20 @@
    name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" $) "proxy" | trunc 63 | trimSuffix "-" }}
    annotations:
  {{ toYaml .Values.grafana.sidecar.dashboards.annotations | indent 4 }}
-@@ -107,7 +108,7 @@
+@@ -107,7 +108,11 @@
                          "tableColumn": "",
                          "targets": [
                              {
 -                                "expr": "sum(up{job=\"kube-proxy\"})",
++                                {{- if .Values.k3sServer.enabled }}
++                                "expr": "sum(up{job=\"{{ include "exporter.kubeProxy.jobName" . }}\", metrics_path=\"/metrics\"})",
++                                {{- else }}
 +                                "expr": "sum(up{job=\"{{ include "exporter.kubeProxy.jobName" . }}\"})",
++                                {{- end }}
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "",
-@@ -176,7 +177,7 @@
+@@ -176,7 +181,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
@@ -33,7 +37,7 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "rate",
-@@ -269,7 +270,7 @@
+@@ -269,7 +274,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
@@ -42,7 +46,7 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}instance{{`}}`}}",
-@@ -375,7 +376,7 @@
+@@ -375,7 +380,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
@@ -51,7 +55,7 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "rate",
-@@ -468,7 +469,7 @@
+@@ -468,7 +473,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
@@ -60,7 +64,7 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}instance{{`}}`}}",
-@@ -574,28 +575,28 @@
+@@ -574,28 +579,28 @@
                          "steppedLine": false,
                          "targets": [
                              {
@@ -93,7 +97,7 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "5xx",
-@@ -688,7 +689,7 @@
+@@ -688,7 +693,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
@@ -102,7 +106,7 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}verb{{`}}`}} {{`{{`}}url{{`}}`}}",
-@@ -794,7 +795,7 @@
+@@ -794,7 +799,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
@@ -111,7 +115,7 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}verb{{`}}`}} {{`{{`}}url{{`}}`}}",
-@@ -900,7 +901,7 @@
+@@ -900,7 +905,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
@@ -120,7 +124,7 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}instance{{`}}`}}",
-@@ -993,7 +994,7 @@
+@@ -993,7 +998,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
@@ -129,7 +133,7 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}instance{{`}}`}}",
-@@ -1086,7 +1087,7 @@
+@@ -1086,7 +1091,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
@@ -138,7 +142,7 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}instance{{`}}`}}",
-@@ -1180,7 +1181,7 @@
+@@ -1180,7 +1185,7 @@
                      "options": [
  
                      ],
@@ -147,7 +151,7 @@
                      "refresh": 2,
                      "regex": "",
                      "sort": 1,
-@@ -1228,4 +1229,4 @@
+@@ -1228,4 +1233,4 @@
          "uid": "632e265de029684c40b21cb76bca4f94",
          "version": 0
      }
