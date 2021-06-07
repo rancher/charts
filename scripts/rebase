@@ -18,6 +18,7 @@ CHART_BRANCH=charts-${RANDOM}
 SUB_DIRECTORY_BRANCH=charts-subdir-${RANDOM}
 
 GC_DIRECTORY=packages/${PACKAGE}/generated-changes
+EXCLUDE_DIRECTORY=${GC_DIRECTORY}/exclude
 CHARTS_ORIGINAL_DIRECTORY=packages/${PACKAGE}/charts-original
 PACKAGE_YAML_PATH=packages/${PACKAGE}/package.yaml
 
@@ -159,7 +160,7 @@ git subtree add -P ${DEST_DIRECTORY} ${SUB_DIRECTORY_BRANCH} --rejoin 1>/dev/nul
 PACKAGE=${PACKAGE} make prepare 1>/dev/null 2>/dev/null
 
 # Ignore mode changes
-git diff -p \
+git diff -p --diff-filter=ACM \
     | grep -E '^(diff|old mode|new mode)' \
     | sed -e 's/^old/NEW/;s/^new/old/;s/^NEW/new/' \
     | git apply
@@ -201,6 +202,20 @@ for commit in ${COMMITS}; do
         git commit -m "Move CRDs back into main chart" 1>/dev/null 2>/dev/null
     fi
 
+    if [ -d "${EXCLUDE_DIRECTORY}" ]; then
+        # Move exclude back into main chart so that you can rebase changes to excluded files as well
+        EXCLUDE_DIRECTORIES=$(find ${EXCLUDE_DIRECTORY}/* -type d | sed "s/${EXCLUDE_DIRECTORY//\//\\/}\///")
+        EXCLUDE_FILES=$(find ${EXCLUDE_DIRECTORY}/* -type f | sed "s/${EXCLUDE_DIRECTORY//\//\\/}\///")
+        for d in ${EXCLUDE_DIRECTORIES}; do
+            mkdir -p ${DEST_DIRECTORY}/${d}
+        done
+        for f in ${EXCLUDE_FILES}; do
+            mv ${EXCLUDE_DIRECTORY}/${f} ${DEST_DIRECTORY}/${f}
+        done
+        git add ${EXCLUDE_DIRECTORY} ${DEST_DIRECTORY}
+        git commit -m "Move exclude back into main chart" 1>/dev/null 2>/dev/null
+    fi
+
     # Update charts branch and subdirectory branch with current commit
     git checkout ${CHART_BRANCH} 1>/dev/null 2>/dev/null
     git reset --hard ${commit} 1>/dev/null 2>/dev/null
@@ -228,6 +243,19 @@ for commit in ${COMMITS}; do
         git reset HEAD~1 1>/dev/null 2>/dev/null
     fi
     set -e
+
+    if [ -d "${EXCLUDE_DIRECTORY}" ]; then
+        # Move excluded files back back into excluded dir since changes would have been tracked there
+        git reset HEAD~1 1>/dev/null 2>/dev/null
+        for d in ${EXCLUDE_DIRECTORIES}; do
+            mkdir -p ${EXCLUDE_DIRECTORY}/${d}
+        done
+        for f in ${EXCLUDE_FILES}; do
+            mv ${DEST_DIRECTORY}/${f} ${EXCLUDE_DIRECTORY}/${f}
+        done
+        unset EXCLUDE_DIRECTORIES
+        unset EXCLUDE_FILES
+    fi
     if [ -d "${CRD_CHART_DIRECTORY}" ]; then
         # Move CRDs back back into CRD chart since changes would have been tracked there
         git reset HEAD~1 1>/dev/null 2>/dev/null
@@ -247,17 +275,17 @@ for commit in ${COMMITS}; do
     echo ""
     echo "Once you have resolved conflicts or added any additonal necessary changes, do the following:"
     if [ -d "${CRD_CHART_DIRECTORY}" ]; then
-        echo "1) Add all changes to ${DEST_DIRECTORY} or ${CRD_CHART_DIRECTORY} to staging (e.g. git add)"
+        echo "1) Add all changes to ${DEST_DIRECTORY}, ${EXCLUDE_DIRECTORY}, and ${CRD_CHART_DIRECTORY} to staging (e.g. git add)"
     else
-        echo "1) Add all changes to ${DEST_DIRECTORY} to staging (e.g. git add)"
+        echo "1) Add all changes to ${DEST_DIRECTORY} and ${EXCLUDE_DIRECTORY} to staging (e.g. git add)"
     fi
     echo "2) Commit all other changes to save them (e.g. 'git add <changes>; git commit -m \"message\"')"
     echo "Note: Any additional commits you make will show up in your branch at the end of the rebase, so committing changes from 'make patch' could be helpful"
     echo ""
     if [ -d "${CRD_CHART_DIRECTORY}" ]; then
-        echo "Once you have added all changes to ${DEST_DIRECTORY} or ${CRD_CHART_DIRECTORY}, exit out of the shell to move to the next commit."
+        echo "Once you have added all changes to ${DEST_DIRECTORY}, ${EXCLUDE_DIRECTORY} or ${CRD_CHART_DIRECTORY}, exit out of the shell to move to the next commit."
     else
-        echo "Once you have added all changes to ${DEST_DIRECTORY}, exit out of the shell to move to the next commit."
+        echo "Once you have added all changes to ${DEST_DIRECTORY} or ${EXCLUDE_DIRECTORY}, exit out of the shell to move to the next commit."
     fi
     echo ""
     echo "To force abort the rebase and discard your changes at any time, run 'touch .abort_rebase; exit'"
@@ -265,35 +293,25 @@ for commit in ${COMMITS}; do
     bash --rcfile <(echo "PS1='(interactive-rebase-shell) '") -i
     set -e
 
-    if [ -d "${CRD_CHART_DIRECTORY}" ]; then
-        # Ensure additional commits do not contain changes to DEST_DIRECTORY or CRD_CHART_DIRECTORY
-        BAD_COMMITS=$(git log --first-parent --oneline ${GC_COMMIT}..HEAD -- ${DEST_DIRECTORY} ${CRD_CHART_DIRECTORY})
-        # Ensure that changes are only added or modified to DEST_DIRECTORY or CRD_CHART_DIRECTORY
-        BAD_CHANGES=$(
-            git status --porcelain \
-            | grep -v "A  ${DEST_DIRECTORY}" \
-            | grep -v "M  ${DEST_DIRECTORY}" \
-            | grep -v "R  ${DEST_DIRECTORY}" \
-            | grep -v "D  ${DEST_DIRECTORY}" \
-            | grep -v "A  ${CRD_CHART_DIRECTORY}" \
-            | grep -v "M  ${CRD_CHART_DIRECTORY}" \
-            | grep -v "R  ${CRD_CHART_DIRECTORY}" \
-            | grep -v "D  ${CRD_CHART_DIRECTORY}" \
-            | tee
-        )
-    else
-        # Ensure additional commits do not contain changes to DEST_DIRECTORY
-        BAD_COMMITS=$(git log --first-parent --oneline ${GC_COMMIT}..HEAD -- ${DEST_DIRECTORY})
-        # Ensure additional commits do not contain changes to DEST_DIRECTORY
-        BAD_CHANGES=$(
-            git status --porcelain \
-            | grep -v "A  ${DEST_DIRECTORY}" \
-            | grep -v "M  ${DEST_DIRECTORY}" \
-            | grep -v "R  ${DEST_DIRECTORY}" \
-            | grep -v "D  ${DEST_DIRECTORY}" \
-            | tee
-        )
-    fi
+    # Ensure additional commits do not contain changes to DEST_DIRECTORY, EXCLUDE_DIRECTORY, or CRD_CHART_DIRECTORY
+    BAD_COMMITS=$(git log --first-parent --oneline ${GC_COMMIT}..HEAD -- ${DEST_DIRECTORY} ${EXCLUDE_DIRECTORY} ${CRD_CHART_DIRECTORY})
+    # Ensure that changes are only added or modified to DEST_DIRECTORY, EXCLUDE_DIRECTORY, or CRD_CHART_DIRECTORY
+    BAD_CHANGES=$(
+        git status --porcelain \
+        | grep -v "A  ${DEST_DIRECTORY}" \
+        | grep -v "M  ${DEST_DIRECTORY}" \
+        | grep -v "R  ${DEST_DIRECTORY}" \
+        | grep -v "D  ${DEST_DIRECTORY}" \
+        | grep -v "A  ${EXCLUDE_DIRECTORY}" \
+        | grep -v "M  ${EXCLUDE_DIRECTORY}" \
+        | grep -v "R  ${EXCLUDE_DIRECTORY}" \
+        | grep -v "D  ${EXCLUDE_DIRECTORY}" \
+        | grep -v "A  ${CRD_CHART_DIRECTORY}" \
+        | grep -v "M  ${CRD_CHART_DIRECTORY}" \
+        | grep -v "R  ${CRD_CHART_DIRECTORY}" \
+        | grep -v "D  ${CRD_CHART_DIRECTORY}" \
+        | tee
+    )
     # Loop back through shell until the developer resolves all conflicts
     while [ -n "${BAD_COMMITS}" ] || [ -n "${BAD_CHANGES}" ]; do
         echo ""
@@ -312,11 +330,7 @@ for commit in ${COMMITS}; do
             echo "${BAD_CHANGES}"
             echo ""
         fi
-        if [ -d "${CRD_CHART_DIRECTORY}" ]; then
-            echo "Only changes to ${DEST_DIRECTORY} and ${CRD_CHART_DIRECTORY} should be in staging. All other changes should be committed."
-        else
-            echo "Only changes to ${DEST_DIRECTORY} should be in staging. All other changes should be committed."
-        fi
+        echo "Only changes to ${DEST_DIRECTORY}, ${EXCLUDE_DIRECTORY}, or ${CRD_CHART_DIRECTORY} should be in staging. All other changes should be committed."
         echo ""
         echo "Please modify the commits and try again."
         echo ""
@@ -324,35 +338,25 @@ for commit in ${COMMITS}; do
         set +e
         bash --rcfile <(echo "PS1='(interactive-rebase-shell) '") -i
         set -e
-        if [ -d "${CRD_CHART_DIRECTORY}" ]; then
-            # Ensure additional commits do not contain changes to DEST_DIRECTORY or CRD_CHART_DIRECTORY
-            BAD_COMMITS=$(git log --first-parent --oneline ${GC_COMMIT}..HEAD -- ${DEST_DIRECTORY} ${CRD_CHART_DIRECTORY})
-            # Ensure that changes are only added or modified to DEST_DIRECTORY or CRD_CHART_DIRECTORY
-            BAD_CHANGES=$(
-                git status --porcelain \
-                | grep -v "A  ${DEST_DIRECTORY}" \
-                | grep -v "M  ${DEST_DIRECTORY}" \
-                | grep -v "R  ${DEST_DIRECTORY}" \
-                | grep -v "D  ${DEST_DIRECTORY}" \
-                | grep -v "A  ${CRD_CHART_DIRECTORY}" \
-                | grep -v "M  ${CRD_CHART_DIRECTORY}" \
-                | grep -v "R  ${CRD_CHART_DIRECTORY}" \
-                | grep -v "D  ${CRD_CHART_DIRECTORY}" \
-                | tee
-            )
-        else
-            # Ensure additional commits do not contain changes to DEST_DIRECTORY
-            BAD_COMMITS=$(git log --first-parent --oneline ${GC_COMMIT}..HEAD -- ${DEST_DIRECTORY})
-            # Ensure additional commits do not contain changes to DEST_DIRECTORY
-            BAD_CHANGES=$(
-                git status --porcelain \
-                | grep -v "A  ${DEST_DIRECTORY}" \
-                | grep -v "M  ${DEST_DIRECTORY}" \
-                | grep -v "R  ${DEST_DIRECTORY}" \
-                | grep -v "D  ${DEST_DIRECTORY}" \
-                | tee
-            )
-        fi
+        # Ensure additional commits do not contain changes to DEST_DIRECTORY, EXCLUDE_DIRECTORY, or CRD_CHART_DIRECTORY
+        BAD_COMMITS=$(git log --first-parent --oneline ${GC_COMMIT}..HEAD -- ${DEST_DIRECTORY} ${EXCLUDE_DIRECTORY} ${CRD_CHART_DIRECTORY})
+        # Ensure that changes are only added or modified to DEST_DIRECTORY, EXCLUDE_DIRECTORY, or CRD_CHART_DIRECTORY
+        BAD_CHANGES=$(
+            git status --porcelain \
+            | grep -v "A  ${DEST_DIRECTORY}" \
+            | grep -v "M  ${DEST_DIRECTORY}" \
+            | grep -v "R  ${DEST_DIRECTORY}" \
+            | grep -v "D  ${DEST_DIRECTORY}" \
+            | grep -v "A  ${EXCLUDE_DIRECTORY}" \
+            | grep -v "M  ${EXCLUDE_DIRECTORY}" \
+            | grep -v "R  ${EXCLUDE_DIRECTORY}" \
+            | grep -v "D  ${EXCLUDE_DIRECTORY}" \
+            | grep -v "A  ${CRD_CHART_DIRECTORY}" \
+            | grep -v "M  ${CRD_CHART_DIRECTORY}" \
+            | grep -v "R  ${CRD_CHART_DIRECTORY}" \
+            | grep -v "D  ${CRD_CHART_DIRECTORY}" \
+            | tee
+        )
     done
 
     # Merge current staged changes into the GC_COMMIT directly, ignoring any other commits added by the user
