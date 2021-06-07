@@ -7,11 +7,25 @@ metadata:
 {{ include "logging-operator.labels" . | indent 4 }}
 data:
   fluent-bit.conf: |
+    [SERVICE]
+        Flush             1
+        Grace             5
+        Daemon            Off
+        Log_Level         info
+        Coro_Stack_Size   24576
+
     [INPUT]
         Name              systemd
         Tag               rke2
         Path              {{ .Values.systemdLogPath | default "/var/log/journal" }}
         Systemd_Filter    _SYSTEMD_UNIT=rke2-server.service
+        Systemd_Filter    _SYSTEMD_UNIT=rke2-agent.service
+
+    [FILTER]
+        Name lua
+        Match *
+        script append_time.lua
+        call append
 
     [OUTPUT]
         Name              forward
@@ -19,4 +33,12 @@ data:
         Host              {{ .Release.Name }}-fluentd.{{ .Release.Namespace }}.svc
         Port              24240
         Retry_Limit       False
+
+  append_time.lua: |
+    function append(tag, timestamp, record)
+      new_record = record
+      new_record["timestamp"] = os.date("!%Y-%m-%dT%TZ",t)
+      return 1, timestamp, new_record
+    end
+
 {{- end }}
