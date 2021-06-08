@@ -1,7 +1,13 @@
 --- charts-original/templates/daemonset.yaml
 +++ charts/templates/daemonset.yaml
-@@ -31,7 +31,7 @@
+@@ -29,9 +29,13 @@
+ {{- if .Values.priorityClassName }}
+       priorityClassName: {{ .Values.priorityClassName }}
  {{- end }}
++      {{- if .Values.extraInitContainers }}
++      initContainers:
++      {{ toYaml .Values.extraInitContainers | nindent 6 }}
++      {{- end }}
        containers:
          - name: node-exporter
 -          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -9,7 +15,7 @@
            imagePullPolicy: {{ .Values.image.pullPolicy }}
            args:
              - --path.procfs=/host/proc
-@@ -129,18 +129,18 @@
+@@ -129,18 +133,18 @@
        affinity:
  {{ toYaml .Values.affinity | indent 8 }}
  {{- end }}
