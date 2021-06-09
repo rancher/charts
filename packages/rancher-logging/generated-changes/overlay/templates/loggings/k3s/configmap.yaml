@@ -1,8 +1,8 @@
-{{- if .Values.additionalLoggingSources.rke2.enabled }}
+{{- if and .Values.additionalLoggingSources.k3s.enabled (eq .Values.additionalLoggingSources.k3s.container_engine "systemd") }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Release.Name }}-rke2
+  name: {{ .Release.Name }}-k3s
   labels:
 {{ include "logging-operator.labels" . | indent 4 }}
 data:
@@ -16,10 +16,9 @@ data:
 
     [INPUT]
         Name              systemd
-        Tag               rke2
+        Tag               k3s
         Path              {{ .Values.systemdLogPath | default "/var/log/journal" }}
-        Systemd_Filter    _SYSTEMD_UNIT=rke2-server.service
-        Systemd_Filter    _SYSTEMD_UNIT=rke2-agent.service
+        Systemd_Filter    _SYSTEMD_UNIT=k3s.service
 
     [OUTPUT]
         Name              forward

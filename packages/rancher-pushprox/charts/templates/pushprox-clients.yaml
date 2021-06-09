@@ -1,28 +1,18 @@
 {{- if .Values.clients }}{{- if .Values.clients.enabled }}
 apiVersion: apps/v1
-{{- if .Values.clients.deployment.enabled }}
-kind: Deployment
-{{- else }}
 kind: DaemonSet
-{{- end }}
 metadata:
   name: {{ template "pushProxy.client.name" . }}
   namespace: {{ template "pushprox.namespace" . }}
   labels: {{ include "pushProxy.client.labels" . | nindent 4 }}
     pushprox-exporter: "client"
 spec:
-  {{- if .Values.clients.deployment.enabled }}
-  replicas: {{ .Values.clients.deployment.replicas }}
-  {{- end }}
   selector:
     matchLabels: {{ include "pushProxy.client.labels" . | nindent 6 }}
   template:
     metadata:
       labels: {{ include "pushProxy.client.labels" . | nindent 8 }}
     spec:
-      {{- if .Values.clients.affinity }}
-      affinity: {{ toYaml .Values.clients.affinity | nindent 8 }}
-      {{- end }}
       nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
 {{- if .Values.clients.nodeSelector }}
 {{ toYaml .Values.clients.nodeSelector | indent 8 }}
