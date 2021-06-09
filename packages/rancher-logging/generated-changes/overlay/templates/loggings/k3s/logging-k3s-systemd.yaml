@@ -1,8 +1,8 @@
-{{- if .Values.additionalLoggingSources.aks.enabled }}
+{{- if and .Values.additionalLoggingSources.k3s.enabled (eq .Values.additionalLoggingSources.k3s.container_engine "systemd")}}
 apiVersion: logging.banzaicloud.io/v1beta1
 kind: Logging
 metadata:
-  name: {{ .Release.Name }}-aks
+  name: {{ .Release.Name }}-k3s
   namespace: {{ .Release.Namespace }}
   labels:
 {{ include "logging-operator.labels" . | indent 4 }}
@@ -13,8 +13,8 @@ spec:
       repository: {{ template "system_default_registry" . }}{{ .Values.images.fluentbit.repository }}
       tag: {{ .Values.images.fluentbit.tag }}
     inputTail:
-      Tag: "aks"
-      Path: "/var/log/azure/kubelet-status.log"
+      Tag: "k3s"
+      Path: "/var/log/syslog"
       {{- if .Values.fluentbit.inputTail.Buffer_Chunk_Size }}
       Buffer_Chunk_Size: {{ .Values.fluentbit.inputTail.Buffer_Chunk_Size }}
       {{- end }}
@@ -30,6 +30,10 @@ spec:
       {{- if .Values.fluentbit.inputTail.Skip_Long_Lines }}
       Skip_Long_Lines: {{ .Values.fluentbit.inputTail.Skip_Long_Lines }}
       {{- end }}
+    extraVolumeMounts:
+      - source: "/var/log/"
+        destination: "/var/log"
+        readOnly: true
     {{- if not .Values.disablePvc }}
     {{- with .Values.fluentbit.bufferStorage }}
     bufferStorage: {{- toYaml . | nindent 6 }}

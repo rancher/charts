@@ -1,11 +1,9 @@
-{{- if .Values.additionalLoggingSources.aks.enabled }}
+{{- if .Values.additionalLoggingSources.rke2.enabled }}
 apiVersion: logging.banzaicloud.io/v1beta1
 kind: Logging
 metadata:
-  name: {{ .Release.Name }}-aks
+  name: {{ .Release.Name }}-rke2-containers
   namespace: {{ .Release.Namespace }}
-  labels:
-{{ include "logging-operator.labels" . | indent 4 }}
 spec:
   controlNamespace: {{ .Release.Namespace }}
   fluentbit:
@@ -13,8 +11,8 @@ spec:
       repository: {{ template "system_default_registry" . }}{{ .Values.images.fluentbit.repository }}
       tag: {{ .Values.images.fluentbit.tag }}
     inputTail:
-      Tag: "aks"
-      Path: "/var/log/azure/kubelet-status.log"
+      Tag: "rke2"
+      Path: "/var/log/containers/*rke*.log"
       {{- if .Values.fluentbit.inputTail.Buffer_Chunk_Size }}
       Buffer_Chunk_Size: {{ .Values.fluentbit.inputTail.Buffer_Chunk_Size }}
       {{- end }}
@@ -30,6 +28,10 @@ spec:
       {{- if .Values.fluentbit.inputTail.Skip_Long_Lines }}
       Skip_Long_Lines: {{ .Values.fluentbit.inputTail.Skip_Long_Lines }}
       {{- end }}
+    extraVolumeMounts:
+      - source: "/var/log/containers/"
+        destination: "/var/log/containers/"
+        readOnly: true
     {{- if not .Values.disablePvc }}
     {{- with .Values.fluentbit.bufferStorage }}
     bufferStorage: {{- toYaml . | nindent 6 }}
@@ -38,10 +40,17 @@ spec:
     bufferStorageVolume: {{- toYaml . | nindent 6 }}
     {{- end }}
     {{- end }}
-    {{- if .Values.global.psp.enabled }}
+    {{- if or .Values.global.psp.enabled .Values.global.seLinux.enabled }}
     security:
+    {{- end }}
+    {{- if or .Values.global.psp.enabled }}
       podSecurityPolicyCreate: true
       roleBasedAccessControlCreate: true
+    {{- end }}
+    {{- if .Values.global.seLinux.enabled }}
+      securityContext:
+        seLinuxOptions:
+          type: rke_logreader_t
     {{- end }}
     {{- with (concat (.Values.tolerations) (.Values.fluentbit.tolerations)) }}
     tolerations: {{- toYaml . | nindent 6 }}
