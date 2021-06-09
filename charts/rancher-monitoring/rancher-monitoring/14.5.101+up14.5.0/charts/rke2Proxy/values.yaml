@@ -16,6 +16,8 @@ global:
   cattle:
     systemDefaultRegistry: ""
 
+namespaceOverride: ""
+
 # The component that is being monitored (i.e. etcd)
 component: "component"
 
@@ -69,6 +71,7 @@ clients:
   # Options to select all nodes to deploy client DaemonSet on
   nodeSelector: {}
   tolerations: []
+  affinity: {}
 
   image:
     repository: rancher/pushprox-client
@@ -78,6 +81,17 @@ clients:
   copyCertsImage:
     repository: rancher/mirrored-library-busybox
     tag: 1.31.1
+
+  # The default intention of rancher-pushprox clients is to scrape hostNetwork metrics across all nodes.
+  # This can be used to scrape internal Kubernetes components or DaemonSets of hostNetwork Pods in
+  # situations where a cloud provider firewall prevents Pod-To-Host communication but not Pod-To-Pod.
+  # However, if the underlying hostNetwork Pod that is being scraped is managed by a Deployment,
+  # this advanced option enables users to deploy the client as a Deployment instead of a DaemonSet.
+  # If a user deploys this feature and the underlying Deployment's number of replicas changes, the user will
+  # be responsible for upgrading this chart accordingly to the right number of replicas.
+  deployment:
+    enabled: false
+    replicas: 0
 
 proxy:
   enabled: true

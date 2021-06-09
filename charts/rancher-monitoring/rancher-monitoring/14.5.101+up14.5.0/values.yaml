@@ -82,6 +82,21 @@ rkeEtcd:
     - effect: "NoSchedule"
       operator: "Exists"
 
+rkeIngressNginx:
+  enabled: false
+  metricsPort: 10254
+  component: ingress-nginx
+  clients:
+    port: 10015
+    useLocalhost: true
+    tolerations:
+      - effect: "NoExecute"
+        operator: "Exists"
+      - effect: "NoSchedule"
+        operator: "Exists"
+    nodeSelector:
+      node-role.kubernetes.io/worker: "true"
+
 ## k3s PushProx Monitoring
 ## ref: https://github.com/rancher/charts/tree/dev-v2.5-source/packages/rancher-pushprox
 ##
@@ -257,6 +272,39 @@ rke2Etcd:
         operator: "Exists"
       - effect: "NoSchedule"
         operator: "Exists"
+
+rke2IngressNginx:
+  enabled: false
+  metricsPort: 10254
+  component: ingress-nginx
+  clients:
+    port: 10015
+    useLocalhost: true
+    tolerations:
+      - effect: "NoExecute"
+        operator: "Exists"
+      - effect: "NoSchedule"
+        operator: "Exists"
+    affinity:
+      podAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+                - key: "app.kubernetes.io/component"
+                  operator: "In"
+                  values:
+                    - "controller"
+            topologyKey: "kubernetes.io/hostname"
+            namespaces:
+              - "kube-system"
+    # in the RKE2 cluster, the ingress-nginx-controller is deployed as
+    # a Deployment with 1 pod when RKE2 version is <= 1.20,
+    # a DaemonSet when RKE2 version is >= 1.21
+    deployment:
+      enabled: false
+      replicas: 1
+
+
 
 ## Additional PushProx Monitoring
 ## ref: https://github.com/rancher/charts/tree/dev-v2.5-source/packages/rancher-pushprox
