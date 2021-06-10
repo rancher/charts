@@ -35,7 +35,11 @@ spec:
       serviceAccount: {{ .Values.serviceAccount }}
       containers:
         - name: neuvector-scanner-pod
-          image: "{{ .Values.registry }}/{{ .Values.cve.scanner.image.repository }}:latest"
+          {{ if eq .Values.registry "registry.neuvector.com" }}
+          image: "{{ .Values.registry }}/scanner:{{ .Values.cve.scanner.image.tag }}"
+          {{- else }}
+          image: "{{ .Values.registry }}/{{ .Values.cve.scanner.image.repository }}:{{ .Values.cve.scanner.image.tag }}"
+          {{- end }}
           imagePullPolicy: Always
           env:
             - name: CLUSTER_JOIN_ADDR
@@ -44,5 +48,7 @@ spec:
             - name: SCANNER_DOCKER_URL
               value: {{ .Values.cve.scanner.dockerPath }}
           {{- end }}
+          resources:
+{{ toYaml .Values.cve.scanner.resources | indent 12 }}
       restartPolicy: Always
 {{- end }}

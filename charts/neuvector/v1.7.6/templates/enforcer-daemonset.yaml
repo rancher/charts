@@ -40,11 +40,19 @@ spec:
       serviceAccount: {{ .Values.serviceAccount }}
       containers:
         - name: neuvector-enforcer-pod
+          {{ if eq .Values.registry "registry.neuvector.com" }}
+          image: "{{ .Values.registry }}/enforcer:{{ .Values.tag }}"
+          {{- else }}
           image: "{{ .Values.registry }}/{{ .Values.enforcer.image.repository }}:{{ .Values.tag }}"
+          {{- end }}
           securityContext:
             privileged: true
           resources:
+          {{- if .Values.enforcer.resources }}
+{{ toYaml .Values.enforcer.resources | indent 12 }}
+          {{- else }}
 {{ toYaml .Values.resources | indent 12 }}
+          {{- end }}
           env:
             - name: CLUSTER_JOIN_ADDR
               value: neuvector-svc-controller.{{ .Release.Namespace }}
@@ -58,6 +66,10 @@ spec:
                   fieldPath: status.podIP
           volumeMounts:
           {{- if .Values.containerd.enabled }}
+            - mountPath: /var/run/containerd/containerd.sock
+          {{- else if .Values.k3s.enabled }}
+            - mountPath: /var/run/containerd/containerd.sock
+          {{- else if .Values.bottlerocket.enabled }}
             - mountPath: /var/run/containerd/containerd.sock
           {{- else if .Values.crio.enabled }}
             - mountPath: /var/run/crio/crio.sock
@@ -84,6 +96,10 @@ spec:
             path: {{ .Values.containerd.path }}
           {{- else if .Values.crio.enabled }}
             path: {{ .Values.crio.path }}
+          {{- else if .Values.k3s.enabled }}
+            path: {{ .Values.k3s.runtimePath }}
+          {{- else if .Values.bottlerocket.enabled }}
+            path: {{ .Values.bottlerocket.runtimePath }}
           {{- else }}
             path: {{ .Values.docker.path }}
           {{- end }}

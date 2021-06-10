@@ -49,11 +49,19 @@ spec:
       serviceAccount: {{ .Values.serviceAccount }}
       containers:
         - name: neuvector-controller-pod
+          {{ if eq .Values.registry "registry.neuvector.com" }}
+          image: "{{ .Values.registry }}/controller:{{ .Values.tag }}"
+          {{- else }}
           image: "{{ .Values.registry }}/{{ .Values.controller.image.repository }}:{{ .Values.tag }}"
+          {{- end }}
           securityContext:
             privileged: true
           resources:
+          {{- if .Values.controller.resources }}
+{{ toYaml .Values.controller.resources | indent 12 }}
+          {{- else }}
 {{ toYaml .Values.resources | indent 12 }}
+          {{- end }}
           readinessProbe:
             exec:
               command:
@@ -82,6 +90,10 @@ spec:
               readOnly: false
           {{- if .Values.containerd.enabled }}
             - mountPath: /var/run/containerd/containerd.sock
+          {{- else if .Values.k3s.enabled }}
+            - mountPath: /var/run/containerd/containerd.sock
+          {{- else if .Values.bottlerocket.enabled }}
+            - mountPath: /var/run/containerd/containerd.sock
           {{- else if .Values.crio.enabled }}
             - mountPath: /var/run/crio/crio.sock
           {{- else }}
@@ -98,6 +110,16 @@ spec:
             - mountPath: /etc/config
               name: config-volume
               readOnly: true              
+          {{- if .Values.controller.certificate.secret }}
+            - mountPath: /etc/neuvector/certs/ssl-cert.key
+              subPath: {{ .Values.controller.certificate.keyFile }}
+              name: cert
+              readOnly: true
+            - mountPath: /etc/neuvector/certs/ssl-cert.pem
+              subPath: {{ .Values.controller.certificate.pemFile }}
+              name: cert
+              readOnly: true
+          {{- end }}
       terminationGracePeriodSeconds: 300
       restartPolicy: Always
       volumes:
@@ -120,6 +142,10 @@ spec:
             path: {{ .Values.containerd.path }}
           {{- else if .Values.crio.enabled }}
             path: {{ .Values.crio.path }}
+          {{- else if .Values.k3s.enabled }}
+            path: {{ .Values.k3s.runtimePath }}
+          {{- else if .Values.bottlerocket.enabled }}
+            path: {{ .Values.bottlerocket.runtimePath }}
           {{- else }}
             path: {{ .Values.docker.path }}
           {{- end }}
@@ -135,6 +161,11 @@ spec:
           {{- if not .Values.controller.configmap.enabled }}
             optional: true
           {{- end }}
+      {{- if .Values.controller.certificate.secret }}
+        - name: cert
+          secret:
+            secretName: {{ .Values.controller.certificate.secret }}
+      {{- end }}
 {{- if gt (int .Values.controller.disruptionbudget) 0 }}
 ---
 apiVersion: policy/v1beta1

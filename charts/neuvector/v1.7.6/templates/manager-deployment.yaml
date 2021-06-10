@@ -34,7 +34,11 @@ spec:
       serviceAccount: {{ .Values.serviceAccount }}
       containers:
         - name: neuvector-manager-pod
+          {{ if eq .Values.registry "registry.neuvector.com" }}
+          image: "{{ .Values.registry }}/manager:{{ .Values.tag }}"
+          {{- else }}
           image: "{{ .Values.registry }}/{{ .Values.manager.image.repository }}:{{ .Values.tag }}"
+          {{- end }}
           env:
             - name: CTRL_SERVER_IP
               value: neuvector-svc-controller.{{ .Release.Namespace }}
@@ -42,7 +46,28 @@ spec:
             - name: MANAGER_SSL
               value: "off"
             {{- end }}
+          volumeMounts:
+          {{- if .Values.manager.certificate.secret }}
+            - mountPath: /etc/neuvector/certs/ssl-cert.key
+              subPath: {{ .Values.manager.certificate.keyFile }}
+              name: cert
+              readOnly: true
+            - mountPath: /etc/neuvector/certs/ssl-cert.pem
+              subPath: {{ .Values.manager.certificate.pemFile }}
+              name: cert
+              readOnly: true
+          {{- end }}
           resources:
+          {{- if .Values.manager.resources }}
+{{ toYaml .Values.manager.resources | indent 12 }}
+          {{- else }}
 {{ toYaml .Values.resources | indent 12 }}
+          {{- end }}
       restartPolicy: Always
+      volumes:
+      {{- if .Values.manager.certificate.secret }}
+        - name: cert
+          secret:
+            secretName: {{ .Values.manager.certificate.secret }}
+      {{- end }}
 {{- end }}
