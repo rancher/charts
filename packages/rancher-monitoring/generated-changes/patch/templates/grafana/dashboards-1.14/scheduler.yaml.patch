@@ -4,7 +4,7 @@
  https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack/hack
  */ -}}
  {{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion .Values.kubeTargetVersionOverride }}
--{{- if and (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.grafana.enabled .Values.grafana.defaultDashboardsEnabled .Values.kubeScheduler.enabled }}
+-{{- if and (or .Values.grafana.enabled .Values.grafana.forceDeployDashboards) (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.grafana.defaultDashboardsEnabled .Values.kubeScheduler.enabled }}
 +{{- if and (or .Values.grafana.enabled .Values.grafana.forceDeployDashboards) (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.grafana.defaultDashboardsEnabled }}
 +{{- if (include "exporter.kubeScheduler.enabled" .)}}
  apiVersion: v1
@@ -19,7 +19,7 @@
                          "tableColumn": "",
                          "targets": [
                              {
--                                "expr": "sum(up{job=\"kube-scheduler\"})",
+-                                "expr": "sum(up{cluster=\"$cluster\", job=\"kube-scheduler\"})",
 +                                {{- if .Values.k3sServer.enabled }}
 +                                "expr": "sum(up{cluster=\"$cluster\", job=\"{{ include "exporter.kubeScheduler.jobName" . }}\", metrics_path=\"/metrics\"})",
 +                                {{- else }}
@@ -32,7 +32,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
--                                "expr": "sum(rate(scheduler_e2e_scheduling_duration_seconds_count{job=\"kube-scheduler\", instance=~\"$instance\"}[5m])) by (instance)",
+-                                "expr": "sum(rate(scheduler_e2e_scheduling_duration_seconds_count{cluster=\"$cluster\", job=\"kube-scheduler\", instance=~\"$instance\"}[5m])) by (instance)",
 +                                "expr": "sum(rate(scheduler_e2e_scheduling_duration_seconds_count{cluster=\"$cluster\", job=\"{{ include "exporter.kubeScheduler.jobName" . }}\", instance=~\"$instance\"}[5m])) by (instance)",
                                  "format": "time_series",
                                  "intervalFactor": 2,
@@ -40,7 +40,7 @@
                                  "refId": "A"
                              },
                              {
--                                "expr": "sum(rate(scheduler_binding_duration_seconds_count{job=\"kube-scheduler\", instance=~\"$instance\"}[5m])) by (instance)",
+-                                "expr": "sum(rate(scheduler_binding_duration_seconds_count{cluster=\"$cluster\", job=\"kube-scheduler\", instance=~\"$instance\"}[5m])) by (instance)",
 +                                "expr": "sum(rate(scheduler_binding_duration_seconds_count{cluster=\"$cluster\", job=\"{{ include "exporter.kubeScheduler.jobName" . }}\", instance=~\"$instance\"}[5m])) by (instance)",
                                  "format": "time_series",
                                  "intervalFactor": 2,
@@ -48,7 +48,7 @@
                                  "refId": "B"
                              },
                              {
--                                "expr": "sum(rate(scheduler_scheduling_algorithm_duration_seconds_count{job=\"kube-scheduler\", instance=~\"$instance\"}[5m])) by (instance)",
+-                                "expr": "sum(rate(scheduler_scheduling_algorithm_duration_seconds_count{cluster=\"$cluster\", job=\"kube-scheduler\", instance=~\"$instance\"}[5m])) by (instance)",
 +                                "expr": "sum(rate(scheduler_scheduling_algorithm_duration_seconds_count{cluster=\"$cluster\", job=\"{{ include "exporter.kubeScheduler.jobName" . }}\", instance=~\"$instance\"}[5m])) by (instance)",
                                  "format": "time_series",
                                  "intervalFactor": 2,
@@ -56,7 +56,7 @@
                                  "refId": "C"
                              },
                              {
--                                "expr": "sum(rate(scheduler_volume_scheduling_duration_seconds_count{job=\"kube-scheduler\", instance=~\"$instance\"}[5m])) by (instance)",
+-                                "expr": "sum(rate(scheduler_volume_scheduling_duration_seconds_count{cluster=\"$cluster\", job=\"kube-scheduler\", instance=~\"$instance\"}[5m])) by (instance)",
 +                                "expr": "sum(rate(scheduler_volume_scheduling_duration_seconds_count{cluster=\"$cluster\", job=\"{{ include "exporter.kubeScheduler.jobName" . }}\", instance=~\"$instance\"}[5m])) by (instance)",
                                  "format": "time_series",
                                  "intervalFactor": 2,
@@ -65,7 +65,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
--                                "expr": "histogram_quantile(0.99, sum(rate(scheduler_e2e_scheduling_duration_seconds_bucket{job=\"kube-scheduler\",instance=~\"$instance\"}[5m])) by (instance, le))",
+-                                "expr": "histogram_quantile(0.99, sum(rate(scheduler_e2e_scheduling_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-scheduler\",instance=~\"$instance\"}[5m])) by (instance, le))",
 +                                "expr": "histogram_quantile(0.99, sum(rate(scheduler_e2e_scheduling_duration_seconds_bucket{cluster=\"$cluster\", job=\"{{ include "exporter.kubeScheduler.jobName" . }}\",instance=~\"$instance\"}[5m])) by (instance, le))",
                                  "format": "time_series",
                                  "intervalFactor": 2,
@@ -73,7 +73,7 @@
                                  "refId": "A"
                              },
                              {
--                                "expr": "histogram_quantile(0.99, sum(rate(scheduler_binding_duration_seconds_bucket{job=\"kube-scheduler\",instance=~\"$instance\"}[5m])) by (instance, le))",
+-                                "expr": "histogram_quantile(0.99, sum(rate(scheduler_binding_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-scheduler\",instance=~\"$instance\"}[5m])) by (instance, le))",
 +                                "expr": "histogram_quantile(0.99, sum(rate(scheduler_binding_duration_seconds_bucket{cluster=\"$cluster\", job=\"{{ include "exporter.kubeScheduler.jobName" . }}\",instance=~\"$instance\"}[5m])) by (instance, le))",
                                  "format": "time_series",
                                  "intervalFactor": 2,
@@ -81,7 +81,7 @@
                                  "refId": "B"
                              },
                              {
--                                "expr": "histogram_quantile(0.99, sum(rate(scheduler_scheduling_algorithm_duration_seconds_bucket{job=\"kube-scheduler\",instance=~\"$instance\"}[5m])) by (instance, le))",
+-                                "expr": "histogram_quantile(0.99, sum(rate(scheduler_scheduling_algorithm_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-scheduler\",instance=~\"$instance\"}[5m])) by (instance, le))",
 +                                "expr": "histogram_quantile(0.99, sum(rate(scheduler_scheduling_algorithm_duration_seconds_bucket{cluster=\"$cluster\", job=\"{{ include "exporter.kubeScheduler.jobName" . }}\",instance=~\"$instance\"}[5m])) by (instance, le))",
                                  "format": "time_series",
                                  "intervalFactor": 2,
@@ -89,7 +89,7 @@
                                  "refId": "C"
                              },
                              {
--                                "expr": "histogram_quantile(0.99, sum(rate(scheduler_volume_scheduling_duration_seconds_bucket{job=\"kube-scheduler\",instance=~\"$instance\"}[5m])) by (instance, le))",
+-                                "expr": "histogram_quantile(0.99, sum(rate(scheduler_volume_scheduling_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-scheduler\",instance=~\"$instance\"}[5m])) by (instance, le))",
 +                                "expr": "histogram_quantile(0.99, sum(rate(scheduler_volume_scheduling_duration_seconds_bucket{cluster=\"$cluster\", job=\"{{ include "exporter.kubeScheduler.jobName" . }}\",instance=~\"$instance\"}[5m])) by (instance, le))",
                                  "format": "time_series",
                                  "intervalFactor": 2,
@@ -98,7 +98,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
--                                "expr": "sum(rate(rest_client_requests_total{job=\"kube-scheduler\", instance=~\"$instance\",code=~\"2..\"}[5m]))",
+-                                "expr": "sum(rate(rest_client_requests_total{cluster=\"$cluster\", job=\"kube-scheduler\", instance=~\"$instance\",code=~\"2..\"}[5m]))",
 +                                "expr": "sum(rate(rest_client_requests_total{cluster=\"$cluster\", job=\"{{ include "exporter.kubeScheduler.jobName" . }}\", instance=~\"$instance\",code=~\"2..\"}[5m]))",
                                  "format": "time_series",
                                  "intervalFactor": 2,
@@ -106,7 +106,7 @@
                                  "refId": "A"
                              },
                              {
--                                "expr": "sum(rate(rest_client_requests_total{job=\"kube-scheduler\", instance=~\"$instance\",code=~\"3..\"}[5m]))",
+-                                "expr": "sum(rate(rest_client_requests_total{cluster=\"$cluster\", job=\"kube-scheduler\", instance=~\"$instance\",code=~\"3..\"}[5m]))",
 +                                "expr": "sum(rate(rest_client_requests_total{cluster=\"$cluster\", job=\"{{ include "exporter.kubeScheduler.jobName" . }}\", instance=~\"$instance\",code=~\"3..\"}[5m]))",
                                  "format": "time_series",
                                  "intervalFactor": 2,
@@ -114,7 +114,7 @@
                                  "refId": "B"
                              },
                              {
--                                "expr": "sum(rate(rest_client_requests_total{job=\"kube-scheduler\", instance=~\"$instance\",code=~\"4..\"}[5m]))",
+-                                "expr": "sum(rate(rest_client_requests_total{cluster=\"$cluster\", job=\"kube-scheduler\", instance=~\"$instance\",code=~\"4..\"}[5m]))",
 +                                "expr": "sum(rate(rest_client_requests_total{cluster=\"$cluster\", job=\"{{ include "exporter.kubeScheduler.jobName" . }}\", instance=~\"$instance\",code=~\"4..\"}[5m]))",
                                  "format": "time_series",
                                  "intervalFactor": 2,
@@ -122,7 +122,7 @@
                                  "refId": "C"
                              },
                              {
--                                "expr": "sum(rate(rest_client_requests_total{job=\"kube-scheduler\", instance=~\"$instance\",code=~\"5..\"}[5m]))",
+-                                "expr": "sum(rate(rest_client_requests_total{cluster=\"$cluster\", job=\"kube-scheduler\", instance=~\"$instance\",code=~\"5..\"}[5m]))",
 +                                "expr": "sum(rate(rest_client_requests_total{cluster=\"$cluster\", job=\"{{ include "exporter.kubeScheduler.jobName" . }}\", instance=~\"$instance\",code=~\"5..\"}[5m]))",
                                  "format": "time_series",
                                  "intervalFactor": 2,
@@ -131,7 +131,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
--                                "expr": "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{job=\"kube-scheduler\", instance=~\"$instance\", verb=\"POST\"}[5m])) by (verb, url, le))",
+-                                "expr": "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-scheduler\", instance=~\"$instance\", verb=\"POST\"}[5m])) by (verb, url, le))",
 +                                "expr": "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{cluster=\"$cluster\", job=\"{{ include "exporter.kubeScheduler.jobName" . }}\", instance=~\"$instance\", verb=\"POST\"}[5m])) by (verb, url, le))",
                                  "format": "time_series",
                                  "intervalFactor": 2,
@@ -140,7 +140,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
--                                "expr": "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{job=\"kube-scheduler\", instance=~\"$instance\", verb=\"GET\"}[5m])) by (verb, url, le))",
+-                                "expr": "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-scheduler\", instance=~\"$instance\", verb=\"GET\"}[5m])) by (verb, url, le))",
 +                                "expr": "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{cluster=\"$cluster\", job=\"{{ include "exporter.kubeScheduler.jobName" . }}\", instance=~\"$instance\", verb=\"GET\"}[5m])) by (verb, url, le))",
                                  "format": "time_series",
                                  "intervalFactor": 2,
@@ -149,7 +149,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
--                                "expr": "process_resident_memory_bytes{job=\"kube-scheduler\", instance=~\"$instance\"}",
+-                                "expr": "process_resident_memory_bytes{cluster=\"$cluster\", job=\"kube-scheduler\", instance=~\"$instance\"}",
 +                                "expr": "process_resident_memory_bytes{cluster=\"$cluster\", job=\"{{ include "exporter.kubeScheduler.jobName" . }}\", instance=~\"$instance\"}",
                                  "format": "time_series",
                                  "intervalFactor": 2,
@@ -158,7 +158,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
--                                "expr": "rate(process_cpu_seconds_total{job=\"kube-scheduler\", instance=~\"$instance\"}[5m])",
+-                                "expr": "rate(process_cpu_seconds_total{cluster=\"$cluster\", job=\"kube-scheduler\", instance=~\"$instance\"}[5m])",
 +                                "expr": "rate(process_cpu_seconds_total{cluster=\"$cluster\", job=\"{{ include "exporter.kubeScheduler.jobName" . }}\", instance=~\"$instance\"}[5m])",
                                  "format": "time_series",
                                  "intervalFactor": 2,
@@ -167,54 +167,21 @@
                          "steppedLine": false,
                          "targets": [
                              {
--                                "expr": "go_goroutines{job=\"kube-scheduler\",instance=~\"$instance\"}",
+-                                "expr": "go_goroutines{cluster=\"$cluster\", job=\"kube-scheduler\",instance=~\"$instance\"}",
 +                                "expr": "go_goroutines{cluster=\"$cluster\", job=\"{{ include "exporter.kubeScheduler.jobName" . }}\",instance=~\"$instance\"}",
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}instance{{`}}`}}",
-@@ -1015,6 +1020,32 @@
- 
-                     },
-                     "datasource": "$datasource",
-+                    "hide": {{ if .Values.grafana.sidecar.dashboards.multicluster }}0{{ else }}2{{ end }},
-+                    "includeAll": false,
-+                    "label": "cluster",
-+                    "multi": false,
-+                    "name": "cluster",
-+                    "options": [
-+
-+                    ],
-+                    "query": "label_values(kube_pod_info, cluster)",
-+                    "refresh": 2,
-+                    "regex": "",
-+                    "sort": 1,
-+                    "tagValuesQuery": "",
-+                    "tags": [
-+
-+                    ],
-+                    "tagsQuery": "",
-+                    "type": "query",
-+                    "useTags": false
-+                },
-+                {
-+                    "allValue": null,
-+                    "current": {
-+
-+                    },
-+                    "datasource": "$datasource",
-                     "hide": 0,
-                     "includeAll": true,
-                     "label": null,
-@@ -1023,7 +1054,7 @@
+@@ -1049,7 +1054,7 @@
                      "options": [
  
                      ],
--                    "query": "label_values(process_cpu_seconds_total{job=\"kube-scheduler\"}, instance)",
+-                    "query": "label_values(process_cpu_seconds_total{cluster=\"$cluster\", job=\"kube-scheduler\"}, instance)",
 +                    "query": "label_values(process_cpu_seconds_total{cluster=\"$cluster\", job=\"{{ include "exporter.kubeScheduler.jobName" . }}\"}, instance)",
                      "refresh": 2,
                      "regex": "",
                      "sort": 1,
-@@ -1071,4 +1102,5 @@
+@@ -1097,4 +1102,5 @@
          "uid": "2e6b6a3b4bddf1427b3a55aa1311c656",
          "version": 0
      }
