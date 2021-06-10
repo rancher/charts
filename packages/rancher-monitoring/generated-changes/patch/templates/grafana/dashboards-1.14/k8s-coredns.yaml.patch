@@ -1,6 +1,10 @@
 --- charts-original/templates/grafana/dashboards-1.14/k8s-coredns.yaml
 +++ charts/templates/grafana/dashboards-1.14/k8s-coredns.yaml
-@@ -4,10 +4,8 @@
+@@ -1,13 +1,11 @@
+ {{- /* Added manually, can be changed in-place. */ -}}
+ {{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion .Values.kubeTargetVersionOverride }}
+-{{- if and (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.grafana.enabled .Values.grafana.defaultDashboardsEnabled .Values.coreDns.enabled }}
++{{- if and (or .Values.grafana.enabled .Values.grafana.forceDeployDashboards) (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.grafana.defaultDashboardsEnabled .Values.coreDns.enabled }}
  apiVersion: v1
  kind: ConfigMap
  metadata:

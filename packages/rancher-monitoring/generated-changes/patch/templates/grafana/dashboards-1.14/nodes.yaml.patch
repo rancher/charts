@@ -1,6 +1,11 @@
 --- charts-original/templates/grafana/dashboards-1.14/nodes.yaml
 +++ charts/templates/grafana/dashboards-1.14/nodes.yaml
-@@ -8,7 +8,7 @@
+@@ -4,11 +4,11 @@
+ https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack/hack
+ */ -}}
+ {{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion .Values.kubeTargetVersionOverride }}
+-{{- if and (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.grafana.enabled .Values.grafana.defaultDashboardsEnabled }}
++{{- if and (or .Values.grafana.enabled .Values.grafana.forceDeployDashboards) (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.grafana.defaultDashboardsEnabled }}
  apiVersion: v1
  kind: ConfigMap
  metadata:
@@ -9,3 +14,72 @@
    name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" $) "nodes" | trunc 63 | trimSuffix "-" }}
    annotations:
  {{ toYaml .Values.grafana.sidecar.dashboards.annotations | indent 4 }}
+@@ -92,9 +92,8 @@
+                         "steppedLine": false,
+                         "targets": [
+                             {
+-                                "expr": "(\n  (1 - rate(node_cpu_seconds_total{job=\"node-exporter\", mode=\"idle\", instance=\"$instance\"}[$__interval]))\n/ ignoring(cpu) group_left\n  count without (cpu)( node_cpu_seconds_total{job=\"node-exporter\", mode=\"idle\", instance=\"$instance\"})\n)\n",
++                                "expr": "(\n  (1 - rate(node_cpu_seconds_total{job=\"node-exporter\", mode=\"idle\", instance=\"$instance\"}[$__rate_interval]))\n/ ignoring(cpu) group_left\n  count without (cpu)( node_cpu_seconds_total{job=\"node-exporter\", mode=\"idle\", instance=\"$instance\"})\n)\n",
+                                 "format": "time_series",
+-                                "interval": "1m",
+                                 "intervalFactor": 5,
+                                 "legendFormat": "{{`{{`}}cpu{{`}}`}}",
+                                 "refId": "A"
+@@ -528,25 +527,22 @@
+                         "steppedLine": false,
+                         "targets": [
+                             {
+-                                "expr": "rate(node_disk_read_bytes_total{job=\"node-exporter\", instance=\"$instance\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\"}[$__interval])",
++                                "expr": "rate(node_disk_read_bytes_total{job=\"node-exporter\", instance=\"$instance\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\"}[$__rate_interval])",
+                                 "format": "time_series",
+-                                "interval": "1m",
+                                 "intervalFactor": 2,
+                                 "legendFormat": "{{`{{`}}device{{`}}`}} read",
+                                 "refId": "A"
+                             },
+                             {
+-                                "expr": "rate(node_disk_written_bytes_total{job=\"node-exporter\", instance=\"$instance\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\"}[$__interval])",
++                                "expr": "rate(node_disk_written_bytes_total{job=\"node-exporter\", instance=\"$instance\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\"}[$__rate_interval])",
+                                 "format": "time_series",
+-                                "interval": "1m",
+                                 "intervalFactor": 2,
+                                 "legendFormat": "{{`{{`}}device{{`}}`}} written",
+                                 "refId": "B"
+                             },
+                             {
+-                                "expr": "rate(node_disk_io_time_seconds_total{job=\"node-exporter\", instance=\"$instance\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\"}[$__interval])",
++                                "expr": "rate(node_disk_io_time_seconds_total{job=\"node-exporter\", instance=\"$instance\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\"}[$__rate_interval])",
+                                 "format": "time_series",
+-                                "interval": "1m",
+                                 "intervalFactor": 2,
+                                 "legendFormat": "{{`{{`}}device{{`}}`}} io time",
+                                 "refId": "C"
+@@ -758,9 +754,8 @@
+                         "steppedLine": false,
+                         "targets": [
+                             {
+-                                "expr": "rate(node_network_receive_bytes_total{job=\"node-exporter\", instance=\"$instance\", device!=\"lo\"}[$__interval])",
++                                "expr": "rate(node_network_receive_bytes_total{job=\"node-exporter\", instance=\"$instance\", device!=\"lo\"}[$__rate_interval])",
+                                 "format": "time_series",
+-                                "interval": "1m",
+                                 "intervalFactor": 2,
+                                 "legendFormat": "{{`{{`}}device{{`}}`}}",
+                                 "refId": "A"
+@@ -852,9 +847,8 @@
+                         "steppedLine": false,
+                         "targets": [
+                             {
+-                                "expr": "rate(node_network_transmit_bytes_total{job=\"node-exporter\", instance=\"$instance\", device!=\"lo\"}[$__interval])",
++                                "expr": "rate(node_network_transmit_bytes_total{job=\"node-exporter\", instance=\"$instance\", device!=\"lo\"}[$__rate_interval])",
+                                 "format": "time_series",
+-                                "interval": "1m",
+                                 "intervalFactor": 2,
+                                 "legendFormat": "{{`{{`}}device{{`}}`}}",
+                                 "refId": "A"
+@@ -994,4 +988,4 @@
+         "title": "Nodes",
+         "version": 0
+     }
+-{{- end }}
+\ No newline at end of file
++{{- end }}
