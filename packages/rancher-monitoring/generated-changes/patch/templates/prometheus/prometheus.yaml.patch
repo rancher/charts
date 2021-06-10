@@ -27,62 +27,7 @@
  {{ toYaml .Values.prometheus.prometheusSpec.nodeSelector | indent 4 }}
  {{- end }}
    paused: {{ .Values.prometheus.prometheusSpec.paused }}
-@@ -70,6 +75,12 @@
-   logFormat:  {{ .Values.prometheus.prometheusSpec.logFormat }}
-   listenLocal: {{ .Values.prometheus.prometheusSpec.listenLocal }}
-   enableAdminAPI: {{ .Values.prometheus.prometheusSpec.enableAdminAPI }}
-+{{- if .Values.prometheus.prometheusSpec.enableFeatures }}
-+  enableFeatures:
-+{{- range $enableFeatures := .Values.prometheus.prometheusSpec.enableFeatures }}
-+  - {{ tpl $enableFeatures $ }}
-+{{- end }}
-+{{- end }}
- {{- if .Values.prometheus.prometheusSpec.scrapeInterval }}
-   scrapeInterval: {{ .Values.prometheus.prometheusSpec.scrapeInterval }}
- {{- end }}
-@@ -150,13 +161,23 @@
- {{ else }}
-   probeNamespaceSelector: {}
- {{- end }}
--{{- if .Values.prometheus.prometheusSpec.remoteRead }}
-+{{- if (or .Values.prometheus.prometheusSpec.remoteRead .Values.prometheus.prometheusSpec.additionalRemoteRead) }}
-   remoteRead:
--{{ toYaml .Values.prometheus.prometheusSpec.remoteRead | indent 4 }}
-+{{- if .Values.prometheus.prometheusSpec.remoteRead }}
-+{{ tpl (toYaml .Values.prometheus.prometheusSpec.remoteRead | indent 4) . }}
- {{- end }}
--{{- if .Values.prometheus.prometheusSpec.remoteWrite }}
-+{{- if .Values.prometheus.prometheusSpec.additionalRemoteRead }}
-+{{ toYaml .Values.prometheus.prometheusSpec.additionalRemoteRead | indent 4 }}
-+{{- end }}
-+{{- end }}
-+{{- if (or .Values.prometheus.prometheusSpec.remoteWrite .Values.prometheus.prometheusSpec.additionalRemoteWrite) }}
-   remoteWrite:
--{{ toYaml .Values.prometheus.prometheusSpec.remoteWrite | indent 4 }}
-+{{- if .Values.prometheus.prometheusSpec.remoteWrite }}
-+{{ tpl (toYaml .Values.prometheus.prometheusSpec.remoteWrite | indent 4) . }}
-+{{- end }}
-+{{- if .Values.prometheus.prometheusSpec.additionalRemoteWrite }}
-+{{ toYaml .Values.prometheus.prometheusSpec.additionalRemoteWrite | indent 4 }}
-+{{- end }}
- {{- end }}
- {{- if .Values.prometheus.prometheusSpec.securityContext }}
-   securityContext:
-@@ -202,7 +223,7 @@
-       - topologyKey: {{ .Values.prometheus.prometheusSpec.podAntiAffinityTopologyKey }}
-         labelSelector:
-           matchExpressions:
--            - {key: app, operator: In, values: [prometheus]}
-+            - {key: app.kubernetes.io/name, operator: In, values: [prometheus]}
-             - {key: prometheus, operator: In, values: [{{ template "kube-prometheus-stack.fullname" . }}-prometheus]}
- {{- else if eq .Values.prometheus.prometheusSpec.podAntiAffinity "soft" }}
-     podAntiAffinity:
-@@ -212,12 +233,12 @@
-           topologyKey: {{ .Values.prometheus.prometheusSpec.podAntiAffinityTopologyKey }}
-           labelSelector:
-             matchExpressions:
--              - {key: app, operator: In, values: [prometheus]}
-+              - {key: app.kubernetes.io/name, operator: In, values: [prometheus]}
+@@ -232,8 +237,8 @@
                - {key: prometheus, operator: In, values: [{{ template "kube-prometheus-stack.fullname" . }}-prometheus]}
  {{- end }}
  {{- end }}
@@ -92,7 +37,7 @@
  {{ toYaml .Values.prometheus.prometheusSpec.tolerations | indent 4 }}
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.topologySpreadConstraints }}
-@@ -250,7 +271,7 @@
+@@ -266,7 +271,7 @@
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.containers }}
    containers:
@@ -101,7 +46,7 @@
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.initContainers }}
    initContainers:
-@@ -266,6 +287,7 @@
+@@ -282,6 +287,7 @@
  {{- if .Values.prometheus.prometheusSpec.disableCompaction }}
    disableCompaction: {{ .Values.prometheus.prometheusSpec.disableCompaction }}
  {{- end }}
@@ -109,7 +54,7 @@
    portName: {{ .Values.prometheus.prometheusSpec.portName }}
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.volumes }}
-@@ -310,3 +332,4 @@
+@@ -326,3 +332,4 @@
  {{- if .Values.prometheus.prometheusSpec.allowOverlappingBlocks }}
    allowOverlappingBlocks: {{ .Values.prometheus.prometheusSpec.allowOverlappingBlocks }}
  {{- end }}
