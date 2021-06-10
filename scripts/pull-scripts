@@ -5,19 +5,42 @@ cd $(dirname $0)
 
 source ./version
 
+if ls ../bin/charts-build-scripts 1>/dev/null 2>/dev/null; then
+    CURRENT_SCRIPT_VERSION=$(../bin/charts-build-scripts --version | cut -d' ' -f3)
+    if [[ "${CURRENT_SCRIPT_VERSION}" == "${CHARTS_BUILD_SCRIPT_VERSION}" ]]; then
+        exit 0
+    fi
+fi
+
 echo "Pulling in charts-build-scripts version ${CHARTS_BUILD_SCRIPTS_REPO}@${CHARTS_BUILD_SCRIPT_VERSION}"
 
 rm -rf ../bin
 cd ..
 
-rm -rf charts-build-scripts
-git clone --depth 1 --branch $CHARTS_BUILD_SCRIPT_VERSION $CHARTS_BUILD_SCRIPTS_REPO 2>/dev/null
+mkdir -p bin
+ARCH=$(go version | cut -d' ' -f4 | cut -d'/' -f1)
+if [[ ${ARCH} == "linux" ]]; then
+    BINARY_NAME=charts-build-scripts
+else
+    BINARY_NAME=charts-build-scripts-${ARCH}
+fi
+curl -s -L ${CHARTS_BUILD_SCRIPTS_REPO%.git}/releases/download/${CHARTS_BUILD_SCRIPT_VERSION}/${BINARY_NAME} --output bin/charts-build-scripts
+if ! [[ -f bin/charts-build-scripts ]] || [[ $(cat bin/charts-build-scripts) == "Not Found" ]]; then 
+    rm bin/charts-build-scripts; 
+    
+    # Fall back to old process
+    echo "Building binary locally..."
+    rm -rf charts-build-scripts
+    git clone --depth 1 --branch $CHARTS_BUILD_SCRIPT_VERSION $CHARTS_BUILD_SCRIPTS_REPO 2>/dev/null
 
-cd charts-build-scripts
-./scripts/build
-mv bin ../bin
-cd ..
+    cd charts-build-scripts
+    ./scripts/build
+    mv bin ..
+    cd ..
+    rm -rf charts-build-scripts
+else
+    echo "${BINARY_NAME} => ./bin/charts-build-scripts"
+fi
 
-rm -rf charts-build-scripts
 chmod +x ./bin/charts-build-scripts
 ./bin/charts-build-scripts --version
