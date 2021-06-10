@@ -1,7 +1,13 @@
 --- charts-original/templates/alertmanager/alertmanager.yaml
 +++ charts/templates/alertmanager/alertmanager.yaml
-@@ -9,7 +9,7 @@
+@@ -7,9 +7,13 @@
+   labels:
+     app: {{ template "kube-prometheus-stack.name" . }}-alertmanager
  {{ include "kube-prometheus-stack.labels" . | indent 4 }}
++{{- if .Values.alertmanager.annotations }}
++  annotations:
++{{ toYaml .Values.alertmanager.annotations | indent 4 }}
++{{- end }}
  spec:
  {{- if .Values.alertmanager.alertmanagerSpec.image }}
 -  image: {{ .Values.alertmanager.alertmanagerSpec.image.repository }}:{{ .Values.alertmanager.alertmanagerSpec.image.tag }}
@@ -9,7 +15,7 @@
    version: {{ .Values.alertmanager.alertmanagerSpec.image.tag }}
    {{- if .Values.alertmanager.alertmanagerSpec.image.sha }}
    sha: {{ .Values.alertmanager.alertmanagerSpec.image.sha }}
-@@ -22,11 +22,13 @@
+@@ -22,11 +26,13 @@
    externalUrl: "{{ tpl .Values.alertmanager.alertmanagerSpec.externalUrl . }}"
  {{- else if and .Values.alertmanager.ingress.enabled .Values.alertmanager.ingress.hosts }}
    externalUrl: "http://{{ tpl (index .Values.alertmanager.ingress.hosts 0) . }}{{ .Values.alertmanager.alertmanagerSpec.routePrefix }}"
@@ -24,7 +30,16 @@
  {{ toYaml .Values.alertmanager.alertmanagerSpec.nodeSelector | indent 4 }}
  {{- end }}
    paused: {{ .Values.alertmanager.alertmanagerSpec.paused }}
-@@ -100,8 +102,8 @@
+@@ -87,7 +93,7 @@
+         labelSelector:
+           matchExpressions:
+             - {key: app, operator: In, values: [alertmanager]}
+-            - {key: prometheus, operator: In, values: [{{ template "kube-prometheus-stack.fullname" . }}-alertmanager]}
++            - {key: alertmanager, operator: In, values: [{{ template "kube-prometheus-stack.fullname" . }}-alertmanager]}
+ {{- else if eq .Values.alertmanager.alertmanagerSpec.podAntiAffinity "soft" }}
+     podAntiAffinity:
+       preferredDuringSchedulingIgnoredDuringExecution:
+@@ -100,8 +106,8 @@
                - {key: prometheus, operator: In, values: [{{ template "kube-prometheus-stack.fullname" . }}-alertmanager]}
  {{- end }}
  {{- end }}
@@ -34,7 +49,7 @@
  {{ toYaml .Values.alertmanager.alertmanagerSpec.tolerations | indent 4 }}
  {{- end }}
  {{- if .Values.alertmanager.alertmanagerSpec.topologySpreadConstraints }}
-@@ -136,10 +138,10 @@
+@@ -136,10 +142,10 @@
  {{ toYaml .Values.alertmanager.alertmanagerSpec.volumeMounts | indent 4 }}
  {{- end }}
    portName: {{ .Values.alertmanager.alertmanagerSpec.portName }}
