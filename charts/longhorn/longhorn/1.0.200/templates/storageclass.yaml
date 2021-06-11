@@ -1,0 +1,14 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: longhorn
+  annotations:
+    storageclass.kubernetes.io/is-default-class: {{ .Values.persistence.defaultClass | quote }}
+  labels: {{- include "longhorn.labels" . | nindent 4 }}
+provisioner: driver.longhorn.io
+allowVolumeExpansion: true
+parameters:
+  numberOfReplicas: "{{ .Values.persistence.defaultClassReplicaCount }}"
+  staleReplicaTimeout: "30"
+  fromBackup: ""
+  baseImage: ""
