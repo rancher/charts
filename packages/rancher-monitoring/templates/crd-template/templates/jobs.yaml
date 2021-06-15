@@ -30,11 +30,10 @@ spec:
             {{- range $path, $_ :=  (.Files.Glob  "crd-manifest/**.yaml") }}
             {{- $crd := get (get ($.Files.Get $path | fromYaml) "metadata") "name" }}
             if [[ -n "$(kubectl get crd {{ $crd }} -o jsonpath='{.spec.preserveUnknownFields}')" ]]; then
-                patch='{"spec": {"preserveUnknownFields": false}}';
-                if [[ -z "$(kubectl get crd {{ $crd }} -o jsonpath='{.spec.versions[0].schema}')" ]]; then
-                  patch='{"spec": {"preserveUnknownFields": false, "versions": [{"name": "v1", "served": false, "storage": true, "schema": {"openAPIV3Schema": {"description": "placeholder", "type": "object"}}}]}}';
+                patch="{\"spec\": {\"preserveUnknownFields\": false}}";
+                if [[ -z "$(kubectl get crd {{ $crd }} -o jsonpath='{.spec.versions[0].schema}' 2>&1)" ]]; then
+                  patch="{\"spec\": {\"preserveUnknownFields\": false, \"versions\": [{\"name\": \"v1\", \"served\": false, \"storage\": true}]}}";
                 fi
-                echo "Applying patch to {{ $crd }}: ${patch}"
                 if kubectl patch crd {{ $crd }} -p "${patch}" --type="merge"; then
                 {{- include "crd.established" $crd | nindent 18 }}
                 fi;
