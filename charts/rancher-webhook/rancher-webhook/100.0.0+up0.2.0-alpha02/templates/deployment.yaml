@@ -15,12 +15,17 @@ spec:
       - name: tls
         secret:
           secretName: rancher-webhook-tls
+      {{- if .Values.global.hostNetwork }}
+      hostNetwork: true
+      {{- end }}
       containers:
       - env:
         - name: STAMP
           value: "{{.Values.stamp}}"
         - name: ENABLE_CAPI
           value: "{{.Values.capi.enabled}}"
+        - name: ENABLE_MCM
+          value: "{{.Values.mcm.enabled}}"
         - name: NAMESPACE
           valueFrom:
             fieldRef:
