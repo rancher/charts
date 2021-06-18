@@ -1,0 +1,45 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: istioctl-uninstaller
+  namespace: {{ template "istio.namespace" . }}
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  template:
+    spec:
+      containers:
+        - name: istioctl-uninstaller
+          image: {{ template "system_default_registry" . }}{{ .Values.installer.repository }}:{{ .Values.installer.tag }}
+          env:
+          - name: RELEASE_NAME
+            value: {{ .Release.Name }}
+          - name: ISTIO_NAMESPACE
+            value: {{ template "istio.namespace" . }}
+          command: ["/bin/sh","-c"]
+          args: ["/usr/local/app/scripts/uninstall_istio_system.sh"]
+          volumeMounts:
+          - name: config-volume
+            mountPath: /app/istio-base.yaml
+            subPath: istio-base.yaml
+          {{- if .Values.overlayFile }}
+          - name: overlay-volume
+            mountPath: /app/overlay-config.yaml
+            subPath: overlay-config.yaml
+          {{ end }}
+      volumes:
+        - name: config-volume
+          configMap:
+            name: istio-installer-base
+        {{- if .Values.overlayFile }}
+        - name: overlay-volume
+          configMap:
+            name: istio-installer-overlay
+        {{ end }}
+      serviceAccountName: istio-installer
+      securityContext:
+        runAsUser: 101
+        runAsGroup: 101
+      restartPolicy: OnFailure
