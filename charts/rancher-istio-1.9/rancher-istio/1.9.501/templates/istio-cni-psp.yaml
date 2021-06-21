@@ -1,0 +1,51 @@
+{{- if .Values.global.rbac.pspEnabled }}
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: psp-istio-cni
+  namespace: {{ template "istio.namespace" . }}
+spec:
+  allowPrivilegeEscalation: true
+  fsGroup:
+      rule: RunAsAny
+  hostNetwork: true
+  runAsUser:
+      rule: RunAsAny
+  seLinux:
+      rule: RunAsAny
+  supplementalGroups:
+      rule: RunAsAny
+  volumes:
+  - secret
+  - configMap
+  - emptyDir
+  - hostPath
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: psp-istio-cni
+  namespace: {{ template "istio.namespace" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: psp-istio-cni
+subjects:
+  - kind: ServiceAccount
+    name: istio-cni
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: psp-istio-cni
+  namespace: {{ template "istio.namespace" . }}
+rules:
+- apiGroups:
+  - policy
+  resourceNames:
+  - psp-istio-cni
+  resources:
+  - podsecuritypolicies
+  verbs:
+  - use
+{{- end }}
