@@ -17,10 +17,13 @@ spec:
   endpoints:
   - port: windows-metrics
     metricRelabelings:
-{{- include "windowsExporter.renamedMetricsRelabeling" . | nindent 4 -}}
     - sourceLabels: [__name__]
       regex: 'wmi_(.*)'
       replacement: 'windows_$1'
+      targetLabel: __name__
+    - sourceLabels: [__name__]
+      regex: windows_mssql_transactions_active_total
+      replacement: 'windows_mssql_transactions_active'
       targetLabel: __name__
     - sourceLabels: [volume, nic]
       regex: (.*);(.*)

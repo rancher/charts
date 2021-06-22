@@ -1,0 +1,11 @@
+--- charts-original/templates/prometheus/rules/kubernetes-system.yaml
++++ charts/templates/prometheus/rules/kubernetes-system.yaml
+@@ -76,7 +76,7 @@
+       annotations:
+         message: Kubelet {{`{{`}} $labels.instance {{`}}`}} is running {{`{{`}} $value {{`}}`}} Pods, close to the limit of 110.
+         runbook_url: {{ .Values.defaultRules.runbookUrl }}alert-name-kubelettoomanypods
+-      expr: kubelet_running_pod_count{job="kubelet"} > 110 * 0.9
++      expr: kubelet_running_pod_count{job="{{ include "exporter.kubelet.jobName" . }}"} > 110 * 0.9
+       for: 15m
+       labels:
+         severity: warning

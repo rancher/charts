@@ -4,8 +4,8 @@
  https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack/hack
  */ -}}
  {{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion .Values.kubeTargetVersionOverride }}
--{{- if and (or .Values.grafana.enabled .Values.grafana.forceDeployDashboards) (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.grafana.defaultDashboardsEnabled .Values.kubelet.enabled }}
-+{{- if and (or .Values.grafana.enabled .Values.grafana.forceDeployDashboards) (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.grafana.defaultDashboardsEnabled }}
+-{{- if and (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.grafana.enabled .Values.grafana.defaultDashboardsEnabled .Values.kubelet.enabled }}
++{{- if and (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.grafana.enabled .Values.grafana.defaultDashboardsEnabled }}
 +{{- if (include "exporter.kubelet.enabled" .) }}
  apiVersion: v1
  kind: ConfigMap
@@ -19,8 +19,8 @@
                          "tableColumn": "",
                          "targets": [
                              {
--                                "expr": "sum(kubelet_node_name{cluster=\"$cluster\", job=\"kubelet\", metrics_path=\"/metrics\"})",
-+                                "expr": "sum(kubelet_node_name{cluster=\"$cluster\", job=\"{{ include "exporter.kubelet.jobName" . }}\", metrics_path=\"/metrics\"})",
+-                                "expr": "sum(up{cluster=\"$cluster\", job=\"kubelet\", metrics_path=\"/metrics\"})",
++                                "expr": "sum(up{cluster=\"$cluster\", job=\"{{ include "exporter.kubelet.jobName" . }}\", metrics_path=\"/metrics\"})",
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "",
