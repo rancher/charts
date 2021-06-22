@@ -1,0 +1,68 @@
+{{- if and .Values.controller.enabled .Values.controller.ingress.enabled }}
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: neuvector-restapi-ingress
+  namespace: {{ .Release.Namespace }}
+{{- with .Values.controller.ingress.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+{{- if .Values.controller.ingress.tls }}
+  tls:
+  - hosts:
+    - {{ .Values.controller.ingress.host }}
+{{- if .Values.controller.ingress.secretName }}
+    secretName: {{ .Values.controller.ingress.secretName }}
+{{- end }}
+{{- end }}
+  rules:
+  - host: {{ .Values.controller.ingress.host }}
+    http:
+      paths:
+      - path: {{ .Values.controller.ingress.path }}
+        pathType: Prefix
+        backend:
+          service:
+            name: neuvector-svc-controller-api
+            port:
+              number: 10443
+{{- else }}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: neuvector-restapi-ingress
+  namespace: {{ .Release.Namespace }}
+{{- with .Values.controller.ingress.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+{{- if .Values.controller.ingress.tls }}
+  tls:
+  - hosts:
+    - {{ .Values.controller.ingress.host }}
+{{- if .Values.controller.ingress.secretName }}
+    secretName: {{ .Values.controller.ingress.secretName }}
+{{- end }}
+{{- end }}
+  rules:
+  - host: {{ .Values.controller.ingress.host }}
+    http:
+      paths:
+      - path: {{ .Values.controller.ingress.path }}
+        backend:
+          serviceName: neuvector-svc-controller-api
+          servicePort: 10443
+{{- end }}
+{{- end -}}

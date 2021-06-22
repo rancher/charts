@@ -34,11 +34,15 @@ spec:
           containers:
             - name: neuvector-updater-pod
               {{ if eq .Values.registry "registry.neuvector.com" }}
-              image: "{{ .Values.registry }}/updater:{{ .Values.tag }}"
+              image: "{{ .Values.registry }}/updater:{{ .Values.cve.updater.image.tag }}"
               {{- else }}
               image: "{{ .Values.registry }}/{{ .Values.cve.updater.image.repository }}:{{ .Values.cve.updater.image.tag }}"
               {{- end }}
               imagePullPolicy: Always
+              command:
+              - /bin/sh
+              - -c
+              - sleep 30
           {{- if .Values.cve.scanner.enabled }}
               lifecycle:
                 postStart:
