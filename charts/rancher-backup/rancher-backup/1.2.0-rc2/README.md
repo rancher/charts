@@ -45,6 +45,7 @@ The following table lists the configurable parameters of the rancher-backup char
 | nodeSelector | https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector | {} |
 | tolerations | https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration | [] |
 | affinity | https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity | {} |
+| serviceAccount.annotations | Annotations to apply to created service account | {} |
 
 -----
 
