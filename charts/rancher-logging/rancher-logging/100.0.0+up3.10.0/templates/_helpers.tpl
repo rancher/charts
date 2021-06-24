@@ -121,3 +121,28 @@ Set kube-audit file name based on distribution
 {{ required "Filename of the kube-audit log is required" .Values.additionalLoggingSources.kubeAudit.auditFilename }}
 {{- end -}}
 {{- end -}}
+
+{{/*
+A shared list of custom parsers for the vairous fluentbit pods rancher creates
+*/}}
+{{- define "logging-operator.parsers" -}}
+[PARSER]
+    Name              klog
+    Format            regex
+    Regex             ^(?<level>[IWEF])(?<timestamp>\d{4} \d{2}:\d{2}:\d{2}).\d{6} +?(?<thread_id>\d+) (?<filename>.+):(?<linenumber>\d+)] (?<message>.+)
+    Time_Key          timestamp
+    Time_Format       %m%d %T
+
+[PARSER]
+    Name              rancher
+    Format            regex
+    Regex             ^time="(?<timestamp>.+)" level=(?<level>.+) msg="(?<msg>.+)"$
+    Time_Key          timestamp
+    Time_Format       %FT%TZ
+
+[PARSER]
+    Name              etcd
+    Format            json
+    Time_Key          ts
+    Time_Format       %FT%TZ
+{{- end -}}
