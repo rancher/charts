@@ -24,18 +24,18 @@ PACKAGE_YAML_PATH=packages/${PACKAGE}/package.yaml
 
 # package.yaml values
 
-SOURCE_REPO=$(yq r ${PACKAGE_YAML_PATH} 'url')
+SOURCE_REPO=$(yq e '.url' ${PACKAGE_YAML_PATH})
 if [[ "${SOURCE_REPO}" != *.git ]]; then
     echo "./scripts/rebase can only be done on Git-based packages, found url: ${SOURCE_REPO}"
     exit 1
 fi
 
-CURRENT_COMMIT=$(yq r ${PACKAGE_YAML_PATH} 'commit')
+CURRENT_COMMIT=$(yq e '.commit' ${PACKAGE_YAML_PATH})
 if [[ -z ${CURRENT_COMMIT} ]]; then
     echo "Unable to find 'commit' in ${PACKAGE_YAML_PATH}"
 fi
 
-SUB_DIRECTORY=$(yq r ${PACKAGE_YAML_PATH} 'subdirectory')
+SUB_DIRECTORY=$(yq e '.subdirectory' ${PACKAGE_YAML_PATH})
 
 if [ -z "${SUB_DIRECTORY}" ]; then
     echo "Attempting to rebase ${PACKAGE} from commit ${CURRENT_COMMIT} to ${NEW_TAG}"
@@ -44,8 +44,8 @@ else
 fi
 echo ""
 
-CHARTS_WORKING_DIRECTORY=$(yq r ${PACKAGE_YAML_PATH} 'workingDir')
-if [ -z "${CHARTS_WORKING_DIRECTORY}" ]; then
+CHARTS_WORKING_DIRECTORY=$(yq e '.workingDir' ${PACKAGE_YAML_PATH})
+if [ -z "${CHARTS_WORKING_DIRECTORY}" ] || [ "${CHARTS_WORKING_DIRECTORY}" == "null" ]; then
     DEST_DIRECTORY=packages/${PACKAGE}/charts
 else
     DEST_DIRECTORY=packages/${PACKAGE}/${CHARTS_WORKING_DIRECTORY}
@@ -398,9 +398,7 @@ done
 echo ""
 echo ">> Modifying the package.yaml and finishing up rebase..."
 make prepare 1>/dev/null 2>/dev/null
-yq w -i ${PACKAGE_YAML_PATH} 'commit' ${NEW_COMMIT} 1>/dev/null 2>/dev/null
-yq w -i ${PACKAGE_YAML_PATH} 'packageVersion' "01" 1>/dev/null 2>/dev/null
-yq w -i ${PACKAGE_YAML_PATH} 'releaseCandidateVersion' "00" 1>/dev/null 2>/dev/null
+yq e -i ".commit = \"${NEW_COMMIT}\"" ${PACKAGE_YAML_PATH} 1>/dev/null 2>/dev/null
 make patch 1>/dev/null 2>/dev/null
 make clean 1>/dev/null 2>/dev/null
 git add ${GC_DIRECTORY} ${PACKAGE_YAML_PATH}
