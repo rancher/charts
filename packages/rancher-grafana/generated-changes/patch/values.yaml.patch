@@ -27,41 +27,18 @@
    namespaced: false
    extraRoleRules: []
    # - apiGroups: []
-@@ -22,6 +38,22 @@
- 
- replicas: 1
- 
-+## Create HorizontalPodAutoscaler object for deployment type
-+#
-+autoscaling:
-+  enabled: false
-+#   minReplicas: 1
-+#   maxReplicas: 10
-+#   metrics:
-+#   - type: Resource
-+#     resource:
-+#       name: cpu
-+#       targetAverageUtilization: 60
-+#   - type: Resource
-+#     resource:
-+#       name: memory
-+#       targetAverageUtilization: 60
-+
- ## See `kubectl explain poddisruptionbudget.spec` for more
- ## ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
- podDisruptionBudget: {}
-@@ -52,8 +84,8 @@
+@@ -68,8 +84,8 @@
  # schedulerName: "default-scheduler"
  
  image:
 -  repository: grafana/grafana
--  tag: 7.4.5
+-  tag: 7.5.5
 +  repository: rancher/mirrored-grafana-grafana
 +  tag: 7.5.8
    sha: ""
    pullPolicy: IfNotPresent
  
-@@ -66,12 +98,15 @@
+@@ -82,12 +98,15 @@
  
  testFramework:
    enabled: true
@@ -79,7 +56,7 @@
    runAsUser: 472
    runAsGroup: 472
    fsGroup: 472
-@@ -99,7 +134,7 @@
+@@ -115,7 +134,7 @@
  # priorityClassName:
  
  downloadDashboardsImage:
@@ -88,15 +65,7 @@
    tag: 7.73.0
    sha: ""
    pullPolicy: IfNotPresent
-@@ -125,6 +160,7 @@
- ## ref: http://kubernetes.io/docs/user-guide/services/
- ##
- service:
-+  enabled: true
-   type: ClusterIP
-   port: 80
-   targetPort: 3000
-@@ -284,7 +320,7 @@
+@@ -301,7 +320,7 @@
    ## initChownData container image
    ##
    image:
@@ -105,33 +74,7 @@
      tag: "1.31.1"
      sha: ""
      pullPolicy: IfNotPresent
-@@ -401,10 +437,14 @@
- ## Additional grafana server volume mounts
- # Defines additional volume mounts.
- extraVolumeMounts: []
--  # - name: extra-volume
--  #   mountPath: /mnt/volume
-+  # - name: extra-volume-0
-+  #   mountPath: /mnt/volume0
-   #   readOnly: true
-   #   existingClaim: volume-claim
-+  # - name: extra-volume-1
-+  #   mountPath: /mnt/volume1
-+  #   readOnly: true
-+  #   hostPath: /usr/shared/
- 
- ## Pass the plugins you want installed as a list.
- ##
-@@ -511,7 +551,7 @@
- ##
- grafana.ini:
-   paths:
--    data: /var/lib/grafana/data
-+    data: /var/lib/grafana/
-     logs: /var/log/grafana
-     plugins: /var/lib/grafana/plugins
-     provisioning: /etc/grafana/provisioning
-@@ -581,7 +621,7 @@
+@@ -602,7 +621,7 @@
  ## Requires at least Grafana 5 to work and can't be used together with parameters dashboardProviders, datasources and dashboards
  sidecar:
    image:
@@ -140,34 +83,7 @@
      tag: 1.10.7
      sha: ""
    imagePullPolicy: IfNotPresent
-@@ -610,6 +650,8 @@
-     # Otherwise the namespace in which the sidecar is running will be used.
-     # It's also possible to specify ALL to search in all namespaces
-     searchNamespace: null
-+    # search in configmap, secret or both
-+    resource: both
-     # If specified, the sidecar will look for annotation with this name to create folder and put graph here.
-     # You can use this parameter together with `provider.foldersFromFilesStructure`to annotate configmaps and create folder structure.
-     folderAnnotation: null
-@@ -639,6 +681,8 @@
-     # Otherwise the namespace in which the sidecar is running will be used.
-     # It's also possible to specify ALL to search in all namespaces
-     searchNamespace: null
-+    # search in configmap, secret or both
-+    resource: both
-   notifiers:
-     enabled: false
-     # label that the configmaps with notifiers are marked with
-@@ -647,6 +691,8 @@
-     # Otherwise the namespace in which the sidecar is running will be used.
-     # It's also possible to specify ALL to search in all namespaces
-     searchNamespace: null
-+    # search in configmap, secret or both
-+    resource: both
- 
- ## Override the deployment namespace
- ##
-@@ -663,9 +709,9 @@
+@@ -690,9 +709,9 @@
    replicas: 1
    image:
      # image-renderer Image repository
@@ -179,12 +95,3 @@
      # image-renderer Image sha (optional)
      sha: ""
      # image-renderer ImagePullPolicy
-@@ -684,6 +730,8 @@
-   # image-renderer deployment priority class
-   priorityClassName: ''
-   service:
-+    # Enable the image-renderer service
-+    enabled: true
-     # image-renderer service port name
-     portName: 'http'
-     # image-renderer service port used by both service and deployment
