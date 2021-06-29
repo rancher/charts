@@ -19,7 +19,7 @@ use fullnameOverride, otherwise use deployment.instance_name.
 Create chart name and version as used by the chart label.
 */}}
 {{- define "kiali-server.chart" -}}
-{{- printf "%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
