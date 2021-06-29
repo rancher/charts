@@ -1,6 +1,6 @@
 --- charts-original/templates/_helpers.tpl
 +++ charts/templates/_helpers.tpl
-@@ -1,3 +1,110 @@
+@@ -1,3 +1,130 @@
 +# Rancher
 +{{- define "system_default_registry" -}}
 +{{- if .Values.global.cattle.systemDefaultRegistry -}}
@@ -49,6 +49,18 @@
 +{{- end -}}
 +{{- end }}
 +
++{{- define "exporter.kubelet.enabled" -}}
++{{- if or .Values.kubelet.enabled .Values.hardenedKubelet.enabled .Values.k3sServer.enabled -}}
++"true"
++{{- end -}}
++{{- end }}
++
++{{- define "exporter.kubeletService.enabled" -}}
++{{- if or .Values.hardenedKubelet.enabled .Values.prometheusOperator.kubeletService.enabled .Values.k3sServer.enabled -}}
++"true"
++{{- end -}}
++{{- end }}
++
 +{{- define "exporter.kubeControllerManager.jobName" -}}
 +{{- if .Values.k3sServer.enabled -}}
 +k3s-server
@@ -70,6 +82,14 @@
 +k3s-server
 +{{- else -}}
 +kube-proxy
++{{- end -}}
++{{- end }}
++
++{{- define "exporter.kubelet.jobName" -}}
++{{- if .Values.k3sServer.enabled -}}
++k3s-server
++{{- else -}}
++kubelet
 +{{- end -}}
 +{{- end }}
 +
@@ -111,3 +131,12 @@
  {{/* vim: set filetype=mustache: */}}
  {{/* Expand the name of the chart. This is suffixed with -alertmanager, which means subtract 13 from longest 63 available */}}
  {{- define "kube-prometheus-stack.name" -}}
+@@ -48,7 +175,7 @@
+ {{- define "kube-prometheus-stack.labels" }}
+ app.kubernetes.io/managed-by: {{ .Release.Service }}
+ app.kubernetes.io/instance: {{ .Release.Name }}
+-app.kubernetes.io/version: "{{ .Chart.Version }}"
++app.kubernetes.io/version: "{{ replace "+" "_" .Chart.Version }}"
+ app.kubernetes.io/part-of: {{ template "kube-prometheus-stack.name" . }}
+ chart: {{ template "kube-prometheus-stack.chartref" . }}
+ release: {{ $.Release.Name | quote }}

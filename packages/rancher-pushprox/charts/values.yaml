@@ -16,6 +16,8 @@ global:
   cattle:
     systemDefaultRegistry: ""
 
+namespaceOverride: ""
+
 # The component that is being monitored (i.e. etcd)
 component: "component"
 
@@ -23,8 +25,13 @@ component: "component"
 metricsPort: 2739
 
 # Configure ServiceMonitor that monitors metrics from the metricsPort endpoint
-serviceMonitor: 
+serviceMonitor:
   enabled: true
+  # A list of endpoints that will be added to the ServiceMonitor based on the Endpoint spec
+  # Source: https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/api.md#endpoint
+  # By default, proxyUrl and params._scheme will be overridden based on other values
+  endpoints:
+  - port: metrics
 
 clients:
   enabled: true
@@ -52,21 +59,39 @@ clients:
     keyFile: ""
     caCertFile: ""
 
+  rbac:
+    # Additional permissions to provide to the ServiceAccount bound to the client
+    # This can be used to provide additional permissions for the client to scrape metrics from the k8s API
+    # Only enabled if clients.https.enabled and clients.https.useServiceAccountCredentials are true
+    additionalRules: []
+
   # Resource limits
   resources: {}
 
   # Options to select all nodes to deploy client DaemonSet on
   nodeSelector: {}
   tolerations: []
+  affinity: {}
 
   image:
     repository: rancher/pushprox-client
-    tag: v0.1.0-rancher1-client
+    tag: v0.1.0-rancher2-client
   command: ["pushprox-client"]
 
   copyCertsImage:
     repository: rancher/mirrored-library-busybox
     tag: 1.31.1
+
+  # The default intention of rancher-pushprox clients is to scrape hostNetwork metrics across all nodes.
+  # This can be used to scrape internal Kubernetes components or DaemonSets of hostNetwork Pods in
+  # situations where a cloud provider firewall prevents Pod-To-Host communication but not Pod-To-Pod.
+  # However, if the underlying hostNetwork Pod that is being scraped is managed by a Deployment,
+  # this advanced option enables users to deploy the client as a Deployment instead of a DaemonSet.
+  # If a user deploys this feature and the underlying Deployment's number of replicas changes, the user will
+  # be responsible for upgrading this chart accordingly to the right number of replicas.
+  deployment:
+    enabled: false
+    replicas: 0
 
 proxy:
   enabled: true
@@ -82,5 +107,5 @@ proxy:
 
   image:
     repository: rancher/pushprox-proxy
-    tag: v0.1.0-rancher1-proxy
+    tag: v0.1.0-rancher2-proxy
   command: ["pushprox-proxy"]

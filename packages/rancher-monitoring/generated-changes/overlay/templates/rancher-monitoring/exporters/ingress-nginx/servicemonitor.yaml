@@ -1,4 +1,7 @@
-{{- if .Values.ingressNginx.enabled }}
+{{- if and (not .Values.ingressNginx.enabled) (.Values.rkeIngressNginx.enabled) }}
+{{- fail "Cannot set .Values.rkeIngressNginx.enabled=true when .Values.ingressNginx.enabled=false" }}
+{{- end }}
+{{- if and .Values.ingressNginx.enabled (not .Values.rkeIngressNginx.enabled) }}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -20,6 +23,9 @@ spec:
   - port: http-metrics
     {{- if .Values.ingressNginx.serviceMonitor.interval}}
     interval: {{ .Values.ingressNginx.serviceMonitor.interval }}
+    {{- end }}
+    {{- if .Values.ingressNginx.serviceMonitor.proxyUrl }}
+    proxyUrl: {{ .Values.ingressNginx.serviceMonitor.proxyUrl}}
     {{- end }}
     bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
 {{- if .Values.ingressNginx.serviceMonitor.metricRelabelings }}

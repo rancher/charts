@@ -49,7 +49,7 @@ provider: kubernetes
 {{- if .Values.clients.proxyUrl -}}
 {{ printf "%s" .Values.clients.proxyUrl }}
 {{- else -}}
-{{ printf "http://%s.%s.svc:%d" (include "pushProxy.proxy.name" .) .Release.Namespace (int .Values.proxy.port) }}
+{{ printf "http://%s.%s.svc:%d" (include "pushProxy.proxy.name" .) (include "pushprox.namespace" .) (int .Values.proxy.port) }}
 {{- end -}}{{- end -}}
 
 # Client
@@ -84,4 +84,21 @@ k8s-app: {{ template "pushProxy.proxy.name" . }}
 app: {{ template "pushprox.serviceMonitor.name" . }}
 release: {{ .Release.Name | quote }}
 {{ template "pushProxy.commonLabels" . }}
+{{- end -}}
+
+{{- define "pushProxy.serviceMonitor.endpoints" -}}
+{{- $proxyURL := (include "pushProxy.proxyUrl" .) -}}
+{{- $useHTTPS := .Values.clients.https.enabled -}}
+{{- $endpoints := .Values.serviceMonitor.endpoints }}
+{{- range $endpoints }}
+{{- $_ := set . "proxyUrl" $proxyURL }}
+{{- if $useHTTPS -}}
+{{- if (hasKey . "params") }}
+{{- $_ := set (get . "params") "_scheme" (list "https") }}
+{{- else }}
+{{- $_ := set . "params" (dict "_scheme" (list "https")) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- toYaml $endpoints }}
 {{- end -}}
