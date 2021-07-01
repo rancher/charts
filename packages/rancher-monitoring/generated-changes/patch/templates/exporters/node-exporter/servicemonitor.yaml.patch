@@ -1,0 +1,11 @@
+--- charts-original/templates/exporters/node-exporter/servicemonitor.yaml
++++ charts/templates/exporters/node-exporter/servicemonitor.yaml
+@@ -1,4 +1,7 @@
+-{{- if .Values.nodeExporter.enabled }}
++{{- if (and (not .Values.nodeExporter.enabled) .Values.hardenedNodeExporter.enabled) }}
++{{ required "Cannot set .Values.hardenedNodeExporter.enabled=true when .Values.nodeExporter.enabled=false" "" }}
++{{- end }}
++{{- if (and .Values.nodeExporter.enabled (not .Values.hardenedNodeExporter.enabled)) }}
+ apiVersion: monitoring.coreos.com/v1
+ kind: ServiceMonitor
+ metadata:

@@ -4,8 +4,8 @@
  https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack/hack
  */ -}}
  {{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion .Values.kubeTargetVersionOverride }}
--{{- if and (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.grafana.enabled .Values.grafana.defaultDashboardsEnabled .Values.kubeControllerManager.enabled }}
-+{{- if and (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.grafana.enabled .Values.grafana.defaultDashboardsEnabled }}
+-{{- if and (or .Values.grafana.enabled .Values.grafana.forceDeployDashboards) (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.grafana.defaultDashboardsEnabled .Values.kubeControllerManager.enabled }}
++{{- if and (or .Values.grafana.enabled .Values.grafana.forceDeployDashboards) (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.grafana.defaultDashboardsEnabled }}
 +{{- if (include "exporter.kubeControllerManager.enabled" .)}}
  apiVersion: v1
  kind: ConfigMap
@@ -15,43 +15,47 @@
    name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" $) "controller-manager" | trunc 63 | trimSuffix "-" }}
    annotations:
  {{ toYaml .Values.grafana.sidecar.dashboards.annotations | indent 4 }}
-@@ -107,7 +108,7 @@
+@@ -107,7 +108,11 @@
                          "tableColumn": "",
                          "targets": [
                              {
--                                "expr": "sum(up{job=\"kube-controller-manager\"})",
-+                                "expr": "sum(up{job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\"})",
+-                                "expr": "sum(up{cluster=\"$cluster\", job=\"kube-controller-manager\"})",
++                                {{- if .Values.k3sServer.enabled  }}
++                                "expr": "sum(up{cluster=\"$cluster\", job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\", metrics_path=\"/metrics\"})",
++                                {{- else }}
++                                "expr": "sum(up{cluster=\"$cluster\", job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\"})",
++                                {{- end }}
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "",
-@@ -176,7 +177,7 @@
+@@ -176,7 +181,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
--                                "expr": "sum(rate(workqueue_adds_total{job=\"kube-controller-manager\", instance=~\"$instance\"}[5m])) by (instance, name)",
-+                                "expr": "sum(rate(workqueue_adds_total{job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\", instance=~\"$instance\"}[5m])) by (instance, name)",
+-                                "expr": "sum(rate(workqueue_adds_total{cluster=\"$cluster\", job=\"kube-controller-manager\", instance=~\"$instance\"}[5m])) by (instance, name)",
++                                "expr": "sum(rate(workqueue_adds_total{cluster=\"$cluster\", job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\", instance=~\"$instance\"}[5m])) by (instance, name)",
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}instance{{`}}`}} {{`{{`}}name{{`}}`}}",
-@@ -282,7 +283,7 @@
+@@ -282,7 +287,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
--                                "expr": "sum(rate(workqueue_depth{job=\"kube-controller-manager\", instance=~\"$instance\"}[5m])) by (instance, name)",
-+                                "expr": "sum(rate(workqueue_depth{job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\", instance=~\"$instance\"}[5m])) by (instance, name)",
+-                                "expr": "sum(rate(workqueue_depth{cluster=\"$cluster\", job=\"kube-controller-manager\", instance=~\"$instance\"}[5m])) by (instance, name)",
++                                "expr": "sum(rate(workqueue_depth{cluster=\"$cluster\", job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\", instance=~\"$instance\"}[5m])) by (instance, name)",
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}instance{{`}}`}} {{`{{`}}name{{`}}`}}",
-@@ -388,7 +389,7 @@
+@@ -388,7 +393,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
--                                "expr": "histogram_quantile(0.99, sum(rate(workqueue_queue_duration_seconds_bucket{job=\"kube-controller-manager\", instance=~\"$instance\"}[5m])) by (instance, name, le))",
-+                                "expr": "histogram_quantile(0.99, sum(rate(workqueue_queue_duration_seconds_bucket{job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\", instance=~\"$instance\"}[5m])) by (instance, name, le))",
+-                                "expr": "histogram_quantile(0.99, sum(rate(workqueue_queue_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-controller-manager\", instance=~\"$instance\"}[5m])) by (instance, name, le))",
++                                "expr": "histogram_quantile(0.99, sum(rate(workqueue_queue_duration_seconds_bucket{cluster=\"$cluster\", job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\", instance=~\"$instance\"}[5m])) by (instance, name, le))",
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}instance{{`}}`}} {{`{{`}}name{{`}}`}}",
-@@ -494,28 +495,28 @@
+@@ -494,28 +499,28 @@
                          "steppedLine": false,
                          "targets": [
                              {
@@ -84,61 +88,61 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "5xx",
-@@ -608,7 +609,7 @@
+@@ -608,7 +613,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
--                                "expr": "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{job=\"kube-controller-manager\", instance=~\"$instance\", verb=\"POST\"}[5m])) by (verb, url, le))",
-+                                "expr": "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\", instance=~\"$instance\", verb=\"POST\"}[5m])) by (verb, url, le))",
+-                                "expr": "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-controller-manager\", instance=~\"$instance\", verb=\"POST\"}[5m])) by (verb, url, le))",
++                                "expr": "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{cluster=\"$cluster\", job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\", instance=~\"$instance\", verb=\"POST\"}[5m])) by (verb, url, le))",
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}verb{{`}}`}} {{`{{`}}url{{`}}`}}",
-@@ -714,7 +715,7 @@
+@@ -714,7 +719,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
--                                "expr": "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{job=\"kube-controller-manager\", instance=~\"$instance\", verb=\"GET\"}[5m])) by (verb, url, le))",
-+                                "expr": "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\", instance=~\"$instance\", verb=\"GET\"}[5m])) by (verb, url, le))",
+-                                "expr": "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-controller-manager\", instance=~\"$instance\", verb=\"GET\"}[5m])) by (verb, url, le))",
++                                "expr": "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{cluster=\"$cluster\", job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\", instance=~\"$instance\", verb=\"GET\"}[5m])) by (verb, url, le))",
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}verb{{`}}`}} {{`{{`}}url{{`}}`}}",
-@@ -820,7 +821,7 @@
+@@ -820,7 +825,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
--                                "expr": "process_resident_memory_bytes{job=\"kube-controller-manager\",instance=~\"$instance\"}",
-+                                "expr": "process_resident_memory_bytes{job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\",instance=~\"$instance\"}",
+-                                "expr": "process_resident_memory_bytes{cluster=\"$cluster\", job=\"kube-controller-manager\",instance=~\"$instance\"}",
++                                "expr": "process_resident_memory_bytes{cluster=\"$cluster\", job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\",instance=~\"$instance\"}",
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}instance{{`}}`}}",
-@@ -913,7 +914,7 @@
+@@ -913,7 +918,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
--                                "expr": "rate(process_cpu_seconds_total{job=\"kube-controller-manager\",instance=~\"$instance\"}[5m])",
-+                                "expr": "rate(process_cpu_seconds_total{job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\",instance=~\"$instance\"}[5m])",
+-                                "expr": "rate(process_cpu_seconds_total{cluster=\"$cluster\", job=\"kube-controller-manager\",instance=~\"$instance\"}[5m])",
++                                "expr": "rate(process_cpu_seconds_total{cluster=\"$cluster\", job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\",instance=~\"$instance\"}[5m])",
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}instance{{`}}`}}",
-@@ -1006,7 +1007,7 @@
+@@ -1006,7 +1011,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
--                                "expr": "go_goroutines{job=\"kube-controller-manager\",instance=~\"$instance\"}",
-+                                "expr": "go_goroutines{job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\",instance=~\"$instance\"}",
+-                                "expr": "go_goroutines{cluster=\"$cluster\", job=\"kube-controller-manager\",instance=~\"$instance\"}",
++                                "expr": "go_goroutines{cluster=\"$cluster\", job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\",instance=~\"$instance\"}",
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}instance{{`}}`}}",
-@@ -1100,7 +1101,7 @@
+@@ -1126,7 +1131,7 @@
                      "options": [
  
                      ],
--                    "query": "label_values(process_cpu_seconds_total{job=\"kube-controller-manager\"}, instance)",
-+                    "query": "label_values(process_cpu_seconds_total{job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\"}, instance)",
+-                    "query": "label_values(process_cpu_seconds_total{cluster=\"$cluster\", job=\"kube-controller-manager\"}, instance)",
++                    "query": "label_values(process_cpu_seconds_total{cluster=\"$cluster\", job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\"}, instance)",
                      "refresh": 2,
                      "regex": "",
                      "sort": 1,
-@@ -1148,4 +1149,5 @@
+@@ -1174,4 +1179,5 @@
          "uid": "72e0e05bef5099e5f049b05fdc429ed4",
          "version": 0
      }
