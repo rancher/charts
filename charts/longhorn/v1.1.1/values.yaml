@@ -1,0 +1,220 @@
+# Default values for longhorn.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+global:
+  cattle:
+    systemDefaultRegistry: ""
+
+image:
+  longhorn:
+    engine:
+      repository: longhornio/longhorn-engine
+      tag: v1.1.1
+    manager:
+      repository: longhornio/longhorn-manager
+      tag: v1.1.1
+    ui:
+      repository: longhornio/longhorn-ui
+      tag: v1.1.1
+    instanceManager:
+      repository: longhornio/longhorn-instance-manager
+      tag: v1_20201216
+    shareManager:
+      repository: longhornio/longhorn-share-manager
+      tag: v1_20210416
+    backingImageManager:
+      repository: longhornio/backing-image-manager
+      tag: v1_20210422
+  csi:
+    attacher:
+      repository: longhornio/csi-attacher
+      tag: v2.2.1-lh1
+    provisioner:
+      repository: longhornio/csi-provisioner
+      tag: v1.6.0-lh1
+    nodeDriverRegistrar:
+      repository: longhornio/csi-node-driver-registrar
+      tag: v1.2.0-lh1
+    resizer:
+      repository: longhornio/csi-resizer
+      tag: v0.5.1-lh1
+    snapshotter:
+      repository: longhornio/csi-snapshotter
+      tag: v2.1.1-lh1
+  pullPolicy: IfNotPresent
+
+service:
+  ui:
+    type: ClusterIP
+    nodePort: null
+  manager:
+    type: ClusterIP
+    nodePort: ""
+
+persistence:
+  defaultClass: true
+  defaultClassReplicaCount: 3
+  reclaimPolicy: Delete
+  recurringJobs:
+    enable: false
+    jobList: []
+
+csi:
+  kubeletRootDir: ~
+  attacherReplicaCount: ~
+  provisionerReplicaCount: ~
+  resizerReplicaCount: ~
+  snapshotterReplicaCount: ~
+
+defaultSettings:
+  backupTarget: ~
+  backupTargetCredentialSecret: ~
+  allowRecurringJobWhileVolumeDetached: ~
+  createDefaultDiskLabeledNodes: ~
+  defaultDataPath: ~
+  defaultDataLocality: ~
+  replicaSoftAntiAffinity: ~
+  storageOverProvisioningPercentage: ~
+  storageMinimalAvailablePercentage: ~
+  upgradeChecker: ~
+  defaultReplicaCount: ~
+  guaranteedEngineCPU: ~
+  defaultLonghornStaticStorageClass: ~
+  backupstorePollInterval: ~
+  taintToleration: ~
+  systemManagedComponentsNodeSelector: ~
+  priorityClass: ~
+  autoSalvage: ~
+  autoDeletePodWhenVolumeDetachedUnexpectedly: ~
+  disableSchedulingOnCordonedNode: ~
+  replicaZoneSoftAntiAffinity: ~
+  volumeAttachmentRecoveryPolicy: ~
+  nodeDownPodDeletionPolicy: ~
+  allowNodeDrainWithLastHealthyReplica: ~
+  mkfsExt4Parameters: ~
+  disableReplicaRebuild: ~
+  replicaReplenishmentWaitInterval: ~
+  disableRevisionCounter: ~
+  systemManagedPodsImagePullPolicy: ~
+  allowVolumeCreationWithDegradedAvailability: ~
+  autoCleanupSystemGeneratedSnapshot: ~
+  concurrentAutomaticEngineUpgradePerNodeLimit: ~
+  backingImageCleanupWaitInterval: ~
+  guaranteedEngineManagerCPU: ~
+  guaranteedReplicaManagerCPU: ~
+privateRegistry:
+  registryUrl: ~
+  registryUser: ~
+  registryPasswd: ~
+  registrySecret: ~
+
+longhornManager:
+  priorityClass: ~
+  tolerations: []
+  ## If you want to set tolerations for Longhorn Manager DaemonSet, delete the `[]` in the line above
+  ## and uncomment this example block
+  # - key: "key"
+  #   operator: "Equal"
+  #   value: "value"
+  #   effect: "NoSchedule"
+  nodeSelector: {}
+  ## If you want to set node selector for Longhorn Manager DaemonSet, delete the `{}` in the line above
+  ## and uncomment this example block
+  #  label-key1: "label-value1"
+  #  label-key2: "label-value2"
+
+longhornDriver:
+  priorityClass: ~
+  tolerations: []
+  ## If you want to set tolerations for Longhorn Driver Deployer Deployment, delete the `[]` in the line above
+  ## and uncomment this example block
+  # - key: "key"
+  #   operator: "Equal"
+  #   value: "value"
+  #   effect: "NoSchedule"
+  nodeSelector: {}
+  ## If you want to set node selector for Longhorn Driver Deployer Deployment, delete the `{}` in the line above
+  ## and uncomment this example block
+  #  label-key1: "label-value1"
+  #  label-key2: "label-value2"
+
+longhornUI:
+  priorityClass: ~
+  tolerations: []
+  ## If you want to set tolerations for Longhorn UI Deployment, delete the `[]` in the line above
+  ## and uncomment this example block
+  # - key: "key"
+  #   operator: "Equal"
+  #   value: "value"
+  #   effect: "NoSchedule"
+  nodeSelector: {}
+  ## If you want to set node selector for Longhorn UI Deployment, delete the `{}` in the line above
+  ## and uncomment this example block
+  #  label-key1: "label-value1"
+  #  label-key2: "label-value2"
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #  cpu: 100m
+  #  memory: 128Mi
+  # requests:
+  #  cpu: 100m
+  #  memory: 128Mi
+  #
+
+ingress:
+  ## Set to true to enable ingress record generation
+  enabled: false
+
+  ## Add ingressClassName to the Ingress
+  ## Can replace the kubernetes.io/ingress.class annotation on v1.18+
+  ingressClassName: ~
+
+  host: xip.io
+
+  ## Set this to true in order to enable TLS on the ingress record
+  ## A side effect of this will be that the backend service will be connected at port 443
+  tls: false
+
+  ## If TLS is set to true, you must declare what secret will store the key/certificate for TLS
+  tlsSecret: longhorn.local-tls
+
+  ## Ingress annotations done as key:value pairs
+  ## If you're using kube-lego, you will want to add:
+  ## kubernetes.io/tls-acme: true
+  ##
+  ## For a full list of possible ingress annotations, please see
+  ## ref: https://github.com/kubernetes/ingress-nginx/blob/master/docs/annotations.md
+  ##
+  ## If tls is set to true, annotation ingress.kubernetes.io/secure-backends: "true" will automatically be set
+  annotations:
+  #  kubernetes.io/ingress.class: nginx
+  #  kubernetes.io/tls-acme: true
+
+  secrets:
+  ## If you're providing your own certificates, please use this to add the certificates as secrets
+  ## key and certificate should start with -----BEGIN CERTIFICATE----- or
+  ## -----BEGIN RSA PRIVATE KEY-----
+  ##
+  ## name should line up with a tlsSecret set further up
+  ## If you're using kube-lego, this is unneeded, as it will create the secret for you if it is not set
+  ##
+  ## It is also possible to create and manage the certificates outside of this helm chart
+  ## Please see README.md for more information
+  # - name: longhorn.local-tls
+  #   key:
+  #   certificate:
+
+# Configure a pod security policy in the Longhorn namespace to allow privileged pods
+enablePSP: true
+
+## Specify override namespace, specifically this is useful for using longhorn as sub-chart
+## and its release namespace is not the `longhorn-system`
+namespaceOverride: ""
+
+# Annotations to add to the Longhorn Manager DaemonSet Pods. Optional.
+annotations: {}
