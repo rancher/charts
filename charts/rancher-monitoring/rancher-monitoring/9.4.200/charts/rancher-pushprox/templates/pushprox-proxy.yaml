@@ -1,0 +1,49 @@
+{{- if and .Values.proxy }}{{ if .Values.proxy.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "pushProxy.proxy.name" . }}
+  namespace: {{ template "pushprox.namespace" . }}
+  labels: {{ include "pushProxy.proxy.labels" . | nindent 4 }}
+    pushprox-exporter: "proxy"
+spec:
+  selector:
+    matchLabels: {{ include "pushProxy.proxy.labels" . | nindent 6 }}
+  template:
+    metadata:
+      labels: {{ include "pushProxy.proxy.labels" . | nindent 8 }}
+    spec: 
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+{{- if .Values.proxy.nodeSelector }}
+      nodeSelector: {{ toYaml .Values.proxy.nodeSelector | nindent 8 }}
+{{- end }}
+{{- if .Values.proxy.tolerations }}
+      tolerations: {{ toYaml .Values.proxy.tolerations | nindent 6 }}
+{{- end }}
+      containers:
+      - name: pushprox-proxy
+        image: {{ template "system_default_registry" . }}{{ .Values.proxy.image.repository }}:{{ .Values.proxy.image.tag }}
+        command:
+        {{- range .Values.proxy.command }}
+          - {{ . | quote }}
+        {{- end }}
+        {{- if .Values.proxy.resources }}
+        resources: {{ toYaml .Values.proxy.resources | nindent 10 }}
+        {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "pushProxy.proxy.name" . }}
+  namespace: {{ template "pushprox.namespace" . }}
+  labels: {{ include "pushProxy.proxy.labels" . | nindent 4 }}
+spec:
+  ports:
+  - name: pp-proxy
+    port: {{ required "Need .Values.proxy.port to configure proxy" .Values.proxy.port }}
+    protocol: TCP
+    targetPort: {{ .Values.proxy.port }}
+  selector: {{ include "pushProxy.proxy.labels" . | nindent 4 }}
+{{- end }}{{- end }}
