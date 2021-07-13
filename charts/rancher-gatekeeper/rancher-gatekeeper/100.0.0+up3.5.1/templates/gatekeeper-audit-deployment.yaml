@@ -24,9 +24,10 @@ spec:
       release: '{{ .Release.Name }}'
   template:
     metadata:
-      annotations: 
-{{- toYaml .Values.podAnnotations | trim | nindent 8 }}
+      annotations:
+        {{- toYaml .Values.podAnnotations | trim | nindent 8 }}
       labels:
+{{- include "gatekeeper.podLabels" . }}
         app: '{{ template "gatekeeper.name" . }}'
         chart: '{{ template "gatekeeper.name" . }}'
         control-plane: audit-controller
@@ -35,6 +36,8 @@ spec:
         heritage: '{{ .Release.Service }}'
         release: '{{ .Release.Name }}'
     spec:
+      affinity:
+        {{- toYaml .Values.audit.affinity | nindent 8 }}
       automountServiceAccountToken: true
       containers:
       - args:
@@ -43,6 +46,7 @@ spec:
         - --constraint-violations-limit={{ .Values.constraintViolationsLimit }}
         - --audit-from-cache={{ .Values.auditFromCache }}
         - --audit-chunk-size={{ .Values.auditChunkSize }}
+        - --audit-match-kind-only={{ .Values.auditMatchKindOnly }}
         - --emit-audit-events={{ .Values.emitAuditEvents }}
         - --operation=audit
         - --operation=status
@@ -77,8 +81,8 @@ spec:
           httpGet:
             path: /readyz
             port: 9090
-        resources: 
-{{ toYaml .Values.audit.resources | indent 10 }}
+        resources:
+          {{- toYaml .Values.audit.resources | nindent 10 }}
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -88,16 +92,13 @@ spec:
           runAsGroup: 999
           runAsNonRoot: true
           runAsUser: 1000
-      nodeSelector: 
-{{ toYaml .Values.audit.nodeSelector | indent 8 }}
-      affinity:
-{{ toYaml .Values.audit.affinity | indent 8 }}
-      tolerations:
-{{ toYaml .Values.audit.tolerations | indent 8 }}
+      hostNetwork: {{ .Values.audit.hostNetwork }}
       imagePullSecrets:
-{{ toYaml .Values.image.pullSecrets | indent 8 }}
-{{- if .Values.audit.priorityClassName }}
+        {{- toYaml .Values.image.pullSecrets | nindent 8 }}
+      nodeSelector:
+        {{- toYaml .Values.audit.nodeSelector | nindent 8 }}
       priorityClassName: {{ .Values.audit.priorityClassName }}
-{{- end }}
       serviceAccountName: gatekeeper-admin
       terminationGracePeriodSeconds: 60
+      tolerations:
+        {{- toYaml .Values.audit.tolerations | nindent 8 }}

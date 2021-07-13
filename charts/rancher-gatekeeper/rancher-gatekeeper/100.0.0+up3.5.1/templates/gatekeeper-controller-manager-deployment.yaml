@@ -24,9 +24,10 @@ spec:
       release: '{{ .Release.Name }}'
   template:
     metadata:
-      annotations: 
-{{- toYaml .Values.podAnnotations | trim | nindent 8 }}
+      annotations:
+        {{- toYaml .Values.podAnnotations | trim | nindent 8 }}
       labels:
+{{- include "gatekeeper.podLabels" . }}
         app: '{{ template "gatekeeper.name" . }}'
         chart: '{{ template "gatekeeper.name" . }}'
         control-plane: controller-manager
@@ -36,26 +37,22 @@ spec:
         release: '{{ .Release.Name }}'
     spec:
       affinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - podAffinityTerm:
-              labelSelector:
-                matchExpressions:
-                - key: gatekeeper.sh/operation
-                  operator: In
-                  values:
-                  - webhook
-              topologyKey: kubernetes.io/hostname
-            weight: 100
+        {{- toYaml .Values.controllerManager.affinity | nindent 8 }}
       automountServiceAccountToken: true
       containers:
       - args:
         - --port=8443
         - --logtostderr
+        - --log-denies={{ .Values.logDenies }}
         - --emit-admission-events={{ .Values.emitAdmissionEvents }}
         - --log-level={{ .Values.logLevel }}
-        - --exempt-namespace=gatekeeper-system
+        - --exempt-namespace={{ .Release.Namespace }}
         - --operation=webhook
+        - --enable-mutation={{ .Values.experimentalEnableMutation}}
+        
+        {{- range .Values.disabledBuiltins}}
+        - --disable-opa-builtin={{ . }}
+        {{- end }}
         command:
         - /manager
         env:
@@ -89,8 +86,8 @@ spec:
           httpGet:
             path: /readyz
             port: 9090
-        resources: 
-{{ toYaml .Values.controllerManager.resources | indent 10 }}
+        resources:
+          {{- toYaml .Values.controllerManager.resources | nindent 10 }}
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -104,19 +101,16 @@ spec:
         - mountPath: /certs
           name: cert
           readOnly: true
-      nodeSelector: 
-{{ toYaml .Values.controllerManager.nodeSelector | indent 8 }}
-      affinity:
-{{ toYaml .Values.controllerManager.affinity | indent 8 }}
-      tolerations:
-{{ toYaml .Values.controllerManager.tolerations | indent 8 }}
+      hostNetwork: {{ .Values.controllerManager.hostNetwork }}
       imagePullSecrets:
-{{ toYaml .Values.image.pullSecrets | indent 8 }}
-{{- if .Values.controllerManager.priorityClassName }}
+        {{- toYaml .Values.image.pullSecrets | nindent 8 }}
+      nodeSelector:
+        {{- toYaml .Values.controllerManager.nodeSelector | nindent 8 }}
       priorityClassName: {{ .Values.controllerManager.priorityClassName }}
-{{- end }}
       serviceAccountName: gatekeeper-admin
       terminationGracePeriodSeconds: 60
+      tolerations:
+        {{- toYaml .Values.controllerManager.tolerations | nindent 8 }}
       volumes:
       - name: cert
         secret:

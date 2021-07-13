@@ -1,23 +1,37 @@
 replicas: 3
 auditInterval: 300
+auditMatchKindOnly: false
 constraintViolationsLimit: 20
 auditFromCache: false
 disableValidatingWebhook: false
 validatingWebhookTimeoutSeconds: 3
 enableDeleteOperations: false
+experimentalEnableMutation: false
 auditChunkSize: 0
 logLevel: INFO
+logDenies: false
 emitAdmissionEvents: false
 emitAuditEvents: false
+postInstall:
+  labelNamespace:
+    enabled: true
+    image:
+      repository: rancher/kubectl
+      tag: v1.20.2
+      pullPolicy: IfNotPresent
+      pullSecrets: []
 image:
   repository: rancher/mirrored-openpolicyagent-gatekeeper
-  tag: v3.3.0
+  tag: v3.5.1
   pullPolicy: IfNotPresent
   pullSecrets: []
 podAnnotations:
   { container.seccomp.security.alpha.kubernetes.io/manager: runtime/default }
+podLabels: {}
+podCountLimit: 100
 secretAnnotations: {}
 controllerManager:
+  hostNetwork: false
   priorityClassName: system-cluster-critical
   affinity:
     podAntiAffinity:
@@ -41,6 +55,7 @@ controllerManager:
       cpu: 100m
       memory: 256Mi
 audit:
+  hostNetwork: false
   priorityClassName: system-cluster-critical
   affinity: {}
   tolerations: []
@@ -52,9 +67,14 @@ audit:
     requests:
       cpu: 100m
       memory: 256Mi
+pdb:
+  controllerManager:
+    minAvailable: 1
 global:
   cattle:
     systemDefaultRegistry: ""
   kubectl:
     repository: rancher/kubectl
     tag: v1.20.2
+service: {}
+disabledBuiltins:
