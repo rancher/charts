@@ -50,8 +50,15 @@ app.kubernetes.io/part-of: "kiali"
 Selector labels
 */}}
 {{- define "kiali-server.selectorLabels" -}}
+{{- $releaseName := .Release.Name -}}
+{{- $fullName := include "kiali-server.fullname" . -}}
+{{- $deployment := (lookup "apps/v1" "Deployment" .Release.Namespace $fullName) -}}
 app.kubernetes.io/name: kiali
-app.kubernetes.io/instance: {{ include "kiali-server.fullname" . }}
+{{- if (and .Release.IsUpgrade $deployment)}}
+app.kubernetes.io/instance: {{ (get (($deployment).metadata.labels) "app.kubernetes.io/instance") | default $fullName }}
+{{- else }}
+app.kubernetes.io/instance: {{ $fullName }}
+{{- end }}
 {{- end }}
 
 {{/*
