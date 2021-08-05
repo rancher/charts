@@ -1,0 +1,75 @@
+vCenter:
+  host: ""
+  port: 443
+  insecureFlag: "1"
+  clusterId: ""
+  datacenters: ""
+  username: ""
+  password: ""
+  configSecret:
+    name: "vsphere-config-secret"
+    generate: true
+    configTemplate: |
+      [Global]
+      cluster-id = {{ required ".Values.vCenter.clusterId must be provided" (default .Values.vCenter.clusterId .Values.global.cattle.clusterId) | quote }}
+      user = {{ .Values.vCenter.username | quote }}
+      password = {{ .Values.vCenter.password | quote }}
+      port = {{ .Values.vCenter.port | quote }}
+      insecure-flag = {{ .Values.vCenter.insecureFlag | quote }}
+
+      [VirtualCenter {{ .Values.vCenter.host | quote }}]
+      datacenters = {{ .Values.vCenter.datacenters | quote }}
+
+csiController:
+  csiResizer:
+    enabled: false
+  image:
+    repository: rancher/mirrored-cloud-provider-vsphere-csi-release-driver
+    tag: v2.2.1
+    csiAttacher:
+      repository: rancher/mirrored-k8scsi-csi-attacher
+      tag: v3.1.0
+    csiResizer:
+      repository: rancher/mirrored-k8scsi-csi-resizer
+      tag: v1.1.0
+    livenessProbe:
+      repository: rancher/mirrored-k8scsi-livenessprobe
+      tag: v2.2.0
+    vsphereSyncer:
+      repository: rancher/mirrored-cloud-provider-vsphere-csi-release-syncer
+      tag: v2.2.1
+    csiProvisioner:
+      repository: rancher/mirrored-k8scsi-csi-provisioner
+      tag: v2.1.0
+  nodeSelector: {}
+
+# Internal features
+csiMigration:
+  enabled: false
+csiAuthCheck:
+  enabled: false
+onlineVolumeExtend:
+  enabled: false
+
+csiNode:
+  prefixPath: ""
+  image:
+    repository: rancher/mirrored-cloud-provider-vsphere-csi-release-driver
+    tag: v2.2.1
+    nodeDriverRegistrar:
+      repository: rancher/mirrored-k8scsi-csi-node-driver-registrar
+      tag: v2.1.0
+    livenessProbe:
+      repository: rancher/mirrored-k8scsi-livenessprobe
+      tag: v2.2.0
+
+storageClass:
+  enabled: true
+  name: "vsphere-csi-sc"
+  isDefault: true
+  storagePolicyName: ""
+  datastoreURL: ""
+
+global:
+  cattle:
+    systemDefaultRegistry: ""

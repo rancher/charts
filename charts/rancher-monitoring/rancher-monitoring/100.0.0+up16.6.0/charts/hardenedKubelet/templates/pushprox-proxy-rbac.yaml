@@ -1,0 +1,63 @@
+{{- if and .Values.proxy }}{{ if .Values.proxy.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "pushProxy.proxy.name" . }}
+  labels: {{ include "pushProxy.proxy.labels" . | nindent 4 }}
+rules:
+- apiGroups: ['policy']
+  resources: ['podsecuritypolicies']
+  verbs:     ['use']
+  resourceNames:
+  - {{ template "pushProxy.proxy.name" . }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ template "pushProxy.proxy.name" . }}
+  labels: {{ include "pushProxy.proxy.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ template "pushProxy.proxy.name" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ template "pushProxy.proxy.name" . }}
+    namespace: {{ include "pushprox.namespace" . }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ template "pushProxy.proxy.name" . }}
+  namespace: {{ include "pushprox.namespace" . }}
+  labels: {{ include "pushProxy.proxy.labels" . | nindent 4 }}
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: {{ template "pushProxy.proxy.name" . }}
+  namespace: {{ include "pushprox.namespace" . }}
+  labels: {{ include "pushProxy.proxy.labels" . | nindent 4 }}
+spec:
+  privileged: false
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+  seLinux:
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1
+        max: 65535
+  fsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1
+        max: 65535
+  readOnlyRootFilesystem: false
+  volumes:
+    - 'secret'
+{{- end }}{{- end }}
