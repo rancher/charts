@@ -30,7 +30,6 @@ The following tables list the configurable parameters of the rancher-pushprox ch
 | ----- | ----------- | ------ |
 | `serviceMonitor.enabled` | Deploys a [Prometheus Operator](https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#servicemonitor) ServiceMonitor CR that is configured to scrape metrics on the hosts that the clients are deployed on via the proxy. Also deploys a Service that points to all pods with the expected client name that exposes the `metricsPort` selected | `true` |
 | `clients.enabled` | Deploys a DaemonSet of clients that are each capable of scraping endpoints on the hostNetwork it is deployed on | `true` |
-| `clients.port` |  The port where the client will publish PushProx client-specific metrics. If deploying multiple clients onto the same node, the clients should not have conflicting ports | `9369` |
 | `clients.proxyUrl` | Overrides the default proxyUrl setting of `http://pushprox-{{ .Values.component }}-proxy.{{ . Release.Namespace }}.svc.cluster.local:{{ .Values.proxy.port }}"` with the `proxyUrl` specified | `""` |
 | `clients.useLocalhost` | Sets a flag on each client deployment to redirect scrapes directed to `HOST_IP` to `127.0.0.1` | `false` |
 | `clients.https.enabled` | Enables scraping metrics via HTTPS using the provided TLS certs that exist on each host | `false` |
@@ -43,6 +42,8 @@ The following tables list the configurable parameters of the rancher-pushprox ch
 | `clients.resources` | Set resource limits and requests for the client container | `{}` |
 | `clients.nodeSelector` | Select which nodes to deploy the clients on | `{}` |
 | `clients.tolerations` | Specify tolerations for clients | `[]` |
+| `clients.metrics` |  Enable PushProx client-specific metrics, listens on the host network namespace | `false` |
+| `clients.metrics.port` |  The port where the client will publish PushProx client-specific metrics. If deploying multiple clients onto the same node, the clients should not have conflicting ports | `9369` |
 | `proxy.enabled` | Deploys the proxy that each client will register with | `true` |
 | `proxy.port` | The port exposed by the proxy that each client will register with to allow metrics to be scraped from the host | `8080` |
 | `proxy.resources` | Set resource limits and requests for the proxy container | `{}` |
