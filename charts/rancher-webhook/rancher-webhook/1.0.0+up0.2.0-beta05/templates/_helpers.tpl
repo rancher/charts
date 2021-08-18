@@ -5,3 +5,7 @@
 {{- "" -}}
 {{- end -}}
 {{- end -}}
+
+{{- define "rancher-webhook.labels" -}}
+app: rancher-webhook
+{{- end }}
