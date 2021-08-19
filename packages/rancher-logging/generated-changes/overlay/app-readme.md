@@ -20,3 +20,8 @@ To collect logs from an entire cluster, users create cluster flows and cluster o
 - [Output](https://banzaicloud.com/docs/one-eye/logging-operator/crds/v1beta1/output_types/) - An output is a CRD (`Output`) that defines how to connect to logging providers so logs can be sent to the provider.
 
 For more information on how to configure the Helm chart, refer to the Helm README.
+
+## Systemd Configuration
+Some kubernetes distributions log to journald.  In order to collect these logs the `systemdLogPath` needs to be defined.  While the `/run/log/journal` directory is used by default, some Linux distributions do not default to this path. For example Ubuntu defaults to `/var/log/journal`.  To determine your `systemdLogPath` run `cat /etc/systemd/journald.conf | grep -E ^\#?Storage | cut -d"=" -f2` on one of your nodes.  If `persistent` is returned your `systemdLogPath` should be `/var/log/journal`.  If `volatile` is returned  `systemdLogPath` should be `/run/log/journal`.  If `auto` is returned check if `/var/log/journal` exists, and if it does then use `/var/log/journal`, otherwise use `/run/log/journal`.
+
+If any value not described here is returned, Rancher Logging will not be able to collect control plane logs. To address this issue set `Storage=volatile` in  journald.conf, reboot your machine, and set `systemdLogPath` to `/run/log/journal`.
