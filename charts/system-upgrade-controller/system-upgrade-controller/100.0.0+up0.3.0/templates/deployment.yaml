@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: system-upgrade-controller
+  namespace: cattle-system
 spec:
   selector:
     matchLabels:
@@ -13,11 +14,24 @@ spec:
     spec:
       affinity:
         nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - {key: "node-role.kubernetes.io/master", operator: In, values: ["true"]}
-      serviceAccountName: system-upgrade-controller
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - preference:
+              matchExpressions:
+                - key: node-role.kubernetes.io/control-plane
+                  operator: In
+                  values:
+                    - "true"
+            weight: 100
+          - preference:
+              matchExpressions:
+                - key: node-role.kubernetes.io/master
+                  operator: In
+                  values:
+                    - "true"
+            weight: 100
+      tolerations:
+        operator: "Exists"
+      serviceAccountName: system-upgrade
       containers:
         - name: system-upgrade-controller
           image: {{ template "system_default_registry" . }}{{ .Values.systemUpgradeController.image.repository }}:{{ .Values.systemUpgradeController.image.tag }}
