@@ -138,11 +138,10 @@ A shared list of custom parsers for the vairous fluentbit pods rancher creates
     Format            regex
     Regex             ^time="(?<timestamp>.+)" level=(?<level>.+) msg="(?<msg>.+)"$
     Time_Key          timestamp
-    Time_Format       %FT%TZ
-
+    Time_Format       %FT%H:%M:%S
 [PARSER]
     Name              etcd
     Format            json
-    Time_Key          ts
-    Time_Format       %FT%TZ
+    Time_Key          timestamp
+    Time_Format       %FT%H:%M:%S.%L
 {{- end -}}
