@@ -1,0 +1,52 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  labels:
+  {{- include "harvester-cloud-provider.labels" . | nindent 4 }}
+  name: {{ include "harvester-cloud-provider.name" . }}
+spec:
+  replicas: {{ .Values.replicasCount}}
+  selector:
+    matchLabels:
+  {{- include "harvester-cloud-provider.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+    {{- include "harvester-cloud-provider.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "harvester-cloud-provider.name" . }}
+      containers:
+        - name: {{ include "harvester-cloud-provider.name" . }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --cloud-config=/etc/kubernetes/cloud-config
+            {{- if ne .Values.clusterName "" }}
+            - --cluster-name={{ .Values.clusterName }}
+          {{- end }}
+          command:
+            - harvester-cloud-provider
+          resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: /etc/kubernetes/cloud-config
+              name: cloud-config
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: cloud-config
+          hostPath:
+            path: {{ required "A valid cloudConfigPath required!" .Values.cloudConfigPath }}
+            type: File
