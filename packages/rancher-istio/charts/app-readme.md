@@ -4,6 +4,11 @@ Our [Istio](https://istio.io/) installer wraps the istioctl binary commands in a
 * **[Kiali](https://kiali.io/)**: Used for graphing traffic flow throughout the mesh
 * **[Jaeger](https://www.jaegertracing.io/)**: A quick start, all-in-one installation used for tracing distributed systemm. This is not production qualified, please refer to jaeger documentation to determine which installation you may need instead.
 
+### Known Issues
+
+**Airgapped Environments**
+If you are using this chart in an airgapped environment, you will not be able to upgrade. This is because the `istioctl` upgrade command reaches out to an external repo and it is not configurable. We are tracking the fix for this issue [here](https://github.com/rancher/rancher/issues/33402)
+
 ### Dependencies
 
 **Rancher Monitoring  or other Prometheus installation**
