@@ -66,13 +66,22 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end -}}
 
 {{- define "windowsEnabled" }}
+{{ $windowsEnabled := false }}
 {{- if not (kindIs "invalid" .Values.global.cattle.windows) }}
 {{- if not (kindIs "invalid" .Values.global.cattle.windows.enabled) }}
 {{- if .Values.global.cattle.windows.enabled }}
-true
+{{- $windowsEnabled = true }}
 {{- end }}
 {{- end }}
 {{- end }}
+{{- if not (kindIs "invalid" .Values.rke2Windows) }}
+{{- if not (kindIs "invalid" .Values.rke2Windows.enabled) }}
+{{- if .Values.rke2Windows.enabled }}
+{{- $windowsEnabled = true }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{ $windowsEnabled }}
 {{- end }}
 
 {{- define "windowsPathPrefix" -}}
