@@ -26,12 +26,23 @@ spec:
       {{- with .Values.cloudControllerManager.nodeSelector }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- else if eq .Values.clusterType "rke" }}
-      nodeSelector:
-        node-role.kubernetes.io/controlplane: "true"
-      {{- else if eq .Values.clusterType "rke2" }}
-      nodeSelector:
-        node-role.kubernetes.io/control-plane: "true"
+      {{- else }}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              # RKE node selector label
+              - key: node-role.kubernetes.io/controlplane
+                operator: In
+                values:
+                - "true"
+            - matchExpressions:
+              # RKE2 node selector label
+              - key: node-role.kubernetes.io/control-plane
+                operator: In
+                values:
+                - "true"
       {{- end }}
       securityContext:
         runAsUser: 1001
