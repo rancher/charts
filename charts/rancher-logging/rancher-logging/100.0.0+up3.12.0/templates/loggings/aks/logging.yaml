@@ -1,0 +1,89 @@
+{{- if .Values.additionalLoggingSources.aks.enabled }}
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: Logging
+metadata:
+  name: {{ .Release.Name }}-aks
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "logging-operator.labels" . | indent 4 }}
+spec:
+  controlNamespace: {{ .Release.Namespace }}
+  fluentbit:
+    image:
+      repository: {{ template "system_default_registry" . }}{{ .Values.images.fluentbit.repository }}
+      tag: {{ .Values.images.fluentbit.tag }}
+    inputTail:
+      Tag: "aks"
+      Path: "/var/log/azure/kubelet-status.log"
+      {{- if .Values.fluentbit.inputTail.Buffer_Chunk_Size }}
+      Buffer_Chunk_Size: {{ .Values.fluentbit.inputTail.Buffer_Chunk_Size | toString }}
+      {{- end }}
+      {{- if .Values.fluentbit.inputTail.Buffer_Max_Size }}
+      Buffer_Max_Size: {{ .Values.fluentbit.inputTail.Buffer_Max_Size | toString }}
+      {{- end }}
+      {{- if .Values.fluentbit.inputTail.Mem_Buf_Limit }}
+      Mem_Buf_Limit: {{ .Values.fluentbit.inputTail.Mem_Buf_Limit | toString }}
+      {{- end }}
+      {{- if .Values.fluentbit.inputTail.Multiline_Flush }}
+      Multiline_Flush: {{ .Values.fluentbit.inputTail.Multiline_Flush | toString | quote }}
+      {{- end }}
+      {{- if .Values.fluentbit.inputTail.Skip_Long_Lines }}
+      Skip_Long_Lines: {{ .Values.fluentbit.inputTail.Skip_Long_Lines | toString | quote }}
+      {{- end }}
+    {{- if not .Values.disablePvc }}
+    {{- with .Values.fluentbit.bufferStorage }}
+    bufferStorage: {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.fluentbit.bufferStorageVolume }}
+    bufferStorageVolume: {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- end }}
+    {{- if .Values.global.psp.enabled }}
+    security:
+      podSecurityPolicyCreate: true
+      roleBasedAccessControlCreate: true
+    {{- end }}
+    {{- with (concat (.Values.tolerations) (.Values.fluentbit.tolerations)) }}
+    tolerations: {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.nodeSelector }}
+    nodeSelector: {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.fluentbit.resources }}
+    resources: {{- toYaml . | nindent 6 }}
+    {{- end }}
+  fluentd:
+    image:
+      repository: {{ template "system_default_registry" . }}{{ .Values.images.fluentd.repository }}
+      tag: {{ .Values.images.fluentd.tag }}
+    configReloaderImage:
+      repository: {{ template "system_default_registry" . }}{{ .Values.images.config_reloader.repository }}
+      tag: {{ .Values.images.config_reloader.tag }}
+    {{- if not .Values.disablePvc }}
+    {{- with .Values.fluentd.bufferStorageVolume }}
+    bufferStorageVolume: {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- end }}
+    disablePvc: {{ .Values.disablePvc }}
+    {{- if .Values.fluentd.replicas }}
+    scaling:
+      replicas: {{ .Values.fluentd.replicas }}
+    {{- end }}
+    {{- if .Values.global.psp.enabled }}
+    security:
+      podSecurityPolicyCreate: true
+      roleBasedAccessControlCreate: true
+    {{- end }}
+    {{- with (default .Values.tolerations .Values.fluentd.tolerations) }}
+    tolerations: {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with (default .Values.nodeSelector .Values.fluentd.nodeSelector) }}
+    nodeSelector: {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.fluentd.resources }}
+    resources: {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.fluentd.livenessProbe }}
+    livenessProbe: {{- toYaml . | nindent 6 }}
+    {{- end }}
+{{- end }}
