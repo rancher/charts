@@ -2,7 +2,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: citrix-ingressgateway
+  name: {{ template "generate-name" (list . (dict "suffixname" "ingress-deployment")) }}
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ .Values.ingressGateway.label | default "citrix-ingressgateway" }}
@@ -15,19 +15,13 @@ spec:
     metadata:
       labels:
         app: {{ .Values.ingressGateway.label | default "citrix-ingressgateway" }}
+        citrix.com/no.sidecar: "true"
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ""
         prometheus.io/port: "{{ .Values.metricExporter.port }}"
         prometheus.io/scrape: "true"
     spec:
       volumes:
-      - name: nslogin
-        secret:
-          secretName: nslogin
-      - name: istio-certs
-        secret:
-          optional: true
-          secretName: istio.default
       - name: citrix-ingressgateway-certs
         secret:
           optional: true
@@ -37,62 +31,89 @@ spec:
           optional: true
           secretName: "citrix-ingressgateway-ca-certs" # IMPORTANT: This secret MUST BE created before deploying gateway and ingress-gateway
 {{- if eq .Values.ingressGateway.exposeMutipleApps true }}
-{{- range .Values.ingressGateway.secretVolumes }}
+     {{- range .Values.ingressGateway.secretVolumes }}
       - name: {{ .name }}
         secret:
           secretName: {{ .secretName | quote }}
           optional: true
-{{- end }}
+     {{- end }}
 {{- end }}
       - name: cpx-conf
         emptyDir: {}
+      - name: cpx-crash
+        emptyDir: {}
+      - name: cpx-pwd
+        emptyDir: {}
+      - name: certs
+        emptyDir: {}
+{{- if eq .Values.certProvider.jwtPolicy "third-party-jwt" }}       
+      - name: istio-token
+        projected:
+          sources:
+          - serviceAccountToken:
+              audience: istio-ca
+              expirationSeconds: 43200
+              path: istio-token
+{{- end }}
+      - name: istiod-ca-cert
+        configMap:
+          defaultMode: 0777
+          name: istio-ca-root-cert
+      securityContext:
+        fsGroup: 32024
       containers:
 {{- if eq .Values.metricExporter.required true }}
         - name: exporter
-          image: {{ .Values.metricExporter.image }}:{{ .Values.metricExporter.version }}
+          image: {{ .Values.metricExporter.image }}
           imagePullPolicy: IfNotPresent
           args:
           - "--target-nsip=127.0.0.1"
           - "--port={{ .Values.metricExporter.port }}"
           - "--log-level={{ .Values.metricExporter.logLevel }}"
+          - "--secure=no"
           env:
-          - name: NS_USER
-            valueFrom:
-              secretKeyRef:
-                name: nslogin
-                key: username
-          - name: NS_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: nslogin
-                key: password
+          - name: "NS_DEPLOYMENT_MODE"
+            value: "SIDECAR"
+          securityContext:
+            readOnlyRootFilesystem: true
+          volumeMounts:
+          - mountPath: /var/deviceinfo
+            name: cpx-pwd
 {{- end }}
         - name: istio-adaptor
-          image: {{ .Values.istioAdaptor.image }}:{{ .Values.istioAdaptor.tag }}
-          imagePullPolicy: {{ .Values.istioAdaptor.imagePullPolicy }} 
+          image: {{ .Values.xDSAdaptor.image }}
+          imagePullPolicy: {{ .Values.xDSAdaptor.imagePullPolicy }} 
           args:
-          - -pilot-location
-{{- if eq .Values.istioAdaptor.secureConnect true }}
-          - {{ .Values.istioPilot.name}}.{{.Values.istioPilot.namespace }}:{{ .Values.istioPilot.secureGrpcPort }} # istio-pilot.istio-system:15011
+          - -ads-server
+{{- if eq .Values.xDSAdaptor.secureConnect true }}
+          - {{ .Values.istioPilot.name}}.{{ .Values.istioPilot.namespace }}.svc:{{ .Values.istioPilot.secureGrpcPort }} # istiod.istio-system.svc:15012
 {{- else }}
-          - {{ .Values.istioPilot.name}}.{{.Values.istioPilot.namespace }}:{{ .Values.istioPilot.insecureGrpcPort }} # istio-pilot.istio-system:15010
+          - {{ .Values.istioPilot.name}}.{{ .Values.istioPilot.namespace }}.svc:{{ .Values.istioPilot.insecureGrpcPort }} # istiod.istio-system.svc:15010
 {{- end }}
-          - -proxy-type
-          - {{ .Values.istioAdaptor.proxyType | default "router" | quote }}
-          - -pilot-SAN
-          - {{ .Values.istioPilot.SAN }}
-          - -netscaler-url
-          - "http://127.0.0.1" 
-          - -secure-connect={{ .Values.istioAdaptor.secureConnect}}
-          - -adm-ip
-{{- if .Values.istioAdaptor.ADMIP }}
-          - {{ .Values.istioAdaptor.ADMIP }}
-{{- else }}
-          - ""
+          - -istio-proxy-type
+          - {{ .Values.xDSAdaptor.proxyType | default "router" | quote }}
+{{- if .Values.istioPilot.SAN }}
+          - -ads-server-SAN
+          - {{ .Values.istioPilot.SAN | default "" }}
 {{- end }}
-{{- if .Values.istioAdaptor.coeURL }}
-          - -coe-url
-          - {{ .Values.istioAdaptor.coeURL }}
+          - -ads-secure-connect={{ .Values.xDSAdaptor.secureConnect }}
+          - -citrix-adc
+          - "http://127.0.0.1"
+          - -citrix-adc-vip
+          - "nsip"
+          - -citrix-adc-password
+          - "/var/deviceinfo/random_id"
+{{- if .Values.ADMSettings.ADMIP }}
+          - -citrix-adm
+          - {{ .Values.ADMSettings.ADMIP }}
+{{- end }}
+{{- if .Values.ADMSettings.licenseServerIP }}
+          - -citrix-license-server
+          - {{ .Values.ADMSettings.licenseServerIP }}
+{{- end }}
+{{- if .Values.coe.coeURL }}
+          - -coe
+          - {{ .Values.coe.coeURL }}
 {{- end }}
           env:
           - name: POD_NAME
@@ -115,16 +136,56 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.labels['app']
+          - name: SERVICE_ACCOUNT
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: spec.serviceAccountName
+{{- if .Values.certProvider.caAddr }}
+          - name: CA_ADDR
+            value: {{ .Values.certProvider.caAddr }}:{{ .Values.certProvider.caPort}} #istiod.istio-system.svc:15012
+          - name: TRUST_DOMAIN
+            value: {{ .Values.certProvider.trustDomain }} #cluster.local
+          - name: CLUSTER_ID 
+            value: {{ .Values.certProvider.clusterId }} #Kubernetes
+          - name: CERT_TTL_IN_HOURS 
+            value: {{ .Values.certProvider.certTTLinHours | quote }}
+          - name: JWT_POLICY
+            value: {{ .Values.certProvider.jwtPolicy | default "first-party-jwt" | quote }} # third-party-jwt if Kubernetes cluster supports third-party tokens
+{{- end }}
+{{- if eq .Values.ingressGateway.multiClusterIngress true }}
+          - name: MULTICLUSTER_INGRESS
+            value: "TRUE"
+          - name: MULTICLUSTER_LISTENER_PORT
+            value: {{ .Values.ingressGateway.multiClusterListenerPort | quote}}
+          - name: MULTICLUSTER_SVC_DOMAIN
+            value: {{ printf "'*.%s'" .Values.ingressGateway.multiClusterSvcDomain }}
+{{- end }}
+{{- if eq .Values.coe.coeTracing true }}
+          - name: COE_TRACING
+            value: "TRUE"
+{{- end }}
+          - name: LOGLEVEL
+            value: {{ .Values.xDSAdaptor.logLevel | default "DEBUG" | quote }}
+{{- if eq .Values.xDSAdaptor.jsonLog true }}
+          - name: JSONLOG
+            value: "TRUE"
+{{- end }}
           securityContext:
             readOnlyRootFilesystem: true
+            runAsGroup: 32024
             runAsUser: 32024 # UID of istio-adaptor container's user
           volumeMounts:
+          - mountPath: /var/deviceinfo
+            name: cpx-pwd
+{{- if eq .Values.certProvider.jwtPolicy "third-party-jwt" }}
+          - mountPath: /var/run/secrets/tokens
+            name: istio-token
+{{- end }}
           - mountPath: /etc/certs
-            name: istio-certs
-            readOnly: true
-          - mountPath: /etc/nslogin 
-            name: nslogin
-            readOnly: true
+            name: certs
+          - name: istiod-ca-cert
+            mountPath: /etc/rootcert/
           - mountPath: /etc/istio/ingressgateway-certs # Make sure that Gateway definition has this path mentioned in server.tls section for SIMPLE TLS
             name: citrix-ingressgateway-certs
             readOnly: true
@@ -132,14 +193,14 @@ spec:
             name: citrix-ingressgateway-ca-certs
             readOnly: true
 {{- if eq .Values.ingressGateway.exposeMutipleApps true }}
-{{- range .Values.ingressGateway.secretVolumes }}
+          {{- range .Values.ingressGateway.secretVolumes }}
           - name: {{ .name }}
             mountPath: {{ .mountPath | quote }}
             readOnly: true
-{{- end }}
+          {{- end }}
 {{- end }}
         - name: citrix-ingressgateway
-          image: "{{ .Values.ingressGateway.image }}:{{ .Values.ingressGateway.tag }}"
+          image: "{{ .Values.ingressGateway.image }}"
           imagePullPolicy: {{ .Values.ingressGateway.imagePullPolicy }}
           securityContext:
             privileged: true
@@ -160,44 +221,73 @@ spec:
           volumeMounts:
           - mountPath: /cpx/conf/
             name: cpx-conf
+          - mountPath: /cpx/crash/
+            name: cpx-crash
+          - mountPath: /var/deviceinfo
+            name: cpx-pwd
           env:
           - name: "EULA"
             value: "{{ .Values.ingressGateway.EULA }}"
+{{- if .Values.metricExporter.required }}
+          - name: "METRICS_EXPORTER_PORT"
+            value: "{{ .Values.metricExporter.port }}"
+{{- end }}
           - name: "MGMT_HTTP_PORT"
             value: "{{ .Values.ingressGateway.mgmtHttpPort }}"
           - name: "MGMT_HTTPS_PORT"
             value: "{{ .Values.ingressGateway.mgmtHttpsPort }}"
           - name: "NS_CPX_LITE"
             value: "{{ .Values.ingressGateway.lightWeightCPX }}"
-{{- if or .Values.istioAdaptor.coeURL .Values.istioAdaptor.ADMIP }}
+{{- if or .Values.coe.coeURL .Values.ADMSettings.ADMIP }}
           - name: "NS_ENABLE_NEWNSLOG"
             value: "1"
 {{- end }}
           - name: "KUBERNETES_TASK_ID"
             value: ""
           - name: "LS_IP"
-            value: {{ .Values.istioAdaptor.ADMIP | default "" }} 
+            value: {{ .Values.ADMSettings.licenseServerIP | default "" }} 
           - name: "LS_PORT"
-            value: "{{ .Values.ingressGateway.licenseServerPort}}"
-{{- if .Values.istioAdaptor.ADMFingerPrint }}
+            value: "{{ .Values.ADMSettings.licenseServerPort}}"
+{{- if .Values.ADMSettings.ADMIP }}
           - name: "NS_MGMT_SERVER"
-            value: {{ .Values.istioAdaptor.ADMIP }}
-          - name: "NS_MGMT_FINGER_PRINT"
-            value: {{ .Values.istioAdaptor.ADMFingerPrint | quote }}
+            value: {{ .Values.ADMSettings.ADMIP }}
           - name: "NS_HTTP_PORT"
             value: {{ .Values.ingressGateway.mgmtHttpPort | quote }}
           - name: "NS_HTTPS_PORT"
             value: {{ .Values.ingressGateway.mgmtHttpsPort | quote }}
 {{- end }}
           - name: "LOGSTREAM_COLLECTOR_IP"
-            value: {{ .Values.istioAdaptor.ADMIP | default ""}} 
-
+            value: {{ .Values.ADMSettings.ADMIP | default ""}} 
+#To povision bandwidth based licensing to Citrix ADC CPX from ADM, needs bandwidth
+{{- if and ( .Values.ADMSettings.licenseServerIP ) (eq .Values.ADMSettings.bandWidthLicense true) }}
+          - name: "BANDWIDTH"
+            value: {{ required "Mention bandwidth for bandwidth based licensing" .Values.ADMSettings.bandWidth | quote }}
+{{- end }}
+#for multiple-PE support, need to set CPX_CORES
+{{- if .Values.ADMSettings.licenseServerIP }}
+{{- if or (eq .Values.ADMSettings.vCPULicense true) (eq .Values.ADMSettings.bandWidthLicense true) }}
+          - name: "CPX_CORES"
+            value: {{ .Values.ADMSettings.cpxCores | default 1 | quote }}
+{{- end }}
+{{- end }}
+{{- if or (.Values.ADMSettings.ADMIP) (.Values.ADMSettings.licenseServerIP) }}
+          - name: NS_MGMT_USER
+            valueFrom:
+              secretKeyRef:
+                name: admlogin
+                key: username
+          - name: NS_MGMT_PASS
+            valueFrom:
+              secretKeyRef:
+                name: admlogin
+                key: password
+{{- end }}
 ---
 {{ else }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: citrix-ingressgateway
+  name: {{ template "generate-name" (list . (dict "suffixname" "ingress-deployment")) }}
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ .Values.ingressGateway.label | default "citrix-ingressgateway" }}
@@ -210,6 +300,7 @@ spec:
     metadata:
       labels:
         app: {{ .Values.ingressGateway.label | default "citrix-ingressgateway" }}
+        citrix.com/no.sidecar: "true"
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ""
         prometheus.io/port: "{{ .Values.metricExporter.port }}"
@@ -218,30 +309,23 @@ spec:
       containers:
 {{- if eq .Values.metricExporter.required true }}
       - name: exporter
-        image: {{ .Values.metricExporter.image }}:{{ .Values.metricExporter.version }}
+        image: {{ .Values.metricExporter.image }}
         imagePullPolicy: {{ .Values.metricExporter.imagePullPolicy }}
         args:
-{{- if .Values.istioAdaptor.netscalerUrl }}
         - "--target-nsip={{- include "exporter_nsip" . -}}"
-{{- end }}
         - "--port={{ .Values.metricExporter.port }}"
         - "--secure={{ .Values.metricExporter.secure | lower}}"
         - "--log-level={{ .Values.metricExporter.logLevel }}"
-        env:
-        - name: NS_USER
-          valueFrom:
-            secretKeyRef:
-              name: nslogin
-              key: username
-        - name: NS_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: nslogin
-              key: password
+        securityContext:
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - name: nslogin
+          mountPath: "/mnt/nslogin"
+          readOnly: true
 {{- end }}
       - name: istio-adaptor
-        image: {{ .Values.istioAdaptor.image }}:{{ .Values.istioAdaptor.tag }} 
-        imagePullPolicy: {{ .Values.istioAdaptor.imagePullPolicy }}  
+        image: {{ .Values.xDSAdaptor.image }}
+        imagePullPolicy: {{ .Values.xDSAdaptor.imagePullPolicy }}  
         env:
         - name: POD_NAME
           valueFrom:
@@ -263,42 +347,105 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.labels['app']
-        args: 
-        - -pilot-location
-{{- if eq .Values.istioAdaptor.secureConnect true }}
-        - {{ .Values.istioPilot.name}}.{{.Values.istioPilot.namespace }}:{{ .Values.istioPilot.secureGrpcPort }} # istio-pilot.istio-system:15011
-{{- else }}
-        - {{ .Values.istioPilot.name}}.{{.Values.istioPilot.namespace }}:{{ .Values.istioPilot.insecureGrpcPort }} # istio-pilot.istio-system:15010
+        - name: SERVICE_ACCOUNT
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.serviceAccountName
+{{- if .Values.certProvider.caAddr }}
+        - name: CA_ADDR
+          value: {{ .Values.certProvider.caAddr }}:{{ .Values.certProvider.caPort}} #istiod.istio-system.svc:15012
+        - name: TRUST_DOMAIN
+          value: {{ .Values.certProvider.trustDomain }} #cluster.local
+        - name: CLUSTER_ID 
+          value: {{ .Values.certProvider.clusterId }} #Kubernetes
+        - name: CERT_TTL_IN_HOURS 
+          value: {{ .Values.certProvider.certTTLinHours | quote }}
+        - name: JWT_POLICY
+          value: {{ .Values.certProvider.jwtPolicy | default "first-party-jwt" | quote }} # third-party-jwt if Kubernetes cluster supports third-party tokens
 {{- end }}
-        - -proxy-type
-        - {{ .Values.istioAdaptor.proxyType | default "router" | quote }} 
-        - -pilot-SAN
-        - {{ .Values.istioPilot.SAN }}
-        - -netscaler-url
-        - {{ required "Mention Citrix ADC IP/URL in https://<ip>[:port] format" .Values.istioAdaptor.netscalerUrl }}
-        - -vserver-ip
-        - {{ required "Mention Vserver IP to be configured on Citrix ADC" .Values.istioAdaptor.vserverIP }}
-        - -secure-connect={{ .Values.istioAdaptor.secureConnect | default true }}
+{{- if eq .Values.ingressGateway.multiClusterIngress true }}
+        - name: MULTICLUSTER_INGRESS
+          value: "TRUE"
+        - name: MULTICLUSTER_LISTENER_PORT
+          value: {{ .Values.ingressGateway.multiClusterListenerPort | quote}}
+        - name: MULTICLUSTER_SVC_DOMAIN
+          value: {{ printf "'*.%s'" .Values.ingressGateway.multiClusterSvcDomain }}
+{{- end }}
+{{- if eq .Values.coe.coeTracing true }}
+        - name: COE_TRACING
+          value: "TRUE"
+{{- end }}
+        - name: LOGLEVEL
+          value: {{ .Values.xDSAdaptor.logLevel | default "DEBUG" | quote }}
+{{- if eq .Values.xDSAdaptor.jsonLog true }}
+        - name: JSONLOG
+          value: "TRUE"
+{{- end }}
+        - name: NS_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secretName }}
+              key: username
+        - name: NS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secretName }}
+              key: password
+        args: 
+        - -ads-server
+{{- if eq .Values.xDSAdaptor.secureConnect true }}
+        - {{ .Values.istioPilot.name}}.{{ .Values.istioPilot.namespace }}.svc:{{ .Values.istioPilot.secureGrpcPort }} # istiod.istio-system.svc:15012
+{{- else }}
+        - {{ .Values.istioPilot.name}}.{{ .Values.istioPilot.namespace }}.svc:{{ .Values.istioPilot.insecureGrpcPort }} # istiod.istio-system.svc:15010
+{{- end }}
+        - -istio-proxy-type
+        - {{ .Values.xDSAdaptor.proxyType | default "router" | quote }}
+{{- if .Values.istioPilot.SAN }}
+        - -ads-server-SAN
+        - {{ .Values.istioPilot.SAN | default "" }}
+{{- end }}
+        - -ads-secure-connect={{ .Values.xDSAdaptor.secureConnect }}
+        - -citrix-adc
+        - {{ required "Mention Citrix ADC IP/URL in https://<ip>[:port] format" .Values.ingressGateway.netscalerUrl }}
+        - -citrix-adc-vip
+        - {{ required "Mention Vserver IP to be configured on Citrix ADC" .Values.ingressGateway.vserverIP }}
+        - -citrix-adc-user
+        - "/etc/nslogin/username"
+        - -citrix-adc-password
+        - "/etc/nslogin/password"
         # If using VPX/MPX as Ingress gateway, then specify the network profile name 
         # which was provided to Citrix Node Controller (CNC)
-{{- if .Values.istioAdaptor.netProfile }}
-        - -net-profile
-        - {{ .Values.istioAdaptor.netProfile }}
+{{- if .Values.ingressGateway.netProfile }}
+        - -citrix-adc-net-profile
+        - {{ .Values.ingressGateway.netProfile }}
 {{- end }}
-        - -adm-ip
+        - -citrix-adm
         - "" 
-{{- if .Values.istioAdaptor.coeURL }}
-        - -coe-url
-        - {{ .Values.istioAdaptor.coeURL }}
+{{- if .Values.coe.coeURL }}
+        - -coe
+        - {{ .Values.coe.coeURL }}
+{{- end }}
+{{- if .Values.ingressGateway.adcServerName }}
+        - -citrix-adc-server-name
+        - {{ .Values.ingressGateway.adcServerName }}
+        - -citrix-adc-server-ca
+        - "/etc/nitro/root-cert.pem"
 {{- end }}
         securityContext:
           readOnlyRootFilesystem: true
+          runAsGroup: 32024
           runAsUser: 32024 # UID of istio-adaptor container's user
         volumeMounts:
         - mountPath: /etc/certs
-          name: istio-certs
-          readOnly: true
-        - mountPath: /etc/nslogin 
+          name: certs
+        - name: istiod-ca-cert
+          mountPath: /etc/rootcert/
+{{- if eq .Values.certProvider.jwtPolicy "third-party-jwt" }}
+        - mountPath: /var/run/secrets/tokens
+          name: istio-token
+{{- end }}
+        - mountPath: /etc/nslogin
           name: nslogin
           readOnly: true
         - mountPath: /etc/istio/ingressgateway-certs # Make sure that Gateway definition has this path mentioned in server.tls section for SIMPLE TLS
@@ -306,22 +453,32 @@ spec:
           readOnly: true
         - mountPath: /etc/istio/ingressgateway-ca-certs # Make sure that Gateway definition has this path mentioned in server.tls section for MUTUAL TLS
           name: citrix-ingressgateway-ca-certs
-          readOnly: true 
+          readOnly: true  
 {{- if eq .Values.ingressGateway.exposeMutipleApps true }}
-{{- range .Values.ingressGateway.secretVolumes }}
+        {{- range .Values.ingressGateway.secretVolumes }}
         - name: {{ .name }}
           mountPath: {{ .mountPath | quote }}
           readOnly: true
+        {{- end }}
 {{- end }}
+{{- if .Values.ingressGateway.adcServerName }}
+        - mountPath: /etc/nitro/
+          name: citrix-adc-cert
+          readOnly: true
 {{- end }}
+      securityContext:
+        fsGroup: 32024
       volumes:
       - name: nslogin
         secret:
-          secretName: nslogin
-      - name: istio-certs
-        secret:
           optional: true
-          secretName: istio.default
+          secretName: {{ .Values.secretName }}
+      - name: certs
+        emptyDir: {}
+      - name: istiod-ca-cert
+        configMap:
+          defaultMode: 0777
+          name: istio-ca-root-cert
       - name: citrix-ingressgateway-certs
         secret:
           optional: true
@@ -329,14 +486,29 @@ spec:
       - name: citrix-ingressgateway-ca-certs
         secret:
           optional: true
-          secretName: "citrix-ingressgateway-ca-certs" # IMPORTANT: This secret MUST BE created before deploying gateway and ingress-gateway
+          secretName: "citrix-ingressgateway-ca-certs" # IMPORTANT: This secret MUST BE created before deploying gateway and ingress-gateway 
 {{- if eq .Values.ingressGateway.exposeMutipleApps true }}
-{{- range .Values.ingressGateway.secretVolumes }}
+     {{- range .Values.ingressGateway.secretVolumes }}
       - name: {{ .name }}
         secret:
           secretName: {{ .secretName | quote }}
           optional: true
+     {{- end }}
 {{- end }}
+{{- if .Values.ingressGateway.adcServerName }}
+      - name: citrix-adc-cert
+        secret:
+          optional: true
+          secretName: "citrix-adc-cert" # IMPORTANT: This secret MUST BE created before deploying gateway and ingress-gateway
+{{- end }}
+{{- if eq .Values.certProvider.jwtPolicy "third-party-jwt" }}       
+      - name: istio-token
+        projected:
+          sources:
+          - serviceAccountToken:
+              audience: istio-ca
+              expirationSeconds: 43200
+              path: istio-token
 {{- end }}
 ---
 {{- end}}

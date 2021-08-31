@@ -1,0 +1,37 @@
+{{- if eq .Values.ingressGateway.multiClusterIngress true }}
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  annotations:
+  labels:
+    app: {{ .Values.ingressGateway.label | default "citrix-ingressgateway" }}
+  name: citrix-multicluster-ingressgateway
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app: {{ .Values.ingressGateway.label | default "citrix-ingressgateway" }}
+  servers:
+  - hosts:
+    - {{ printf "'*.%s'" .Values.ingressGateway.multiClusterSvcDomain }}
+    port:
+      name: tls
+      number: {{ .Values.ingressGateway.multiClusterListenerPort }}
+      protocol: TLS
+    tls:
+      mode: AUTO_PASSTHROUGH
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  annotations:
+  labels:
+    app: {{ .Values.ingressGateway.label | default "citrix-ingressgateway" }}
+  name: citrix-multicluster-ingressgateway
+  namespace: {{ .Release.Namespace }}
+spec:
+  host: {{ printf "'*.%s'" .Values.ingressGateway.multiClusterSvcDomain }}
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+---
+{{- end }}

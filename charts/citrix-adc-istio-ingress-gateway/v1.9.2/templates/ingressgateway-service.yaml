@@ -2,7 +2,7 @@
 apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
 metadata:
-    name: citrix-ingressgateway
+    name: {{ template "generate-name" (list . (dict "suffixname" "citrix-ingress-hpa")) }}
     namespace: {{ .Release.Namespace }}
 spec:
     maxReplicas: 1
@@ -10,7 +10,7 @@ spec:
     scaleTargetRef:
       apiVersion: apps/v1
       kind: Deployment
-      name: citrix-ingressgateway
+      name: {{ template "generate-name" (list . (dict "suffixname" "ingress-deployment")) }}
     metrics:
       - type: Resource
         resource:
@@ -21,14 +21,18 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: citrix-ingressgateway
+  name: {{ template "generate-name" (list . (dict "suffixname" "citrix-ingress-svc")) }}
   namespace: {{ .Release.Namespace }}
   annotations:
   labels:
     app: {{ .Values.ingressGateway.label | default "citrix-ingressgateway" }}
 spec:
 {{- if eq .Values.citrixCPX true }}
+{{- if eq .Values.ingressGateway.nodePortRequired true }}
+  type: NodePort
+{{- else }}
   type: LoadBalancer
+{{- end }}
 {{- end }}
   selector:
     app: {{ .Values.ingressGateway.label | default "citrix-ingressgateway" }}
@@ -47,10 +51,19 @@ spec:
 {{- end }}
       port: 443
       targetPort: 443
+{{- if eq .Values.ingressGateway.multiClusterIngress true }}
+    -
+      name: multicluster
+{{- if eq .Values.citrixCPX true }}
+      nodePort: {{ .Values.ingressGateway.multiClusterListenerNodePort }}
+{{- end }}
+      port: {{ .Values.ingressGateway.multiClusterListenerPort }}
+      targetPort: {{ .Values.ingressGateway.multiClusterListenerPort }}
+{{- end }}
 {{- $isCPX := .Values.citrixCPX }}
 {{- if eq .Values.ingressGateway.exposeNonHttpService true }}
 {{- range .Values.ingressGateway.tcpPort }}
-    -
+    -  
       name: {{ .name }}
 {{- if eq $isCPX true }}
       nodePort: {{ .nodePort }}
