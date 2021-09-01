@@ -1,0 +1,154 @@
+{{- $containers := printf "%s/containers/" (default "/var/lib/docker" .Values.global.dockerRootDirectory) }}
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: Logging
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "logging-operator.labels" . | indent 4 }}
+spec:
+  controlNamespace: {{ .Release.Namespace }}
+  {{- if (include "windowsEnabled" .) }}
+  nodeAgents:
+    - name: win-agent
+      profile: windows
+      nodeAgentFluentbit:
+        daemonSet:
+          spec:
+            template:
+              spec:
+                containers:
+                - image: "{{ template "system_default_registry" . }}{{ .Values.images.nodeagent_fluentbit.repository }}:{{ .Values.images.nodeagent_fluentbit.tag }}"
+                  name: fluent-bit
+        tls:
+          enabled: {{ .Values.nodeAgents.tls.enabled | default false }}
+    {{- if .Values.additionalLoggingSources.rke.enabled }}
+    - name: win-agent-rke
+      profile: windows
+      nodeAgentFluentbit:
+        filterKubernetes:
+          Kube_Tag_Prefix: "{{ template "windowsKubernetesFilter" . }}.var.lib.rancher.rke.log."
+        inputTail:
+          Path: "{{ template "windowsPathPrefix" . }}/var/lib/rancher/rke/log"
+          {{- if .Values.fluentbit.inputTail.Buffer_Chunk_Size }}
+          Buffer_Chunk_Size: {{ .Values.fluentbit.inputTail.Buffer_Chunk_Size | toString }}
+          {{- end }}
+          {{- if .Values.fluentbit.inputTail.Buffer_Max_Size }}
+          Buffer_Max_Size: {{ .Values.fluentbit.inputTail.Buffer_Max_Size | toString }}
+          {{- end }}
+          {{- if .Values.fluentbit.inputTail.Mem_Buf_Limit }}
+          Mem_Buf_Limit: {{ .Values.fluentbit.inputTail.Mem_Buf_Limit | toString }}
+          {{- end }}
+          {{- if .Values.fluentbit.inputTail.Multiline_Flush }}
+          Multiline_Flush: {{ .Values.fluentbit.inputTail.Multiline_Flush | toString | quote }}
+          {{- end }}
+          {{- if .Values.fluentbit.inputTail.Skip_Long_Lines }}
+          Skip_Long_Lines: {{ .Values.fluentbit.inputTail.Skip_Long_Lines | toString | quote }}
+          {{- end }}
+        extraVolumeMounts:
+        - source: "{{ template "windowsInputTailMount" . }}/var/lib/rancher/rke/log"
+          destination: "{{ template "windowsInputTailMount" . }}/var/lib/rancher/rke/log"
+          readOnly: true
+        daemonSet:
+          spec:
+            template:
+              spec:
+                containers:
+                - image: "{{ template "system_default_registry" . }}{{ .Values.images.nodeagent_fluentbit.repository }}:{{ .Values.images.nodeagent_fluentbit.tag }}"
+                  name: fluent-bit
+        tls:
+          enabled: {{ .Values.nodeAgents.tls.enabled | default false }}
+    {{- end }}
+  {{- end }}
+  fluentbit:
+    image:
+      repository: {{ template "system_default_registry" . }}{{ .Values.images.fluentbit.repository }}
+      tag: {{ .Values.images.fluentbit.tag }}
+    {{- if or .Values.fluentbit.inputTail.Buffer_Chunk_Size .Values.fluentbit.inputTail.Buffer_Max_Size .Values.fluentbit.inputTail.Mem_Buf_Limit .Values.fluentbit.inputTail.Multiline_Flush .Values.fluentbit.inputTail.Skip_Long_Lines }}
+    inputTail:
+      {{- if .Values.fluentbit.inputTail.Buffer_Chunk_Size }}
+      Buffer_Chunk_Size: {{ .Values.fluentbit.inputTail.Buffer_Chunk_Size | toString }}
+      {{- end }}
+      {{- if .Values.fluentbit.inputTail.Buffer_Max_Size }}
+      Buffer_Max_Size: {{ .Values.fluentbit.inputTail.Buffer_Max_Size | toString }}
+      {{- end }}
+      {{- if .Values.fluentbit.inputTail.Mem_Buf_Limit }}
+      Mem_Buf_Limit: {{ .Values.fluentbit.inputTail.Mem_Buf_Limit | toString }}
+      {{- end }}
+      {{- if .Values.fluentbit.inputTail.Multiline_Flush }}
+      Multiline_Flush: {{ .Values.fluentbit.inputTail.Multiline_Flush | toString | quote }}
+      {{- end }}
+      {{- if .Values.fluentbit.inputTail.Skip_Long_Lines }}
+      Skip_Long_Lines: {{ .Values.fluentbit.inputTail.Skip_Long_Lines | toString | quote }}
+      {{- end }}
+    {{- end }}
+    {{- if not .Values.disablePvc }}
+    {{- with .Values.fluentbit.bufferStorage }}
+    bufferStorage: {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.fluentbit.bufferStorageVolume }}
+    bufferStorageVolume: {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- end }}
+    {{- if or .Values.global.psp.enabled .Values.global.seLinux.enabled }}
+    security:
+    {{- end }}
+    {{- if .Values.global.psp.enabled }}
+      podSecurityPolicyCreate: true
+      roleBasedAccessControlCreate: true
+    {{- end }}
+    {{- if .Values.global.seLinux.enabled }}
+      securityContext:
+        seLinuxOptions:
+          type: rke_logreader_t
+    {{- end }}
+    {{- if .Values.global.dockerRootDirectory }}
+    mountPath: {{ $containers }}
+    extraVolumeMounts:
+      - source: {{ $containers }}
+        destination: {{ $containers }}
+        readOnly: true
+    {{- end }}
+    {{- with (concat (.Values.tolerations) (.Values.fluentbit.tolerations)) }}
+    tolerations: {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.nodeSelector }}
+    nodeSelector: {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.fluentbit.resources }}
+    resources: {{- toYaml . | nindent 6 }}
+    {{- end }}
+  fluentd:
+    image:
+      repository: {{ template "system_default_registry" . }}{{ .Values.images.fluentd.repository }}
+      tag: {{ .Values.images.fluentd.tag }}
+    configReloaderImage:
+      repository: {{ template "system_default_registry" . }}{{ .Values.images.config_reloader.repository }}
+      tag: {{ .Values.images.config_reloader.tag }}
+    {{- if not .Values.disablePvc }}
+    {{- with .Values.fluentd.bufferStorageVolume }}
+    bufferStorageVolume: {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- end }}
+    disablePvc: {{ .Values.disablePvc }}
+    {{- if .Values.fluentd.replicas }}
+    scaling:
+      replicas: {{ .Values.fluentd.replicas }}
+    {{- end }}
+    {{- if .Values.global.psp.enabled }}
+    security:
+      podSecurityPolicyCreate: true
+      roleBasedAccessControlCreate: true
+    {{- end }}
+    {{- with (default .Values.tolerations .Values.fluentd.tolerations) }}
+    tolerations: {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with (default .Values.nodeSelector .Values.fluentd.nodeSelector) }}
+    nodeSelector: {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.fluentd.resources }}
+    resources: {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.fluentd.livenessProbe }}
+    livenessProbe: {{- toYaml . | nindent 6 }}
+    {{- end }}
