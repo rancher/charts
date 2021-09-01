@@ -1,24 +1,19 @@
 --- charts-original/templates/deployment.yaml
 +++ charts/templates/deployment.yaml
-@@ -33,7 +33,7 @@
+@@ -33,11 +33,11 @@
      {{- end }}
        containers:
          - name: {{ .Chart.Name }}
 -          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+-          args:
+-          {{- range .Values.extraArgs }}
+-            - {{ . }}
+-          {{- end }}
 +          image: "{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-           args: {{ range .Values.extraArgs }}
-             - {{ . -}}
-             {{ end }}
-@@ -51,10 +51,10 @@
-       securityContext: {{ toYaml .Values.podSecurityContext | nindent 8 }}
-     {{- end }}
- 
--      {{- with .Values.nodeSelector }}
-+    {{- with .Values.nodeSelector }}
-       nodeSelector:
-         {{- toYaml . | nindent 8 }}
--      {{- end }}
-+    {{- end }}
-     {{- with .Values.affinity }}
-       affinity:
-         {{- toYaml . | nindent 8 }}
++          args: 
++          {{ range .Values.extraArgs }}
++            - {{ . -}}
++          {{ end }}
+           imagePullPolicy: {{ .Values.image.pullPolicy }}
+           resources:
+             {{- toYaml .Values.resources | nindent 12 }}
