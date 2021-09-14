@@ -15,15 +15,30 @@ spec:
         app: vsphere-csi-controller
         role: vsphere-csi
     spec:
-      serviceAccountName: vsphere-csi-controller
-      nodeSelector:
       {{- if .Values.csiController.nodeSelector }}
+      nodeSelector:
       {{- with .Values.csiController.nodeSelector }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- else }}
-        node-role.kubernetes.io/controlplane: "true"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              # RKE node selector label
+              - key: node-role.kubernetes.io/controlplane
+                operator: In
+                values:
+                - "true"
+            - matchExpressions:
+              # RKE2 node selector label
+              - key: node-role.kubernetes.io/control-plane
+                operator: In
+                values:
+                - "true"
       {{- end }}
+      serviceAccountName: vsphere-csi-controller
       tolerations:
         # Rancher specific change: These tolerations are intentionally different from upstream to avoid lessening the scope to only NoSchedule with a specific key
         # - key: node-role.kubernetes.io/master
