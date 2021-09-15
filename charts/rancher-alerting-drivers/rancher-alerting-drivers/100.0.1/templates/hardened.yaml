@@ -1,0 +1,116 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "drivers.fullname" . }}-patch-sa
+  namespace: {{ .Release.Namespace }}
+  labels: {{ include "drivers.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install, post-upgrade
+    "helm.sh/hook-delete-policy": hook-succeeded, before-hook-creation
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      serviceAccountName: {{ include "drivers.fullname" . }}-patch-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      restartPolicy: Never
+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+      containers:
+        - name: {{ include "drivers.fullname" . }}-patch-sa
+          image: "{{ include "system_default_registry" . }}{{ .Values.global.kubectl.repository }}:{{ .Values.global.kubectl.tag }}"
+          imagePullPolicy: IfNotPresent
+          command: ["kubectl", "-n", {{ .Release.Namespace | quote }}, "patch", "serviceaccount", "default", "-p", "{\"automountServiceAccountToken\": false}"]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "drivers.fullname" . }}-patch-sa
+  namespace: {{ .Release.Namespace }}
+  labels: {{ include "drivers.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install, post-upgrade
+    "helm.sh/hook-delete-policy": hook-succeeded, before-hook-creation
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "drivers.fullname" . }}-patch-sa
+  labels: {{ include "drivers.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install, post-upgrade
+    "helm.sh/hook-delete-policy": hook-succeeded, before-hook-creation
+rules:
+  - apiGroups: [""]
+    resources: ["serviceaccounts"]
+    verbs: ["get", "patch"]
+  - apiGroups: ["policy"]
+    resources: ["podsecuritypolicies"]
+    verbs:     ["use"]
+    resourceNames:
+      - {{ include "drivers.fullname" . }}-patch-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "drivers.fullname" . }}-patch-sa
+  labels: {{ include "drivers.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install, post-upgrade
+    "helm.sh/hook-delete-policy": hook-succeeded, before-hook-creation
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "drivers.fullname" . }}-patch-sa
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "drivers.fullname" . }}-patch-sa
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: {{ include "drivers.fullname" . }}-patch-sa
+  labels: {{ include "drivers.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install, post-upgrade
+    "helm.sh/hook-delete-policy": hook-succeeded, before-hook-creation
+spec:
+  privileged: false
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+  seLinux:
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1
+        max: 65535
+  fsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1
+        max: 65535
+  readOnlyRootFilesystem: false
+  volumes:
+    - 'secret'
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "drivers.fullname" . }}-default-allow-all
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector: {}
+  ingress:
+    - {}
+  egress:
+    - {}
+  policyTypes:
+    - Ingress
+    - Egress
