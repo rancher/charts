@@ -19,7 +19,8 @@ spec:
         role: vsphere-csi
     spec:
       serviceAccountName: vsphere-csi-node
-      dnsPolicy: "Default"
+      hostNetwork: true
+      dnsPolicy: "ClusterFirstWithHostNet"
       containers:
       - name: node-driver-registrar
         image: "{{ template "system_default_registry" . }}{{ .Values.csiNode.image.nodeDriverRegistrar.repository }}:{{ .Values.csiNode.image.nodeDriverRegistrar.tag }}"
@@ -60,15 +61,17 @@ spec:
               fieldPath: spec.nodeName
         - name: CSI_ENDPOINT
           value: unix:///csi/csi.sock
+        - name: MAX_VOLUMES_PER_NODE
+          value: "0" # Maximum number of volumes that controller can publish to the node. If value is not set or zero Kubernetes decide how many volumes can be published by the controller to the node.
         - name: X_CSI_MODE
           value: "node"
         - name: X_CSI_SPEC_REQ_VALIDATION
           value: "false"
+        - name: X_CSI_SPEC_DISABLE_LEN_CHECK
+          value: "true"
         # needed only for topology aware setups
         #- name: VSPHERE_CSI_CONFIG
         #  value: "/etc/cloud/csi-vsphere.conf" # here csi-vsphere.conf is the name of the file used for creating secret using "--from-file" flag
-        - name: X_CSI_DEBUG
-          value: "true"
         - name: LOGGER_LEVEL
           value: "PRODUCTION" # Options: DEVELOPMENT, PRODUCTION
         - name: CSI_NAMESPACE
@@ -99,8 +102,9 @@ spec:
         - name: sys-devices-dir
           mountPath: /sys/devices
         ports:
-          - containerPort: 9808
-            name: healthz
+          - name: healthz
+            containerPort: 9808
+            protocol: TCP
         livenessProbe:
           httpGet:
             path: /healthz

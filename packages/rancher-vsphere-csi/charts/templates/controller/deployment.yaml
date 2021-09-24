@@ -15,6 +15,7 @@ spec:
         app: vsphere-csi-controller
         role: vsphere-csi
     spec:
+      serviceAccountName: vsphere-csi-controller
       {{- if .Values.csiController.nodeSelector }}
       nodeSelector:
       {{- with .Values.csiController.nodeSelector }}
@@ -38,7 +39,6 @@ spec:
                 values:
                 - "true"
       {{- end }}
-      serviceAccountName: vsphere-csi-controller
       tolerations:
         # Rancher specific change: These tolerations are intentionally different from upstream to avoid lessening the scope to only NoSchedule with a specific key
         # - key: node-role.kubernetes.io/master
@@ -67,6 +67,8 @@ spec:
             - "--timeout=300s"
             - "--csi-address=$(ADDRESS)"
             - "--leader-election"
+            - "--kube-api-qps=100"
+            - "--kube-api-burst=100"
           env:
             - name: ADDRESS
               value: /csi/csi.sock
@@ -102,6 +104,10 @@ spec:
               value: unix:///csi/csi.sock
             - name: X_CSI_MODE
               value: "controller"
+            - name: X_CSI_SPEC_DISABLE_LEN_CHECK
+              value: "true"
+            - name: X_CSI_SERIAL_VOL_ACCESS_TIMEOUT
+              value: 3m
             - name: VSPHERE_CSI_CONFIG
               value: "/etc/cloud/csi-vsphere.conf"
             - name: LOGGER_LEVEL
@@ -114,8 +120,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            - name: X_CSI_SERIAL_VOL_ACCESS_TIMEOUT
-              value: 3m
           volumeMounts:
             - mountPath: /etc/cloud
               name: vsphere-config-volume
