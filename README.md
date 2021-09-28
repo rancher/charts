@@ -74,6 +74,31 @@ If this `major.minor.patch` (e.g. `0.0.1`) version of the Chart has never been r
 
 If this `major.minor.patch` (e.g. `0.0.1`) version of the Chart has been released before, increment the `packageVersion`.
 
+#### Separating multiple images within `charts/values.yaml`
+
+After running `make prepare` if you see that the upstream version of the chart adds a new image in `packages/<package-name>/charts/values.yaml`, you have to separate those images. You can follow the below pattern:
+```text
+images:
+  config_reloader:
+    repository: rancher/mirrored-jimmidyson-configmap-reload
+    tag: v0.4.0
+  fluentbit:
+    repository: rancher/mirrored-fluent-fluent-bit
+    tag: 1.7.9
+  fluentbit_debug:
+    repository: rancher/mirrored-fluent-fluent-bit
+    tag: 1.7.9-debug
+  fluentd:
+    repository: rancher/mirrored-banzaicloud-fluentd
+    tag: v1.12.4-alpine-1
+  nodeagent_fluentbit:
+    os: "windows"
+    repository: rancher/fluent-bit
+    tag: 1.7.4
+```
+
+Every image repository has to be added against `repository` and it's tag should be added against `tag`. Rancher release script reads images and tags with these keys and populates `rancher-images.txt` file as one of its release assets.
+
 ### Porting over Charts / Assets from another Branch
 
 In the Staging branch, porting over charts from another branch (e.g. `dev-v2.x+1`) requires you to copy the contents of that branch into your Staging branch, which can be done with the following simple Bash script. However, you will need to manually regenerate the Helm index since you only want the index.yaml on the Staging branch to be updated to include the new chart.
