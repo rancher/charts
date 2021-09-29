@@ -61,6 +61,21 @@ spec:
     {{- with .Values.fluentbit.resources }}
     resources: {{- toYaml . | nindent 6 }}
     {{- end }}
+    {{- if (include "requireFilterKubernetes" .) }}
+    filterKubernetes:
+      {{- if .Values.fluentbit.filterKubernetes.Merge_Log }}
+      Merge_Log: "{{ .Values.fluentbit.filterKubernetes.Merge_Log }}"
+      {{- end }}
+      {{- if .Values.fluentbit.filterKubernetes.Merge_Log_Key }}
+      Merge_Log_Key: "{{ .Values.fluentbit.filterKubernetes.Merge_Log_Key }}"
+      {{- end }}
+      {{- if .Values.fluentbit.filterKubernetes.Merge_Log_Trim }}
+      Merge_Log_Trim: "{{ .Values.fluentbit.filterKubernetes.Merge_Log_Trim }}"
+      {{- end }}
+      {{- if .Values.fluentbit.filterKubernetes.Merge_Parser }}
+      Merge_Parser: "{{ .Values.fluentbit.filterKubernetes.Merge_Parser }}"
+      {{- end }}
+    {{- end }}
   fluentd:
     image:
       repository: {{ template "system_default_registry" . }}{{ .Values.images.fluentd.repository }}
