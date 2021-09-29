@@ -7,8 +7,11 @@ items:
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: RoleBinding
   metadata:
-    name: apiserver-authentication-reader
-    namespace: kube-system
+    name: servicecatalog.k8s.io:apiserver-authentication-reader
+    labels:
+      vsphere-cpi-infra: role-binding
+      component: {{ .Chart.Name }}-cloud-controller-manager
+    namespace: {{ .Release.Namespace }}
   roleRef:
     apiGroup: rbac.authorization.k8s.io
     kind: Role
@@ -25,6 +28,9 @@ items:
   kind: ClusterRoleBinding
   metadata:
     name: {{ .Chart.Name }}-cloud-controller-manager
+    labels:
+      vsphere-cpi-infra: cluster-role-binding
+      component: {{ .Chart.Name }}-cloud-controller-manager
   roleRef:
     apiGroup: rbac.authorization.k8s.io
     kind: ClusterRole

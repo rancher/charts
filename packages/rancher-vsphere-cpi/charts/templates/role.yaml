@@ -3,7 +3,10 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ .Chart.Name }}-cloud-controller-manager
+  name: system:{{ .Chart.Name }}-cloud-controller-manager
+  labels:
+    vsphere-cpi-infra: role
+    component: {{ .Chart.Name }}-cloud-controller-manager
 rules:
 - apiGroups:
   - ""
@@ -18,7 +21,7 @@ rules:
   resources:
   - nodes
   verbs:
-  - '*'
+  - "*"
 - apiGroups:
   - ""
   resources:
@@ -82,9 +85,9 @@ rules:
   resources:
   - leases
   verbs:
+  - create
   - get
   - list
   - watch
-  - create
   - update
 {{- end -}}
