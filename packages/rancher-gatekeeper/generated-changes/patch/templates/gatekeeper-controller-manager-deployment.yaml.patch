@@ -1,11 +1,22 @@
 --- charts-original/templates/gatekeeper-controller-manager-deployment.yaml
 +++ charts/templates/gatekeeper-controller-manager-deployment.yaml
-@@ -71,7 +71,7 @@
+@@ -71,8 +71,8 @@
            valueFrom:
              fieldRef:
                fieldPath: metadata.name
 -        image: '{{ .Values.image.repository }}:{{ .Values.image.release }}'
-+        image: '{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}'
-         imagePullPolicy: '{{ .Values.image.pullPolicy }}'
+-        imagePullPolicy: '{{ .Values.image.pullPolicy }}'
++        image: '{{ template "system_default_registry" . }}{{ .Values.images.gatekeeper.repository }}:{{ .Values.images.gatekeeper.tag }}'
++        imagePullPolicy: '{{ .Values.images.pullPolicy }}'
          livenessProbe:
            httpGet:
+             path: /healthz
+@@ -109,7 +109,7 @@
+           readOnly: true
+       hostNetwork: {{ .Values.controllerManager.hostNetwork }}
+       imagePullSecrets:
+-        {{- toYaml .Values.image.pullSecrets | nindent 8 }}
++        {{- toYaml .Values.images.pullSecrets | nindent 8 }}
+       nodeSelector:
+         {{- toYaml .Values.controllerManager.nodeSelector | nindent 8 }}
+       {{- if .Values.controllerManager.priorityClassName }} 
