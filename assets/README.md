@@ -1,3 +1,3 @@
 ## Assets
 
-This folder contains Helm chart archives that may or may not have been released yet.
+This folder contains Helm chart archives that are served from charts.rancher.io.
