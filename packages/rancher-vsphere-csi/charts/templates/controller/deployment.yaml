@@ -16,19 +16,48 @@ spec:
         role: vsphere-csi
     spec:
       serviceAccountName: vsphere-csi-controller
-      nodeSelector:
       {{- if .Values.csiController.nodeSelector }}
+      nodeSelector:
       {{- with .Values.csiController.nodeSelector }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- else }}
-        node-role.kubernetes.io/controlplane: "true"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              # RKE node selector label
+              - key: node-role.kubernetes.io/controlplane
+                operator: In
+                values:
+                - "true"
+            - matchExpressions:
+              # RKE2 node selector label
+              - key: node-role.kubernetes.io/control-plane
+                operator: In
+                values:
+                - "true"
       {{- end }}
       tolerations:
+        # Rancher specific change: These tolerations are intentionally different from upstream to avoid lessening the scope to only NoSchedule with a specific key
+        # - key: node-role.kubernetes.io/master
+        #   operator: Exists
+        #   effect: NoSchedule
         - operator: "Exists"
           effect: NoSchedule
         - operator: "Exists"
           effect: NoExecute
+        # uncomment below toleration if you need an aggressive pod eviction in case when
+        # node becomes not-ready or unreachable. Default is 300 seconds if not specified.
+        #- key: node.kubernetes.io/not-ready
+        #  operator: Exists
+        #  effect: NoExecute
+        #  tolerationSeconds: 30
+        #- key: node.kubernetes.io/unreachable
+        #  operator: Exists
+        #  effect: NoExecute
+        #  tolerationSeconds: 30
       dnsPolicy: "Default"
       containers:
         - name: csi-attacher
@@ -38,6 +67,8 @@ spec:
             - "--timeout=300s"
             - "--csi-address=$(ADDRESS)"
             - "--leader-election"
+            - "--kube-api-qps=100"
+            - "--kube-api-burst=100"
           env:
             - name: ADDRESS
               value: /csi/csi.sock
@@ -50,7 +81,10 @@ spec:
           args:
             - "--v=4"
             - "--timeout=300s"
+            - "--handle-volume-inuse-error=false"
             - "--csi-address=$(ADDRESS)"
+            - "--kube-api-qps=100"
+            - "--kube-api-burst=100"
             - "--leader-election"
           env:
             - name: ADDRESS
@@ -70,6 +104,10 @@ spec:
               value: unix:///csi/csi.sock
             - name: X_CSI_MODE
               value: "controller"
+            - name: X_CSI_SPEC_DISABLE_LEN_CHECK
+              value: "true"
+            - name: X_CSI_SERIAL_VOL_ACCESS_TIMEOUT
+              value: 3m
             - name: VSPHERE_CSI_CONFIG
               value: "/etc/cloud/csi-vsphere.conf"
             - name: LOGGER_LEVEL
@@ -91,6 +129,9 @@ spec:
           ports:
             - name: healthz
               containerPort: 9808
+              protocol: TCP
+            - name: prometheus
+              containerPort: 2112
               protocol: TCP
           livenessProbe:
             httpGet:
@@ -115,6 +156,10 @@ spec:
             - "--fss-name=internal-feature-states.csi.vsphere.vmware.com"
             - "--fss-namespace=$(CSI_NAMESPACE)"
           imagePullPolicy: "Always"
+          ports:
+            - containerPort: 2113
+              name: prometheus
+              protocol: TCP
           env:
             - name: FULL_SYNC_INTERVAL_MINUTES
               value: "30"
@@ -140,6 +185,8 @@ spec:
             - "--v=4"
             - "--timeout=300s"
             - "--csi-address=$(ADDRESS)"
+            - "--kube-api-qps=100"
+            - "--kube-api-burst=100"
             - "--leader-election"
             - "--default-fstype=ext4"
             # needed only for topology aware setup
@@ -157,20 +204,3 @@ spec:
           secretName: {{ .Values.vCenter.configSecret.name }}
       - name: socket-dir
         emptyDir: {}
----
-apiVersion: v1
-data:
-  "csi-migration": {{ .Values.csiMigration.enabled | quote }}
-kind: ConfigMap
-metadata:
-  name: internal-feature-states.csi.vsphere.vmware.com
-  namespace: {{ .Release.Namespace }}
----
-apiVersion: storage.k8s.io/v1 # For k8s 1.17 or lower use storage.k8s.io/v1beta1
-kind: CSIDriver
-metadata:
-  name: csi.vsphere.vmware.com
-spec:
-  attachRequired: true
-  podInfoOnMount: false
----

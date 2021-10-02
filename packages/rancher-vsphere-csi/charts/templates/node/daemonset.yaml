@@ -18,7 +18,9 @@ spec:
         app: vsphere-csi-node
         role: vsphere-csi
     spec:
-      dnsPolicy: "Default"
+      serviceAccountName: vsphere-csi-node
+      hostNetwork: true
+      dnsPolicy: "ClusterFirstWithHostNet"
       containers:
       - name: node-driver-registrar
         image: "{{ template "system_default_registry" . }}{{ .Values.csiNode.image.nodeDriverRegistrar.repository }}:{{ .Values.csiNode.image.nodeDriverRegistrar.tag }}"
@@ -32,8 +34,6 @@ spec:
           value: /csi/csi.sock
         - name: DRIVER_REG_SOCK_PATH
           value: {{ .Values.csiNode.prefixPath }}/var/lib/kubelet/plugins/csi.vsphere.vmware.com/csi.sock
-        securityContext:
-          privileged: true
         volumeMounts:
         - name: plugin-dir
           mountPath: /csi
@@ -61,15 +61,17 @@ spec:
               fieldPath: spec.nodeName
         - name: CSI_ENDPOINT
           value: unix:///csi/csi.sock
+        - name: MAX_VOLUMES_PER_NODE
+          value: "0" # Maximum number of volumes that controller can publish to the node. If value is not set or zero Kubernetes decide how many volumes can be published by the controller to the node.
         - name: X_CSI_MODE
           value: "node"
         - name: X_CSI_SPEC_REQ_VALIDATION
           value: "false"
+        - name: X_CSI_SPEC_DISABLE_LEN_CHECK
+          value: "true"
         # needed only for topology aware setups
         #- name: VSPHERE_CSI_CONFIG
         #  value: "/etc/cloud/csi-vsphere.conf" # here csi-vsphere.conf is the name of the file used for creating secret using "--from-file" flag
-        - name: X_CSI_DEBUG
-          value: "true"
         - name: LOGGER_LEVEL
           value: "PRODUCTION" # Options: DEVELOPMENT, PRODUCTION
         - name: CSI_NAMESPACE
@@ -95,15 +97,22 @@ spec:
           mountPropagation: "Bidirectional"
         - name: device-dir
           mountPath: /dev
+        - name: blocks-dir
+          mountPath: /sys/block
+        - name: sys-devices-dir
+          mountPath: /sys/devices
         ports:
-          - containerPort: 9808
-            name: healthz
+          - name: healthz
+            containerPort: 9808
+            protocol: TCP
         livenessProbe:
           httpGet:
             path: /healthz
             port: healthz
           initialDelaySeconds: 10
           timeoutSeconds: 5
+          periodSeconds: 5
+          failureThreshold: 3
       - name: liveness-probe
         image: "{{ template "system_default_registry" . }}{{ .Values.csiNode.image.livenessProbe.repository }}:{{ .Values.csiNode.image.livenessProbe.tag }}"
         args:
@@ -132,6 +141,14 @@ spec:
       - name: device-dir
         hostPath:
           path: /dev
+      - name: blocks-dir
+        hostPath:
+          path: /sys/block
+          type: Directory
+      - name: sys-devices-dir
+        hostPath:
+          path: /sys/devices
+          type: Directory
       tolerations:
         - effect: NoExecute
           operator: Exists
