@@ -11,6 +11,18 @@ installer:
   ##for airgap setups. Setting releaseMirror.enabled to false means istio will call externally to github to fetch the required assets.
   releaseMirror:
     enabled: false
+    ##If the image you need is not packaged with the rancher/istio-installer, create a volume mount with the istio-{{ .Values.installer.additionalIstioImage.tag }}-linux-amd64.tar.gz
+    ##file in it and set the additionalIstioImage values to connect to the volume prior to installing/upgrading your rancher-istio chart.  
+    additionalIstioImage:
+      enabled: false
+      volumeMountName: rancher-istio-additional-image
+      volumes:
+        - name: rancher-istio-additional-image
+          persistentVolumeClaim:
+            claimName: rancher-istio-additional-image
+            readOnly: false
+      tag: 1.10.4
+      
   ##Set the secondsSleep to run a sleep command `sleep <secondsSleep>s` to allow time to exec into istio-installer pod for debugging
   debug:
     secondsSleep: 0
