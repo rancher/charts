@@ -45,21 +45,23 @@ spec:
                 values:
                 - "true"
       {{- end }}
+      {{- if .Values.cloudControllerManager.tolerations }}
       tolerations:
-        # Rancher specific change: These tolerations are intentionally different from upstream to avoid lessening the scope to only NoSchedule with a specific key
-        # - key: node.cloudprovider.kubernetes.io/uninitialized
-        #   value: "true"
-        #   effect: NoSchedule
-        # - key: node-role.kubernetes.io/master
-        #   effect: NoSchedule
-        #   operator: Exists
-        # - key: node.kubernetes.io/not-ready
-        #   effect: NoSchedule
-        #   operator: Exists
-        - effect: NoExecute
+      {{- with .Values.cloudControllerManager.tolerations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- else }}
+      tolerations:
+        - key: node.cloudprovider.kubernetes.io/uninitialized
+          value: "true"
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
           operator: Exists
-        - effect: NoSchedule
+        - key: node.kubernetes.io/not-ready
+          effect: NoSchedule
           operator: Exists
+      {{- end }}
       securityContext:
         runAsUser: 1001
       serviceAccountName: {{ .Chart.Name }}-cloud-controller-manager
