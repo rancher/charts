@@ -11,6 +11,12 @@ spec:
   backoffLimit: 1
   template:
     spec:
+      {{- if .Values.installer.releaseMirror.enabled }}
+      hostAliases:
+      - ip: "127.0.0.1"
+        hostnames:
+        - "github.com"
+      {{- end }}
       containers:
         - name: istioctl-installer
           image: {{ template "system_default_registry" . }}{{ .Values.installer.repository }}:{{ .Values.installer.tag }}
@@ -21,6 +27,10 @@ spec:
             value: {{ template "istio.namespace" . }}
           - name: FORCE_INSTALL
             value: {{ .Values.forceInstall | default "false" | quote }}
+          - name: RELEASE_MIRROR_ENABLED
+            value: {{ .Values.installer.releaseMirror.enabled | quote }}
+          - name: SECONDS_SLEEP
+            value: {{ .Values.installer.debug.secondsSleep | quote}}
           command: ["/bin/sh","-c"]
           args: ["/usr/local/app/scripts/run.sh"]
           volumeMounts:
@@ -42,9 +52,7 @@ spec:
             name: istio-installer-overlay
         {{- end }}
       serviceAccountName: istio-installer
-      {{- if .Values.global.rbac.pspEnabled }}
       securityContext:
         runAsUser: 101
         runAsGroup: 101
-      {{- end }}
       restartPolicy: Never
