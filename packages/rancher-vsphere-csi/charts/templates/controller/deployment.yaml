@@ -39,25 +39,17 @@ spec:
                 values:
                 - "true"
       {{- end }}
+      {{- if .Values.csiController.tolerations }}
       tolerations:
-        # Rancher specific change: These tolerations are intentionally different from upstream to avoid lessening the scope to only NoSchedule with a specific key
-        # - key: node-role.kubernetes.io/master
-        #   operator: Exists
-        #   effect: NoSchedule
-        - operator: "Exists"
+      {{- with .Values.csiController.tolerations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- else }}
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
           effect: NoSchedule
-        - operator: "Exists"
-          effect: NoExecute
-        # uncomment below toleration if you need an aggressive pod eviction in case when
-        # node becomes not-ready or unreachable. Default is 300 seconds if not specified.
-        #- key: node.kubernetes.io/not-ready
-        #  operator: Exists
-        #  effect: NoExecute
-        #  tolerationSeconds: 30
-        #- key: node.kubernetes.io/unreachable
-        #  operator: Exists
-        #  effect: NoExecute
-        #  tolerationSeconds: 30
+      {{- end }}
       dnsPolicy: "Default"
       containers:
         - name: csi-attacher
