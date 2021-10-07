@@ -6,10 +6,10 @@
  image:
 -  repository: ghcr.io/banzaicloud/logging-operator
 +  repository: rancher/mirrored-banzaicloud-logging-operator
-   tag: 3.14.0
+   tag: 3.9.4
    pullPolicy: IfNotPresent
  
-@@ -38,9 +38,14 @@
+@@ -37,9 +37,14 @@
    #   cpu: 100m
    #   memory: 128Mi
  
@@ -26,7 +26,7 @@
  
  affinity: {}
  
-@@ -56,6 +61,9 @@
+@@ -55,6 +60,9 @@
      # Labels to query http service
      labels: {}
  
@@ -36,7 +36,7 @@
  rbac:
    enabled: true
    psp:
-@@ -95,3 +103,109 @@
+@@ -85,3 +93,84 @@
      additionalLabels: {}
      metricRelabelings: []
      relabelings: []
@@ -53,30 +53,15 @@
 +      mem_buffer_limit: "5MB"
 +  rke2:
 +    enabled: false
-+    stripUnderscores: false
 +  k3s:
 +    enabled: false
 +    container_engine: "systemd"
-+    stripUnderscores: false
 +  aks:
 +    enabled: false
 +  eks:
 +    enabled: false
 +  gke:
 +    enabled: false
-+  kubeAudit:
-+    auditFilename: ""
-+    enabled: false
-+    pathPrefix: ""
-+    fluentbit:
-+      logTag: kube-audit
-+      tolerations:
-+      - key: node-role.kubernetes.io/controlplane
-+        value: "true"
-+        effect: NoSchedule
-+      - key: node-role.kubernetes.io/etcd
-+        value: "true"
-+        effect: NoExecute
 +
 +images:
 +  config_reloader:
@@ -84,17 +69,17 @@
 +    tag: v0.4.0
 +  fluentbit:
 +    repository: rancher/mirrored-fluent-fluent-bit
-+    tag: 1.8.5
++    tag: 1.6.10
 +  fluentbit_debug:
 +    repository: rancher/mirrored-fluent-fluent-bit
-+    tag: 1.8.5-debug
++    tag: 1.6.10-debug
 +  fluentd:
 +    repository: rancher/mirrored-banzaicloud-fluentd
-+    tag: v1.13.3-alpine-1
++    tag: v1.11.5-alpine-12
 +  nodeagent_fluentbit:
-+    os: "windows"
++    os: "windows,linux"
 +    repository: rancher/fluent-bit
-+    tag: 1.7.4
++    tag: 1.6.10
 +
 +# These settings apply to every Logging CR, including vendor Logging CRs enabled in "additionalLoggingSources".
 +# Changing these affects every Logging CR installed.
@@ -102,22 +87,13 @@
 +  tls:
 +    enabled: false
 +fluentd:
-+  bufferStorageVolume: {}
++  resources: {}
 +  livenessProbe:
 +    tcpSocket:
 +      port: 24240
 +    initialDelaySeconds: 30
 +    periodSeconds: 15
-+  nodeSelector: {}
-+  resources: {}
-+  tolerations: {}
 +fluentbit:
-+  inputTail:
-+    Buffer_Chunk_Size: ""
-+    Buffer_Max_Size: ""
-+    Mem_Buf_Limit: ""
-+    Multiline_Flush: ""
-+    Skip_Long_Lines: ""
 +  resources: {}
 +  tolerations:
 +    - key: node-role.kubernetes.io/controlplane
@@ -143,6 +119,5 @@
 +  # logging operator.
 +  psp:
 +    enabled: true
-+  rkeWindowsPathPrefix: "c:\\"
 +  seLinux:
 +    enabled: false
