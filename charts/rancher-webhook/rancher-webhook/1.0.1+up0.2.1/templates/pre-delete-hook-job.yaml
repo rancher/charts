@@ -1,0 +1,26 @@
+{{- if .Values.preDelete.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rancher-webhook-pre-delete
+  namespace: {{ .Release.Namespace }}
+  labels: {{ include "rancher-webhook.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-weight": "3"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      name: rancher-webhook-pre-delete
+      labels: {{ include "rancher-webhook.labels" . | nindent 8 }}
+    spec:
+      serviceAccountName: rancher-webhook-pre-delete
+      restartPolicy: OnFailure
+      containers:
+        - name: rancher-webhook-pre-delete
+          image: "{{ include "system_default_registry" . }}{{ .Values.preDelete.image.repository }}:{{ .Values.preDelete.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          command: [ "kubectl", "delete", "--ignore-not-found=true", "mutatingwebhookconfigurations", "rancher.cattle.io" ]
+{{- end }}
