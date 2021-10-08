@@ -1,0 +1,93 @@
+replicas: 3
+auditInterval: 300
+auditMatchKindOnly: false
+constraintViolationsLimit: 20
+auditFromCache: false
+disableValidatingWebhook: false
+validatingWebhookTimeoutSeconds: 3
+validatingWebhookFailurePolicy: Ignore
+validatingWebhookCheckIgnoreFailurePolicy: Fail
+enableDeleteOperations: false
+experimentalEnableMutation: false
+auditChunkSize: 0
+logLevel: INFO
+logDenies: false
+emitAdmissionEvents: false
+emitAuditEvents: false
+resourceQuota: true
+postInstall:
+  labelNamespace:
+    enabled: true
+    image:
+      repository: rancher/kubectl
+      tag: v1.20.2
+      pullPolicy: IfNotPresent
+      pullSecrets: []
+images:
+  gatekeeper:
+    repository: rancher/mirrored-openpolicyagent-gatekeeper
+    tag: v3.6.0
+  gatekeepercrd:
+    repository: rancher/mirrored-openpolicyagent-gatekeeper-crds
+    tag: v3.6.0
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+podAnnotations:
+  { container.seccomp.security.alpha.kubernetes.io/manager: runtime/default }
+podLabels: {}
+podCountLimit: 100
+secretAnnotations: {}
+controllerManager:
+  exemptNamespaces: []
+  hostNetwork: false
+  port: 8443
+  metricsPort: 8888
+  healthPort: 9090
+  priorityClassName: system-cluster-critical
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: gatekeeper.sh/operation
+                  operator: In
+                  values:
+                    - webhook
+            topologyKey: kubernetes.io/hostname
+          weight: 100
+  tolerations: []
+  nodeSelector: { kubernetes.io/os: linux }
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+audit:
+  hostNetwork: false
+  metricsPort: 8888
+  healthPort: 9090
+  priorityClassName: system-cluster-critical
+  affinity: {}
+  tolerations: []
+  nodeSelector: { kubernetes.io/os: linux }
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+pdb:
+  controllerManager:
+    minAvailable: 1
+global:
+  cattle:
+    systemDefaultRegistry: ""
+  kubectl:
+    repository: rancher/kubectl
+    tag: v1.20.2
+service: {}
+disabledBuiltins:
