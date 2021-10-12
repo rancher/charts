@@ -15,6 +15,15 @@
    name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" $) "etcd" | trunc 63 | trimSuffix "-" }}
    annotations:
  {{ toYaml .Values.grafana.sidecar.dashboards.annotations | indent 4 }}
+@@ -1061,7 +1062,7 @@
+                         "value": "prod"
+                     },
+                     "datasource": "$datasource",
+-                    "hide": {{ if .Values.grafana.sidecar.dashboards.multicluster }}0{{ else }}2{{ end }},
++                    "hide": {{ if (or .Values.grafana.sidecar.dashboards.multicluster.global.enabled .Values.grafana.sidecar.dashboards.multicluster.etcd.enabled) }}0{{ else }}2{{ end }},
+                     "includeAll": false,
+                     "label": "cluster",
+                     "multi": false,
 @@ -1113,4 +1114,5 @@
          "title": "etcd",
          "version": 215
