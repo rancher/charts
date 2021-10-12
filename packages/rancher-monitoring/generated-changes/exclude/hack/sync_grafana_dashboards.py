@@ -26,7 +26,7 @@ def change_style(style, representer):
 # Source files list
 charts = [
     {
-        'source': 'https://raw.githubusercontent.com/prometheus-operator/kube-prometheus/master/manifests/grafana-dashboardDefinitions.yaml',
+        'source': 'https://raw.githubusercontent.com/prometheus-operator/kube-prometheus/main/manifests/grafana-dashboardDefinitions.yaml',
         'destination': '../templates/grafana/dashboards-1.14',
         'type': 'yaml',
         'min_kubernetes': '1.14.0-0'
@@ -116,7 +116,7 @@ def patch_json_for_multicluster_configuration(content):
         content_array = []
         original_content_lines = content.split('\n')
         for i, line in enumerate(json.dumps(content_struct, indent=4).split('\n')):
-            if ('[]' not in line and '{}' not in line) or line == original_content_lines[i]:
+            if (' []' not in line and ' {}' not in line) or line == original_content_lines[i]:
                 content_array.append(line)
                 continue
 
