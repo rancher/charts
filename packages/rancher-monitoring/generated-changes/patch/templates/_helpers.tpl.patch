@@ -140,3 +140,17 @@
  app.kubernetes.io/part-of: {{ template "kube-prometheus-stack.name" . }}
  chart: {{ template "kube-prometheus-stack.chartref" . }}
  release: {{ $.Release.Name | quote }}
+@@ -98,7 +225,12 @@
+ 
+ {{/* Allow KubeVersion to be overridden. */}}
+ {{- define "kube-prometheus-stack.ingress.kubeVersion" -}}
+-  {{- default .Capabilities.KubeVersion.Version .Values.kubeVersionOverride -}}
++  {{- $kubeVersion := default .Capabilities.KubeVersion.Version .Values.kubeVersionOverride -}}
++  {{/* Special use case for Amazon EKS, Google GKE */}}
++  {{- if and (regexMatch "\\d+\\.\\d+\\.\\d+-(?:eks|gke).+" $kubeVersion) (not .Values.kubeVersionOverride) -}}
++    {{- $kubeVersion = regexFind "\\d+\\.\\d+\\.\\d+" $kubeVersion -}}
++  {{- end -}}
++  {{- $kubeVersion -}}
+ {{- end -}}
+ 
+ {{/* Get Ingress API Version */}}

@@ -34,7 +34,26 @@
  {{ toYaml .Values.prometheus.prometheusSpec.tolerations | indent 4 }}
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.topologySpreadConstraints }}
-@@ -266,7 +268,7 @@
+@@ -254,11 +256,17 @@
+     name: {{ .Values.prometheus.prometheusSpec.additionalScrapeConfigsSecret.name }}
+     key: {{ .Values.prometheus.prometheusSpec.additionalScrapeConfigsSecret.key }}
+ {{- end }}
+-{{- if .Values.prometheus.prometheusSpec.additionalAlertManagerConfigs }}
++{{- if or .Values.prometheus.prometheusSpec.additionalAlertManagerConfigs .Values.prometheus.prometheusSpec.additionalAlertManagerConfigsSecret }}
+   additionalAlertManagerConfigs:
++{{- if .Values.prometheus.prometheusSpec.additionalAlertManagerConfigs }}
+     name: {{ template "kube-prometheus-stack.fullname" . }}-prometheus-am-confg
+     key: additional-alertmanager-configs.yaml
+ {{- end }}
++{{- if .Values.prometheus.prometheusSpec.additionalAlertManagerConfigsSecret }}
++    name: {{ .Values.prometheus.prometheusSpec.additionalAlertManagerConfigsSecret.name }}
++    key: {{ .Values.prometheus.prometheusSpec.additionalAlertManagerConfigsSecret.key }}
++{{- end }}
++{{- end }}
+ {{- if .Values.prometheus.prometheusSpec.additionalAlertRelabelConfigs }}
+   additionalAlertRelabelConfigs:
+     name: {{ template "kube-prometheus-stack.fullname" . }}-prometheus-am-relabel-confg
+@@ -266,7 +274,7 @@
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.containers }}
    containers:
@@ -43,7 +62,7 @@
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.initContainers }}
    initContainers:
-@@ -282,6 +284,7 @@
+@@ -282,6 +290,7 @@
  {{- if .Values.prometheus.prometheusSpec.disableCompaction }}
    disableCompaction: {{ .Values.prometheus.prometheusSpec.disableCompaction }}
  {{- end }}
@@ -51,7 +70,7 @@
    portName: {{ .Values.prometheus.prometheusSpec.portName }}
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.volumes }}
-@@ -326,3 +329,4 @@
+@@ -326,3 +335,4 @@
  {{- if .Values.prometheus.prometheusSpec.allowOverlappingBlocks }}
    allowOverlappingBlocks: {{ .Values.prometheus.prometheusSpec.allowOverlappingBlocks }}
  {{- end }}
