@@ -1,14 +1,5 @@
 --- charts-original/templates/grafana/dashboards-1.14/statefulset.yaml
 +++ charts/templates/grafana/dashboards-1.14/statefulset.yaml
-@@ -8,7 +8,7 @@
- apiVersion: v1
- kind: ConfigMap
- metadata:
--  namespace: {{ template "kube-prometheus-stack.namespace" . }}
-+  namespace: {{ template "kube-prometheus-stack-grafana.namespace" . }}
-   name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" $) "statefulset" | trunc 63 | trimSuffix "-" }}
-   annotations:
- {{ toYaml .Values.grafana.sidecar.dashboards.annotations | indent 4 }}
 @@ -106,7 +106,7 @@
                          "tableColumn": "",
                          "targets": [
@@ -36,13 +27,7 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "",
-@@ -920,9 +920,9 @@
-                 "30d"
-             ]
-         },
--        "timezone": "UTC",
-+        "timezone": "{{ .Values.grafana.defaultDashboardsTimezone }}",
-         "title": "Kubernetes / StatefulSets",
+@@ -925,4 +925,4 @@
          "uid": "a31c1f46e6f727cb37c0d731a7245005",
          "version": 0
      }
