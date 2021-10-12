@@ -1,0 +1,36 @@
+--- charts-original/templates/exporters/kube-state-metrics/serviceMonitor.yaml
++++ charts/templates/exporters/kube-state-metrics/serviceMonitor.yaml
+@@ -10,7 +10,7 @@
+ spec:
+   jobLabel: app.kubernetes.io/name
+   endpoints:
+-  - port: http
++  - port: metrics
+     {{- if .Values.kubeStateMetrics.serviceMonitor.interval }}
+     interval: {{ .Values.kubeStateMetrics.serviceMonitor.interval }}
+     {{- end }}
+@@ -26,6 +26,24 @@
+     relabelings:
+ {{ toYaml .Values.kubeStateMetrics.serviceMonitor.relabelings | indent 4 }}
+ {{- end }}
++{{- if .Values.kubeStateMetrics.serviceMonitor.selfMonitor.enabled }}
++  - port: metrics
++    {{- if .Values.kubeStateMetrics.serviceMonitor.interval }}
++    interval: {{ .Values.kubeStateMetrics.serviceMonitor.interval }}
++    {{- end }}
++    {{- if .Values.kubeStateMetrics.serviceMonitor.proxyUrl }}
++    proxyUrl: {{ .Values.kubeStateMetrics.serviceMonitor.proxyUrl}}
++    {{- end }}
++    honorLabels: true
++{{- if .Values.kubeStateMetrics.serviceMonitor.metricRelabelings }}
++    metricRelabelings:
++{{ tpl (toYaml .Values.kubeStateMetrics.serviceMonitor.metricRelabelings | indent 4) . }}
++{{- end }}
++{{- if .Values.kubeStateMetrics.serviceMonitor.relabelings }}
++    relabelings:
++{{ toYaml .Values.kubeStateMetrics.serviceMonitor.relabelings | indent 4 }}
++{{- end }}
++{{- end }}
+ {{- if .Values.kubeStateMetrics.serviceMonitor.namespaceOverride }}
+   namespaceSelector:
+     matchNames:

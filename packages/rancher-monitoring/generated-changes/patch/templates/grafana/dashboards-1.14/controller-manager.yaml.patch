@@ -1,6 +1,10 @@
 --- charts-original/templates/grafana/dashboards-1.14/controller-manager.yaml
 +++ charts/templates/grafana/dashboards-1.14/controller-manager.yaml
-@@ -4,11 +4,12 @@
+@@ -1,14 +1,15 @@
+ {{- /*
+-Generated from 'controller-manager' from https://raw.githubusercontent.com/prometheus-operator/kube-prometheus/master/manifests/grafana-dashboardDefinitions.yaml
++Generated from 'controller-manager' from https://raw.githubusercontent.com/prometheus-operator/kube-prometheus/main/manifests/grafana-dashboardDefinitions.yaml
+ Do not change in-place! In order to change this file first read following link:
  https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack/hack
  */ -}}
  {{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion .Values.kubeTargetVersionOverride }}
@@ -28,33 +32,45 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "",
-@@ -176,7 +181,7 @@
+@@ -176,10 +181,10 @@
                          "steppedLine": false,
                          "targets": [
                              {
 -                                "expr": "sum(rate(workqueue_adds_total{cluster=\"$cluster\", job=\"kube-controller-manager\", instance=~\"$instance\"}[5m])) by (instance, name)",
-+                                "expr": "sum(rate(workqueue_adds_total{cluster=\"$cluster\", job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\", instance=~\"$instance\"}[5m])) by (instance, name)",
++                                "expr": "sum(rate(workqueue_adds_total{cluster=\"$cluster\", job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\", instance=~\"$instance\"}[5m])) by (cluster, instance, name)",
                                  "format": "time_series",
                                  "intervalFactor": 2,
-                                 "legendFormat": "{{`{{`}}instance{{`}}`}} {{`{{`}}name{{`}}`}}",
-@@ -282,7 +287,7 @@
+-                                "legendFormat": "{{`{{`}}instance{{`}}`}} {{`{{`}}name{{`}}`}}",
++                                "legendFormat": "{{`{{`}}cluster{{`}}`}} {{`{{`}}instance{{`}}`}} {{`{{`}}name{{`}}`}}",
+                                 "refId": "A"
+                             }
+                         ],
+@@ -282,10 +287,10 @@
                          "steppedLine": false,
                          "targets": [
                              {
 -                                "expr": "sum(rate(workqueue_depth{cluster=\"$cluster\", job=\"kube-controller-manager\", instance=~\"$instance\"}[5m])) by (instance, name)",
-+                                "expr": "sum(rate(workqueue_depth{cluster=\"$cluster\", job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\", instance=~\"$instance\"}[5m])) by (instance, name)",
++                                "expr": "sum(rate(workqueue_depth{cluster=\"$cluster\", job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\", instance=~\"$instance\"}[5m])) by (cluster, instance, name)",
                                  "format": "time_series",
                                  "intervalFactor": 2,
-                                 "legendFormat": "{{`{{`}}instance{{`}}`}} {{`{{`}}name{{`}}`}}",
-@@ -388,7 +393,7 @@
+-                                "legendFormat": "{{`{{`}}instance{{`}}`}} {{`{{`}}name{{`}}`}}",
++                                "legendFormat": "{{`{{`}}cluster{{`}}`}} {{`{{`}}instance{{`}}`}} {{`{{`}}name{{`}}`}}",
+                                 "refId": "A"
+                             }
+                         ],
+@@ -388,10 +393,10 @@
                          "steppedLine": false,
                          "targets": [
                              {
 -                                "expr": "histogram_quantile(0.99, sum(rate(workqueue_queue_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-controller-manager\", instance=~\"$instance\"}[5m])) by (instance, name, le))",
-+                                "expr": "histogram_quantile(0.99, sum(rate(workqueue_queue_duration_seconds_bucket{cluster=\"$cluster\", job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\", instance=~\"$instance\"}[5m])) by (instance, name, le))",
++                                "expr": "histogram_quantile(0.99, sum(rate(workqueue_queue_duration_seconds_bucket{cluster=\"$cluster\", job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\", instance=~\"$instance\"}[5m])) by (cluster, instance, name, le))",
                                  "format": "time_series",
                                  "intervalFactor": 2,
-                                 "legendFormat": "{{`{{`}}instance{{`}}`}} {{`{{`}}name{{`}}`}}",
+-                                "legendFormat": "{{`{{`}}instance{{`}}`}} {{`{{`}}name{{`}}`}}",
++                                "legendFormat": "{{`{{`}}cluster{{`}}`}} {{`{{`}}instance{{`}}`}} {{`{{`}}name{{`}}`}}",
+                                 "refId": "A"
+                             }
+                         ],
 @@ -494,28 +499,28 @@
                          "steppedLine": false,
                          "targets": [
