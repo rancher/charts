@@ -11,7 +11,7 @@
  kind: ConfigMap
  metadata:
 -  namespace: {{ template "kube-prometheus-stack.namespace" . }}
-+  namespace: {{ .Values.grafana.defaultDashboards.namespace }}
++  namespace: {{ template "kube-prometheus-stack-grafana.namespace" . }}
    name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" $) "proxy" | trunc 63 | trimSuffix "-" }}
    annotations:
  {{ toYaml .Values.grafana.sidecar.dashboards.annotations | indent 4 }}
@@ -151,7 +151,13 @@
                      "refresh": 2,
                      "regex": "",
                      "sort": 1,
-@@ -1254,4 +1259,4 @@
+@@ -1249,9 +1254,9 @@
+                 "30d"
+             ]
+         },
+-        "timezone": "UTC",
++        "timezone": "{{ .Values.grafana.defaultDashboardsTimezone }}",
+         "title": "Kubernetes / Proxy",
          "uid": "632e265de029684c40b21cb76bca4f94",
          "version": 0
      }
