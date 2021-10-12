@@ -528,24 +528,7 @@
    ## ForceDeployDatasources Create datasource configmap even if grafana deployment has been disabled
    ##
    forceDeployDatasources: false
-@@ -631,10 +1098,15 @@
-   ##
-   forceDeployDashboards: false
- 
--  ## Deploy default dashboards.
-+  ## Deploy default dashboards
-   ##
-   defaultDashboardsEnabled: true
- 
-+  ## Timezone for the default dashboards
-+  ## Other options are: browser or a specific timezone, i.e. Europe/Luxembourg
-+  ##
-+  defaultDashboardsTimezone: utc
-+
-   adminPassword: prom-operator
- 
-   ingress:
-@@ -674,6 +1146,7 @@
+@@ -679,6 +1146,7 @@
      dashboards:
        enabled: true
        label: grafana_dashboard
@@ -553,16 +536,7 @@
  
        ## Annotations for Grafana dashboard configmaps
        ##
-@@ -683,6 +1156,8 @@
-           enabled: false
-         etcd:
-           enabled: false
-+      provider:
-+        allowUiUpdates: false
-     datasources:
-       enabled: true
-       defaultDatasourceEnabled: true
-@@ -730,7 +1205,60 @@
+@@ -737,7 +1205,60 @@
    ## Passed to grafana subchart and used by servicemonitor below
    ##
    service:
@@ -624,7 +598,7 @@
  
    ## If true, create a serviceMonitor for grafana
    ##
-@@ -760,6 +1288,14 @@
+@@ -767,6 +1288,14 @@
      #   targetLabel: nodename
      #   replacement: $1
      #   action: replace
@@ -639,7 +613,7 @@
  
  ## Component scraping the kube api server
  ##
-@@ -921,7 +1457,7 @@
+@@ -928,7 +1457,7 @@
  ## Component scraping the kube controller manager
  ##
  kubeControllerManager:
@@ -648,7 +622,7 @@
  
    ## If your kube controller manager is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1068,7 +1604,7 @@
+@@ -1075,7 +1604,7 @@
  ## Component scraping etcd
  ##
  kubeEtcd:
@@ -657,7 +631,7 @@
  
    ## If your etcd is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1133,7 +1669,7 @@
+@@ -1140,7 +1669,7 @@
  ## Component scraping kube scheduler
  ##
  kubeScheduler:
@@ -666,7 +640,7 @@
  
    ## If your kube scheduler is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1191,7 +1727,7 @@
+@@ -1198,7 +1727,7 @@
  ## Component scraping kube proxy
  ##
  kubeProxy:
@@ -675,36 +649,7 @@
  
    ## If your kube proxy is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1245,15 +1781,15 @@
-     ## Scrape interval. If not set, the Prometheus default scrape interval is used.
-     ##
-     interval: ""
-+    ## Scrape Timeout. If not set, the Prometheus default scrape timeout is used.
-+    ##
-+    scrapeTimeout: ""
-     ## proxyUrl: URL of a proxy that should be used for scraping.
-     ##
-     proxyUrl: ""
-     ## Override serviceMonitor selector
-     ##
-     selectorOverride: {}
--    ## Override namespace selector
--    ##
--    namespaceOverride: ""
- 
-     ## Metric relabel configs to apply to samples before ingestion.
-     ##
-@@ -1272,6 +1808,9 @@
-     #   replacement: $1
-     #   action: replace
- 
-+    # Keep labels from scraped data, overriding server-side labels
-+    honorLabels: true
-+
-     # Enable self metrics configuration for Service Monitor
-     selfMonitor:
-       enabled: false
-@@ -1284,6 +1823,13 @@
+@@ -1294,6 +1823,13 @@
      create: true
    podSecurityPolicy:
      enabled: true
@@ -718,7 +663,7 @@
  
  ## Deploy node exporter as a daemonset to all nodes
  ##
-@@ -1337,6 +1883,16 @@
+@@ -1347,6 +1883,16 @@
    extraArgs:
      - --collector.filesystem.ignored-mount-points=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
      - --collector.filesystem.ignored-fs-types=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$
@@ -735,7 +680,7 @@
  
  ## Manages Prometheus and Alertmanager components
  ##
-@@ -1349,8 +1905,8 @@
+@@ -1359,8 +1905,8 @@
      enabled: true
      # Value must match version names from https://golang.org/pkg/crypto/tls/#pkg-constants
      tlsMinVersion: VersionTLS13
@@ -746,20 +691,16 @@
  
    ## Admission webhook support for PrometheusRules resources added in Prometheus Operator 0.30 can be enabled to prevent incorrectly formatted
    ## rules from making their way into prometheus and potentially preventing the container from starting
-@@ -1367,9 +1923,9 @@
+@@ -1377,7 +1923,7 @@
      patch:
        enabled: true
        image:
--        repository: jettech/kube-webhook-certgen
--        tag: v1.5.2
--        sha: ""
+-        repository: k8s.gcr.io/ingress-nginx/kube-webhook-certgen
 +        repository: rancher-mirrored-k8s.gcr.io-ingress-nginx-kube-webhook-certgen
-+        tag: v1.0
-+        sha: "f3b6b39a6062328c095337b4cadcefd1612348fdd5190b1dcbcb9b9e90bd8068"
+         tag: v1.0
+         sha: "f3b6b39a6062328c095337b4cadcefd1612348fdd5190b1dcbcb9b9e90bd8068"
          pullPolicy: IfNotPresent
-       resources: {}
-       ## Provide a priority class name to the webhook patching job
-@@ -1516,13 +2072,13 @@
+@@ -1526,13 +2072,13 @@
  
    ## Resource limits & requests
    ##
@@ -780,7 +721,7 @@
  
    # Required for use in managed kubernetes clusters (such as AWS EKS) with custom CNI (such as calico),
    # because control-plane managed by AWS cannot communicate with pods' IP CIDR and admission webhooks are not working
-@@ -1575,7 +2131,7 @@
+@@ -1585,7 +2131,7 @@
    ## Prometheus-operator image
    ##
    image:
@@ -789,7 +730,7 @@
      tag: v0.50.0
      sha: ""
      pullPolicy: IfNotPresent
-@@ -1591,7 +2147,7 @@
+@@ -1601,7 +2147,7 @@
    ## Prometheus-config-reloader image to use for config and rule reloading
    ##
    prometheusConfigReloaderImage:
@@ -798,92 +739,7 @@
      tag: v0.50.0
      sha: ""
  
-@@ -1641,18 +2197,50 @@
-     enabled: false
-     annotations: {}
-     labels: {}
--    portName: grpc
--    port: 10901
--    targetPort: "grpc"
--    clusterIP: "None"
- 
-     ## Service type
-     ##
-     type: ClusterIP
- 
--    ## Port to expose on each node
-+    ## gRPC port config
-+    portName: grpc
-+    port: 10901
-+    targetPort: "grpc"
-+
-+    ## HTTP port config (for metrics)
-+    httpPortName: http
-+    httpPort: 10902
-+    targetHttpPort: "http"
-+
-+    ## ClusterIP to assign
-+    # Default is to make this a headless service ("None")
-+    clusterIP: "None"
-+
-+    ## Port to expose on each node, if service type is NodePort
-     ##
-     nodePort: 30901
-+    httpNodePort: 30902
-+
-+  # ServiceMonitor to scrape Sidecar metrics
-+  # Needs thanosService to be enabled as well
-+  thanosServiceMonitor:
-+    enabled: false
-+    interval: ""
-+
-+    ## scheme: HTTP scheme to use for scraping. Can be used with `tlsConfig` for example if using istio mTLS.
-+    scheme: ""
-+
-+    ## tlsConfig: TLS configuration to use when scraping the endpoint. For example if using istio mTLS.
-+    ## Of type: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#tlsconfig
-+    tlsConfig: {}
-+
-+    bearerTokenFile:
-+
-+    ## Metric relabel configs to apply to samples before ingestion.
-+    metricRelabelings: []
-+
-+    ## relabel configs to apply to samples before ingestion.
-+    relabelings: []
- 
-   # Service for external access to sidecar
-   # Enabling this creates a service to expose thanos-sidecar outside the cluster.
-@@ -1660,11 +2248,18 @@
-     enabled: false
-     annotations: {}
-     labels: {}
-+    loadBalancerIP: ""
-+    loadBalancerSourceRanges: []
-+
-+    ## gRPC port config
-     portName: grpc
-     port: 10901
-     targetPort: "grpc"
--    loadBalancerIP: ""
--    loadBalancerSourceRanges: []
-+
-+    ## HTTP port config (for metrics)
-+    httpPortName: http
-+    httpPort: 10902
-+    targetHttpPort: "http"
- 
-     ## Service type
-     ##
-@@ -1673,6 +2268,7 @@
-     ## Port to expose on each node
-     ##
-     nodePort: 30901
-+    httpNodePort: 30902
- 
-   ## Configuration for Prometheus service
-   ##
-@@ -1686,7 +2282,7 @@
+@@ -1736,7 +2282,7 @@
      port: 9090
  
      ## To be used with a proxy extraContainer port
@@ -892,7 +748,7 @@
  
      ## List of IP addresses at which the Prometheus server service is available
      ## Ref: https://kubernetes.io/docs/user-guide/services/#external-ips
-@@ -1959,7 +2555,7 @@
+@@ -2009,7 +2555,7 @@
      ## Image of Prometheus.
      ##
      image:
@@ -901,7 +757,7 @@
        tag: v2.28.1
        sha: ""
  
-@@ -2022,6 +2618,11 @@
+@@ -2072,6 +2618,11 @@
      ##
      externalUrl: ""
  
@@ -913,7 +769,7 @@
      ## Define which Nodes the Pods are scheduled on.
      ## ref: https://kubernetes.io/docs/user-guide/node-selection/
      ##
-@@ -2054,7 +2655,7 @@
+@@ -2104,7 +2655,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the PrometheusRule resources created
      ##
@@ -922,7 +778,7 @@
  
      ## PrometheusRules to be selected for target discovery.
      ## If {}, select all PrometheusRules
-@@ -2079,7 +2680,7 @@
+@@ -2129,7 +2680,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the servicemonitors created
      ##
@@ -931,7 +787,7 @@
  
      ## ServiceMonitors to be selected for target discovery.
      ## If {}, select all ServiceMonitors
-@@ -2102,7 +2703,7 @@
+@@ -2152,7 +2703,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the podmonitors created
      ##
@@ -940,7 +796,7 @@
  
      ## PodMonitors to be selected for target discovery.
      ## If {}, select all PodMonitors
-@@ -2233,9 +2834,13 @@
+@@ -2283,9 +2834,13 @@
  
      ## Resource limits & requests
      ##
@@ -957,7 +813,7 @@
  
      ## Prometheus StorageSpec for persistent data
      ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/user-guides/storage.md
-@@ -2258,7 +2863,13 @@
+@@ -2308,7 +2863,13 @@
      #    medium: Memory
  
      # Additional volumes on the output StatefulSet definition.
@@ -972,7 +828,7 @@
  
      # Additional VolumeMounts on the output StatefulSet definition.
      volumeMounts: []
-@@ -2373,6 +2984,11 @@
+@@ -2423,6 +2984,11 @@
      ##
      thanos: {}
  
@@ -984,7 +840,7 @@
      ## Containers allows injecting additional containers. This is meant to allow adding an authentication proxy to a Prometheus pod.
      ## if using proxy extraContainer update targetPort with proxy container port
      containers: []
-@@ -2383,7 +2999,7 @@
+@@ -2433,7 +2999,7 @@
  
      ## PortName to use for Prometheus.
      ##
@@ -993,32 +849,3 @@
  
      ## ArbitraryFSAccessThroughSMs configures whether configuration based on a service monitor can access arbitrary files
      ## on the file system of the Prometheus container e.g. bearer token files.
-@@ -2420,6 +3036,28 @@
-     ## number of samples/series under the desired limit. Note that if SampleLimit is lower that value will be taken instead.
-     enforcedSampleLimit: false
- 
-+    ## EnforcedTargetLimit defines a global limit on the number of scraped targets. This overrides any TargetLimit set
-+    ## per ServiceMonitor or/and PodMonitor. It is meant to be used by admins to enforce the TargetLimit to keep the overall
-+    ## number of targets under the desired limit. Note that if TargetLimit is lower, that value will be taken instead, except
-+    ## if either value is zero, in which case the non-zero value will be used. If both values are zero, no limit is enforced.
-+    enforcedTargetLimit: false
-+
-+
-+    ## Per-scrape limit on number of labels that will be accepted for a sample. If more than this number of labels are present
-+    ## post metric-relabeling, the entire scrape will be treated as failed. 0 means no limit. Only valid in Prometheus versions
-+    ## 2.27.0 and newer.
-+    enforcedLabelLimit: false
-+
-+    ## Per-scrape limit on length of labels name that will be accepted for a sample. If a label name is longer than this number
-+    ## post metric-relabeling, the entire scrape will be treated as failed. 0 means no limit. Only valid in Prometheus versions
-+    ## 2.27.0 and newer.
-+    enforcedLabelNameLengthLimit: false
-+
-+    ## Per-scrape limit on length of labels value that will be accepted for a sample. If a label value is longer than this
-+    ## number post metric-relabeling, the entire scrape will be treated as failed. 0 means no limit. Only valid in Prometheus
-+    ## versions 2.27.0 and newer.
-+    enforcedLabelValueLengthLimit: false
-+
-     ## AllowOverlappingBlocks enables vertical compaction and vertical query merge in Prometheus. This is still experimental
-     ## in Prometheus so it may change in any upcoming release.
-     allowOverlappingBlocks: false

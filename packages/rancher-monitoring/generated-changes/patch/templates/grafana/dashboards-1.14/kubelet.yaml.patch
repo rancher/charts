@@ -1,6 +1,6 @@
 --- charts-original/templates/grafana/dashboards-1.14/kubelet.yaml
 +++ charts/templates/grafana/dashboards-1.14/kubelet.yaml
-@@ -4,11 +4,12 @@
+@@ -4,7 +4,8 @@
  https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack/hack
  */ -}}
  {{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion .Values.kubeTargetVersionOverride }}
@@ -10,81 +10,7 @@
  apiVersion: v1
  kind: ConfigMap
  metadata:
--  namespace: {{ template "kube-prometheus-stack.namespace" . }}
-+  namespace: {{ template "kube-prometheus-stack-grafana.namespace" . }}
-   name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" $) "kubelet" | trunc 63 | trimSuffix "-" }}
-   annotations:
- {{ toYaml .Values.grafana.sidecar.dashboards.annotations | indent 4 }}
-@@ -81,7 +82,8 @@
-                         ],
-                         "fields": "",
-                         "values": false
--                    }
-+                    },
-+                    "textMode": "auto"
-                 },
-                 "pluginVersion": "7",
-                 "targets": [
-@@ -137,7 +139,8 @@
-                         ],
-                         "fields": "",
-                         "values": false
--                    }
-+                    },
-+                    "textMode": "auto"
-                 },
-                 "pluginVersion": "7",
-                 "targets": [
-@@ -193,7 +196,8 @@
-                         ],
-                         "fields": "",
-                         "values": false
--                    }
-+                    },
-+                    "textMode": "auto"
-                 },
-                 "pluginVersion": "7",
-                 "targets": [
-@@ -249,7 +253,8 @@
-                         ],
-                         "fields": "",
-                         "values": false
--                    }
-+                    },
-+                    "textMode": "auto"
-                 },
-                 "pluginVersion": "7",
-                 "targets": [
-@@ -305,7 +310,8 @@
-                         ],
-                         "fields": "",
-                         "values": false
--                    }
-+                    },
-+                    "textMode": "auto"
-                 },
-                 "pluginVersion": "7",
-                 "targets": [
-@@ -361,7 +367,8 @@
-                         ],
-                         "fields": "",
-                         "values": false
--                    }
-+                    },
-+                    "textMode": "auto"
-                 },
-                 "pluginVersion": "7",
-                 "targets": [
-@@ -2171,7 +2178,7 @@
-                     "options": [
- 
-                     ],
--                    "query": "label_values(kube_pod_info, cluster)",
-+                    "query": "label_values(up{job=\"kubelet\", metrics_path=\"/metrics\"}, cluster)",
-                     "refresh": 2,
-                     "regex": "",
-                     "sort": 1,
-@@ -2197,7 +2204,7 @@
+@@ -2203,7 +2204,7 @@
                      "options": [
  
                      ],
@@ -93,13 +19,7 @@
                      "refresh": 2,
                      "regex": "",
                      "sort": 1,
-@@ -2240,9 +2247,10 @@
-                 "30d"
-             ]
-         },
--        "timezone": "UTC",
-+        "timezone": "{{ .Values.grafana.defaultDashboardsTimezone }}",
-         "title": "Kubernetes / Kubelet",
+@@ -2251,4 +2252,5 @@
          "uid": "3138fa155d5915769fbded898ac09fd9",
          "version": 0
      }
