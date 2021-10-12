@@ -1,5 +1,23 @@
 --- charts-original/templates/prometheus/prometheus.yaml
 +++ charts/templates/prometheus/prometheus.yaml
+@@ -33,13 +33,13 @@
+ {{- end }}
+ {{- if .Values.prometheus.prometheusSpec.image }}
+   {{- if and .Values.prometheus.prometheusSpec.image.tag .Values.prometheus.prometheusSpec.image.sha }}
+-  image: "{{ .Values.prometheus.prometheusSpec.image.repository }}:{{ .Values.prometheus.prometheusSpec.image.tag }}@sha256:{{ .Values.prometheus.prometheusSpec.image.sha }}"
++  image: "{{ template "system_default_registry" . }}{{ .Values.prometheus.prometheusSpec.image.repository }}:{{ .Values.prometheus.prometheusSpec.image.tag }}@sha256:{{ .Values.prometheus.prometheusSpec.image.sha }}"
+   {{- else if .Values.prometheus.prometheusSpec.image.sha }}
+-  image: "{{ .Values.prometheus.prometheusSpec.image.repository }}@sha256:{{ .Values.prometheus.prometheusSpec.image.sha }}"
++  image: "{{ template "system_default_registry" . }}{{ .Values.prometheus.prometheusSpec.image.repository }}@sha256:{{ .Values.prometheus.prometheusSpec.image.sha }}"
+   {{- else if .Values.prometheus.prometheusSpec.image.tag }}
+-  image: "{{ .Values.prometheus.prometheusSpec.image.repository }}:{{ .Values.prometheus.prometheusSpec.image.tag }}"
++  image: "{{ template "system_default_registry" . }}{{ .Values.prometheus.prometheusSpec.image.repository }}:{{ .Values.prometheus.prometheusSpec.image.tag }}"
+   {{- else }}
+-  image: "{{ .Values.prometheus.prometheusSpec.image.repository }}"
++  image: "{{ template "system_default_registry" . }}{{ .Values.prometheus.prometheusSpec.image.repository }}"
+   {{- end }}
+   version: {{ .Values.prometheus.prometheusSpec.image.tag }}
+   {{- if .Values.prometheus.prometheusSpec.image.sha }}
 @@ -64,11 +64,13 @@
    externalUrl: "{{ tpl .Values.prometheus.prometheusSpec.externalUrl . }}"
  {{- else if and .Values.prometheus.ingress.enabled .Values.prometheus.ingress.hosts }}
