@@ -1,0 +1,77 @@
+{{- if .Values.clients }}{{- if .Values.clients.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "pushProxy.client.name" . }}
+  labels: {{ include "pushProxy.client.labels" . | nindent 4 }}
+rules:
+- apiGroups: ['policy']
+  resources: ['podsecuritypolicies']
+  verbs:     ['use']
+  resourceNames:
+  - {{ template "pushProxy.client.name" . }}
+{{- if and .Values.clients.https.enabled .Values.clients.https.useServiceAccountCredentials }}
+- nonResourceURLs: ["/metrics"]
+  verbs: ["get"]
+{{- if .Values.clients.rbac.additionalRules }}
+{{ toYaml .Values.clients.rbac.additionalRules }}
+{{- end }}
+{{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ template "pushProxy.client.name" . }}
+  labels: {{ include "pushProxy.client.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ template "pushProxy.client.name" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ template "pushProxy.client.name" . }}
+    namespace: {{ include "pushprox.namespace" . }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ template "pushProxy.client.name" . }}
+  namespace: {{ include "pushprox.namespace" . }}
+  labels: {{ include "pushProxy.client.labels" . | nindent 4 }}
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: {{ template "pushProxy.client.name" . }}
+  namespace: {{ include "pushprox.namespace" . }}
+  labels: {{ include "pushProxy.client.labels" . | nindent 4 }}
+spec:
+  privileged: false
+  hostNetwork: true
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    rule: 'RunAsAny'
+  seLinux:
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 0
+        max: 65535
+  fsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 0
+        max: 65535
+  readOnlyRootFilesystem: false
+  volumes:
+    - 'secret'
+{{- if and .Values.clients.https.enabled .Values.clients.https.certDir }}
+    - 'emptyDir'
+    - 'hostPath'
+  allowedHostPaths:
+  - pathPrefix: {{ required "Need access to volume on host with the SSL cert files to use HTTPs" .Values.clients.https.certDir }}
+    readOnly: true
+{{- end }}
+{{- end }}{{- end }}
