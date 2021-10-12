@@ -24,7 +24,18 @@
  {{ toYaml .Values.prometheus.prometheusSpec.nodeSelector | indent 4 }}
  {{- end }}
    paused: {{ .Values.prometheus.prometheusSpec.paused }}
-@@ -232,8 +234,8 @@
+@@ -70,6 +72,10 @@
+   logFormat:  {{ .Values.prometheus.prometheusSpec.logFormat }}
+   listenLocal: {{ .Values.prometheus.prometheusSpec.listenLocal }}
+   enableAdminAPI: {{ .Values.prometheus.prometheusSpec.enableAdminAPI }}
++{{- if .Values.prometheus.prometheusSpec.web }}
++  web:
++{{ toYaml .Values.prometheus.prometheusSpec.web | indent 4 }}
++{{- end }}
+ {{- if .Values.prometheus.prometheusSpec.enableFeatures }}
+   enableFeatures:
+ {{- range $enableFeatures := .Values.prometheus.prometheusSpec.enableFeatures }}
+@@ -232,8 +238,8 @@
                - {key: prometheus, operator: In, values: [{{ template "kube-prometheus-stack.fullname" . }}-prometheus]}
  {{- end }}
  {{- end }}
@@ -34,7 +45,7 @@
  {{ toYaml .Values.prometheus.prometheusSpec.tolerations | indent 4 }}
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.topologySpreadConstraints }}
-@@ -272,7 +274,7 @@
+@@ -272,7 +278,7 @@
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.containers }}
    containers:
@@ -43,7 +54,7 @@
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.initContainers }}
    initContainers:
-@@ -288,6 +290,7 @@
+@@ -288,6 +294,7 @@
  {{- if .Values.prometheus.prometheusSpec.disableCompaction }}
    disableCompaction: {{ .Values.prometheus.prometheusSpec.disableCompaction }}
  {{- end }}
@@ -51,7 +62,7 @@
    portName: {{ .Values.prometheus.prometheusSpec.portName }}
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.volumes }}
-@@ -332,3 +335,4 @@
+@@ -332,3 +339,4 @@
  {{- if .Values.prometheus.prometheusSpec.allowOverlappingBlocks }}
    allowOverlappingBlocks: {{ .Values.prometheus.prometheusSpec.allowOverlappingBlocks }}
  {{- end }}
