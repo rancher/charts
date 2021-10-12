@@ -471,32 +471,6 @@
    templateFiles: {}
    #
    ## An example template:
-@@ -197,7 +636,7 @@
-   #       {{- $root := . -}}
-   #       {{ range .Alerts }}
-   #         *Alert:* {{ .Annotations.summary }} - `{{ .Labels.severity }}`
--  #         *Cluster:*  {{ template "cluster" $root }}
-+  #         *Cluster:* {{ template "cluster" $root }}
-   #         *Description:* {{ .Annotations.description }}
-   #         *Graph:* <{{ .GeneratorURL }}|:chart_with_upwards_trend:>
-   #         *Runbook:* <{{ .Annotations.runbook }}|:spiral_note_pad:>
-@@ -366,14 +805,14 @@
- 
-     bearerTokenFile:
- 
--    ## 	metric relabel configs to apply to samples before ingestion.
-+    ## Metric relabel configs to apply to samples before ingestion.
-     ##
-     metricRelabelings: []
-     # - action: keep
-     #   regex: 'kube_(daemonset|deployment|pod|namespace|node|statefulset).+'
-     #   sourceLabels: [__name__]
- 
--    # 	relabel configs to apply to samples before ingestion.
-+    #   relabel configs to apply to samples before ingestion.
-     ##
-     relabelings: []
-     # - sourceLabels: [__meta_kubernetes_pod_node_name]
 @@ -395,7 +834,7 @@
      ## Image of Alertmanager
      ##
@@ -506,20 +480,6 @@
        tag: v0.22.2
        sha: ""
  
-@@ -486,11 +925,11 @@
-     #   selector: {}
- 
- 
--    ## 	The external URL the Alertmanager instances will be available under. This is necessary to generate correct URLs. This is necessary if Alertmanager is not served from root of a DNS name.	string	false
-+    ## The external URL the Alertmanager instances will be available under. This is necessary to generate correct URLs. This is necessary if Alertmanager is not served from root of a DNS name. string  false
-     ##
-     externalUrl:
- 
--    ## 	The route prefix Alertmanager registers HTTP handlers for. This is useful, if using ExternalURL and a proxy is rewriting HTTP routes of a request, and the actual ExternalURL is still true,
-+    ## The route prefix Alertmanager registers HTTP handlers for. This is useful, if using ExternalURL and a proxy is rewriting HTTP routes of a request, and the actual ExternalURL is still true,
-     ## but the server serves requests under a different route prefix. For example for use with kubectl proxy.
-     ##
-     routePrefix: /
 @@ -507,9 +946,13 @@
      ## Define resources requests and limits for single Pods.
      ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
@@ -537,33 +497,7 @@
  
      ## Pod anti-affinity can prevent the scheduler from placing Prometheus replicas on the same node.
      ## The default value "soft" means that the scheduler should *prefer* to not schedule two replica pods onto the same node but no guarantee is provided.
-@@ -558,7 +1001,7 @@
-     #       app: alertmanager
- 
-     ## SecurityContext holds pod-level security attributes and common container settings.
--    ## This defaults to non root user with uid 1000 and gid 2000.	*v1.PodSecurityContext	false
-+    ## This defaults to non root user with uid 1000 and gid 2000. *v1.PodSecurityContext  false
-     ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
-     ##
-     securityContext:
-@@ -606,6 +1049,16 @@
-     ## Use case is e.g. spanning an Alertmanager cluster across Kubernetes clusters with a single replica in each.
-     forceEnableClusterMode: false
- 
-+  ## ExtraSecret can be used to store various data in an extra secret
-+  ## (use it for example to store hashed basic auth credentials)
-+  extraSecret:
-+    ## if not set, name will be auto generated
-+    # name: ""
-+    annotations: {}
-+    data: {}
-+  #   auth: |
-+  #     foo:$apr1$OFG3Xybp$ckL0FHDAkoXYIlH9.cysT0
-+  #     someoneelse:$apr1$DMZX2Z4q$6SbQIfyuLQd.xmo/P0m2c.
- 
- ## Using default values from https://github.com/grafana/helm-charts/blob/main/charts/grafana/values.yaml
- ##
-@@ -613,6 +1066,30 @@
+@@ -623,6 +1066,30 @@
    enabled: true
    namespaceOverride: ""
  
@@ -594,7 +528,7 @@
    ## ForceDeployDatasources Create datasource configmap even if grafana deployment has been disabled
    ##
    forceDeployDatasources: false
-@@ -625,6 +1102,18 @@
+@@ -635,6 +1102,18 @@
    ##
    defaultDashboardsEnabled: true
  
@@ -613,7 +547,7 @@
    adminPassword: prom-operator
  
    ingress:
-@@ -664,11 +1153,16 @@
+@@ -674,6 +1153,7 @@
      dashboards:
        enabled: true
        label: grafana_dashboard
@@ -621,17 +555,7 @@
  
        ## Annotations for Grafana dashboard configmaps
        ##
-       annotations: {}
--      multicluster: false
-+      multicluster:
-+        global:
-+          enabled: false
-+        etcd:
-+          enabled: false
-     datasources:
-       enabled: true
-       defaultDatasourceEnabled: true
-@@ -716,7 +1210,60 @@
+@@ -730,7 +1210,60 @@
    ## Passed to grafana subchart and used by servicemonitor below
    ##
    service:
@@ -693,24 +617,7 @@
  
    ## If true, create a serviceMonitor for grafana
    ##
-@@ -730,14 +1277,14 @@
-     # in grafana.ini
-     path: "/metrics"
- 
--    ## 	metric relabel configs to apply to samples before ingestion.
-+    ## Metric relabel configs to apply to samples before ingestion.
-     ##
-     metricRelabelings: []
-     # - action: keep
-     #   regex: 'kube_(daemonset|deployment|pod|namespace|node|statefulset).+'
-     #   sourceLabels: [__name__]
- 
--    # 	relabel configs to apply to samples before ingestion.
-+    #   relabel configs to apply to samples before ingestion.
-     ##
-     relabelings: []
-     # - sourceLabels: [__meta_kubernetes_pod_node_name]
-@@ -746,6 +1293,14 @@
+@@ -760,6 +1293,14 @@
      #   targetLabel: nodename
      #   replacement: $1
      #   action: replace
@@ -725,34 +632,7 @@
  
  ## Component scraping the kube api server
  ##
-@@ -768,7 +1323,7 @@
-         component: apiserver
-         provider: kubernetes
- 
--    ## 	metric relabel configs to apply to samples before ingestion.
-+    ## Metric relabel configs to apply to samples before ingestion.
-     ##
-     metricRelabelings: []
-     # - action: keep
-@@ -846,7 +1401,7 @@
-     #   replacement: $1
-     #   action: drop
- 
--    # 	relabel configs to apply to samples before ingestion.
-+    #   relabel configs to apply to samples before ingestion.
-     #   metrics_path is required to match upstream rules and charts
-     ##
-     cAdvisorRelabelings:
-@@ -891,7 +1446,7 @@
-     #   replacement: $1
-     #   action: drop
- 
--    # 	relabel configs to apply to samples before ingestion.
-+    #   relabel configs to apply to samples before ingestion.
-     #   metrics_path is required to match upstream rules and charts
-     ##
-     relabelings:
-@@ -907,7 +1462,7 @@
+@@ -921,7 +1462,7 @@
  ## Component scraping the kube controller manager
  ##
  kubeControllerManager:
@@ -761,67 +641,7 @@
  
    ## If your kube controller manager is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -946,14 +1501,14 @@
-     # Name of the server to use when validating TLS certificate
-     serverName: null
- 
--    ## 	metric relabel configs to apply to samples before ingestion.
-+    ## Metric relabel configs to apply to samples before ingestion.
-     ##
-     metricRelabelings: []
-     # - action: keep
-     #   regex: 'kube_(daemonset|deployment|pod|namespace|node|statefulset).+'
-     #   sourceLabels: [__name__]
- 
--    # 	relabel configs to apply to samples before ingestion.
-+    #   relabel configs to apply to samples before ingestion.
-     ##
-     relabelings: []
-     # - sourceLabels: [__meta_kubernetes_pod_node_name]
-@@ -981,14 +1536,14 @@
-     ##
-     proxyUrl: ""
- 
--    ## 	metric relabel configs to apply to samples before ingestion.
-+    ## Metric relabel configs to apply to samples before ingestion.
-     ##
-     metricRelabelings: []
-     # - action: keep
-     #   regex: 'kube_(daemonset|deployment|pod|namespace|node|statefulset).+'
-     #   sourceLabels: [__name__]
- 
--    # 	relabel configs to apply to samples before ingestion.
-+    #   relabel configs to apply to samples before ingestion.
-     ##
-     relabelings: []
-     # - sourceLabels: [__meta_kubernetes_pod_node_name]
-@@ -1020,14 +1575,14 @@
-     ##
-     proxyUrl: ""
- 
--    ## 	metric relabel configs to apply to samples before ingestion.
-+    ## Metric relabel configs to apply to samples before ingestion.
-     ##
-     metricRelabelings: []
-     # - action: keep
-     #   regex: 'kube_(daemonset|deployment|pod|namespace|node|statefulset).+'
-     #   sourceLabels: [__name__]
- 
--    # 	relabel configs to apply to samples before ingestion.
-+    #   relabel configs to apply to samples before ingestion.
-     ##
-     relabelings: []
-     # - sourceLabels: [__meta_kubernetes_pod_node_name]
-@@ -1041,7 +1596,7 @@
-     #   regex: 'kube_(daemonset|deployment|pod|namespace|node|statefulset).+'
-     #   sourceLabels: [__name__]
- 
--    # 	relabel configs to apply to samples before ingestion.
-+    #   relabel configs to apply to samples before ingestion.
-     ##
-     dnsmasqRelabelings: []
-     # - sourceLabels: [__meta_kubernetes_pod_node_name]
-@@ -1054,7 +1609,7 @@
+@@ -1068,7 +1609,7 @@
  ## Component scraping etcd
  ##
  kubeEtcd:
@@ -830,24 +650,7 @@
  
    ## If your etcd is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1098,14 +1653,14 @@
-     certFile: ""
-     keyFile: ""
- 
--    ## 	metric relabel configs to apply to samples before ingestion.
-+    ## Metric relabel configs to apply to samples before ingestion.
-     ##
-     metricRelabelings: []
-     # - action: keep
-     #   regex: 'kube_(daemonset|deployment|pod|namespace|node|statefulset).+'
-     #   sourceLabels: [__name__]
- 
--    # 	relabel configs to apply to samples before ingestion.
-+    #   relabel configs to apply to samples before ingestion.
-     ##
-     relabelings: []
-     # - sourceLabels: [__meta_kubernetes_pod_node_name]
-@@ -1119,7 +1674,7 @@
+@@ -1133,7 +1674,7 @@
  ## Component scraping kube scheduler
  ##
  kubeScheduler:
@@ -856,24 +659,7 @@
  
    ## If your kube scheduler is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1156,14 +1711,14 @@
-     ## Name of the server to use when validating TLS certificate
-     serverName: null
- 
--    ## 	metric relabel configs to apply to samples before ingestion.
-+    ## Metric relabel configs to apply to samples before ingestion.
-     ##
-     metricRelabelings: []
-     # - action: keep
-     #   regex: 'kube_(daemonset|deployment|pod|namespace|node|statefulset).+'
-     #   sourceLabels: [__name__]
- 
--    # 	relabel configs to apply to samples before ingestion.
-+    #   relabel configs to apply to samples before ingestion.
-     ##
-     relabelings: []
-     # - sourceLabels: [__meta_kubernetes_pod_node_name]
-@@ -1177,7 +1732,7 @@
+@@ -1191,7 +1732,7 @@
  ## Component scraping kube proxy
  ##
  kubeProxy:
@@ -882,41 +668,7 @@
  
    ## If your kube proxy is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1208,14 +1763,14 @@
-     ##
-     https: false
- 
--    ## 	metric relabel configs to apply to samples before ingestion.
-+    ## Metric relabel configs to apply to samples before ingestion.
-     ##
-     metricRelabelings: []
-     # - action: keep
-     #   regex: 'kube_(daemonset|deployment|pod|namespace|node|statefulset).+'
-     #   sourceLabels: [__name__]
- 
--    # 	relabel configs to apply to samples before ingestion.
-+    #   relabel configs to apply to samples before ingestion.
-     ##
-     relabelings: []
-     # - action: keep
-@@ -1241,14 +1796,14 @@
-     ##
-     namespaceOverride: ""
- 
--    ## 	metric relabel configs to apply to samples before ingestion.
-+    ## Metric relabel configs to apply to samples before ingestion.
-     ##
-     metricRelabelings: []
-     # - action: keep
-     #   regex: 'kube_(daemonset|deployment|pod|namespace|node|statefulset).+'
-     #   sourceLabels: [__name__]
- 
--    # 	relabel configs to apply to samples before ingestion.
-+    #   relabel configs to apply to samples before ingestion.
-     ##
-     relabelings: []
-     # - sourceLabels: [__meta_kubernetes_pod_node_name]
-@@ -1270,6 +1825,13 @@
+@@ -1284,6 +1825,13 @@
      create: true
    podSecurityPolicy:
      enabled: true
@@ -930,25 +682,7 @@
  
  ## Deploy node exporter as a daemonset to all nodes
  ##
-@@ -1293,7 +1855,7 @@
-     ##
-     scrapeTimeout: ""
- 
--    ## 	metric relabel configs to apply to samples before ingestion.
-+    ## Metric relabel configs to apply to samples before ingestion.
-     ##
-     metricRelabelings: []
-     # - sourceLabels: [__name__]
-@@ -1302,7 +1864,7 @@
-     #   replacement: $1
-     #   action: drop
- 
--    ## 	relabel configs to apply to samples before ingestion.
-+    ## relabel configs to apply to samples before ingestion.
-     ##
-     relabelings: []
-     # - sourceLabels: [__meta_kubernetes_pod_node_name]
-@@ -1323,6 +1885,16 @@
+@@ -1337,6 +1885,16 @@
    extraArgs:
      - --collector.filesystem.ignored-mount-points=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
      - --collector.filesystem.ignored-fs-types=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$
@@ -965,7 +699,7 @@
  
  ## Manages Prometheus and Alertmanager components
  ##
-@@ -1335,8 +1907,8 @@
+@@ -1349,8 +1907,8 @@
      enabled: true
      # Value must match version names from https://golang.org/pkg/crypto/tls/#pkg-constants
      tlsMinVersion: VersionTLS13
@@ -976,7 +710,7 @@
  
    ## Admission webhook support for PrometheusRules resources added in Prometheus Operator 0.30 can be enabled to prevent incorrectly formatted
    ## rules from making their way into prometheus and potentially preventing the container from starting
-@@ -1353,7 +1925,7 @@
+@@ -1367,7 +1925,7 @@
      patch:
        enabled: true
        image:
@@ -985,33 +719,7 @@
          tag: v1.5.2
          sha: ""
          pullPolicy: IfNotPresent
-@@ -1367,7 +1939,7 @@
-       tolerations: []
- 
-       ## SecurityContext holds pod-level security attributes and common container settings.
--      ## This defaults to non root user with uid 2000 and gid 2000.	*v1.PodSecurityContext	false
-+      ## This defaults to non root user with uid 2000 and gid 2000. *v1.PodSecurityContext  false
-       ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
-       ##
-       securityContext:
-@@ -1483,14 +2055,14 @@
-     scrapeTimeout: ""
-     selfMonitor: true
- 
--    ## 	metric relabel configs to apply to samples before ingestion.
-+    ## Metric relabel configs to apply to samples before ingestion.
-     ##
-     metricRelabelings: []
-     # - action: keep
-     #   regex: 'kube_(daemonset|deployment|pod|namespace|node|statefulset).+'
-     #   sourceLabels: [__name__]
- 
--    # 	relabel configs to apply to samples before ingestion.
-+    #   relabel configs to apply to samples before ingestion.
-     ##
-     relabelings: []
-     # - sourceLabels: [__meta_kubernetes_pod_node_name]
-@@ -1502,13 +2074,13 @@
+@@ -1516,13 +2074,13 @@
  
    ## Resource limits & requests
    ##
@@ -1032,38 +740,25 @@
  
    # Required for use in managed kubernetes clusters (such as AWS EKS) with custom CNI (such as calico),
    # because control-plane managed by AWS cannot communicate with pods' IP CIDR and admission webhooks are not working
-@@ -1561,8 +2133,8 @@
+@@ -1575,7 +2133,7 @@
    ## Prometheus-operator image
    ##
    image:
 -    repository: quay.io/prometheus-operator/prometheus-operator
--    tag: v0.49.0
 +    repository: rancher/mirrored-prometheus-operator-prometheus-operator
-+    tag: v0.50.0
+     tag: v0.50.0
      sha: ""
      pullPolicy: IfNotPresent
- 
-@@ -1577,8 +2149,8 @@
+@@ -1591,7 +2149,7 @@
    ## Prometheus-config-reloader image to use for config and rule reloading
    ##
    prometheusConfigReloaderImage:
 -    repository: quay.io/prometheus-operator/prometheus-config-reloader
--    tag: v0.49.0
 +    repository: rancher/mirrored-prometheus-operator-prometheus-config-reloader
-+    tag: v0.50.0
+     tag: v0.50.0
      sha: ""
  
-   ## Set the prometheus config reloader side-car CPU limit
-@@ -1649,6 +2221,8 @@
-     portName: grpc
-     port: 10901
-     targetPort: "grpc"
-+    loadBalancerIP: ""
-+    loadBalancerSourceRanges: []
- 
-     ## Service type
-     ##
-@@ -1670,7 +2244,7 @@
+@@ -1686,7 +2244,7 @@
      port: 9090
  
      ## To be used with a proxy extraContainer port
@@ -1072,54 +767,7 @@
  
      ## List of IP addresses at which the Prometheus server service is available
      ## Ref: https://kubernetes.io/docs/user-guide/services/#external-ips
-@@ -1765,6 +2339,18 @@
-     # - secretName: thanos-gateway-tls
-     #   hosts:
-     #   - thanos-gateway.domain.com
-+    #
-+
-+  ## ExtraSecret can be used to store various data in an extra secret
-+  ## (use it for example to store hashed basic auth credentials)
-+  extraSecret:
-+    ## if not set, name will be auto generated
-+    # name: ""
-+    annotations: {}
-+    data: {}
-+  #   auth: |
-+  #     foo:$apr1$OFG3Xybp$ckL0FHDAkoXYIlH9.cysT0
-+  #     someoneelse:$apr1$DMZX2Z4q$6SbQIfyuLQd.xmo/P0m2c.
- 
-   ingress:
-     enabled: false
-@@ -1866,14 +2452,14 @@
- 
-     bearerTokenFile:
- 
--    ## 	metric relabel configs to apply to samples before ingestion.
-+    ## Metric relabel configs to apply to samples before ingestion.
-     ##
-     metricRelabelings: []
-     # - action: keep
-     #   regex: 'kube_(daemonset|deployment|pod|namespace|node|statefulset).+'
-     #   sourceLabels: [__name__]
- 
--    # 	relabel configs to apply to samples before ingestion.
-+    #   relabel configs to apply to samples before ingestion.
-     ##
-     relabelings: []
-     # - sourceLabels: [__meta_kubernetes_pod_node_name]
-@@ -1919,6 +2505,10 @@
-     ##
-     enableAdminAPI: false
- 
-+    ## WebTLSConfig defines the TLS parameters for HTTPS
-+    ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/api.md#webtlsconfig
-+    web: {}
-+
-     # EnableFeatures API enables access to Prometheus disabled features.
-     # ref: https://prometheus.io/docs/prometheus/latest/disabled_features/
-     enableFeatures: []
-@@ -1927,7 +2517,7 @@
+@@ -1959,7 +2517,7 @@
      ## Image of Prometheus.
      ##
      image:
@@ -1128,7 +776,7 @@
        tag: v2.28.1
        sha: ""
  
-@@ -1990,6 +2580,11 @@
+@@ -2022,6 +2580,11 @@
      ##
      externalUrl: ""
  
@@ -1140,7 +788,7 @@
      ## Define which Nodes the Pods are scheduled on.
      ## ref: https://kubernetes.io/docs/user-guide/node-selection/
      ##
-@@ -2022,7 +2617,7 @@
+@@ -2054,7 +2617,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the PrometheusRule resources created
      ##
@@ -1149,7 +797,7 @@
  
      ## PrometheusRules to be selected for target discovery.
      ## If {}, select all PrometheusRules
-@@ -2047,7 +2642,7 @@
+@@ -2079,7 +2642,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the servicemonitors created
      ##
@@ -1158,7 +806,7 @@
  
      ## ServiceMonitors to be selected for target discovery.
      ## If {}, select all ServiceMonitors
-@@ -2070,7 +2665,7 @@
+@@ -2102,7 +2665,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the podmonitors created
      ##
@@ -1167,7 +815,7 @@
  
      ## PodMonitors to be selected for target discovery.
      ## If {}, select all PodMonitors
-@@ -2201,9 +2796,13 @@
+@@ -2233,9 +2796,13 @@
  
      ## Resource limits & requests
      ##
@@ -1184,7 +832,7 @@
  
      ## Prometheus StorageSpec for persistent data
      ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/user-guides/storage.md
-@@ -2226,7 +2825,13 @@
+@@ -2258,7 +2825,13 @@
      #    medium: Memory
  
      # Additional volumes on the output StatefulSet definition.
@@ -1199,16 +847,7 @@
  
      # Additional VolumeMounts on the output StatefulSet definition.
      volumeMounts: []
-@@ -2330,7 +2935,7 @@
-       runAsUser: 1000
-       fsGroup: 2000
- 
--    ## 	Priority class assigned to the Pods
-+    ## Priority class assigned to the Pods
-     ##
-     priorityClassName: ""
- 
-@@ -2341,8 +2946,13 @@
+@@ -2373,6 +2946,11 @@
      ##
      thanos: {}
  
@@ -1218,12 +857,9 @@
 +        tag: 1.21.1-alpine
 +
      ## Containers allows injecting additional containers. This is meant to allow adding an authentication proxy to a Prometheus pod.
--    ##  if using proxy extraContainer  update targetPort with proxy container port
-+    ## if using proxy extraContainer update targetPort with proxy container port
+     ## if using proxy extraContainer update targetPort with proxy container port
      containers: []
- 
-     ## InitContainers allows injecting additional initContainers. This is meant to allow doing some changes
-@@ -2351,7 +2961,7 @@
+@@ -2383,7 +2961,7 @@
  
      ## PortName to use for Prometheus.
      ##
