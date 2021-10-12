@@ -1,15 +1,23 @@
 --- charts-original/templates/prometheus/prometheus.yaml
 +++ charts/templates/prometheus/prometheus.yaml
-@@ -32,7 +32,7 @@
+@@ -32,7 +32,15 @@
  {{ toYaml .Values.prometheus.prometheusSpec.apiserverConfig | indent 4}}
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.image }}
 -  image: {{ .Values.prometheus.prometheusSpec.image.repository }}:{{ .Values.prometheus.prometheusSpec.image.tag }}
-+  image: {{ template "system_default_registry" . }}{{ .Values.prometheus.prometheusSpec.image.repository }}:{{ .Values.prometheus.prometheusSpec.image.tag }}
++  {{- if and .Values.prometheus.prometheusSpec.image.tag .Values.prometheus.prometheusSpec.image.sha }}
++  image: "{{ .Values.prometheus.prometheusSpec.image.repository }}:{{ .Values.prometheus.prometheusSpec.image.tag }}@sha256:{{ .Values.prometheus.prometheusSpec.image.sha }}"
++  {{- else if .Values.prometheus.prometheusSpec.image.sha }}
++  image: "{{ .Values.prometheus.prometheusSpec.image.repository }}@sha256:{{ .Values.prometheus.prometheusSpec.image.sha }}"
++  {{- else if .Values.prometheus.prometheusSpec.image.tag }}
++  image: "{{ .Values.prometheus.prometheusSpec.image.repository }}:{{ .Values.prometheus.prometheusSpec.image.tag }}"
++  {{- else }}
++  image: "{{ .Values.prometheus.prometheusSpec.image.repository }}"
++  {{- end }}
    version: {{ .Values.prometheus.prometheusSpec.image.tag }}
    {{- if .Values.prometheus.prometheusSpec.image.sha }}
    sha: {{ .Values.prometheus.prometheusSpec.image.sha }}
-@@ -56,11 +56,13 @@
+@@ -56,11 +64,13 @@
    externalUrl: "{{ tpl .Values.prometheus.prometheusSpec.externalUrl . }}"
  {{- else if and .Values.prometheus.ingress.enabled .Values.prometheus.ingress.hosts }}
    externalUrl: "http://{{ tpl (index .Values.prometheus.ingress.hosts 0) . }}{{ .Values.prometheus.prometheusSpec.routePrefix }}"
@@ -24,7 +32,7 @@
  {{ toYaml .Values.prometheus.prometheusSpec.nodeSelector | indent 4 }}
  {{- end }}
    paused: {{ .Values.prometheus.prometheusSpec.paused }}
-@@ -236,8 +238,8 @@
+@@ -236,8 +246,8 @@
                - {key: prometheus, operator: In, values: [{{ template "kube-prometheus-stack.fullname" . }}-prometheus]}
  {{- end }}
  {{- end }}
@@ -34,7 +42,7 @@
  {{ toYaml .Values.prometheus.prometheusSpec.tolerations | indent 4 }}
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.topologySpreadConstraints }}
-@@ -276,7 +278,7 @@
+@@ -276,7 +286,7 @@
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.containers }}
    containers:
@@ -43,7 +51,7 @@
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.initContainers }}
    initContainers:
-@@ -292,6 +294,7 @@
+@@ -292,6 +302,7 @@
  {{- if .Values.prometheus.prometheusSpec.disableCompaction }}
    disableCompaction: {{ .Values.prometheus.prometheusSpec.disableCompaction }}
  {{- end }}
@@ -51,7 +59,22 @@
    portName: {{ .Values.prometheus.prometheusSpec.portName }}
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.volumes }}
-@@ -336,3 +339,4 @@
+@@ -333,6 +344,19 @@
+ {{- if .Values.prometheus.prometheusSpec.enforcedSampleLimit }}
+   enforcedSampleLimit: {{ .Values.prometheus.prometheusSpec.enforcedSampleLimit }}
+ {{- end }}
++{{- if .Values.prometheus.prometheusSpec.enforcedTargetLimit }}
++  enforcedTargetLimit: {{ .Values.prometheus.prometheusSpec.enforcedTargetLimit }}
++{{- end }}
++{{- if .Values.prometheus.prometheusSpec.enforcedLabelLimit	}}
++  enforcedLabelLimit: {{ .Values.prometheus.prometheusSpec.enforcedLabelLimit	}}
++{{- end }}
++{{- if .Values.prometheus.prometheusSpec.enforcedLabelNameLengthLimit	}}
++  enforcedLabelNameLengthLimit: {{ .Values.prometheus.prometheusSpec.enforcedLabelNameLengthLimit	}}
++{{- end }}
++{{- if .Values.prometheus.prometheusSpec.enforcedLabelValueLengthLimit}}
++  enforcedLabelValueLengthLimit: {{ .Values.prometheus.prometheusSpec.enforcedLabelValueLengthLimit	}}
++{{- end }}
  {{- if .Values.prometheus.prometheusSpec.allowOverlappingBlocks }}
    allowOverlappingBlocks: {{ .Values.prometheus.prometheusSpec.allowOverlappingBlocks }}
  {{- end }}

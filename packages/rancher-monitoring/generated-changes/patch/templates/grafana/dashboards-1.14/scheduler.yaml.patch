@@ -11,7 +11,7 @@
  kind: ConfigMap
  metadata:
 -  namespace: {{ template "kube-prometheus-stack.namespace" . }}
-+  namespace: {{ .Values.grafana.defaultDashboards.namespace }}
++  namespace: {{ template "kube-prometheus-stack-grafana.namespace" . }}
    name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" $) "scheduler" | trunc 63 | trimSuffix "-" }}
    annotations:
  {{ toYaml .Values.grafana.sidecar.dashboards.annotations | indent 4 }}
@@ -172,6 +172,15 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}instance{{`}}`}}",
+@@ -1023,7 +1028,7 @@
+                     "options": [
+ 
+                     ],
+-                    "query": "label_values(kube_pod_info, cluster)",
++                    "query": "label_values(up{job=\"kube-scheduler\"}, cluster)",
+                     "refresh": 2,
+                     "regex": "",
+                     "sort": 1,
 @@ -1049,7 +1054,7 @@
                      "options": [
  
@@ -181,7 +190,13 @@
                      "refresh": 2,
                      "regex": "",
                      "sort": 1,
-@@ -1097,4 +1102,5 @@
+@@ -1092,9 +1097,10 @@
+                 "30d"
+             ]
+         },
+-        "timezone": "UTC",
++        "timezone": "{{ .Values.grafana.defaultDashboardsTimezone }}",
+         "title": "Kubernetes / Scheduler",
          "uid": "2e6b6a3b4bddf1427b3a55aa1311c656",
          "version": 0
      }

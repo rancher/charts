@@ -1,6 +1,14 @@
 --- charts-original/templates/exporters/kube-state-metrics/serviceMonitor.yaml
 +++ charts/templates/exporters/kube-state-metrics/serviceMonitor.yaml
-@@ -10,7 +10,7 @@
+@@ -3,21 +3,24 @@
+ kind: ServiceMonitor
+ metadata:
+   name: {{ template "kube-prometheus-stack.fullname" . }}-kube-state-metrics
+-  namespace: {{ template "kube-prometheus-stack.namespace" . }}
++  namespace: {{ template "kube-prometheus-stack-kube-state-metrics.namespace" . }}
+   labels:
+     app: {{ template "kube-prometheus-stack.name" . }}-kube-state-metrics
+ {{ include "kube-prometheus-stack.labels" . | indent 4 }}
  spec:
    jobLabel: app.kubernetes.io/name
    endpoints:
@@ -9,3 +17,36 @@
      {{- if .Values.kubeStateMetrics.serviceMonitor.interval }}
      interval: {{ .Values.kubeStateMetrics.serviceMonitor.interval }}
      {{- end }}
++    {{- if .Values.kubeStateMetrics.serviceMonitor.scrapeTimeout }}
++    scrapeTimeout: {{ .Values.kubeStateMetrics.serviceMonitor.scrapeTimeout }}
++    {{- end }}
+     {{- if .Values.kubeStateMetrics.serviceMonitor.proxyUrl }}
+     proxyUrl: {{ .Values.kubeStateMetrics.serviceMonitor.proxyUrl}}
+     {{- end }}
+-    honorLabels: true
++    honorLabels: {{ .Values.kubeStateMetrics.serviceMonitor.honorLabels }}
+ {{- if .Values.kubeStateMetrics.serviceMonitor.metricRelabelings }}
+     metricRelabelings:
+ {{ tpl (toYaml .Values.kubeStateMetrics.serviceMonitor.metricRelabelings | indent 4) . }}
+@@ -34,7 +37,7 @@
+     {{- if .Values.kubeStateMetrics.serviceMonitor.proxyUrl }}
+     proxyUrl: {{ .Values.kubeStateMetrics.serviceMonitor.proxyUrl}}
+     {{- end }}
+-    honorLabels: true
++    honorLabels: {{ .Values.kubeStateMetrics.serviceMonitor.honorLabels }}
+ {{- if .Values.kubeStateMetrics.serviceMonitor.metricRelabelings }}
+     metricRelabelings:
+ {{ tpl (toYaml .Values.kubeStateMetrics.serviceMonitor.metricRelabelings | indent 4) . }}
+@@ -44,11 +47,9 @@
+ {{ toYaml .Values.kubeStateMetrics.serviceMonitor.relabelings | indent 4 }}
+ {{- end }}
+ {{- end }}
+-{{- if .Values.kubeStateMetrics.serviceMonitor.namespaceOverride }}
+   namespaceSelector:
+     matchNames:
+-      - {{ .Values.kubeStateMetrics.serviceMonitor.namespaceOverride }}
+-{{- end }}
++      - {{ printf "%s" (include "kube-prometheus-stack-kube-state-metrics.namespace" .) | quote }}
+   selector:
+     matchLabels:
+ {{- if .Values.kubeStateMetrics.serviceMonitor.selectorOverride }}

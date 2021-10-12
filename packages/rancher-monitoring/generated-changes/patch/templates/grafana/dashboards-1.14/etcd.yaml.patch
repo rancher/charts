@@ -11,11 +11,16 @@
  kind: ConfigMap
  metadata:
 -  namespace: {{ template "kube-prometheus-stack.namespace" . }}
-+  namespace: {{ .Values.grafana.defaultDashboards.namespace }}
++  namespace: {{ template "kube-prometheus-stack-grafana.namespace" . }}
    name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" $) "etcd" | trunc 63 | trimSuffix "-" }}
    annotations:
  {{ toYaml .Values.grafana.sidecar.dashboards.annotations | indent 4 }}
-@@ -1113,4 +1114,5 @@
+@@ -1109,8 +1110,9 @@
+                 "30d"
+             ]
+         },
+-        "timezone": "browser",
++        "timezone": "{{ .Values.grafana.defaultDashboardsTimezone }}",
          "title": "etcd",
          "version": 215
      }

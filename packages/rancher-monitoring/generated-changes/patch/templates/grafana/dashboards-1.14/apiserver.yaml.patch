@@ -5,7 +5,16 @@
  kind: ConfigMap
  metadata:
 -  namespace: {{ template "kube-prometheus-stack.namespace" . }}
-+  namespace: {{ .Values.grafana.defaultDashboards.namespace }}
++  namespace: {{ template "kube-prometheus-stack-grafana.namespace" . }}
    name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" $) "apiserver" | trunc 63 | trimSuffix "-" }}
    annotations:
  {{ toYaml .Values.grafana.sidecar.dashboards.annotations | indent 4 }}
+@@ -1739,7 +1739,7 @@
+                 "30d"
+             ]
+         },
+-        "timezone": "UTC",
++        "timezone": "{{ .Values.grafana.defaultDashboardsTimezone }}",
+         "title": "Kubernetes / API server",
+         "uid": "09ec8aa1e996d6ffcd6817bbaff4db1b",
+         "version": 0

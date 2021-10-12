@@ -5,7 +5,7 @@
  kind: ConfigMap
  metadata:
 -  namespace: {{ template "kube-prometheus-stack.namespace" . }}
-+  namespace: {{ .Values.grafana.defaultDashboards.namespace }}
++  namespace: {{ template "kube-prometheus-stack-grafana.namespace" . }}
    name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" $) "statefulset" | trunc 63 | trimSuffix "-" }}
    annotations:
  {{ toYaml .Values.grafana.sidecar.dashboards.annotations | indent 4 }}
@@ -36,7 +36,13 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "",
-@@ -925,4 +925,4 @@
+@@ -920,9 +920,9 @@
+                 "30d"
+             ]
+         },
+-        "timezone": "UTC",
++        "timezone": "{{ .Values.grafana.defaultDashboardsTimezone }}",
+         "title": "Kubernetes / StatefulSets",
          "uid": "a31c1f46e6f727cb37c0d731a7245005",
          "version": 0
      }

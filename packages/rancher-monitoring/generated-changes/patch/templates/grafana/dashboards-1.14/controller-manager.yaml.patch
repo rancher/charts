@@ -11,7 +11,7 @@
  kind: ConfigMap
  metadata:
 -  namespace: {{ template "kube-prometheus-stack.namespace" . }}
-+  namespace: {{ .Values.grafana.defaultDashboards.namespace }}
++  namespace: {{ template "kube-prometheus-stack-grafana.namespace" . }}
    name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" $) "controller-manager" | trunc 63 | trimSuffix "-" }}
    annotations:
  {{ toYaml .Values.grafana.sidecar.dashboards.annotations | indent 4 }}
@@ -133,16 +133,31 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}instance{{`}}`}}",
+@@ -1100,7 +1105,7 @@
+                     "options": [
+ 
+                     ],
+-                    "query": "label_values(kube_pod_info, cluster)",
++                    "query": "label_values(up{job=\"kube-controller-manager\"}, cluster)",
+                     "refresh": 2,
+                     "regex": "",
+                     "sort": 1,
 @@ -1126,7 +1131,7 @@
                      "options": [
  
                      ],
 -                    "query": "label_values(process_cpu_seconds_total{cluster=\"$cluster\", job=\"kube-controller-manager\"}, instance)",
-+                    "query": "label_values(process_cpu_seconds_total{cluster=\"$cluster\", job=\"{{ include "exporter.kubeControllerManager.jobName" . }}\"}, instance)",
++                    "query": "label_values(up{cluster=\"$cluster\", job=\"kube-controller-manager\"}, instance)",
                      "refresh": 2,
                      "regex": "",
                      "sort": 1,
-@@ -1174,4 +1179,5 @@
+@@ -1169,9 +1174,10 @@
+                 "30d"
+             ]
+         },
+-        "timezone": "UTC",
++        "timezone": "{{ .Values.grafana.defaultDashboardsTimezone }}",
+         "title": "Kubernetes / Controller Manager",
          "uid": "72e0e05bef5099e5f049b05fdc429ed4",
          "version": 0
      }
