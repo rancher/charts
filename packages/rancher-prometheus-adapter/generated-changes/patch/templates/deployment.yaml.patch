@@ -1,14 +1,6 @@
 --- charts-original/templates/deployment.yaml
 +++ charts/templates/deployment.yaml
-@@ -10,6 +10,7 @@
-   namespace: {{ .Release.Namespace }}
- spec:
-   replicas: {{ .Values.replicas }}
-+  strategy: {{ toYaml .Values.strategy | nindent 4 }}
-   selector:
-     matchLabels:
-       app: {{ template "k8s-prometheus-adapter.name" . }}
-@@ -40,7 +41,7 @@
+@@ -41,7 +41,7 @@
        {{- end}}
        containers:
        - name: {{ .Chart.Name }}
@@ -17,22 +9,7 @@
          imagePullPolicy: {{ .Values.image.pullPolicy }}
          args:
          - /adapter
-@@ -67,12 +68,14 @@
-             port: https
-             scheme: HTTPS
-           initialDelaySeconds: 30
-+          timeoutSeconds: 5
-         readinessProbe:
-           httpGet:
-             path: /healthz
-             port: https
-             scheme: HTTPS
-           initialDelaySeconds: 30
-+          timeoutSeconds: 5
-         {{- if .Values.resources }}
-         resources:
-           {{- toYaml .Values.resources | nindent 10 }}
-@@ -102,13 +105,21 @@
+@@ -105,8 +105,10 @@
            name: volume-serving-cert
            readOnly: true
          {{- end }}
@@ -45,16 +22,16 @@
        affinity:
          {{- toYaml .Values.affinity | nindent 8 }}
        priorityClassName: {{ .Values.priorityClassName }}
+@@ -114,8 +116,10 @@
+       securityContext:
+         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+       {{- end }}
 -      tolerations:
 -        {{- toYaml .Values.tolerations | nindent 8 }}
-+      {{- if .Values.podSecurityContext }}
-+      securityContext:
-+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
-+      {{- end }}
 +      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
-+      {{- if .Values.tolerations }}
-+      {{- toYaml .Values.tolerations | nindent 8 }}
-+      {{- end }}
++{{- if .Values.tolerations }}
++{{- toYaml .Values.tolerations | nindent 8 }}
++{{- end }}
        {{- if .Values.image.pullSecrets }}
        imagePullSecrets:
          {{- range .Values.image.pullSecrets }}
