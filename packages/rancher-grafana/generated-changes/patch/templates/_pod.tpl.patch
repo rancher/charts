@@ -1,11 +1,17 @@
 --- charts-original/templates/_pod.tpl
 +++ charts/templates/_pod.tpl
-@@ -1,4 +1,3 @@
+@@ -1,9 +1,9 @@
 -
  {{- define "grafana.pod" -}}
  {{- if .Values.schedulerName }}
  schedulerName: "{{ .Values.schedulerName }}"
-@@ -21,9 +20,9 @@
+ {{- end }}
+ serviceAccountName: {{ template "grafana.serviceAccountName" . }}
++automountServiceAccountToken: {{ .Values.serviceAccount.autoMount }}
+ {{- if .Values.securityContext }}
+ securityContext:
+ {{ toYaml .Values.securityContext | indent 2 }}
+@@ -21,9 +21,9 @@
  {{- if ( and .Values.persistence.enabled .Values.initChownData.enabled ) }}
    - name: init-chown-data
      {{- if .Values.initChownData.image.sha }}
@@ -17,7 +23,7 @@
      {{- end }}
      imagePullPolicy: {{ .Values.initChownData.image.pullPolicy }}
      securityContext:
-@@ -42,9 +41,9 @@
+@@ -42,13 +42,13 @@
  {{- if .Values.dashboards }}
    - name: download-dashboards
      {{- if .Values.downloadDashboardsImage.sha }}
@@ -29,7 +35,12 @@
      {{- end }}
      imagePullPolicy: {{ .Values.downloadDashboardsImage.pullPolicy }}
      command: ["/bin/sh"]
-@@ -79,11 +78,16 @@
+-    args: [ "-c", "mkdir -p /var/lib/grafana/dashboards/default && /bin/sh /etc/grafana/download_dashboards.sh" ]
++    args: [ "-c", "mkdir -p /var/lib/grafana/dashboards/default && /bin/sh -x /etc/grafana/download_dashboards.sh" ]
+     resources:
+ {{ toYaml .Values.downloadDashboards.resources | indent 6 }}
+     env:
+@@ -79,11 +79,16 @@
  {{- if .Values.sidecar.datasources.enabled }}
    - name: {{ template "grafana.name" . }}-sc-datasources
      {{- if .Values.sidecar.image.sha }}
@@ -48,7 +59,16 @@
      env:
        - name: METHOD
          value: LIST
-@@ -118,9 +122,9 @@
+@@ -103,7 +108,7 @@
+       {{- end }}
+       {{- if .Values.sidecar.datasources.searchNamespace }}
+       - name: NAMESPACE
+-        value: "{{ .Values.sidecar.datasources.searchNamespace }}"
++        value: "{{ .Values.sidecar.datasources.searchNamespace | join "," }}"
+       {{- end }}
+       {{- if .Values.sidecar.skipTlsVerify }}
+       - name: SKIP_TLS_VERIFY
+@@ -118,9 +123,9 @@
  {{- if .Values.sidecar.notifiers.enabled }}
    - name: {{ template "grafana.name" . }}-sc-notifiers
      {{- if .Values.sidecar.image.sha }}
@@ -60,7 +80,21 @@
      {{- end }}
      imagePullPolicy: {{ .Values.sidecar.imagePullPolicy }}
      env:
-@@ -163,9 +167,9 @@
+@@ -138,7 +143,7 @@
+       {{- end }}
+       {{- if .Values.sidecar.notifiers.searchNamespace }}
+       - name: NAMESPACE
+-        value: "{{ .Values.sidecar.notifiers.searchNamespace }}"
++        value: "{{ .Values.sidecar.notifiers.searchNamespace | join "," }}"
+       {{- end }}
+       {{- if .Values.sidecar.skipTlsVerify }}
+       - name: SKIP_TLS_VERIFY
+@@ -159,13 +164,14 @@
+   - name: {{ . }}
+ {{- end}}
+ {{- end }}
++enableServiceLinks: {{ .Values.enableServiceLinks }}
+ containers:
  {{- if .Values.sidecar.dashboards.enabled }}
    - name: {{ template "grafana.name" . }}-sc-dashboard
      {{- if .Values.sidecar.image.sha }}
@@ -72,7 +106,16 @@
      {{- end }}
      imagePullPolicy: {{ .Values.sidecar.imagePullPolicy }}
      env:
-@@ -205,9 +209,9 @@
+@@ -187,7 +193,7 @@
+       {{- end }}
+       {{- if .Values.sidecar.dashboards.searchNamespace }}
+       - name: NAMESPACE
+-        value: "{{ .Values.sidecar.dashboards.searchNamespace }}"
++        value: "{{ .Values.sidecar.dashboards.searchNamespace | join "," }}"
+       {{- end }}
+       {{- if .Values.sidecar.skipTlsVerify }}
+       - name: SKIP_TLS_VERIFY
+@@ -205,9 +211,9 @@
  {{- end}}
    - name: {{ .Chart.Name }}
      {{- if .Values.image.sha }}
@@ -84,7 +127,39 @@
      {{- end }}
      imagePullPolicy: {{ .Values.image.pullPolicy }}
    {{- if .Values.command }}
-@@ -307,7 +311,7 @@
+@@ -258,19 +264,25 @@
+ {{- end }}
+ {{- end }}
+ {{- if .Values.datasources }}
++{{- range (keys .Values.datasources | sortAlpha) }}
+       - name: config
+-        mountPath: "/etc/grafana/provisioning/datasources/datasources.yaml"
+-        subPath: datasources.yaml
++        mountPath: "/etc/grafana/provisioning/datasources/{{ . }}"
++        subPath: {{ . | quote }}
++{{- end }}
+ {{- end }}
+ {{- if .Values.notifiers }}
++{{- range (keys .Values.notifiers | sortAlpha) }}
+       - name: config
+-        mountPath: "/etc/grafana/provisioning/notifiers/notifiers.yaml"
+-        subPath: notifiers.yaml
++        mountPath: "/etc/grafana/provisioning/notifiers/{{ . }}"
++        subPath: {{ . | quote }}
++{{- end }}
+ {{- end }}
+ {{- if .Values.dashboardProviders }}
++{{- range (keys .Values.dashboardProviders | sortAlpha) }}
+       - name: config
+-        mountPath: "/etc/grafana/provisioning/dashboards/dashboardproviders.yaml"
+-        subPath: dashboardproviders.yaml
++        mountPath: "/etc/grafana/provisioning/dashboards/{{ . }}"
++        subPath: {{ . | quote }}
++{{- end }}
+ {{- end }}
+ {{- if .Values.sidecar.dashboards.enabled }}
+       - name: sc-dashboard-volume
+@@ -307,7 +319,7 @@
      {{- end }}
      ports:
        - name: {{ .Values.service.portName }}
@@ -93,7 +168,32 @@
          protocol: TCP
        - name: {{ .Values.podPortName }}
          containerPort: 3000
-@@ -388,17 +392,17 @@
+@@ -369,16 +381,22 @@
+       - name: "{{ tpl $key $ }}"
+         value: "{{ tpl (print $value) $ }}"
+ {{- end }}
+-    {{- if .Values.envFromSecret }}
++    {{- if or .Values.envFromSecret (or .Values.envRenderSecret .Values.envFromSecrets) }}
+     envFrom:
++    {{- if .Values.envFromSecret }}
+       - secretRef:
+           name: {{ tpl .Values.envFromSecret . }}
+     {{- end }}
+     {{- if .Values.envRenderSecret }}
+-    envFrom:
+       - secretRef:
+           name: {{ template "grafana.fullname" . }}-env
+     {{- end }}
++    {{- range .Values.envFromSecrets }}
++      - secretRef:
++          name: {{ .name }}
++          optional: {{ .optional | default false }}
++    {{- end }}
++    {{- end }}
+     livenessProbe:
+ {{ toYaml .Values.livenessProbe | indent 6 }}
+     readinessProbe:
+@@ -388,17 +406,17 @@
  {{- with .Values.extraContainers }}
  {{ tpl . $ | indent 2 }}
  {{- end }}
