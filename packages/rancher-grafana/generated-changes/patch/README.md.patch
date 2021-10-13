@@ -4,79 +4,10 @@
  | `securityContext`                         | Deployment securityContext                    | `{"runAsUser": 472, "runAsGroup": 472, "fsGroup": 472}`  |
  | `priorityClassName`                       | Name of Priority Class to assign pods         | `nil`                                                   |
  | `image.repository`                        | Image repository                              | `grafana/grafana`                                       |
--| `image.tag`                               | Image tag (`Must be >= 5.0.0`)                | `7.4.5`                                                 |
--| `image.sha`                               | Image sha (optional)                          | `2b56f6106ddc376bb46d974230d530754bf65a640dfbc5245191d72d3b49efc6` |
+-| `image.tag`                               | Image tag (`Must be >= 5.0.0`)                | `8.0.3`                                                 |
+-| `image.sha`                               | Image sha (optional)                          | `80c6d6ac633ba5ab3f722976fb1d9a138f87ca6a9934fcd26a5fc28cbde7dbfa` |
 +| `image.tag`                               | Image tag (`Must be >= 5.0.0`)                | `7.5.11`                                                 |
 +| `image.sha`                               | Image sha (optional)                          | ``                                                       |
  | `image.pullPolicy`                        | Image pull policy                             | `IfNotPresent`                                          |
  | `image.pullSecrets`                       | Image pull secrets                            | `{}`                                                    |
  | `service.enabled`                         | Enable grafana service                        | `true`                                                  |
-@@ -90,7 +90,7 @@
- | `tolerations`                             | Toleration labels for pod assignment          | `[]`                                                    |
- | `affinity`                                | Affinity settings for pod assignment          | `{}`                                                    |
- | `extraInitContainers`                     | Init containers to add to the grafana pod     | `{}`                                                    |
--| `extraContainers`                         | Sidecar containers to add to the grafana pod  | `{}`                                                    |
-+| `extraContainers`                         | Sidecar containers to add to the grafana pod  | `""`                                                    |
- | `extraContainerVolumes`                   | Volumes that can be mounted in sidecar containers | `[]`                                                |
- | `extraLabels`                             | Custom labels for all manifests               | `{}`                                                    |
- | `schedulerName`                           | Name of the k8s scheduler (other than default) | `nil`                                                  |
-@@ -116,6 +116,7 @@
- | `envValueFrom`                            | Environment variables from alternate sources. See the API docs on [EnvVarSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.17/#envvarsource-v1-core) for format details.  | `{}` |
- | `envFromSecret`                           | Name of a Kubernetes secret (must be manually created in the same namespace) containing values to be added to the environment. Can be templated | `""` |
- | `envRenderSecret`                         | Sensible environment variables passed to pods and stored as secret | `{}`                               |
-+| `enableServiceLinks`                      | Inject Kubernetes services as environment variables. | `true`                                           |
- | `extraSecretMounts`                       | Additional grafana server secret mounts       | `[]`                                                    |
- | `extraVolumeMounts`                       | Additional grafana server volume mounts       | `[]`                                                    |
- | `extraConfigmapMounts`                    | Additional grafana server configMap volume mounts | `[]`                                                |
-@@ -136,7 +137,7 @@
- | `podLabels`                               | Pod labels                                    | `{}`                                                    |
- | `podPortName`                             | Name of the grafana port on the pod           | `grafana`                                               |
- | `sidecar.image.repository`                | Sidecar image repository                      | `quay.io/kiwigrid/k8s-sidecar`                          |
--| `sidecar.image.tag`                       | Sidecar image tag                             | `1.10.7`                                                |
-+| `sidecar.image.tag`                       | Sidecar image tag                             | `1.12.3`                                                |
- | `sidecar.image.sha`                       | Sidecar image sha (optional)                  | `""`                                                    |
- | `sidecar.imagePullPolicy`                 | Sidecar image pull policy                     | `IfNotPresent`                                          |
- | `sidecar.resources`                       | Sidecar resources                             | `{}`                                                    |
-@@ -157,16 +158,16 @@
- | `sidecar.dashboards.folder`               | Folder in the pod that should hold the collected dashboards (unless `sidecar.dashboards.defaultFolderName` is set). This path will be mounted. | `/tmp/dashboards`    |
- | `sidecar.dashboards.folderAnnotation`     | The annotation the sidecar will look for in configmaps to override the destination folder for files | `nil`                                                  |
- | `sidecar.dashboards.defaultFolderName`    | The default folder name, it will create a subfolder under the `sidecar.dashboards.folder` and put dashboards in there instead | `nil`                                |
--| `sidecar.dashboards.searchNamespace`      | If specified, the sidecar will search for dashboard config-maps inside this namespace. Otherwise the namespace in which the sidecar is running will be used. It's also possible to specify ALL to search in all namespaces | `nil`                                |
-+| `sidecar.dashboards.searchNamespace`      | Namespaces list. If specified, the sidecar will search for dashboards config-maps  inside these namespaces.Otherwise the namespace in which the sidecar is running will be used.It's also possible to specify ALL to search in all namespaces. | `nil`                                |
- | `sidecar.dashboards.resource`             | Should the sidecar looks into secrets, configmaps or both. | `both`                               |
- | `sidecar.datasources.enabled`             | Enables the cluster wide search for datasources and adds/updates/deletes them in grafana |`false`       |
- | `sidecar.datasources.label`               | Label that config maps with datasources should have to be added | `grafana_datasource`                               |
- | `sidecar.datasources.labelValue`          | Label value that config maps with datasources should have to be added | `nil`                                |
--| `sidecar.datasources.searchNamespace`     | If specified, the sidecar will search for datasources config-maps inside this namespace. Otherwise the namespace in which the sidecar is running will be used. It's also possible to specify ALL to search in all namespaces | `nil`                               |
-+| `sidecar.datasources.searchNamespace`     | Namespaces list. If specified, the sidecar will search for datasources config-maps  inside these namespaces.Otherwise the namespace in which the sidecar is running will be used.It's also possible to specify ALL to search in all namespaces. | `nil`                               |
- | `sidecar.datasources.resource`            | Should the sidecar looks into secrets, configmaps or both. | `both`                               |
- | `sidecar.notifiers.enabled`               | Enables the cluster wide search for notifiers and adds/updates/deletes them in grafana | `false`        |
- | `sidecar.notifiers.label`                 | Label that config maps with notifiers should have to be added | `grafana_notifier`                               |
--| `sidecar.notifiers.searchNamespace`       | If specified, the sidecar will search for notifiers config-maps (or secrets) inside this namespace. Otherwise the namespace in which the sidecar is running will be used. It's also possible to specify ALL to search in all namespaces | `nil`                               |
-+| `sidecar.notifiers.searchNamespace`       | Namespaces list. If specified, the sidecar will search for notifiers config-maps (or secrets) inside these namespaces.Otherwise the namespace in which the sidecar is running will be used.It's also possible to specify ALL to search in all namespaces. | `nil`                               |
- | `sidecar.notifiers.resource`              | Should the sidecar looks into secrets, configmaps or both. | `both`                               |
- | `smtp.existingSecret`                     | The name of an existing secret containing the SMTP credentials. | `""`                                  |
- | `smtp.userKey`                            | The key in the existing SMTP secret containing the username. | `"user"`                                 |
-@@ -174,6 +175,7 @@
- | `admin.existingSecret`                    | The name of an existing secret containing the admin credentials. | `""`                                 |
- | `admin.userKey`                           | The key in the existing admin secret containing the username. | `"admin-user"`                          |
- | `admin.passwordKey`                       | The key in the existing admin secret containing the password. | `"admin-password"`                      |
-+| `serviceAccount.autoMount`                | Automount the service account token in the pod| `true`                                                  |
- | `serviceAccount.annotations`              | ServiceAccount annotations                    |                                                         |
- | `serviceAccount.create`                   | Create service account                        | `true`                                                  |
- | `serviceAccount.name`                     | Service account name to use, when empty will be set to created account if `serviceAccount.create` is set else to `default` | `` |
-@@ -488,10 +490,10 @@
- ```yaml
- - extraSecretMounts:
-   - name: auth-generic-oauth-secret-mount
--     secretName: auth-generic-oauth-secret
--     defaultMode: 0440
--     mountPath: /etc/secrets/auth_generic_oauth
--     readOnly: true
-+    secretName: auth-generic-oauth-secret
-+    defaultMode: 0440
-+    mountPath: /etc/secrets/auth_generic_oauth
-+    readOnly: true
- ```
- 
- ### extraSecretMounts using a Container Storage Interface (CSI) provider

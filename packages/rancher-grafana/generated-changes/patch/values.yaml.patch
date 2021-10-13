@@ -1,12 +1,10 @@
 --- charts-original/values.yaml
 +++ charts/values.yaml
-@@ -1,9 +1,25 @@
+@@ -1,9 +1,23 @@
 +global:
 +  cattle:
 +    systemDefaultRegistry: ""
 +
-+autoscaling:
-+  enabled: false
  rbac:
    create: true
    ## Use an existing ClusterRole/Role (depending on rbac.namespaced false/true)
@@ -27,26 +25,18 @@
    namespaced: false
    extraRoleRules: []
    # - apiGroups: []
-@@ -19,6 +35,7 @@
-   nameTest:
- #  annotations:
- #    eks.amazonaws.com/role-arn: arn:aws:iam::123456789000:role/iam-role-name-here
-+  autoMount: true
- 
- replicas: 1
- 
-@@ -68,8 +85,8 @@
+@@ -69,8 +83,8 @@
  # schedulerName: "default-scheduler"
  
  image:
 -  repository: grafana/grafana
--  tag: 7.5.5
+-  tag: 8.2.1
 +  repository: rancher/mirrored-grafana-grafana
-+  tag: 7.5.8
++  tag: 7.5.11
    sha: ""
    pullPolicy: IfNotPresent
  
-@@ -82,12 +99,15 @@
+@@ -83,12 +97,15 @@
  
  testFramework:
    enabled: true
@@ -64,7 +54,7 @@
    runAsUser: 472
    runAsGroup: 472
    fsGroup: 472
-@@ -115,8 +135,8 @@
+@@ -116,8 +133,8 @@
  # priorityClassName:
  
  downloadDashboardsImage:
@@ -75,44 +65,7 @@
    sha: ""
    pullPolicy: IfNotPresent
  
-@@ -148,7 +168,7 @@
-     # targetPort: 4181 To be used with a proxy extraContainer
-   annotations: {}
-   labels: {}
--  portName: service
-+  portName: use-annotation
- 
- serviceMonitor:
-   ## If true, a ServiceMonitor CRD is created for a prometheus operator
-@@ -188,7 +208,7 @@
-   labels: {}
-   path: /
- 
--  # pathType is only for k8s > 1.19
-+  # pathType is only for k8s >= 1.1=
-   pathType: Prefix
- 
-   hosts:
-@@ -206,7 +226,7 @@
-   #     service:
-   #       name: ssl-redirect
-   #       port:
--  #         name: service
-+  #         name: use-annotation
- 
- 
-   tls: []
-@@ -240,7 +260,8 @@
- extraInitContainers: []
- 
- ## Enable an Specify container in extraContainers. This is meant to allow adding an authentication proxy to a grafana pod
--extraContainers: |
-+extraContainers: ""
-+# extraContainers: |
- # - name: proxy
- #   image: quay.io/gambol99/keycloak-proxy:latest
- #   args:
-@@ -301,7 +322,7 @@
+@@ -303,7 +320,7 @@
    ## initChownData container image
    ##
    image:
@@ -121,68 +74,16 @@
      tag: "1.31.1"
      sha: ""
      pullPolicy: IfNotPresent
-@@ -382,6 +403,16 @@
- ## This can be useful for auth tokens, etc
- envRenderSecret: {}
- 
-+## The names of secrets in the same kubernetes namespace which contain values to be added to the environment
-+## Each entry should contain a name key, and can optionally specify whether the secret must be defined with an optional key.
-+envFromSecrets: []
-+## - name: secret-name
-+##   optional: true
-+
-+# Inject Kubernetes services as environment variables.
-+# See https://kubernetes.io/docs/concepts/services-networking/connect-applications-service/#environment-variables
-+enableServiceLinks: true
-+
- ## Additional grafana server secret mounts
- # Defines additional mounts with secrets. Secrets must be manually created in the namespace.
- extraSecretMounts: []
-@@ -446,13 +477,13 @@
- #      access: proxy
- #      isDefault: true
- #    - name: CloudWatch
--#        type: cloudwatch
--#        access: proxy
--#        uid: cloudwatch
--#        editable: false
--#        jsonData:
--#          authType: credentials
--#          defaultRegion: us-east-1
-+#      type: cloudwatch
-+#      access: proxy
-+#      uid: cloudwatch
-+#      editable: false
-+#      jsonData:
-+#        authType: default
-+#        defaultRegion: us-east-1
- 
- ## Configure notifiers
- ## ref: http://docs.grafana.org/administration/provisioning/#alert-notification-channels
-@@ -602,8 +633,8 @@
+@@ -614,7 +631,7 @@
  ## Requires at least Grafana 5 to work and can't be used together with parameters dashboardProviders, datasources and dashboards
  sidecar:
    image:
 -    repository: quay.io/kiwigrid/k8s-sidecar
--    tag: 1.10.7
 +    repository: rancher/mirrored-kiwigrid-k8s-sidecar
-+    tag: 1.12.3
+     tag: 1.12.3
      sha: ""
    imagePullPolicy: IfNotPresent
-   resources: {}
-@@ -627,9 +658,9 @@
-     folder: /tmp/dashboards
-     # The default folder name, it will create a subfolder under the `folder` and put dashboards in there instead
-     defaultFolderName: null
--    # If specified, the sidecar will search for dashboard config-maps inside this namespace.
-+    # Namespaces list. If specified, the sidecar will search for config-maps/secrets inside these namespaces.
-     # Otherwise the namespace in which the sidecar is running will be used.
--    # It's also possible to specify ALL to search in all namespaces
-+    # It's also possible to specify ALL to search in all namespaces.
-     searchNamespace: null
-     # search in configmap, secret or both
-     resource: both
-@@ -690,9 +721,9 @@
+@@ -702,9 +719,9 @@
    replicas: 1
    image:
      # image-renderer Image repository
@@ -194,12 +95,3 @@
      # image-renderer Image sha (optional)
      sha: ""
      # image-renderer ImagePullPolicy
-@@ -700,7 +731,7 @@
-   # extra environment variables
-   env:
-     HTTP_HOST: "0.0.0.0"
--    # RENDERING_ARGS: --disable-gpu,--window-size=1280x758
-+    # RENDERING_ARGS: --no-sandbox,--disable-gpu,--window-size=1280x758
-     # RENDERING_MODE: clustered
-   # image-renderer deployment serviceAccount
-   serviceAccountName: ""
