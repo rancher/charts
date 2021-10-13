@@ -1,6 +1,6 @@
 --- charts-original/values.yaml
 +++ charts/values.yaml
-@@ -1,8 +1,12 @@
+@@ -1,9 +1,13 @@
  # Default values for k8s-prometheus-adapter..
 +global:
 +  cattle:
@@ -10,7 +10,61 @@
  
  image:
 -  repository: directxman12/k8s-prometheus-adapter-amd64
-+  repository: rancher/mirrored-directxman12-k8s-prometheus-adapter
-   tag: v0.8.4
+-  tag: v0.8.4
++  repository: rancher/mirrored-prometheus-adapter-prometheus-adapter
++  tag: v0.9.0
    pullPolicy: IfNotPresent
  
+ logLevel: 4
+@@ -25,6 +29,11 @@
+ 
+ replicas: 1
+ 
++# k8s 1.21 needs fsGroup to be set for non root deployments
++# ref: https://github.com/kubernetes/kubernetes/issues/70679
++podSecurityContext:
++  fsGroup: 10001
++
+ rbac:
+   # Specifies whether RBAC resources should be created
+   create: true
+@@ -90,7 +99,7 @@
+ #     nodeQuery: sum(rate(container_cpu_usage_seconds_total{<<.LabelMatchers>>, id='/'}[3m])) by (<<.GroupBy>>)
+ #     resources:
+ #       overrides:
+-#         instance:
++#         node:
+ #           resource: node
+ #         namespace:
+ #           resource: namespace
+@@ -102,7 +111,7 @@
+ #     nodeQuery: sum(container_memory_working_set_bytes{<<.LabelMatchers>>,id='/'}) by (<<.GroupBy>>)
+ #     resources:
+ #       overrides:
+-#         instance:
++#         node:
+ #           resource: node
+ #         namespace:
+ #           resource: namespace
+@@ -115,6 +124,7 @@
+   annotations: {}
+   port: 443
+   type: ClusterIP
++# clusterIP: 1.2.3.4
+ 
+ tls:
+   enable: false
+@@ -168,6 +178,13 @@
+ # When hostNetwork is enabled, you probably want to set this to ClusterFirstWithHostNet
+ # dnsPolicy: ClusterFirstWithHostNet
+ 
++# Deployment strategy type
++strategy:
++  type: RollingUpdate
++  rollingUpdate:
++    maxUnavailable: 25%
++    maxSurge: 25%
++
+ podDisruptionBudget:
+   # Specifies if PodDisruptionBudget should be enabled
+   # When enabled, minAvailable or maxUnavailable should also be defined.
