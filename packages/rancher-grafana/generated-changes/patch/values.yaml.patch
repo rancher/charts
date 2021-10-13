@@ -27,7 +27,15 @@
    namespaced: false
    extraRoleRules: []
    # - apiGroups: []
-@@ -68,8 +84,8 @@
+@@ -19,6 +35,7 @@
+   nameTest:
+ #  annotations:
+ #    eks.amazonaws.com/role-arn: arn:aws:iam::123456789000:role/iam-role-name-here
++  autoMount: true
+ 
+ replicas: 1
+ 
+@@ -68,8 +85,8 @@
  # schedulerName: "default-scheduler"
  
  image:
@@ -38,7 +46,7 @@
    sha: ""
    pullPolicy: IfNotPresent
  
-@@ -82,12 +98,15 @@
+@@ -82,12 +99,15 @@
  
  testFramework:
    enabled: true
@@ -56,7 +64,7 @@
    runAsUser: 472
    runAsGroup: 472
    fsGroup: 472
-@@ -115,8 +134,8 @@
+@@ -115,8 +135,8 @@
  # priorityClassName:
  
  downloadDashboardsImage:
@@ -67,7 +75,44 @@
    sha: ""
    pullPolicy: IfNotPresent
  
-@@ -301,7 +320,7 @@
+@@ -148,7 +168,7 @@
+     # targetPort: 4181 To be used with a proxy extraContainer
+   annotations: {}
+   labels: {}
+-  portName: service
++  portName: use-annotation
+ 
+ serviceMonitor:
+   ## If true, a ServiceMonitor CRD is created for a prometheus operator
+@@ -188,7 +208,7 @@
+   labels: {}
+   path: /
+ 
+-  # pathType is only for k8s > 1.19
++  # pathType is only for k8s >= 1.1=
+   pathType: Prefix
+ 
+   hosts:
+@@ -206,7 +226,7 @@
+   #     service:
+   #       name: ssl-redirect
+   #       port:
+-  #         name: service
++  #         name: use-annotation
+ 
+ 
+   tls: []
+@@ -240,7 +260,8 @@
+ extraInitContainers: []
+ 
+ ## Enable an Specify container in extraContainers. This is meant to allow adding an authentication proxy to a grafana pod
+-extraContainers: |
++extraContainers: ""
++# extraContainers: |
+ # - name: proxy
+ #   image: quay.io/gambol99/keycloak-proxy:latest
+ #   args:
+@@ -301,7 +322,7 @@
    ## initChownData container image
    ##
    image:
@@ -76,18 +121,68 @@
      tag: "1.31.1"
      sha: ""
      pullPolicy: IfNotPresent
-@@ -602,8 +621,8 @@
+@@ -382,6 +403,16 @@
+ ## This can be useful for auth tokens, etc
+ envRenderSecret: {}
+ 
++## The names of secrets in the same kubernetes namespace which contain values to be added to the environment
++## Each entry should contain a name key, and can optionally specify whether the secret must be defined with an optional key.
++envFromSecrets: []
++## - name: secret-name
++##   optional: true
++
++# Inject Kubernetes services as environment variables.
++# See https://kubernetes.io/docs/concepts/services-networking/connect-applications-service/#environment-variables
++enableServiceLinks: true
++
+ ## Additional grafana server secret mounts
+ # Defines additional mounts with secrets. Secrets must be manually created in the namespace.
+ extraSecretMounts: []
+@@ -446,13 +477,13 @@
+ #      access: proxy
+ #      isDefault: true
+ #    - name: CloudWatch
+-#        type: cloudwatch
+-#        access: proxy
+-#        uid: cloudwatch
+-#        editable: false
+-#        jsonData:
+-#          authType: credentials
+-#          defaultRegion: us-east-1
++#      type: cloudwatch
++#      access: proxy
++#      uid: cloudwatch
++#      editable: false
++#      jsonData:
++#        authType: default
++#        defaultRegion: us-east-1
+ 
+ ## Configure notifiers
+ ## ref: http://docs.grafana.org/administration/provisioning/#alert-notification-channels
+@@ -602,8 +633,8 @@
  ## Requires at least Grafana 5 to work and can't be used together with parameters dashboardProviders, datasources and dashboards
  sidecar:
    image:
 -    repository: quay.io/kiwigrid/k8s-sidecar
 -    tag: 1.10.7
 +    repository: rancher/mirrored-kiwigrid-k8s-sidecar
-+    tag: 1.12.2
++    tag: 1.12.3
      sha: ""
    imagePullPolicy: IfNotPresent
    resources: {}
-@@ -690,9 +709,9 @@
+@@ -627,9 +658,9 @@
+     folder: /tmp/dashboards
+     # The default folder name, it will create a subfolder under the `folder` and put dashboards in there instead
+     defaultFolderName: null
+-    # If specified, the sidecar will search for dashboard config-maps inside this namespace.
++    # Namespaces list. If specified, the sidecar will search for config-maps/secrets inside these namespaces.
+     # Otherwise the namespace in which the sidecar is running will be used.
+-    # It's also possible to specify ALL to search in all namespaces
++    # It's also possible to specify ALL to search in all namespaces.
+     searchNamespace: null
+     # search in configmap, secret or both
+     resource: both
+@@ -690,9 +721,9 @@
    replicas: 1
    image:
      # image-renderer Image repository
@@ -99,3 +194,12 @@
      # image-renderer Image sha (optional)
      sha: ""
      # image-renderer ImagePullPolicy
+@@ -700,7 +731,7 @@
+   # extra environment variables
+   env:
+     HTTP_HOST: "0.0.0.0"
+-    # RENDERING_ARGS: --disable-gpu,--window-size=1280x758
++    # RENDERING_ARGS: --no-sandbox,--disable-gpu,--window-size=1280x758
+     # RENDERING_MODE: clustered
+   # image-renderer deployment serviceAccount
+   serviceAccountName: ""
