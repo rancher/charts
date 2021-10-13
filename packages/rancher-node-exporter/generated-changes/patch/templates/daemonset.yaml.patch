@@ -1,14 +1,6 @@
 --- charts-original/templates/daemonset.yaml
 +++ charts/templates/daemonset.yaml
-@@ -21,6 +21,7 @@
-       {{- toYaml .Values.podAnnotations | nindent 8 }}
-       {{- end }}
-     spec:
-+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
-       serviceAccountName: {{ template "prometheus-node-exporter.serviceAccountName" . }}
- {{- if .Values.securityContext }}
-       securityContext:
-@@ -35,7 +36,7 @@
+@@ -36,7 +36,7 @@
        {{- end }}
        containers:
          - name: node-exporter
@@ -17,22 +9,7 @@
            imagePullPolicy: {{ .Values.image.pullPolicy }}
            args:
              - --path.procfs=/host/proc
-@@ -61,7 +62,7 @@
-                 fieldPath: status.hostIP
-             {{- end }}
-           ports:
--            - name: metrics
-+            - name: {{ .Values.service.portName }}
-               containerPort: {{ .Values.service.port }}
-               protocol: TCP
-           livenessProbe:
-@@ -128,23 +129,23 @@
-           {{- end }}
- {{- end }}
-       hostNetwork: {{ .Values.hostNetwork }}
--      hostPID: true
-+      hostPID: {{ .Values.hostPID }}
- {{- if .Values.affinity }}
+@@ -134,18 +134,18 @@
        affinity:
  {{ toYaml .Values.affinity | indent 8 }}
  {{- end }}
