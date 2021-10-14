@@ -1,0 +1,39 @@
+{{- if and (not .Values.ingressNginx.enabled) (.Values.rkeIngressNginx.enabled) }}
+{{- fail "Cannot set .Values.rkeIngressNginx.enabled=true when .Values.ingressNginx.enabled=false" }}
+{{- end }}
+{{- if and .Values.ingressNginx.enabled (not .Values.rkeIngressNginx.enabled) }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ template "kube-prometheus-stack.fullname" . }}-ingress-nginx
+  namespace: {{ .Values.ingressNginx.namespace }}
+  labels:
+    app: {{ template "kube-prometheus-stack.name" . }}-ingress-nginx
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+spec:
+  jobLabel: jobLabel
+  selector:
+    matchLabels:
+      app: {{ template "kube-prometheus-stack.name" . }}-ingress-nginx
+      release: {{ $.Release.Name | quote }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Values.ingressNginx.namespace }}
+  endpoints:
+  - port: http-metrics
+    {{- if .Values.ingressNginx.serviceMonitor.interval}}
+    interval: {{ .Values.ingressNginx.serviceMonitor.interval }}
+    {{- end }}
+    {{- if .Values.ingressNginx.serviceMonitor.proxyUrl }}
+    proxyUrl: {{ .Values.ingressNginx.serviceMonitor.proxyUrl}}
+    {{- end }}
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+{{- if .Values.ingressNginx.serviceMonitor.metricRelabelings }}
+    metricRelabelings:
+{{ tpl (toYaml .Values.ingressNginx.serviceMonitor.metricRelabelings | indent 4) . }}
+{{- end }}
+{{- if .Values.ingressNginx.serviceMonitor.relabelings }}
+    relabelings:
+{{ toYaml .Values.ingressNginx.serviceMonitor.relabelings | indent 4 }}
+{{- end }}
+{{- end }}
