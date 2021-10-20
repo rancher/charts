@@ -1,21 +1,21 @@
-{{- if .Values.additionalLoggingSources.rke2.enabled }}
+{{- if and .Values.additionalLoggingSources.k3s.enabled (eq .Values.additionalLoggingSources.k3s.container_engine "systemd") }}
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: "{{ .Release.Name }}-rke2-journald-aggregator"
+  name: "{{ .Release.Name }}-k3s-journald-aggregator"
   namespace: "{{ .Release.Namespace }}"
 spec:
   selector:
     matchLabels:
-      name: {{ .Release.Name }}-rke2-journald-aggregator
+      name: {{ .Release.Name }}-k3s-journald-aggregator
   template:
     metadata:
       annotations:
-        checksum/config: {{ include (print $.Template.BasePath "/loggings/rke2/configmap.yaml") . | sha256sum }}
-      name: "{{ .Release.Name }}-rke2-journald-aggregator"
+        checksum/config: {{ include (print $.Template.BasePath "/loggings/k3s/configmap.yaml") . | sha256sum }}
+      name: "{{ .Release.Name }}-k3s-journald-aggregator"
       namespace: "{{ .Release.Namespace }}"
       labels:
-        name: {{ .Release.Name }}-rke2-journald-aggregator
+        name: {{ .Release.Name }}-k3s-journald-aggregator
     spec:
       containers:
         - name: fluentbit
@@ -31,9 +31,6 @@ spec:
             - mountPath: {{ .Values.systemdLogPath | default "/var/log/journal" }}
               name: journal
               readOnly: true
-            - mountPath: "/var/lib/rancher/rke2/agent/logs/kubelet.log"
-              name: kubelet
-              readOnly: true
             - mountPath: /etc/machine-id
               name: machine-id
               readOnly: true
@@ -43,17 +40,14 @@ spec:
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: "{{ .Release.Name }}-rke2-journald-aggregator"
+      serviceAccountName: "{{ .Release.Name }}-k3s-journald-aggregator"
       volumes:
         - name: config
           configMap:
-            name: "{{ .Release.Name }}-rke2"
+            name: "{{ .Release.Name }}-k3s"
         - name: journal
           hostPath:
             path: {{ .Values.systemdLogPath | default "/var/log/journal" }}
-        - name: kubelet
-          hostPath:
-            path: "/var/lib/rancher/rke2/agent/logs/kubelet.log"
         - name: machine-id
           hostPath:
             path: /etc/machine-id
@@ -61,19 +55,19 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: "{{ .Release.Name }}-rke2-journald-aggregator"
+  name: "{{ .Release.Name }}-k3s-journald-aggregator"
   namespace: "{{ .Release.Namespace }}"
 {{- if .Values.global.psp.enabled }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: "{{ .Release.Name }}-rke2-journald-aggregator"
+  name: "{{ .Release.Name }}-k3s-journald-aggregator"
 rules:
   - apiGroups:
     - policy
     resourceNames:
-    - "{{ .Release.Name }}-rke2-journald-aggregator"
+    - "{{ .Release.Name }}-k3s-journald-aggregator"
     resources:
     - podsecuritypolicies
     verbs:
@@ -82,19 +76,19 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: "{{ .Release.Name }}-rke2-journald-aggregator"
+  name: "{{ .Release.Name }}-k3s-journald-aggregator"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: "{{ .Release.Name }}-rke2-journald-aggregator"
+  name: "{{ .Release.Name }}-k3s-journald-aggregator"
 subjects:
   - kind: ServiceAccount
-    name: "{{ .Release.Name }}-rke2-journald-aggregator"
+    name: "{{ .Release.Name }}-k3s-journald-aggregator"
 ---
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
-  name: "{{ .Release.Name }}-rke2-journald-aggregator"
+  name: "{{ .Release.Name }}-k3s-journald-aggregator"
   namespace: "{{ .Release.Namespace }}"
 spec:
   allowPrivilegeEscalation: false
