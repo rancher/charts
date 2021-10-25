@@ -82,7 +82,6 @@ k8s-app: {{ template "pushProxy.proxy.name" . }}
 
 {{- define "pushProxy.serviceMonitor.labels" -}}
 app: {{ template "pushprox.serviceMonitor.name" . }}
-release: {{ .Release.Name | quote }}
 {{ template "pushProxy.commonLabels" . }}
 {{- end -}}
 
