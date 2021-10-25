@@ -5,7 +5,7 @@ cd $(dirname $0)
 
 cd ..
 
-if [ -z ${PACKAGE} ] || [ -z ${NEW_TAG} ]; then
+if [ -z "${PACKAGE}" ] || [ -z ${NEW_TAG} ]; then
     echo "Usage: PACKAGE=<package-name> NEW_TAG=<tag-or-commit-in-upstream> ./scripts/rebase"
     exit 1
 fi
@@ -230,7 +230,7 @@ for commit in ${COMMITS}; do
         git subtree split -P ${SUB_DIRECTORY} -b ${SUB_DIRECTORY_BRANCH} --annotate='(split) ' --rejoin 1>/dev/null 2>/dev/null
         echo "Successfully re-aligned subdirectory branch. Resuming rebase..."
     fi
-    
+
     # Pull in changes from subdirectory branch
     git checkout ${STAGING_BRANCH} 1>/dev/null 2>/dev/null
     set +e
@@ -251,7 +251,10 @@ for commit in ${COMMITS}; do
             mkdir -p ${EXCLUDE_DIRECTORY}/${d}
         done
         for f in ${EXCLUDE_FILES}; do
-            mv ${DEST_DIRECTORY}/${f} ${EXCLUDE_DIRECTORY}/${f}
+            # the file might be removed by the commit
+            if [ -f ${DEST_DIRECTORY}/${f} ]; then
+              mv ${DEST_DIRECTORY}/${f} ${EXCLUDE_DIRECTORY}/${f}
+            fi
         done
         unset EXCLUDE_DIRECTORIES
         unset EXCLUDE_FILES
@@ -261,7 +264,7 @@ for commit in ${COMMITS}; do
         git reset HEAD~1 1>/dev/null 2>/dev/null
         mv ${DEST_DIRECTORY}/crds ${CRD_CHART_DIRECTORY}/${CRDS_DIRECTORY}
     fi
-    
+
     # Clean up empty directories from the merge
     find . -type d -empty -delete 1>/dev/null 2>/dev/null
 
