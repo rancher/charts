@@ -1,0 +1,135 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Chart.Name }}-create
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+  annotations:
+    "helm.sh/hook": post-install, post-upgrade, post-rollback
+    "helm.sh/hook-delete-policy": before-hook-creation, hook-succeeded, hook-failed
+spec:
+  template:
+    metadata:
+      name: {{ .Chart.Name }}-create
+      labels:
+        app: {{ .Chart.Name }}
+    spec:
+      serviceAccountName: {{ .Chart.Name }}-manager
+      securityContext:
+        runAsNonRoot: false
+        runAsUser: 0
+      initContainers:
+        - name: set-preserve-unknown-fields-false
+          image: {{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: IfNotPresent
+          command:
+          - /bin/sh
+          - -c
+          - >
+            {{- range $path, $_ :=  (.Files.Glob  "crd-manifest/**.yaml") }}
+            {{- $crd := get (get ($.Files.Get $path | fromYaml) "metadata") "name" }}
+            if [[ -n "$(kubectl get crd {{ $crd }} -o jsonpath='{.spec.preserveUnknownFields}')" ]]; then
+                patch='{"spec": {"preserveUnknownFields": false}}';
+                if [[ -z "$(kubectl get crd {{ $crd }} -o jsonpath='{.spec.versions[0].schema}')" ]]; then
+                  patch='{"spec": {"preserveUnknownFields": false, "versions": [{"name": "v1", "served": false, "storage": true, "schema": {"openAPIV3Schema": {"description": "placeholder", "type": "object"}}}]}}';
+                fi
+                echo "Applying patch to {{ $crd }}: ${patch}"
+                if kubectl patch crd {{ $crd }} -p "${patch}" --type="merge"; then
+                {{- include "crd.established" $crd | nindent 18 }}
+                fi;
+            fi;
+            {{- end }}
+      containers:
+        - name: create-crds
+          image: {{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: IfNotPresent
+          command:
+          - /bin/sh
+          - -c
+          - >
+            echo "Applying CRDs...";
+            kubectl apply -f /etc/config/crd-manifest.yaml;
+            
+            echo "Waiting for CRDs to be recognized before finishing installation...";
+
+            {{- range $path, $_ :=  (.Files.Glob  "crd-manifest/**.yaml") }}
+            {{- $apiGroup := get (get ($.Files.Get $path | fromYaml) "spec") "group" }}
+            rm -rf $HOME/.kube/cache/discovery/*/{{ $apiGroup }};
+            {{- end }}
+
+            {{- range $path, $_ :=  (.Files.Glob  "crd-manifest/**.yaml") }}
+            {{- $crd := get (get ($.Files.Get $path | fromYaml) "metadata") "name" }}
+            {{- include "crd.established" $crd | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+            - name: crd-manifest
+              readOnly: true
+              mountPath: /etc/config
+      restartPolicy: OnFailure
+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+      volumes:
+      - name: crd-manifest
+        configMap:
+          name: {{ .Chart.Name }}-manifest
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Chart.Name }}-delete
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-delete-policy": before-hook-creation, hook-succeeded, hook-failed
+spec:
+  template:
+    metadata:
+      name: {{ .Chart.Name }}-delete
+      labels:
+        app: {{ .Chart.Name }}
+    spec:
+      serviceAccountName: {{ .Chart.Name }}-manager
+      securityContext:
+        runAsNonRoot: false
+        runAsUser: 0
+      initContainers:
+        - name: remove-finalizers
+          image: {{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: IfNotPresent
+          command:
+          - /bin/sh
+          - -c
+          - >
+            {{- range $path, $_ :=  (.Files.Glob  "crd-manifest/**.yaml") }}
+            {{- $crd := get (get ($.Files.Get $path | fromYaml) "metadata") "name" }}
+            if kubectl patch crd {{ $crd }} -p '{"metadata": {"finalizers": []}}'; then
+              {{- include "crd.established" $crd | nindent 14 }}
+            fi;
+            {{- end }}
+          volumeMounts:
+            - name: crd-manifest
+              readOnly: true
+              mountPath: /etc/config
+      containers:
+        - name: delete-crds
+          image: {{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: IfNotPresent
+          command:
+          - /bin/sh
+          - -c
+          - >
+            kubectl delete -f /etc/config/crd-manifest.yaml
+          volumeMounts:
+            - name: crd-manifest
+              readOnly: true
+              mountPath: /etc/config
+      restartPolicy: OnFailure
+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+      volumes:
+      - name: crd-manifest
+        configMap:
+          name: {{ .Chart.Name }}-manifest
