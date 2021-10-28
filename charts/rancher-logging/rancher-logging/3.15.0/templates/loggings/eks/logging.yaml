@@ -1,8 +1,8 @@
-{{- if .Values.additionalLoggingSources.gke.enabled }}
+{{- if .Values.additionalLoggingSources.eks.enabled }}
 apiVersion: logging.banzaicloud.io/v1beta1
 kind: Logging
 metadata:
-  name: {{ .Release.Name }}-gke
+  name: {{ .Release.Name }}-eks
   namespace: {{ .Release.Namespace }}
   labels:
 {{ include "logging-operator.labels" . | indent 4 }}
@@ -13,8 +13,9 @@ spec:
       repository: {{ template "system_default_registry" . }}{{ .Values.images.fluentbit.repository }}
       tag: {{ .Values.images.fluentbit.tag }}
     inputTail:
-      Tag: "gke"
-      Path: "/var/log/kube-proxy.log"
+      Tag: "eks"
+      Path: "/var/log/messages"
+      Parser: "syslog"
       {{- if .Values.fluentbit.inputTail.Buffer_Chunk_Size }}
       Buffer_Chunk_Size: {{ .Values.fluentbit.inputTail.Buffer_Chunk_Size | toString }}
       {{- end }}
@@ -51,21 +52,6 @@ spec:
     {{- end }}
     {{- with .Values.fluentbit.resources }}
     resources: {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- if (include "requireFilterKubernetes" .) }}
-    filterKubernetes:
-      {{- if .Values.fluentbit.filterKubernetes.Merge_Log }}
-      Merge_Log: "{{ .Values.fluentbit.filterKubernetes.Merge_Log }}"
-      {{- end }}
-      {{- if .Values.fluentbit.filterKubernetes.Merge_Log_Key }}
-      Merge_Log_Key: "{{ .Values.fluentbit.filterKubernetes.Merge_Log_Key }}"
-      {{- end }}
-      {{- if .Values.fluentbit.filterKubernetes.Merge_Log_Trim }}
-      Merge_Log_Trim: "{{ .Values.fluentbit.filterKubernetes.Merge_Log_Trim }}"
-      {{- end }}
-      {{- if .Values.fluentbit.filterKubernetes.Merge_Parser }}
-      Merge_Parser: "{{ .Values.fluentbit.filterKubernetes.Merge_Parser }}"
-      {{- end }}
     {{- end }}
   fluentd:
     image:
