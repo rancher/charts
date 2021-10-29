@@ -154,3 +154,26 @@ Set kubernetes log options if they are configured
 true
 {{- end -}}
 {{- end -}}
+
+{{/*Fluent Bit Image Repository */}}
+{{- define "logging-operator.fluentbitImageRepository" -}}
+{{- if .Values.debug -}}
+{{ template "system_default_registry" . }}{{ .Values.images.fluentbit_debug.repository }}
+{{- else -}}
+{{ template "system_default_registry" . }}{{ .Values.images.fluentbit.repository }}
+{{- end -}}
+{{- end -}}
+
+{{/*Fluent Bit Image Tag */}}
+{{- define "logging-operator.fluentbitImageTag" -}}
+{{- if .Values.debug -}}
+{{ .Values.images.fluentbit_debug.tag }}
+{{- else -}}
+{{ .Values.images.fluentbit.tag }}
+{{- end -}}
+{{- end -}}
+
+{{/*Fluent Bit Image */}}
+{{- define "logging-operator.fluentbitImage" -}}
+{{ template "logging-operator.fluentbitImageRepository" . }}:{{ template "logging-operator.fluentbitImageTag" . }}
+{{- end -}}
