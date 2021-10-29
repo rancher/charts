@@ -145,12 +145,3 @@ A shared list of custom parsers for the vairous fluentbit pods rancher creates
     Time_Key          timestamp
     Time_Format       %FT%H:%M:%S.%L
 {{- end -}}
-
-{{/*
-Set kubernetes log options if they are configured
-*/}}
-{{- define "requireFilterKubernetes" -}}
-{{- if or .Values.fluentbit.filterKubernetes.Merge_Log .Values.fluentbit.filterKubernetes.Merge_Log_Key .Values.fluentbit.filterKubernetes.Merge_Trim .Values.fluentbit.filterKubernetes.Merge_Parser -}}
-true
-{{- end -}}
-{{- end -}}
