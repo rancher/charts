@@ -7,7 +7,6 @@ See the app-readme for known issues and deprecations.
 ## Installation Requirements
 
 #### Chart Dependencies
-- rancher-kiali-server-crd chart
 - rancher-monitoring chart or other Prometheus installation
 
 #### Install
