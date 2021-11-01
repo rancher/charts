@@ -1,0 +1,66 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: istioctl-installer
+  namespace: {{ template "istio.namespace" . }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      {{- if .Values.installer.releaseMirror.enabled }}
+      hostAliases:
+      - ip: "127.0.0.1"
+        hostnames:
+        - "github.com"
+      {{- end }}
+      containers:
+        - name: istioctl-installer
+          image: {{ template "system_default_registry" . }}{{ .Values.installer.repository }}:{{ .Values.installer.tag }}
+          env:
+          - name: RELEASE_NAME
+            value: {{ .Release.Name }}
+          - name: ISTIO_NAMESPACE
+            value: {{ template "istio.namespace" . }}
+          - name: FORCE_INSTALL
+            value: {{ .Values.forceInstall | default "false" | quote }}
+          - name: RELEASE_MIRROR_ENABLED
+            value: {{ .Values.installer.releaseMirror.enabled | quote }}
+          - name: SECONDS_SLEEP
+            value: {{ .Values.installer.debug.secondsSleep | quote}}
+          command: ["/bin/sh","-c"]
+          args: ["/usr/local/app/scripts/run.sh"]
+          volumeMounts:
+          - name: config-volume
+            mountPath: /app/istio-base.yaml
+            subPath: istio-base.yaml
+          {{- if .Values.overlayFile }}
+          - name: overlay-volume
+            mountPath: /app/overlay-config.yaml
+            subPath: overlay-config.yaml
+          {{- end }}
+          {{- if .Values.installer.releaseMirror.additionalIstioImage.enabled }}
+          - name: {{ .Values.installer.releaseMirror.additionalIstioImage.volumeMountName }}
+            mountPath: /opt/istio-releases/{{ .Values.installer.releaseMirror.additionalIstioImage.tag }}/istio-{{ .Values.installer.releaseMirror.additionalIstioImage.tag }}-linux-amd64.tar.gz
+            subPath: istio-{{ .Values.installer.releaseMirror.additionalIstioImage.tag }}-linux-amd64.tar.gz
+          {{- end }}
+      volumes:
+        - name: config-volume
+          configMap:
+            name: istio-installer-base
+        {{- if .Values.overlayFile }}
+        - name: overlay-volume
+          configMap:
+            name: istio-installer-overlay
+        {{- end }}
+{{- if .Values.installer.releaseMirror.additionalIstioImage.enabled }}
+{{ toYaml .Values.installer.releaseMirror.additionalIstioImage.volumes | indent 8 }}
+{{- end }}
+      serviceAccountName: istio-installer
+      securityContext:
+        runAsUser: 101
+        runAsGroup: 101
+      restartPolicy: Never
