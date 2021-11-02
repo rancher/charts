@@ -24,6 +24,18 @@
              {{- end }}
              - --config-reloader-cpu-request={{ .Values.prometheusOperator.configReloaderCpu }}
              - --config-reloader-cpu-limit={{ .Values.prometheusOperator.configReloaderCpu }}
+@@ -81,9 +81,9 @@
+             - --prometheus-instance-namespaces={{ .Values.prometheusOperator.prometheusInstanceNamespaces | join "," }}
+             {{- end }}
+             {{- if .Values.prometheusOperator.thanosImage.sha }}
+-            - --thanos-default-base-image={{ .Values.prometheusOperator.thanosImage.repository }}:{{ .Values.prometheusOperator.thanosImage.tag }}@sha256:{{ .Values.prometheusOperator.thanosImage.sha }}
++            - --thanos-default-base-image={{ template "system_default_registry" . }}{{ .Values.prometheusOperator.thanosImage.repository }}:{{ .Values.prometheusOperator.thanosImage.tag }}@sha256:{{ .Values.prometheusOperator.thanosImage.sha }}
+             {{- else }}
+-            - --thanos-default-base-image={{ .Values.prometheusOperator.thanosImage.repository }}:{{ .Values.prometheusOperator.thanosImage.tag }}
++            - --thanos-default-base-image={{ template "system_default_registry" . }}{{ .Values.prometheusOperator.thanosImage.repository }}:{{ .Values.prometheusOperator.thanosImage.tag }}
+             {{- end }} 
+             {{- if .Values.prometheusOperator.thanosRulerInstanceNamespaces }}
+             - --thanos-ruler-instance-namespaces={{ .Values.prometheusOperator.thanosRulerInstanceNamespaces | join "," }}
 @@ -137,16 +137,16 @@
        hostNetwork: true
        dnsPolicy: ClusterFirstWithHostNet
