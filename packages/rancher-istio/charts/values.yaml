@@ -1,11 +1,19 @@
 overlayFile: ""
-tag: 1.10.2
+tag: 1.10.4
 ##Setting forceInstall: true will remove the check for istio version < 1.6.x and will not analyze your install cluster prior to install
 forceInstall: false
 
 installer:
   repository: rancher/istio-installer
-  tag: 1.10.2-rancher1
+  tag: 1.10.4-rancher6
+  ##releaseMirror are configurations for istio upgrades. 
+  ##Setting releaseMirror.enabled: true will cause istio to use bundled in images from rancher/istio-installer to perfom an upgrade - this is ideal
+  ##for airgap setups. Setting releaseMirror.enabled to false means istio will call externally to github to fetch the required assets.
+  releaseMirror:
+    enabled: false
+  ##Set the secondsSleep to run a sleep command `sleep <secondsSleep>s` to allow time to exec into istio-installer pod for debugging
+  debug:
+    secondsSleep: 0
 
 ##Native support for dns added in 1.8
 dns:
@@ -17,7 +25,7 @@ base:
 cni:
   enabled: false
   repository: rancher/mirrored-istio-install-cni
-  tag: 1.10.2
+  tag: 1.10.4
   logLevel: info
   excludeNamespaces:
   - istio-system
@@ -37,7 +45,7 @@ istiodRemote:
 pilot:
   enabled: true
   repository: rancher/mirrored-istio-pilot
-  tag: 1.10.2
+  tag: 1.10.4
 
 telemetry:
   enabled: true
@@ -49,14 +57,14 @@ global:
     systemDefaultRegistry: ""
   proxy:
     repository: rancher/mirrored-istio-proxyv2
-    tag: 1.10.2
+    tag: 1.10.4
   proxy_init:
     repository: rancher/mirrored-istio-proxyv2
-    tag: 1.10.2
+    tag: 1.10.4
   defaultPodDisruptionBudget:
     enabled: true
   rbac:
-    pspEnabled: false
+    pspEnabled: true
 
 # Kiali subchart from rancher-kiali-server
 kiali:
