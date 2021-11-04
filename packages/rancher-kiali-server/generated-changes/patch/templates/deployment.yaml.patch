@@ -4,8 +4,8 @@
        {{- end }}
        {{- end }}
        containers:
--      - image: "{{ .Values.deployment.image_name }}{{ if .Values.deployment.image_digest }}@{{ .Values.deployment.image_digest }}{{ end }}:{{ .Values.deployment.image_version }}"
-+      - image: "{{ template "system_default_registry" . }}{{ .Values.deployment.repository }}{{ if .Values.deployment.image_digest }}@{{ .Values.deployment.image_digest }}{{ end }}:{{ .Values.deployment.tag }}"
+-      - image: "{{ .Values.deployment.image_name }}:{{ .Values.deployment.image_version }}"
++      - image: "{{ template "system_default_registry" . }}{{ .Values.deployment.repository }}:{{ .Values.deployment.tag }}"
          imagePullPolicy: {{ .Values.deployment.image_pull_policy | default "Always" }}
          name: {{ include "kiali-server.fullname" . }}
          command:
@@ -21,7 +21,7 @@
          - name: {{ include "kiali-server.fullname" . }}-configuration
            mountPath: "/kiali-configuration"
          - name: {{ include "kiali-server.fullname" . }}-cert
-@@ -116,6 +121,14 @@
+@@ -118,6 +123,14 @@
          {{- toYaml .Values.deployment.resources | nindent 10 }}
          {{- end }}
        volumes:
