@@ -50,6 +50,9 @@ spec:
     metrics:
       serviceMonitor: true
   {{- end }}
+    positiondb:
+      hostPath:
+        path: /var/lib/fluent-bit
     image:
       repository: {{ template "system_default_registry" . }}{{ .Values.images.fluentbit.repository }}
       tag: {{ .Values.images.fluentbit.tag }}
@@ -97,6 +100,15 @@ spec:
       repository: {{ template "system_default_registry" . }}{{ .Values.images.config_reloader.repository }}
       tag: {{ .Values.images.config_reloader.tag }}
     disablePvc: {{ .Values.disablePvc }}
+    {{- if not .Values.disablePvc }}
+    {{- with .Values.fluentd.bufferStorageVolume }}
+    bufferStorageVolume:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- end }}
+    {{- if .Values.fluentd.fluentLogDestination }}
+    fluentLogDestination: {{ .Values.fluentd.fluentLogDestination }}
+    {{- end }}
     {{- if .Values.global.psp.enabled }}
     security:
       podSecurityPolicyCreate: true
