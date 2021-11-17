@@ -166,7 +166,11 @@ metadata:
   name: internal-feature-states.csi.vsphere.vmware.com
   namespace: {{ .Release.Namespace }}
 ---
-apiVersion: storage.k8s.io/v1 # For k8s 1.17 or lower use storage.k8s.io/v1beta1
+{{- if semverCompare "<1.18.0-0" .Capabilities.KubeVersion.GitVersion -}}
+apiVersion: storage.k8s.io/v1beta1 # For k8s 1.17 or lower use storage.k8s.io/v1beta1
+{{- else }}
+apiVersion: storage.k8s.io/v1
+{{- end }}
 kind: CSIDriver
 metadata:
   name: csi.vsphere.vmware.com
