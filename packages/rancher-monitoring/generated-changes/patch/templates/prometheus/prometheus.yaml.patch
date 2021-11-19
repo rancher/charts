@@ -1,24 +1,15 @@
 --- charts-original/templates/prometheus/prometheus.yaml
 +++ charts/templates/prometheus/prometheus.yaml
-@@ -33,13 +33,13 @@
+@@ -32,7 +32,7 @@
+ {{ toYaml .Values.prometheus.prometheusSpec.apiserverConfig | indent 4}}
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.image }}
-   {{- if and .Values.prometheus.prometheusSpec.image.tag .Values.prometheus.prometheusSpec.image.sha }}
--  image: "{{ .Values.prometheus.prometheusSpec.image.repository }}:{{ .Values.prometheus.prometheusSpec.image.tag }}@sha256:{{ .Values.prometheus.prometheusSpec.image.sha }}"
-+  image: "{{ template "system_default_registry" . }}{{ .Values.prometheus.prometheusSpec.image.repository }}:{{ .Values.prometheus.prometheusSpec.image.tag }}@sha256:{{ .Values.prometheus.prometheusSpec.image.sha }}"
-   {{- else if .Values.prometheus.prometheusSpec.image.sha }}
--  image: "{{ .Values.prometheus.prometheusSpec.image.repository }}@sha256:{{ .Values.prometheus.prometheusSpec.image.sha }}"
-+  image: "{{ template "system_default_registry" . }}{{ .Values.prometheus.prometheusSpec.image.repository }}@sha256:{{ .Values.prometheus.prometheusSpec.image.sha }}"
-   {{- else if .Values.prometheus.prometheusSpec.image.tag }}
--  image: "{{ .Values.prometheus.prometheusSpec.image.repository }}:{{ .Values.prometheus.prometheusSpec.image.tag }}"
-+  image: "{{ template "system_default_registry" . }}{{ .Values.prometheus.prometheusSpec.image.repository }}:{{ .Values.prometheus.prometheusSpec.image.tag }}"
-   {{- else }}
--  image: "{{ .Values.prometheus.prometheusSpec.image.repository }}"
-+  image: "{{ template "system_default_registry" . }}{{ .Values.prometheus.prometheusSpec.image.repository }}"
-   {{- end }}
+-  image: {{ .Values.prometheus.prometheusSpec.image.repository }}:{{ .Values.prometheus.prometheusSpec.image.tag }}
++  image: {{ template "system_default_registry" . }}{{ .Values.prometheus.prometheusSpec.image.repository }}:{{ .Values.prometheus.prometheusSpec.image.tag }}
    version: {{ .Values.prometheus.prometheusSpec.image.tag }}
    {{- if .Values.prometheus.prometheusSpec.image.sha }}
-@@ -64,11 +64,13 @@
+   sha: {{ .Values.prometheus.prometheusSpec.image.sha }}
+@@ -56,11 +56,13 @@
    externalUrl: "{{ tpl .Values.prometheus.prometheusSpec.externalUrl . }}"
  {{- else if and .Values.prometheus.ingress.enabled .Values.prometheus.ingress.hosts }}
    externalUrl: "http://{{ tpl (index .Values.prometheus.ingress.hosts 0) . }}{{ .Values.prometheus.prometheusSpec.routePrefix }}"
@@ -33,7 +24,7 @@
  {{ toYaml .Values.prometheus.prometheusSpec.nodeSelector | indent 4 }}
  {{- end }}
    paused: {{ .Values.prometheus.prometheusSpec.paused }}
-@@ -244,8 +246,8 @@
+@@ -232,8 +234,8 @@
                - {key: prometheus, operator: In, values: [{{ template "kube-prometheus-stack.fullname" . }}-prometheus]}
  {{- end }}
  {{- end }}
@@ -43,7 +34,7 @@
  {{ toYaml .Values.prometheus.prometheusSpec.tolerations | indent 4 }}
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.topologySpreadConstraints }}
-@@ -284,7 +286,7 @@
+@@ -266,7 +268,7 @@
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.containers }}
    containers:
@@ -52,7 +43,7 @@
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.initContainers }}
    initContainers:
-@@ -300,6 +302,7 @@
+@@ -282,6 +284,7 @@
  {{- if .Values.prometheus.prometheusSpec.disableCompaction }}
    disableCompaction: {{ .Values.prometheus.prometheusSpec.disableCompaction }}
  {{- end }}
@@ -60,7 +51,7 @@
    portName: {{ .Values.prometheus.prometheusSpec.portName }}
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.volumes }}
-@@ -356,3 +359,4 @@
+@@ -326,3 +329,4 @@
  {{- if .Values.prometheus.prometheusSpec.allowOverlappingBlocks }}
    allowOverlappingBlocks: {{ .Values.prometheus.prometheusSpec.allowOverlappingBlocks }}
  {{- end }}

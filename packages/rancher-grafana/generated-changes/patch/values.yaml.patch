@@ -1,10 +1,12 @@
 --- charts-original/values.yaml
 +++ charts/values.yaml
-@@ -1,9 +1,23 @@
+@@ -1,9 +1,25 @@
 +global:
 +  cattle:
 +    systemDefaultRegistry: ""
 +
++autoscaling:
++  enabled: false
  rbac:
    create: true
    ## Use an existing ClusterRole/Role (depending on rbac.namespaced false/true)
@@ -25,24 +27,22 @@
    namespaced: false
    extraRoleRules: []
    # - apiGroups: []
-@@ -69,8 +83,8 @@
+@@ -68,8 +84,8 @@
  # schedulerName: "default-scheduler"
  
  image:
 -  repository: grafana/grafana
--  tag: 8.2.1
+-  tag: 7.5.5
 +  repository: rancher/mirrored-grafana-grafana
-+  tag: 7.5.11
++  tag: 7.5.8
    sha: ""
    pullPolicy: IfNotPresent
  
-@@ -82,13 +96,16 @@
-   #   - myRegistrKeySecretName
+@@ -82,12 +98,15 @@
  
  testFramework:
--  enabled: true
+   enabled: true
 -  image: "bats/bats"
-+  enabled: false
 +  image: "rancher/mirrored-bats-bats"
    tag: "v1.1.0"
    imagePullPolicy: IfNotPresent
@@ -56,7 +56,7 @@
    runAsUser: 472
    runAsGroup: 472
    fsGroup: 472
-@@ -116,8 +133,8 @@
+@@ -115,8 +134,8 @@
  # priorityClassName:
  
  downloadDashboardsImage:
@@ -67,16 +67,7 @@
    sha: ""
    pullPolicy: IfNotPresent
  
-@@ -189,7 +206,7 @@
-   labels: {}
-   path: /
- 
--  # pathType is only for k8s >= 1.1=
-+  # pathType is only for k8s >= 1.18
-   pathType: Prefix
- 
-   hosts:
-@@ -303,7 +320,7 @@
+@@ -301,7 +320,7 @@
    ## initChownData container image
    ##
    image:
@@ -85,16 +76,18 @@
      tag: "1.31.1"
      sha: ""
      pullPolicy: IfNotPresent
-@@ -614,7 +631,7 @@
+@@ -602,8 +621,8 @@
  ## Requires at least Grafana 5 to work and can't be used together with parameters dashboardProviders, datasources and dashboards
  sidecar:
    image:
 -    repository: quay.io/kiwigrid/k8s-sidecar
+-    tag: 1.10.7
 +    repository: rancher/mirrored-kiwigrid-k8s-sidecar
-     tag: 1.12.3
++    tag: 1.12.2
      sha: ""
    imagePullPolicy: IfNotPresent
-@@ -702,9 +719,9 @@
+   resources: {}
+@@ -690,9 +709,9 @@
    replicas: 1
    image:
      # image-renderer Image repository
