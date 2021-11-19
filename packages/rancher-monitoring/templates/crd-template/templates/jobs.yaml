@@ -49,8 +49,10 @@ spec:
           - -c
           - >
             echo "Applying CRDs...";
-            kubectl apply -f /etc/config/crd-manifest.yaml;
-            
+            mkdir -p /etc/crd;
+            base64 -d /etc/config/crd-manifest.tgz.b64 | tar -xzv -C /etc/crd;
+            kubectl apply -Rf /etc/crd;
+
             echo "Waiting for CRDs to be recognized before finishing installation...";
 
             {{- range $path, $_ :=  (.Files.Glob  "crd-manifest/**.yaml") }}
@@ -68,7 +70,13 @@ spec:
               mountPath: /etc/config
       restartPolicy: OnFailure
       nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
+      {{- if .Values.nodeSelector }}
+      {{- toYaml .Values.nodeSelector | nindent 8 }}
+      {{- end }}
       tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+      {{- if .Values.tolerations }}
+      {{- toYaml .Values.tolerations | nindent 8 }}
+      {{- end }}
       volumes:
       - name: crd-manifest
         configMap:
@@ -121,14 +129,23 @@ spec:
           - /bin/sh
           - -c
           - >
-            kubectl delete -f /etc/config/crd-manifest.yaml
+            echo "Deleting CRDs...";
+            mkdir -p /etc/crd;
+            base64 -d /etc/config/crd-manifest.tgz.b64 | tar -xzv -C /etc/crd;
+            kubectl delete -Rf /etc/crd;
           volumeMounts:
             - name: crd-manifest
               readOnly: true
               mountPath: /etc/config
       restartPolicy: OnFailure
       nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
+      {{- if .Values.nodeSelector }}
+      {{- toYaml .Values.nodeSelector | nindent 8 }}
+      {{- end }}
       tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+      {{- if .Values.tolerations }}
+      {{- toYaml .Values.tolerations | nindent 8 }}
+      {{- end }}
       volumes:
       - name: crd-manifest
         configMap:

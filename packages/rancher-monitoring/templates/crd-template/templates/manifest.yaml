@@ -4,11 +4,5 @@ metadata:
   name: {{ .Chart.Name }}-manifest
   namespace: {{ .Release.Namespace }}
 data:
-  crd-manifest.yaml: |
-    {{- $currentScope := . -}}
-    {{- $crds := (.Files.Glob  "crd-manifest/**.yaml") -}}
-    {{- range $path, $_ :=  $crds -}}
-    {{- with $currentScope -}}
-    {{ .Files.Get $path | nindent 4 }}
-    ---
-    {{- end -}}{{- end -}}
+  crd-manifest.tgz.b64:
+  {{- .Files.Get "files/crd-manifest.tgz" | b64enc | indent 4 }}
