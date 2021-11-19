@@ -49,11 +49,9 @@ spec:
           - -c
           - >
             echo "Applying CRDs...";
-            mkdir -p /etc/crd-manifest;
-            base64 -d /etc/config/crd-manifest.tgz > /etc/crd-manifest/crd-manifest.tgz;
-            tar -xzvf /etc/crd-manifest/crd-manifest.tgz -C /etc/crd-manifest;
-            rm /etc/crd-manifest/crd-manifest.tgz;
-            kubectl apply -Rf /etc/crd-manifest;
+            mkdir -p /etc/crd;
+            base64 -d /etc/config/crd-manifest.tgz.b64 | tar -xzv -C /etc/crd;
+            kubectl apply -Rf /etc/crd;
 
             echo "Waiting for CRDs to be recognized before finishing installation...";
 
@@ -132,11 +130,9 @@ spec:
           - -c
           - >
             echo "Deleting CRDs...";
-            mkdir -p /etc/crd-manifest;
-            base64 -d /etc/config/crd-manifest.tgz > /etc/crd-manifest/crd-manifest.tgz;
-            tar -xzvf /etc/crd-manifest/crd-manifest.tgz -C /etc/crd-manifest;
-            rm /etc/crd-manifest/crd-manifest.tgz;
-            kubectl delete -Rf /etc/crd-manifest;
+            mkdir -p /etc/crd;
+            base64 -d /etc/config/crd-manifest.tgz.b64 | tar -xzv -C /etc/crd;
+            kubectl delete -Rf /etc/crd;
           volumeMounts:
             - name: crd-manifest
               readOnly: true
