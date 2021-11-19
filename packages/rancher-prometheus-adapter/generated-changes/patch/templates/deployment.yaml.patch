@@ -1,6 +1,6 @@
 --- charts-original/templates/deployment.yaml
 +++ charts/templates/deployment.yaml
-@@ -41,7 +41,7 @@
+@@ -40,7 +40,7 @@
        {{- end}}
        containers:
        - name: {{ .Chart.Name }}
@@ -9,7 +9,7 @@
          imagePullPolicy: {{ .Values.image.pullPolicy }}
          args:
          - /adapter
-@@ -105,8 +105,10 @@
+@@ -102,13 +102,17 @@
            name: volume-serving-cert
            readOnly: true
          {{- end }}
@@ -22,10 +22,6 @@
        affinity:
          {{- toYaml .Values.affinity | nindent 8 }}
        priorityClassName: {{ .Values.priorityClassName }}
-@@ -114,8 +116,10 @@
-       securityContext:
-         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-       {{- end }}
 -      tolerations:
 -        {{- toYaml .Values.tolerations | nindent 8 }}
 +      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}

@@ -13,17 +13,3 @@ The chart installs the following components:
 - [Prometheus Adapter](https://github.com/helm/charts/tree/master/stable/prometheus-adapter) - The adapter allows a user to expose custom metrics, resource metrics, and external metrics on the default [Prometheus](https://prometheus.io/) instance to the Kubernetes API Server.
 
 For more information, review the Helm README of this chart.
-
-## Upgrading from 100.0.0+up16.6.0 to 100.1.0+up19.0.3
-
-### Noticeable changes:
-Grafana:
-- `sidecar.dashboards.searchNamespace`, `sidecar.datasources.searchNamespace` and `sidecar.notifiers.searchNamespace` support a list of namespaces now.
-
-Kube-state-metrics
-- the type of `collectors` is changed from Dictionary to List.
-- `kubeStateMetrics.serviceMonitor.namespaceOverride` was replaced by `kube-state-metrics.namespaceOverride`.
-
-### Known issues:
-- Occasionally, the upgrade fails with errors related to the webhook `prometheusrulemutate.monitoring.coreos.com`. This is a known issue in the upstream, and the workaround is to trigger the upgrade one more time. [32416](https://github.com/rancher/rancher/issues/32416#issuecomment-828881726)
-

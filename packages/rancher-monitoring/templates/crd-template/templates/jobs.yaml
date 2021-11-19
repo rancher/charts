@@ -49,12 +49,8 @@ spec:
           - -c
           - >
             echo "Applying CRDs...";
-            mkdir -p /etc/crd-manifest;
-            base64 -d /etc/config/crd-manifest.tgz > /etc/crd-manifest/crd-manifest.tgz;
-            tar -xzvf /etc/crd-manifest/crd-manifest.tgz -C /etc/crd-manifest;
-            rm /etc/crd-manifest/crd-manifest.tgz;
-            kubectl apply -Rf /etc/crd-manifest;
-
+            kubectl apply -f /etc/config/crd-manifest.yaml;
+            
             echo "Waiting for CRDs to be recognized before finishing installation...";
 
             {{- range $path, $_ :=  (.Files.Glob  "crd-manifest/**.yaml") }}
@@ -72,13 +68,7 @@ spec:
               mountPath: /etc/config
       restartPolicy: OnFailure
       nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
-      {{- if .Values.nodeSelector }}
-      {{- toYaml .Values.nodeSelector | nindent 8 }}
-      {{- end }}
       tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
-      {{- if .Values.tolerations }}
-      {{- toYaml .Values.tolerations | nindent 8 }}
-      {{- end }}
       volumes:
       - name: crd-manifest
         configMap:
@@ -131,25 +121,14 @@ spec:
           - /bin/sh
           - -c
           - >
-            echo "Deleting CRDs...";
-            mkdir -p /etc/crd-manifest;
-            base64 -d /etc/config/crd-manifest.tgz > /etc/crd-manifest/crd-manifest.tgz;
-            tar -xzvf /etc/crd-manifest/crd-manifest.tgz -C /etc/crd-manifest;
-            rm /etc/crd-manifest/crd-manifest.tgz;
-            kubectl delete -Rf /etc/crd-manifest;
+            kubectl delete -f /etc/config/crd-manifest.yaml
           volumeMounts:
             - name: crd-manifest
               readOnly: true
               mountPath: /etc/config
       restartPolicy: OnFailure
       nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
-      {{- if .Values.nodeSelector }}
-      {{- toYaml .Values.nodeSelector | nindent 8 }}
-      {{- end }}
       tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
-      {{- if .Values.tolerations }}
-      {{- toYaml .Values.tolerations | nindent 8 }}
-      {{- end }}
       volumes:
       - name: crd-manifest
         configMap:
