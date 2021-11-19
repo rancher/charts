@@ -10,6 +10,7 @@ The CSI driver for vSphere is `csi.vsphere.vmware.com`.
 
 | Rancher vSphere CSI | Minimum Kubernetes Release | Maximum Kubernetes Release |
 | ------------------- | -------------------------- | -------------------------- |
+| 2.1.1               |                            | 1.19.x                     |
 | 2.1.000             |                            | 1.19.x                     |
 
 ## Prerequisites
