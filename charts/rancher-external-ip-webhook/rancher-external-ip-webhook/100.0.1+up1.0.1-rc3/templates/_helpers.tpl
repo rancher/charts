@@ -42,8 +42,8 @@ kubernetes.io/os: linux
 {{- end -}}
 
 {{- define "system_default_registry" -}}
-{{- if .Values.global.systemDefaultRegistry -}}
-{{- printf "%s/" .Values.global.systemDefaultRegistry -}}
+{{- if .Values.global.cattle.systemDefaultRegistry -}}
+{{- printf "%s/" .Values.global.cattle.systemDefaultRegistry -}}
 {{- else -}}
 {{- "" -}}
 {{- end -}}
