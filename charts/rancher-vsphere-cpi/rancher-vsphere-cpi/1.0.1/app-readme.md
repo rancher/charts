@@ -6,6 +6,7 @@
 
 | Rancher vSphere CPI | Minimum Kubernetes Release | Maximum Kubernetes Release |
 | ------------------- | -------------------------- | -------------------------- |
+| 1.0.1               |                            | 1.17.x                     |
 | 1.0.000             |                            | 1.17.x                     |
 
 ## Prerequisites
