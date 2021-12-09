@@ -10,7 +10,7 @@ rules:
   verbs:     ['use']
   resourceNames:
   - {{ template "pushProxy.client.name" . }}
-{{- if and .Values.clients.https.enabled .Values.clients.https.useServiceAccountCredentials }}
+{{- if and (dig "clients" "https" "enabled" .Values.clients.https.enabled (fromYaml (include "kubeversion-override" .))) (dig "clients" "https" "useServiceAccountCredentials" .Values.clients.https.useServiceAccountCredentials (fromYaml (include "kubeversion-override" .))) }}
 - nonResourceURLs: ["/metrics"]
   verbs: ["get"]
 {{- if .Values.clients.rbac.additionalRules }}
@@ -67,7 +67,7 @@ spec:
   readOnlyRootFilesystem: false
   volumes:
     - 'secret'
-{{- if and .Values.clients.https.enabled .Values.clients.https.certDir }}
+{{- if and (dig "clients" "https" "enabled" .Values.clients.https.enabled (fromYaml (include "kubeversion-override" .))) .Values.clients.https.certDir }}
     - 'emptyDir'
     - 'hostPath'
   allowedHostPaths:
