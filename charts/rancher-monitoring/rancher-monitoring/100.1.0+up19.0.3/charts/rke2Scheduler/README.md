@@ -49,6 +49,10 @@ The following tables list the configurable parameters of the rancher-pushprox ch
 | `clients.resources` | Set resource limits and requests for the client container | `{}` |
 | `clients.nodeSelector` | Select which nodes to deploy the clients on | `{}` |
 | `clients.tolerations` | Specify tolerations for clients | `[]` |
+| `kubeVersionOverride.<semver constraint>.metricsPort` | Overrides .Values.metricsPort for k8s versions that evaluate true for the semver constraint. Required only if the value needs to be set differently for a specific k8s version. | `[{port: metrics}]` |
+| `kubeVersionOverride.<semver constraint>.clients.https.enabled` | Overrides .Values.clients.https.enabled for k8s versions that evaluate true for the semver constraint. Required only if the value needs to be set differently for a specific k8s version. | `true` |
+| `kubeVersionOverride.<semver constraint>.clients.https.insecureSkipVerify` | Overrides .Values.clients.https.insecureSkipVerify for k8s versions that evaluate true for the semver constraint. Required only if the value needs to be set differently for a specific k8s version and `kubeVersionOverride.<semver constraint>.clients.https.enabled` is set. | `true` |
+| `kubeVersionOverride.<semver constraint>.clients.https.useServiceAccountCredentials` | Overrides .Values.clients.https.useServiceAccountCredentials for k8s versions that evaluate true for the semver constraint. Required only if the value needs to be set differently for a specific k8s version and `kubeVersionOverride.<semver constraint>.clients.https.enabled` is set. | `true` |
 | `proxy.enabled` | Deploys the proxy that each client will register with | `true` |
 | `proxy.port` | The port exposed by the proxy that each client will register with to allow metrics to be scraped from the host | `8080` |
 | `proxy.resources` | Set resource limits and requests for the proxy container | `{}` |
@@ -56,5 +60,27 @@ The following tables list the configurable parameters of the rancher-pushprox ch
 | `proxy.tolerations` | Specify tolerations (if necessary) to allow the proxy to be deployed on the selected node | `[]` |
 
 *Tip: The filepaths set in `clients.https.<cert|key|caCert>File` can include wildcard characters*. 
+
+When adding `kubeVersionOverride`, always ensure that your `semverConstraint` key does not overlap with existing `kubeVersionOverrides` because the first constraint that is met will be the values that are templated.
+The `.Values.metricsPort`, `.Values.clients.https.enabled`,  `.Values.clients.https.insecureSkipVerify`, and `.Values.clients.https.useServiceAccountCredentials` are the only values that are supported for override at this time.
+
+Example `kubeVersionOverride`:
+```
+kubeVersionOverride:
+    ">= 1.16 < 1.1.17.3":
+      metricsPort: 2739
+      clients:
+        https:
+          enabled: true
+          insecureSkipVerify: true
+          useServiceAccountCredentials: true
+    ">= 1.17.3 < 1.22":
+      metricsPort: 10233
+      clients:
+        https:
+          enabled: false
+          insecureSkipVerify: false
+          useServiceAccountCredentials: false
+```
 
 See [rancher-monitoring](https://github.com/rancher/charts/tree/gh-pages/packages/rancher-monitoring) for examples of how this chart can be used.

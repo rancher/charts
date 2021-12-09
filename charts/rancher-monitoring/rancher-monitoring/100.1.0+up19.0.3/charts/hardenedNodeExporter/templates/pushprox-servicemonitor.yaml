@@ -26,8 +26,8 @@ metadata:
 spec:
   ports:
   - name: metrics
-    port: {{ required "Need .Values.metricsPort to configure client to listen to metrics at port" .Values.metricsPort}}
+    port: {{ required "Need .Values.metricsPort to configure client to listen to metrics at port" ((fromYaml (include "kubeversion-override" .)).metricsPort | default .Values.metricsPort) }}
     protocol: TCP
-    targetPort: {{ .Values.metricsPort }}
+    targetPort: {{ (fromYaml (include "kubeversion-override" .)).metricsPort | default .Values.metricsPort }}
   selector: {{ include "pushProxy.client.labels" . | nindent 4 }}
 {{- end }}{{- end }}

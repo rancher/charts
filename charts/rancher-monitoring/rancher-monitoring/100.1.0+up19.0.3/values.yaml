@@ -20,10 +20,24 @@ prometheus-adapter:
 ## ref: https://github.com/rancher/charts/tree/dev-v2.5-source/packages/rancher-pushprox
 ##
 rkeControllerManager:
+  kubeVersionOverride:
+    # previous rke versions do not support connecting on secure port
+    "< 1.22":
+      metricsPort: 10252
+      clients:
+        https:
+          enabled: false
+          insecureSkipVerify: false
+          useServiceAccountCredentials: false
   enabled: false
-  metricsPort: 10252
+  # default to secure port as of k8s >= 1.22
+  metricsPort: 10257
   component: kube-controller-manager
   clients:
+    https:
+      enabled: true
+      insecureSkipVerify: true
+      useServiceAccountCredentials: true
     port: 10011
     useLocalhost: true
     nodeSelector:
@@ -35,10 +49,23 @@ rkeControllerManager:
       operator: "Exists"
 
 rkeScheduler:
+  # previous rke versions do not support connecting on secure port
+  "< 1.22":
+    metricsPort: 10251
+    clients:
+      https:
+        enabled: false
+        insecureSkipVerify: false
+        useServiceAccountCredentials: false
   enabled: false
-  metricsPort: 10251
+  # default to secure port as of k8s >= 1.22
+  metricsPort: 10259
   component: kube-scheduler
   clients:
+    https:
+      enabled: true
+      insecureSkipVerify: true
+      useServiceAccountCredentials: true
     port: 10012
     useLocalhost: true
     nodeSelector:
@@ -216,10 +243,24 @@ kubeAdmEtcd:
 ## ref: https://github.com/rancher/charts/tree/dev-v2.5-source/packages/rancher-pushprox
 ##
 rke2ControllerManager:
+  kubeVersionOverride:
+    # previous rke versions do not support connecting on secure port
+    "< 1.22":
+      metricsPort: 10252
+      clients:
+        https:
+          enabled: false
+          insecureSkipVerify: false
+          useServiceAccountCredentials: false
   enabled: false
-  metricsPort: 10252
+  # default to secure port as of k8s >= 1.22
+  metricsPort: 10257
   component: kube-controller-manager
   clients:
+    https:
+      enabled: true
+      insecureSkipVerify: true
+      useServiceAccountCredentials: true
     port: 10011
     useLocalhost: true
     nodeSelector:
@@ -231,10 +272,24 @@ rke2ControllerManager:
         operator: "Exists"
 
 rke2Scheduler:
+  kubeVersionOverride:
+    # previous rke versions do not support connecting on secure port
+    "< 1.22":
+      metricsPort: 10251
+      clients:
+        https:
+          enabled: false
+          insecureSkipVerify: false
+          useServiceAccountCredentials: false
   enabled: false
-  metricsPort: 10251
+  # default to secure port as of k8s >= 1.22
+  metricsPort: 10259
   component: kube-scheduler
   clients:
+    https:
+      enabled: true
+      insecureSkipVerify: true
+      useServiceAccountCredentials: true
     port: 10012
     useLocalhost: true
     nodeSelector:

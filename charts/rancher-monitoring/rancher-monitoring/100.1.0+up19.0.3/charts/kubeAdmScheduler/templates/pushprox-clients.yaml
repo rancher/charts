@@ -1,3 +1,4 @@
+{{/*{{ $data := (fromYaml (include "kubeversion-override" .)) }}*/}}
 {{- if .Values.clients }}{{- if .Values.clients.enabled }}
 apiVersion: apps/v1
 {{- if .Values.clients.deployment.enabled }}
@@ -45,15 +46,15 @@ spec:
         - --fqdn=$(HOST_IP)
         - --proxy-url=$(PROXY_URL)
         - --metrics-addr=$(PORT)
-        - --allow-port={{ required "Need .Values.metricsPort to configure client to be allowed to scrape metrics at port" .Values.metricsPort}}
+        - --allow-port={{ required "Need .Values.metricsPort to configure client to be allowed to scrape metrics at port" ((fromYaml (include "kubeversion-override" .)).metricsPort | default .Values.metricsPort) }}
         {{- if .Values.clients.useLocalhost }}
         - --use-localhost
         {{- end }}
-        {{- if .Values.clients.https.enabled }}
-        {{- if .Values.clients.https.insecureSkipVerify }}
+        {{- if (dig "clients" "https" "enabled" .Values.clients.https.enabled (fromYaml (include "kubeversion-override" .))) }}
+        {{- if (dig "clients" "https" "insecureSkipVerify" .Values.clients.https.insecureSkipVerify (fromYaml (include "kubeversion-override" .))) }}
         - --insecure-skip-verify
         {{- end }}
-        {{- if .Values.clients.https.useServiceAccountCredentials }}
+        {{- if (dig "clients" "https" "useServiceAccountCredentials" .Values.clients.https.useServiceAccountCredentials (fromYaml (include "kubeversion-override" .))) }}
         - --token-path=/var/run/secrets/kubernetes.io/serviceaccount/token
         {{- end }}
         {{- if .Values.clients.https.certDir }}
@@ -74,13 +75,13 @@ spec:
         securityContext:
           runAsNonRoot: true
           runAsUser: 1000
-        {{- if and .Values.clients.https.enabled .Values.clients.https.certDir }}
+        {{- if and ((( include "kubeversion-override" . ) | fromYaml).clients | default .Values.clients.https.enabled) .Values.clients.https.certDir }}
         volumeMounts:
         - name: metrics-cert-dir
           mountPath: /etc/ssl/push-proxy
         {{- end }}
         {{- if .Values.clients.resources }}
-        resources: {{ toYaml .Values.clients.resources | nindent 10 }}
+        resources: 
         {{- end }}
       {{- if and .Values.clients.https.enabled .Values.clients.https.certDir }}
       initContainers:

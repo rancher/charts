@@ -87,7 +87,7 @@ app: {{ template "pushprox.serviceMonitor.name" . }}
 
 {{- define "pushProxy.serviceMonitor.endpoints" -}}
 {{- $proxyURL := (include "pushProxy.proxyUrl" .) -}}
-{{- $useHTTPS := .Values.clients.https.enabled -}}
+{{- $useHTTPS := (dig "clients" "https" "enabled" .Values.clients.https.enabled (fromYaml (include "kubeversion-override" .))) -}}
 {{- $endpoints := .Values.serviceMonitor.endpoints }}
 {{- range $endpoints }}
 {{- $_ := set . "proxyUrl" $proxyURL }}
@@ -100,4 +100,15 @@ app: {{ template "pushprox.serviceMonitor.name" . }}
 {{- end }}
 {{- end }}
 {{- toYaml $endpoints }}
+{{- end -}}
+
+{{/* Get values for specified KubeVersion */}}
+{{- define "kubeversion-override" -}}
+{{- if .Values.kubeVersionOverride -}}
+{{- range $key, $value := .Values.kubeVersionOverride }}
+{{- if semverCompare $key $.Capabilities.KubeVersion.Version }}
+{{- toYaml $value }}
+{{- end -}}
+{{- end -}}
+{{- end -}}
 {{- end -}}
