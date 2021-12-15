@@ -42,11 +42,6 @@ spec:
             mountPath: /app/overlay-config.yaml
             subPath: overlay-config.yaml
           {{- end }}
-          {{- if .Values.installer.releaseMirror.additionalIstioImage.enabled }}
-          - name: {{ .Values.installer.releaseMirror.additionalIstioImage.volumeMountName }}
-            mountPath: /opt/istio-releases/{{ .Values.installer.releaseMirror.additionalIstioImage.tag }}/istio-{{ .Values.installer.releaseMirror.additionalIstioImage.tag }}-linux-amd64.tar.gz
-            subPath: istio-{{ .Values.installer.releaseMirror.additionalIstioImage.tag }}-linux-amd64.tar.gz
-          {{- end }}
       volumes:
         - name: config-volume
           configMap:
@@ -56,9 +51,6 @@ spec:
           configMap:
             name: istio-installer-overlay
         {{- end }}
-{{- if .Values.installer.releaseMirror.additionalIstioImage.enabled }}
-{{ toYaml .Values.installer.releaseMirror.additionalIstioImage.volumes | indent 8 }}
-{{- end }}
       serviceAccountName: istio-installer
       securityContext:
         runAsUser: 101
