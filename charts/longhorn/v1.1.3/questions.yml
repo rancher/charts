@@ -17,7 +17,7 @@ questions:
     label: Longhorn Manager Image Repository
     group: "Longhorn Images Settings"
   - variable: image.longhorn.manager.tag
-    default: v1.2.3
+    default: v1.1.3
     description: "Specify Longhorn Manager Image Tag"
     type: string
     label: Longhorn Manager Image Tag
@@ -29,7 +29,7 @@ questions:
     label: Longhorn Engine Image Repository
     group: "Longhorn Images Settings"
   - variable: image.longhorn.engine.tag
-    default: v1.2.3
+    default: v1.1.3
     description: "Specify Longhorn Engine Image Tag"
     type: string
     label: Longhorn Engine Image Tag
@@ -41,7 +41,7 @@ questions:
     label: Longhorn UI Image Repository
     group: "Longhorn Images Settings"
   - variable: image.longhorn.ui.tag
-    default: v1.2.3
+    default: v1.1.3
     description: "Specify Longhorn UI Image Tag"
     type: string
     label: Longhorn UI Image Tag
@@ -65,7 +65,7 @@ questions:
     label: Longhorn Share Manager Image Repository
     group: "Longhorn Images Settings"
   - variable: image.longhorn.shareManager.tag
-    default: v1_20211020
+    default: v1_20210416_patch1
     description: "Specify Longhorn Share Manager Image Tag"
     type: string
     label: Longhorn Share Manager Image Tag
@@ -77,7 +77,7 @@ questions:
     label: Longhorn Backing Image Manager Image Repository
     group: "Longhorn Images Settings"
   - variable: image.longhorn.backingImageManager.tag
-    default: v2_20210820
+    default: v1_20210422_patch1
     description: "Specify Longhorn Backing Image Manager Image Tag"
     type: string
     label: Longhorn Backing Image Manager Image Tag
@@ -89,7 +89,7 @@ questions:
     label: Longhorn CSI Attacher Image Repository
     group: "Longhorn CSI Driver Images"
   - variable: image.csi.attacher.tag
-    default: v3.2.1
+    default: v2.2.1-lh2
     description: "Specify CSI attacher image tag. Leave blank to autodetect."
     type: string
     label: Longhorn CSI Attacher Image Tag
@@ -101,7 +101,7 @@ questions:
     label: Longhorn CSI Provisioner Image Repository
     group: "Longhorn CSI Driver Images"
   - variable: image.csi.provisioner.tag
-    default: v2.1.2
+    default: v1.6.0-lh2
     description: "Specify CSI provisioner image tag. Leave blank to autodetect."
     type: string
     label: Longhorn CSI Provisioner Image Tag
@@ -113,7 +113,7 @@ questions:
     label: Longhorn CSI Node Driver Registrar Image Repository
     group: "Longhorn CSI Driver Images"
   - variable: image.csi.nodeDriverRegistrar.tag
-    default: v2.3.0
+    default: v1.2.0-lh1
     description: "Specify CSI Node Driver Registrar image tag. Leave blank to autodetect."
     type: string
     label: Longhorn CSI Node Driver Registrar Image Tag
@@ -125,7 +125,7 @@ questions:
     label: Longhorn CSI Driver Resizer Image Repository
     group: "Longhorn CSI Driver Images"
   - variable: image.csi.resizer.tag
-    default: v1.2.0
+    default: v0.5.1-lh2
     description: "Specify CSI Driver Resizer image tag. Leave blank to autodetect."
     type: string
     label: Longhorn CSI Driver Resizer Image Tag
@@ -137,7 +137,7 @@ questions:
     label: Longhorn CSI Driver Snapshotter Image Repository
     group: "Longhorn CSI Driver Images"
   - variable: image.csi.snapshotter.tag
-    default: v3.0.3
+    default: v2.1.1-lh2
     description: "Specify CSI Driver Snapshotter image tag. Leave blank to autodetect."
     type: string
     label: Longhorn CSI Driver Snapshotter Image Tag
@@ -262,26 +262,6 @@ The available modes are:
     group: "Longhorn Default Settings"
     type: boolean
     default: "false"
-  - variable: defaultSettings.replicaAutoBalance
-    label: Replica Auto Balance
-    description: 'Enable this setting automatically rebalances replicas when discovered an available node.
-The available global options are:
-- **disabled**. This is the default option. No replica auto-balance will be done.
-- **least-effort**. This option instructs Longhorn to balance replicas for minimal redundancy.
-- **best-effort**. This option instructs Longhorn to balance replicas for even redundancy.
-Longhorn also support individual volume setting. The setting can be specified in volume.spec.replicaAutoBalance, this overrules the global setting.
-The available volume spec options are:
-- **ignored**. This is the default option that instructs Longhorn to inherit from the global setting.
-- **disabled**. This option instructs Longhorn no replica auto-balance should be done.
-- **least-effort**. This option instructs Longhorn to balance replicas for minimal redundancy.
-- **best-effort**. This option instructs Longhorn to balance replicas for even redundancy.'
-    group: "Longhorn Default Settings"
-    type: enum
-    options:
-    - "disabled"
-    - "least-effort"
-    - "best-effort"
-    default: "disabled"
   - variable: defaultSettings.storageOverProvisioningPercentage
     label: Storage Over Provisioning Percentage
     description: "The over-provisioning percentage defines how much storage can be allocated relative to the hard drive's capacity. By default 200."
@@ -391,18 +371,6 @@ Warning: This option works only when there is a failed replica in the volume. An
     type: int
     min: 0
     default: 600
-  - variable: defaultSettings.concurrentReplicaRebuildPerNodeLimit
-    label: Concurrent Replica Rebuild Per Node Limit
-    description: "This setting controls how many replicas on a node can be rebuilt simultaneously.
-Typically, Longhorn can block the replica starting once the current rebuilding count on a node exceeds the limit. But when the value is 0, it means disabling the replica rebuilding.
-WARNING:
-- The old setting \"Disable Replica Rebuild\" is replaced by this setting.
-- Different from relying on replica starting delay to limit the concurrent rebuilding, if the rebuilding is disabled, replica object replenishment will be directly skipped.
-- When the value is 0, the eviction and data locality feature won't work. But this shouldn't have any impact to any current replica rebuild and backup restore."
-    group: "Longhorn Default Settings"
-    type: int
-    min: 0
-    default: 5
   - variable: defaultSettings.disableRevisionCounter
     label: Disable Revision Counter
     description: "This setting is only for volumes created by UI. By default, this is false meaning there will be a reivision counter file to track every write to the volume. During salvage recovering Longhorn will pick the repica with largest reivision counter as candidate to recover the whole volume. If revision counter is disabled, Longhorn will not track every write to the volume. During the salvage recovering, Longhorn will use the 'volume-head-xxx.img' file last modification time and file size to pick the replica candidate to recover the whole volume."
@@ -445,16 +413,6 @@ WARNING:
     type: int
     min: 0
     default: 60
-  - variable: defaultSettings.backingImageRecoveryWaitInterval
-    label: Backing Image Recovery Wait Interval
-    description: "This interval in seconds determines how long Longhorn will wait before re-downloading the backing image file when all disk files of this backing image become failed or unknown.
-    WARNING:
-      - This recovery only works for the backing image of which the creation type is \"download\".
-      - File state \"unknown\" means the related manager pods on the pod is not running or the node itself is down/disconnected."
-    group: "Longhorn Default Settings"
-    type: int
-    min: 0
-    default: 300
   - variable: defaultSettings.guaranteedEngineManagerCPU
     label: Guaranteed Engine Manager CPU
     description: "This integer value indicates how many percentage of the total allocatable CPU on each node will be reserved for each engine manager Pod. For example, 10 means 10% of the total CPU on a node will be allocated to each engine manager pod on this node. This will help maintain engine stability during high node workload.
@@ -516,66 +474,17 @@ WARNING:
   min: 1
   max: 10
   default: 3
-- variable: persistence.recurringJobSelector.enable
-  description: "Enable recurring job selector for Longhorn StorageClass"
+- variable: persistence.recurringJobs.enable
+  description: "Enable recurring job for Longhorn StorageClass"
   group: "Longhorn Storage Class Settings"
-  label: Enable Storage Class Recurring Job Selector
+  label: Enable Storage Class Recurring Job
   type: boolean
   default: false
   show_subquestion_if: true
   subquestions:
-  - variable: persistence.recurringJobSelector.jobList
-    description: 'Recurring job selector list for Longhorn StorageClass. Please be careful of quotes of input. e.g., [{"name":"backup", "isGroup":true}]'
-    label: Storage Class Recurring Job Selector List
-    group: "Longhorn Storage Class Settings"
-    type: string
-    default:
-- variable: persistence.backingImage.enable
-  description: "Set backing image for Longhorn StorageClass"
-  group: "Longhorn Storage Class Settings"
-  label: Default Storage Class Backing Image
-  type: boolean
-  default: false
-  show_subquestion_if: true
-  subquestions:
-  - variable: persistence.backingImage.name
-    description: 'Specify a backing image that will be used by Longhorn volumes in Longhorn StorageClass. If not exists, the backing image data source type and backing image data source parameters should be specified so that Longhorn will create the backing image before using it.'
-    label: Storage Class Backing Image Name
-    group: "Longhorn Storage Class Settings"
-    type: string
-    default:
-  - variable: persistence.backingImage.expectedChecksum
-    description: 'Specify the expected SHA512 checksum of the selected backing image in Longhorn StorageClass.
-    WARNING:
-      - If the backing image name is not specified, setting this field is meaningless.
-      - It is not recommended to set this field if the data source type is \"export-from-volume\".'
-    label: Storage Class Backing Image Expected SHA512 Checksum
-    group: "Longhorn Storage Class Settings"
-    type: string
-    default:
-  - variable: persistence.backingImage.dataSourceType
-    description: 'Specify the data source type for the backing image used in Longhorn StorageClass.
-    If the backing image does not exists, Longhorn will use this field to create a backing image. Otherwise, Longhorn will use it to verify the selected backing image.
-    WARNING:
-      - If the backing image name is not specified, setting this field is meaningless.
-      - As for backing image creation with data source type \"upload\", it is recommended to do it via UI rather than StorageClass here. Uploading requires file data sending to the Longhorn backend after the object creation, which is complicated if you want to handle it manually.'
-    label: Storage Class Backing Image Data Source Type
-    group: "Longhorn Storage Class Settings"
-    type: enum
-    options:
-    - ""
-    - "download"
-    - "upload"
-    - "export-from-volume"
-    default: ""
-  - variable: persistence.backingImage.dataSourceParameters
-    description: "Specify the data source parameters for the backing image used in Longhorn StorageClass.
-    If the backing image does not exists, Longhorn will use this field to create a backing image. Otherwise, Longhorn will use it to verify the selected backing image.
-    This option accepts a json string of a map. e.g., '{\"url\":\"https://backing-image-example.s3-region.amazonaws.com/test-backing-image\"}'.
-    WARNING:
-      - If the backing image name is not specified, setting this field is meaningless.
-      - Be careful of the quotes here."
-    label: Storage Class Backing Image Data Source Parameters
+  - variable: persistence.recurringJobs.jobList
+    description: 'Recurring job list for Longhorn StorageClass. Please be careful of quotes of input. e.g., [{"name":"backup", "task":"backup", "cron":"*/2 * * * *", "retain":1,"labels": {"interval":"2m"}}]'
+    label: Storage Class Recurring Job List
     group: "Longhorn Storage Class Settings"
     type: string
     default:
