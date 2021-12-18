@@ -1,0 +1,111 @@
+# Default values for rancher-pushprox.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Default image containing both the proxy and the client was generated from the following Dockerfile
+# https://github.com/prometheus-community/PushProx/blob/eeadbe766641699129920ccfaaaa30a85c67fe81/Dockerfile#L1-L15
+
+# Note: if using a cloud provider, the nodes that contain the PushProxy client must allow the node(s) that contain(s)
+# the PushProxy proxy to communicate with it on port {{ .Values.clients.port }}. If you have special restrictions,
+# (i.e. client should only run on etcd nodes and only control plane should have access to the port on the etcd node),
+# you will need to set the clients / proxy nodeSelector and tolerations accordingly
+
+# Configuration
+
+global:
+  cattle:
+    systemDefaultRegistry: ""
+
+namespaceOverride: ""
+
+# The component that is being monitored (i.e. etcd)
+component: "component"
+
+# The port containing the metrics that need to be scraped
+metricsPort: 2739
+
+# Configure ServiceMonitor that monitors metrics from the metricsPort endpoint
+serviceMonitor:
+  enabled: true
+  # A list of endpoints that will be added to the ServiceMonitor based on the Endpoint spec
+  # Source: https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/api.md#endpoint
+  # By default, proxyUrl and params._scheme will be overridden based on other values
+  endpoints:
+  - port: metrics
+
+clients:
+  enabled: true
+  # The port which the PushProx client will post PushProx metrics to
+  port: 9369
+  # If unset, this will default to the URL for the proxy service: http://pushprox-{{component}}-proxy.{{namepsace}}.svc.cluster.local:{{proxy.port}}
+  # Should be modified if the clients are being deployed outside the cluster where the proxy rests, otherwise leave it null
+  proxyUrl: ""
+  # If set to true, the client will forward any requests from the host IP to 127.0.0.1
+  # It will only allow proxy requests to the metricsPort specified
+  useLocalhost: false
+  # Configuration for accessing metrics via HTTPS
+  https:
+    # Does the client require https to access the metrics?
+    enabled: false
+    # If set to true, the client will create a service account with adequate permissions and set a flag
+    # on the client to use the service account token provided by it to make authorized scrape requests
+    useServiceAccountCredentials: false
+    # If set to true, the client will disable SSL security checks
+    insecureSkipVerify: false
+    # Directory on host where necessary TLS cert and key to scrape metrics can be found
+    certDir: ""
+    # Filenames for files located in .Values.clients.https.certDir that correspond to TLS settings
+    certFile: ""
+    keyFile: ""
+    caCertFile: ""
+
+  rbac:
+    # Additional permissions to provide to the ServiceAccount bound to the client
+    # This can be used to provide additional permissions for the client to scrape metrics from the k8s API
+    # Only enabled if clients.https.enabled and clients.https.useServiceAccountCredentials are true
+    additionalRules: []
+
+  # Resource limits
+  resources: {}
+
+  # Options to select all nodes to deploy client DaemonSet on
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+  image:
+    repository: rancher/pushprox-client
+    tag: v0.1.0-rancher2-client
+  command: ["pushprox-client"]
+
+  copyCertsImage:
+    repository: rancher/mirrored-library-busybox
+    tag: 1.31.1
+
+  # The default intention of rancher-pushprox clients is to scrape hostNetwork metrics across all nodes.
+  # This can be used to scrape internal Kubernetes components or DaemonSets of hostNetwork Pods in
+  # situations where a cloud provider firewall prevents Pod-To-Host communication but not Pod-To-Pod.
+  # However, if the underlying hostNetwork Pod that is being scraped is managed by a Deployment,
+  # this advanced option enables users to deploy the client as a Deployment instead of a DaemonSet.
+  # If a user deploys this feature and the underlying Deployment's number of replicas changes, the user will
+  # be responsible for upgrading this chart accordingly to the right number of replicas.
+  deployment:
+    enabled: false
+    replicas: 0
+
+proxy:
+  enabled: true
+  # The port through which PushProx clients will communicate to the proxy
+  port: 8080
+  
+  # Resource limits
+  resources: {}
+  
+  # Options to select a node to run a single proxy deployment on
+  nodeSelector: {}
+  tolerations: []
+
+  image:
+    repository: rancher/pushprox-proxy
+    tag: v0.1.0-rancher2-proxy
+  command: ["pushprox-proxy"]
