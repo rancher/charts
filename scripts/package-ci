@@ -1,0 +1,45 @@
+#!/bin/bash
+
+cd $(dirname $0)
+cd ..
+
+if [ -n "$(git status --porcelain)" ]; then
+    echo "Git needs to be clean to run this script"
+    exit 1
+fi
+
+ORIG_PACKAGE=${PACKAGE}
+
+FAILED_PACKAGES=()
+for package in $(PORCELAIN=1 make list); do
+    export PACKAGE="${package#packages\/}"
+
+    # Do developer workflow
+    if ! make prepare > /dev/null 2>&1; then
+        FAILED_PACKAGES+=("- ${PACKAGE} failed at prepare")
+    elif ! make patch > /dev/null 2>&1; then
+        FAILED_PACKAGES+=("- ${PACKAGE} failed at patch")
+    elif ! make clean > /dev/null 2>&1; then
+        FAILED_PACKAGES+=("- ${PACKAGE} failed at clean")
+    elif [ -n "$(git status --porcelain)" ]; then
+        FAILED_PACKAGES+=("- ${PACKAGE} generated additional changes: $(git status --porcelain | xargs)")
+    elif ! make charts > /dev/null 2>&1; then
+        FAILED_PACKAGES+=("- ${PACKAGE} failed at charts")
+    else
+        echo "${PACKAGE} passed ci"
+    fi
+
+    git clean -df > /dev/null 2>&1
+    git checkout -- . > /dev/null 2>&1
+done
+
+echo ""
+if [ ${#FAILED_PACKAGES[@]} -ne 0 ]; then
+    echo "Failed to pass ci for the following packages:"
+    printf '%s\n' "${FAILED_PACKAGES[@]}"
+else
+    echo "All packages pass ci!"
+fi
+
+export PACKAGE=${ORIG_PACKAGE}
+unset ORIG_PACKAGE

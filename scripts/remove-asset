@@ -1,0 +1,31 @@
+#!/bin/bash
+
+set -e
+
+cd $(dirname $0)
+cd ..
+
+if [[ -z ${CHART} ]] || [[ -z ${VERSION} ]]; then
+    echo "Usage: CHART=<chart> VERSION=<version> make remove"
+    exit 1
+fi
+
+if [[ -d charts/${CHART}/${VERSION} ]] && [[ -f  assets/${CHART}/${CHART}-${VERSION}.tgz ]]; then
+    rm -rf charts/${CHART}/${VERSION}
+    rm -rf assets/${CHART}/${CHART}-${VERSION}.tgz
+else
+    [[ -d charts/${CHART}/${VERSION} ]] || echo "Could not find charts/${CHART}/${VERSION}"
+    [[ -f  assets/${CHART}/${CHART}-${VERSION}.tgz ]] || echo "Could not find assets/${CHART}/${CHART}-${VERSION}.tgz"
+    echo "No action was taken."
+    exit 1
+fi
+
+# Prune empty directories
+set +e
+rmdir charts/${CHART} >/dev/null 2>&1 
+rmdir charts >/dev/null 2>&1 
+rmdir assets/${CHART} >/dev/null 2>&1 
+rmdir assets >/dev/null 2>&1 
+set -e
+
+make index
