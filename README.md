@@ -1,4 +1,4 @@
-## Rancher Feature Charts
+## Rancher Charts
 
 This repository contains Helm charts served by Rancher Apps & Marketplace.
 
