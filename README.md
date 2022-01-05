@@ -73,7 +73,7 @@ hello:
     # will be picked up, even though it is nested under hello.world.*
     repository: org/repo
     tag: v0.0.0
-    os: windows # optional, if this is a Windows-only image
+    os: windows # optional, takes in a comma-delimited list of supported OSs. By default, the OS is assumed to be "linux" but you can specify "windows" or "linux,windows" as well.
 ```
 
 Therefore, any charts that are committed into this repository must nest references to Docker images in this format within each chart's `values.yaml`; if an upstream chart you are referencing does not follow this format, it is recommended that you refactor the chart's values.yaml to look like this:
