@@ -1,10 +1,13 @@
 pull-scripts:
 	./scripts/pull-scripts
 
-TARGETS := prepare patch charts clean validate template
+remove:
+	./scripts/remove-asset
+
+TARGETS := prepare patch clean clean-cache charts list index unzip zip standardize validate template
 
 $(TARGETS):
-	@ls ./bin/charts-build-scripts 1>/dev/null 2>/dev/null || ./scripts/pull-scripts
-	./bin/charts-build-scripts $@
+	@./scripts/pull-scripts
+	@./bin/charts-build-scripts $@
 
 .PHONY: $(TARGETS)
