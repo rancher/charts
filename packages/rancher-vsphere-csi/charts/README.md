@@ -71,3 +71,9 @@ More information on managing Secrets using kubectl [here](https://kubernetes.io/
 ## Migration
 
 The CSI migration feature is only available for vSphere 7.0 U1.
+Follow the steps [here](https://rancher.com/docs/rancher/v2.5/en/cluster-provisioning/rke-clusters/cloud-providers/vsphere/out-of-tree/vsphere-volume-migration/?#) for CSI Migration.
+
+## Upgrade Kubernetes version after Migration
+Follow the steps in the [Upgrading Kubernetes](https://rancher.com/docs/rancher/v2.5/en/cluster-admin/upgrading-kubernetes/) guide to upgrade the Kubernetes version after migration.
+
+**Important:** If you have a workload with a bound volume attached to it during an upgrade, you will see the pods get redeployed and the old pods will get stuck in a **Terminating** state. You can safely delete the old stuck pods by executing the command `kubectl delete pod <pod_id> --force=true --timeout=120s --grace-period=0` to fix this problem, but it's imperative you verify before deleting a pod that there is a new active pod corresponding to the old pod you want to delete. Deleting an old pod before a new one has been deployed could result in loss of data and bound volumes (Due to `--grace-period=0`).
