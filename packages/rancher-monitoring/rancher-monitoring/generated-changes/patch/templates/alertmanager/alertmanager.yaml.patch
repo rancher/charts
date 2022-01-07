@@ -1,0 +1,48 @@
+--- charts-original/templates/alertmanager/alertmanager.yaml
++++ charts/templates/alertmanager/alertmanager.yaml
+@@ -13,7 +13,7 @@
+ {{- end }}
+ spec:
+ {{- if .Values.alertmanager.alertmanagerSpec.image }}
+-  image: {{ .Values.alertmanager.alertmanagerSpec.image.repository }}:{{ .Values.alertmanager.alertmanagerSpec.image.tag }}
++  image: {{ template "system_default_registry" . }}{{ .Values.alertmanager.alertmanagerSpec.image.repository }}:{{ .Values.alertmanager.alertmanagerSpec.image.tag }}
+   version: {{ .Values.alertmanager.alertmanagerSpec.image.tag }}
+   {{- if .Values.alertmanager.alertmanagerSpec.image.sha }}
+   sha: {{ .Values.alertmanager.alertmanagerSpec.image.sha }}
+@@ -26,11 +26,13 @@
+   externalUrl: "{{ tpl .Values.alertmanager.alertmanagerSpec.externalUrl . }}"
+ {{- else if and .Values.alertmanager.ingress.enabled .Values.alertmanager.ingress.hosts }}
+   externalUrl: "http://{{ tpl (index .Values.alertmanager.ingress.hosts 0) . }}{{ .Values.alertmanager.alertmanagerSpec.routePrefix }}"
++{{- else if not (or (kindIs "invalid" .Values.global.cattle.url) (kindIs "invalid" .Values.global.cattle.clusterId)) }}
++  externalUrl: "{{ .Values.global.cattle.url }}/k8s/clusters/{{ .Values.global.cattle.clusterId }}/api/v1/namespaces/{{ .Values.namespaceOverride }}/services/http:{{ template "kube-prometheus-stack.fullname" . }}-alertmanager:{{ .Values.alertmanager.service.port }}/proxy"
+ {{- else }}
+   externalUrl: http://{{ template "kube-prometheus-stack.fullname" . }}-alertmanager.{{ template "kube-prometheus-stack.namespace" . }}:{{ .Values.alertmanager.service.port }}
+ {{- end }}
++  nodeSelector: {{ include "linux-node-selector" . | nindent 4 }}
+ {{- if .Values.alertmanager.alertmanagerSpec.nodeSelector }}
+-  nodeSelector:
+ {{ toYaml .Values.alertmanager.alertmanagerSpec.nodeSelector | indent 4 }}
+ {{- end }}
+   paused: {{ .Values.alertmanager.alertmanagerSpec.paused }}
+@@ -104,8 +106,8 @@
+               - {key: alertmanager, operator: In, values: [{{ template "kube-prometheus-stack.fullname" . }}-alertmanager]}
+ {{- end }}
+ {{- end }}
++  tolerations: {{ include "linux-node-tolerations" . | nindent 4 }}
+ {{- if .Values.alertmanager.alertmanagerSpec.tolerations }}
+-  tolerations:
+ {{ toYaml .Values.alertmanager.alertmanagerSpec.tolerations | indent 4 }}
+ {{- end }}
+ {{- if .Values.alertmanager.alertmanagerSpec.topologySpreadConstraints }}
+@@ -140,10 +142,10 @@
+ {{ toYaml .Values.alertmanager.alertmanagerSpec.volumeMounts | indent 4 }}
+ {{- end }}
+   portName: {{ .Values.alertmanager.alertmanagerSpec.portName }}
+-{{- end }}
+ {{- if .Values.alertmanager.alertmanagerSpec.clusterAdvertiseAddress }}
+   clusterAdvertiseAddress: {{ .Values.alertmanager.alertmanagerSpec.clusterAdvertiseAddress }}
+ {{- end }}
+ {{- if .Values.alertmanager.alertmanagerSpec.forceEnableClusterMode }}
+   forceEnableClusterMode: {{ .Values.alertmanager.alertmanagerSpec.forceEnableClusterMode }}
+ {{- end }}
++{{- end }}

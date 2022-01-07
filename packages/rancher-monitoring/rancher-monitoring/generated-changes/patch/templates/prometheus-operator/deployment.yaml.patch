@@ -1,0 +1,61 @@
+--- charts-original/templates/prometheus-operator/deployment.yaml
++++ charts/templates/prometheus-operator/deployment.yaml
+@@ -33,9 +33,9 @@
+       containers:
+         - name: {{ template "kube-prometheus-stack.name" . }}
+           {{- if .Values.prometheusOperator.image.sha }}
+-          image: "{{ .Values.prometheusOperator.image.repository }}:{{ .Values.prometheusOperator.image.tag }}@sha256:{{ .Values.prometheusOperator.image.sha }}"
++          image: "{{ template "system_default_registry" . }}{{ .Values.prometheusOperator.image.repository }}:{{ .Values.prometheusOperator.image.tag }}@sha256:{{ .Values.prometheusOperator.image.sha }}"
+           {{- else }}
+-          image: "{{ .Values.prometheusOperator.image.repository }}:{{ .Values.prometheusOperator.image.tag }}"
++          image: "{{ template "system_default_registry" . }}{{ .Values.prometheusOperator.image.repository }}:{{ .Values.prometheusOperator.image.tag }}"
+           {{- end }}
+           imagePullPolicy: "{{ .Values.prometheusOperator.image.pullPolicy }}"
+           args:
+@@ -66,9 +66,9 @@
+             - --alertmanager-default-base-image={{ .Values.prometheusOperator.alertmanagerDefaultBaseImage }}
+             {{- end }}
+             {{- if .Values.prometheusOperator.prometheusConfigReloaderImage.sha }}
+-            - --prometheus-config-reloader={{ .Values.prometheusOperator.prometheusConfigReloaderImage.repository }}:{{ .Values.prometheusOperator.prometheusConfigReloaderImage.tag }}@sha256:{{ .Values.prometheusOperator.prometheusConfigReloaderImage.sha }}
++            - --prometheus-config-reloader={{ template "system_default_registry" . }}{{ .Values.prometheusOperator.prometheusConfigReloaderImage.repository }}:{{ .Values.prometheusOperator.prometheusConfigReloaderImage.tag }}@sha256:{{ .Values.prometheusOperator.prometheusConfigReloaderImage.sha }}
+             {{- else }}
+-            - --prometheus-config-reloader={{ .Values.prometheusOperator.prometheusConfigReloaderImage.repository }}:{{ .Values.prometheusOperator.prometheusConfigReloaderImage.tag }}
++            - --prometheus-config-reloader={{ template "system_default_registry" . }}{{ .Values.prometheusOperator.prometheusConfigReloaderImage.repository }}:{{ .Values.prometheusOperator.prometheusConfigReloaderImage.tag }}
+             {{- end }}
+             - --config-reloader-cpu-request={{ .Values.prometheusOperator.configReloaderCpu }}
+             - --config-reloader-cpu-limit={{ .Values.prometheusOperator.configReloaderCpu }}
+@@ -81,9 +81,9 @@
+             - --prometheus-instance-namespaces={{ .Values.prometheusOperator.prometheusInstanceNamespaces | join "," }}
+             {{- end }}
+             {{- if .Values.prometheusOperator.thanosImage.sha }}
+-            - --thanos-default-base-image={{ .Values.prometheusOperator.thanosImage.repository }}:{{ .Values.prometheusOperator.thanosImage.tag }}@sha256:{{ .Values.prometheusOperator.thanosImage.sha }}
++            - --thanos-default-base-image={{ template "system_default_registry" . }}{{ .Values.prometheusOperator.thanosImage.repository }}:{{ .Values.prometheusOperator.thanosImage.tag }}@sha256:{{ .Values.prometheusOperator.thanosImage.sha }}
+             {{- else }}
+-            - --thanos-default-base-image={{ .Values.prometheusOperator.thanosImage.repository }}:{{ .Values.prometheusOperator.thanosImage.tag }}
++            - --thanos-default-base-image={{ template "system_default_registry" . }}{{ .Values.prometheusOperator.thanosImage.repository }}:{{ .Values.prometheusOperator.thanosImage.tag }}
+             {{- end }} 
+             {{- if .Values.prometheusOperator.thanosRulerInstanceNamespaces }}
+             - --thanos-ruler-instance-namespaces={{ .Values.prometheusOperator.thanosRulerInstanceNamespaces | join "," }}
+@@ -137,16 +137,16 @@
+       hostNetwork: true
+       dnsPolicy: ClusterFirstWithHostNet
+ {{- end }}
+-    {{- with .Values.prometheusOperator.nodeSelector }}
+-      nodeSelector:
++      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }} 
++{{- with .Values.prometheusOperator.nodeSelector }}
+ {{ toYaml . | indent 8 }}
+-    {{- end }}
++{{- end }}
+     {{- with .Values.prometheusOperator.affinity }}
+       affinity:
+ {{ toYaml . | indent 8 }}
+     {{- end }}
+-    {{- with .Values.prometheusOperator.tolerations }}
+-      tolerations:
++      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }} 
++{{- with .Values.prometheusOperator.tolerations }}
+ {{ toYaml . | indent 8 }}
+-    {{- end }}
++{{- end }}
+ {{- end }}

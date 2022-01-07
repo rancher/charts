@@ -1,0 +1,58 @@
+--- charts-original/templates/clusterrole.yaml
++++ charts/templates/clusterrole.yaml
+@@ -52,3 +52,55 @@
+   - apiGroups: [""]
+     resources: ["pods/eviction"]
+     verbs: ["create"]
++---
++apiVersion: rbac.authorization.k8s.io/v1
++kind: ClusterRole
++metadata:
++  name: sriov-admin
++  {{- if .Values.global.rbac.userRoles.aggregateToDefaultRoles }}
++    rbac.authorization.k8s.io/aggregate-to-admin: "true"
++  {{- end }}
++rules:
++- apiGroups:
++  - sriovnetwork.openshift.io
++  resources:
++  - '*'
++  verbs:
++  - "get"
++  - "watch"
++  - "list"
++---
++apiVersion: rbac.authorization.k8s.io/v1
++kind: ClusterRole
++metadata:
++  name: sriov-edit
++  {{- if .Values.global.rbac.userRoles.aggregateToDefaultRoles }}
++    rbac.authorization.k8s.io/aggregate-to-edit: "true"
++  {{- end }}
++rules:
++- apiGroups:
++  - sriovnetwork.openshift.io
++  resources:
++  - '*'
++  verbs:
++  - "get"
++  - "watch"
++  - "list"
++---
++apiVersion: rbac.authorization.k8s.io/v1
++kind: ClusterRole
++metadata:
++  name: sriov-view
++  {{- if .Values.global.rbac.userRoles.aggregateToDefaultRoles }}
++    rbac.authorization.k8s.io/aggregate-to-view: "true"
++  {{- end }}
++rules:
++- apiGroups:
++  - sriovnetwork.openshift.io
++  resources:
++  - '*'
++  verbs:
++  - "get"
++  - "watch"
++  - "list"
++
