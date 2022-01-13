@@ -45,3 +45,30 @@ longhorn-crd:
 - 100.0.0+up1.1.2
 - 100.0.0+up1.2.0
 ```
+
+### Modifying Chart Versions That Exist In Upstream
+
+One of the caveats with using the `release.yaml` is that **renames are not supported** (e.g. you cannot remove and replace a chart in a single step). 
+
+As a result, if you attempt to modify a version of a chart that already exists in upstream, **both the old version and the new version must exist in the release.yaml for CI to pass**. Once the changes have been merged, you can later remove the old version from the release.yaml (usually as part of a release process).
+
+To give a concrete example of such a scenario, let's say that you have currently committed `my-chart` version `0.1.2-rc3`. You then take the following steps:
+1. You modify the `package.yaml` to point at a new upstream URL that points to `0.1.2-rc4` and resolve any conflicts with the patch files under `packages/my-chart-package/generated-changes`
+2. You run `CHART=my-chart VERSION=0.1.2-rc3 make remove` to delete the older version of the chart
+3. You run `make charts` to produce the new assets and charts for `my-chart` version `0.1.2-rc4`.
+4. You modify the release.yaml to **replace** `my-chart[0] = 0.1.2-rc3` with `my-chart[0] = 0.1.2-rc4`.
+4. You make a PR to your repository.
+
+In this case, CI will fail since you are attempting to remove `0.1.2-rc3` but it is not tracked in the `release.yaml`.
+
+Therefore, the correct resolution would be to leave your `release.yaml` as:
+
+```yaml
+...
+my-chart:
+- 0.1.2-rc3
+- 0.1.2-rc4
+...
+```
+
+That way, both the removal of `0.1.2-rc3` and the addition of `0.1.2-rc4` are accepted. Later, you can remove `0.1.2-rc3` once the PR has been committed.
