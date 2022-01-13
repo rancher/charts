@@ -44,7 +44,9 @@ spec:
         args:
         - --fqdn=$(HOST_IP)
         - --proxy-url=$(PROXY_URL)
+        {{- if .Values.clients.metrics.enabled }}
         - --metrics-addr=$(PORT)
+        {{- end }}
         - --allow-port={{ required "Need .Values.metricsPort to configure client to be allowed to scrape metrics at port" .Values.metricsPort}}
         {{- if .Values.clients.useLocalhost }}
         - --use-localhost
@@ -67,8 +69,10 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: status.hostIP
+        {{- if .Values.clients.metrics.enabled }}
         - name: PORT
           value: :{{ .Values.clients.port }}
+        {{- end }}
         - name: PROXY_URL
           value: {{ template "pushProxy.proxyUrl" . }}
         securityContext:
