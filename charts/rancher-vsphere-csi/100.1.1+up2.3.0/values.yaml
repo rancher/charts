@@ -1,0 +1,95 @@
+vCenter:
+  host: ""
+  port: 443
+  insecureFlag: "1"
+  clusterId: ""
+  datacenters: ""
+  username: ""
+  password: ""
+  configSecret:
+    name: "vsphere-config-secret"
+    generate: true
+    configTemplate: |
+      [Global]
+      cluster-id = {{ required ".Values.vCenter.clusterId must be provided" (default .Values.vCenter.clusterId .Values.global.cattle.clusterId) | quote }}
+      user = {{ .Values.vCenter.username | quote }}
+      password = {{ .Values.vCenter.password | quote }}
+      port = {{ .Values.vCenter.port | quote }}
+      insecure-flag = {{ .Values.vCenter.insecureFlag | quote }}
+
+      [VirtualCenter {{ .Values.vCenter.host | quote }}]
+      datacenters = {{ .Values.vCenter.datacenters | quote }}
+
+csiController:
+  csiResizer:
+    enabled: false
+  image:
+    repository: rancher/mirrored-cloud-provider-vsphere-csi-release-driver
+    tag: v2.3.0
+    csiAttacher:
+      repository: rancher/mirrored-sig-storage-csi-attacher
+      tag: v3.2.0
+    csiResizer:
+      repository: rancher/mirrored-k8scsi-csi-resizer
+      tag: v1.1.0
+    livenessProbe:
+      repository: rancher/mirrored-k8scsi-livenessprobe
+      tag: v2.2.0
+    vsphereSyncer:
+      repository: rancher/mirrored-cloud-provider-vsphere-csi-release-syncer
+      tag: v2.3.0
+    csiProvisioner:
+      repository: rancher/mirrored-sig-storage-csi-provisioner
+      tag: v2.2.0
+  nodeSelector: {}
+  # Uncomment below toleration if you need an aggressive pod eviction in case when
+  # node becomes not-ready or unreachable. Default is 300 seconds if not specified.
+  # tolerations:
+  # - key: node.kubernetes.io/not-ready
+  #   operator: Exists
+  #   effect: NoExecute
+  #   tolerationSeconds: 30
+  # - key: node.kubernetes.io/unreachable
+  #   operator: Exists
+  #   effect: NoExecute
+  #   tolerationSeconds: 30
+
+# Internal features
+csiMigration:
+  enabled: false
+csiAuthCheck:
+  enabled: false
+onlineVolumeExtend:
+  enabled: false
+triggerCsiFullsync:
+  enabled: false
+asyncQueryVolume:
+  enabled: false
+improvedCsiIdempotency:
+  enabled: false
+improvedVolumeTopology:
+  enabled: false
+
+csiNode:
+  prefixPath: ""
+  image:
+    repository: rancher/mirrored-cloud-provider-vsphere-csi-release-driver
+    tag: v2.3.0
+    nodeDriverRegistrar:
+      repository: rancher/mirrored-k8scsi-csi-node-driver-registrar
+      tag: v2.1.0
+    livenessProbe:
+      repository: rancher/mirrored-k8scsi-livenessprobe
+      tag: v2.2.0
+
+storageClass:
+  enabled: true
+  allowVolumeExpansion: false
+  name: "vsphere-csi-sc"
+  isDefault: true
+  storagePolicyName: ""
+  datastoreURL: ""
+
+global:
+  cattle:
+    systemDefaultRegistry: ""
