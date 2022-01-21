@@ -1,0 +1,145 @@
+{{- if .Values.clients }}{{- if .Values.clients.enabled }}
+apiVersion: apps/v1
+{{- if .Values.clients.deployment.enabled }}
+kind: Deployment
+{{- else }}
+kind: DaemonSet
+{{- end }}
+metadata:
+  name: {{ template "pushProxy.client.name" . }}
+  namespace: {{ template "pushprox.namespace" . }}
+  labels: {{ include "pushProxy.client.labels" . | nindent 4 }}
+    pushprox-exporter: "client"
+spec:
+  {{- if .Values.clients.deployment.enabled }}
+  replicas: {{ .Values.clients.deployment.replicas }}
+  {{- end }}
+  selector:
+    matchLabels: {{ include "pushProxy.client.labels" . | nindent 6 }}
+  template:
+    metadata:
+      labels: {{ include "pushProxy.client.labels" . | nindent 8 }}
+    spec:
+      {{- if .Values.clients.affinity }}
+      affinity: {{ toYaml .Values.clients.affinity | nindent 8 }}
+      {{- end }}
+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
+{{- if .Values.clients.nodeSelector }}
+{{ toYaml .Values.clients.nodeSelector | indent 8 }}
+{{- end }}
+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+{{- if .Values.clients.tolerations }}
+{{ toYaml .Values.clients.tolerations | indent 8 }}
+{{- end }}
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      serviceAccountName: {{ template "pushProxy.client.name" . }}
+      containers:
+      - name: pushprox-client
+        image: {{ template "system_default_registry" . }}{{ .Values.clients.image.repository }}:{{ .Values.clients.image.tag }}
+        command:
+        {{- range .Values.clients.command }}
+          - {{ . | quote }}
+        {{- end }}
+        args:
+        - --fqdn=$(HOST_IP)
+        - --proxy-url=$(PROXY_URL)
+        - --metrics-addr=$(PORT)
+        - --allow-port={{ required "Need .Values.metricsPort to configure client to be allowed to scrape metrics at port" .Values.metricsPort}}
+        {{- if .Values.clients.useLocalhost }}
+        - --use-localhost
+        {{- end }}
+        {{- if .Values.clients.https.enabled }}
+        {{- if .Values.clients.https.insecureSkipVerify }}
+        - --insecure-skip-verify
+        {{- end }}
+        {{- if .Values.clients.https.useServiceAccountCredentials }}
+        - --token-path=/var/run/secrets/kubernetes.io/serviceaccount/token
+        {{- end }}
+        {{- if .Values.clients.https.certDir }}
+        - --tls.cert=/etc/ssl/push-proxy/push-proxy.pem
+        - --tls.key=/etc/ssl/push-proxy/push-proxy-key.pem
+        - --tls.cacert=/etc/ssl/push-proxy/push-proxy-ca-cert.pem
+        {{- end }}
+        {{- end }}
+        env:
+        - name: HOST_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        - name: PORT
+          value: :{{ .Values.clients.port }}
+        - name: PROXY_URL
+          value: {{ template "pushProxy.proxyUrl" . }}
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+        {{- if and .Values.clients.https.enabled .Values.clients.https.certDir }}
+        volumeMounts:
+        - name: metrics-cert-dir
+          mountPath: /etc/ssl/push-proxy
+        {{- end }}
+        {{- if .Values.clients.resources }}
+        resources: {{ toYaml .Values.clients.resources | nindent 10 }}
+        {{- end }}
+      {{- if and .Values.clients.https.enabled .Values.clients.https.certDir }}
+      initContainers:
+      - name: copy-certs
+        image: {{ template "system_default_registry" . }}{{ .Values.clients.copyCertsImage.repository }}:{{ .Values.clients.copyCertsImage.tag }}
+        command:
+        - sh
+        - -c
+        - |
+          echo "Searching for files to copy within the source volume"
+          echo "cert: ${CERT_FILE_NAME}"
+          echo "key: ${KEY_FILE_NAME}"
+          echo "cacert: ${CACERT_FILE_NAME}"
+
+          CERT_FILE_SOURCE=$(find /etc/source/ -type f -name "${CERT_FILE_NAME}" | sort -r | head -n 1)
+          KEY_FILE_SOURCE=$(find /etc/source/ -type f -name "${KEY_FILE_NAME}" | sort -r | head -n 1)
+          CACERT_FILE_SOURCE=$(find /etc/source/ -type f -name "${CACERT_FILE_NAME}" | sort -r | head -n 1)
+          
+          test -z ${CERT_FILE_SOURCE} && echo "Failed to find cert file" && exit 1
+          test -z ${KEY_FILE_SOURCE} && echo "Failed to find key file" && exit 1
+          test -z ${CACERT_FILE_SOURCE} && echo "Failed to find cacert file" && exit 1
+
+          echo "Copying cert file from $CERT_FILE_SOURCE to $CERT_FILE_TARGET"
+          cp $CERT_FILE_SOURCE $CERT_FILE_TARGET || exit 1
+          chmod 444 $CERT_FILE_TARGET || exit 1
+
+          echo "Copying key file from $KEY_FILE_SOURCE to $KEY_FILE_TARGET"
+          cp $KEY_FILE_SOURCE $KEY_FILE_TARGET || exit 1
+          chmod 444 $KEY_FILE_TARGET || exit 1
+
+          echo "Copying cacert file from $CACERT_FILE_SOURCE to $CACERT_FILE_TARGET"
+          cp $CACERT_FILE_SOURCE $CACERT_FILE_TARGET || exit 1
+          chmod 444 $CACERT_FILE_TARGET || exit 1
+        env:
+        - name: CERT_FILE_NAME
+          value: {{ required "Need a TLS cert file for scraping metrics endpoint over HTTPs" .Values.clients.https.certFile }}
+        - name: KEY_FILE_NAME
+          value: {{ required "Need a TLS key file for scraping metrics endpoint over HTTPs" .Values.clients.https.keyFile }}
+        - name: CACERT_FILE_NAME
+          value: {{ required "Need a TLS CA cert file for scraping metrics endpoint over HTTPs" .Values.clients.https.caCertFile }}
+        - name: CERT_FILE_TARGET
+          value: /etc/ssl/push-proxy/push-proxy.pem
+        - name: KEY_FILE_TARGET
+          value: /etc/ssl/push-proxy/push-proxy-key.pem
+        - name: CACERT_FILE_TARGET
+          value: /etc/ssl/push-proxy/push-proxy-ca-cert.pem
+        securityContext:
+          runAsNonRoot: false
+        volumeMounts:
+        - name: metrics-cert-dir-source
+          mountPath: /etc/source
+          readOnly: true
+        - name: metrics-cert-dir
+          mountPath: /etc/ssl/push-proxy
+      volumes:
+      - name: metrics-cert-dir-source
+        hostPath:
+          path: {{ required "Need access to volume on host with the SSL cert files to use HTTPs" .Values.clients.https.certDir }}
+      - name: metrics-cert-dir
+        emptyDir: {}
+      {{- end }}
+{{- end }}{{- end }}
