@@ -98,6 +98,10 @@ As a result, developers reviewing your chart can see changes made to `packages/`
 
 You are ready to make a PR!
 
+### Known Issue: Making Changes to the Version of an Existing Package
+
+If you are working with a repository using `charts-build-scripts` that uses remote validation (e.g. `validate.url` and `validate.branch` are provided in the `configuration.yaml`) and you are making a change that would modify the version of an existing package (e.g. replacing a version like `0.1.2-rc3` with `0.1.2-rc4`), please see the section `Modifying Chart Versions That Exist In Upstream` within [`docs/validation.md`](docs/validation.md) for how to ensure CI still passes after making your change.
+
 ### Versioning Packages
 
 Generally, repositories that are using `charts-build-scripts` use one of the following two types of built-in versioning schemes for packages:
