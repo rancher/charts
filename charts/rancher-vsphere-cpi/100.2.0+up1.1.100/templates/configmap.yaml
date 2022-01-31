@@ -1,0 +1,19 @@
+# Source: https://github.com/kubernetes/cloud-provider-vsphere
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vsphere-cloud-config
+  labels:
+    vsphere-cpi-infra: config
+    component: {{ .Chart.Name }}-cloud-controller-manager
+  namespace: {{ .Release.Namespace }}
+data:
+  vsphere.conf: |
+    [Global]
+    secret-name = {{ .Values.vCenter.credentialsSecret.name | quote }}
+    secret-namespace = {{ .Release.Namespace | quote }}
+    port = {{ .Values.vCenter.port | quote }}
+    insecure-flag = {{ .Values.vCenter.insecureFlag | quote }}
+
+    [VirtualCenter {{ .Values.vCenter.host | quote }}]
+    datacenters = {{ .Values.vCenter.datacenters | quote }}
