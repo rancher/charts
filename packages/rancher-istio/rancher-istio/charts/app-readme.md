@@ -13,6 +13,11 @@ For more information on how to use the feature, refer to our [docs](https://ranc
 #### Airgapped Environments
 **A temporary fix has been added to this chart to allow upgrades to succeed in an airgapped environment. See [this issue](https://github.com/rancher/rancher/issues/30842) for details.** We are still advocating for an upstream fix in Istio to formally resolve this issue. The root cause is the Istio Operator upgrade command reaches out to an external repo on upgrades and the external repo is not configurable. We are tracking the fix for this issue [here](https://github.com/rancher/rancher/issues/33402)
 
+#### Installing Istio with CNI component enabled on RHEL 8.4 SElinux enabled cluster.
+To install istio with CNI enabled, e.g. when cluster has a default PSP set to "restricted", on a cluster using nodes with RHEL 8.4 SElinux enabled, run the following command on each cluster node before creating a cluster.
+`mkdir -p /var/run/istio-cni && semanage fcontext -a -t container_file_t /var/run/istio-cni && restorecon -v /var/run/istio-cni`
+See [this issue](https://github.com/rancher/rancher/issues/33291) for details.
+
 ## Deprecations
 
 #### v1alpha1 security policies
