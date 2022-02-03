@@ -49,6 +49,7 @@ subdirectory: charts/mychart # optional
 ### Making Changes To Packages
 
 As a developer making changes to a particular package, you will usually follow the following steps:
+
 0. If you are working with a single `Package`, set `export PACKAGE=<packageName>`
   - Note: This inform the scripts that you only want to make changes to a particular package. This will prevent the scripts from running commands on every package in this repository.
   - Note: Starting v0.3.0 of the scripts, `PACKAGE` can refer to a nested structure, e.g. you can place packages under `packages/my-stuff/package-1` and `packages/my-stuff/package-2`. If you want to target all packages in this nested structure, set `PACKAGE=my-stuff`. If you want to target a specific package in this nested structure, set `PACKAGE=my-stuff/package-1`. It should be noted, however, that `make patch` will **only** work if you point to a specific package, so setting `PACKAGE=my-stuff` would cause it to fail.
