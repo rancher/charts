@@ -42,6 +42,9 @@ kubernetes.io/os: linux
 release: {{ .Release.Name }}
 component: {{ .Values.component | quote }}
 provider: kubernetes
+{{- if .Values.commonLabels}}
+{{ toYaml .Values.commonLabels }}
+{{- end }}
 {{- end -}}
 
 {{- define "pushProxy.proxyUrl" -}}
