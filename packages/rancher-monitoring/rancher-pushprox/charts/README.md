@@ -55,6 +55,7 @@ The following tables list the configurable parameters of the rancher-pushprox ch
 | `proxy.resources` | Set resource limits and requests for the proxy container | `{}` |
 | `proxy.nodeSelector` | Select which nodes the proxy can be deployed on | `{}` |
 | `proxy.tolerations` | Specify tolerations (if necessary) to allow the proxy to be deployed on the selected node | `[]` |
+| `kubeVersionOverrides` | A list of Semver constraint strings (defined by https://github.com/Masterminds/semver) and values.yaml overrides. For each key in kubeVersionOverrides, this chart will check to see if the current Kubernetes cluster's version matches any of the semver constraints provided as keys on the map. On seeing a match, the default value for each values.yaml field overridden will be updated with the new value. If multiple matches are encountered (due to overlapping semver ranges), the matches will be applied in order. | `[]`
 
 *Tip: The filepaths set in `clients.https.<cert|key|caCert>File` can include wildcard characters*. 
 
