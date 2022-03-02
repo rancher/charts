@@ -1,0 +1,47 @@
+--- charts-original/templates/node/daemonset.yaml
++++ charts/templates/node/daemonset.yaml
+@@ -8,6 +8,44 @@
+   selector:
+     matchLabels:
+       app: vsphere-csi-node
++  {{- if .Values.csiNode.nodeSelector }}
++  nodeSelector:
++  {{- with .Values.csiNode.nodeSelector }}
++    {{- toYaml . | nindent 6 }}
++  {{- end }}
++  {{- else }}
++  affinity:
++    nodeAffinity:
++      requiredDuringSchedulingIgnoredDuringExecution:
++        nodeSelectorTerms:
++        - matchExpressions:
++          # Rancher node selector label
++          - key: kubernetes.io/os
++            operator: NotIn
++            values:
++            - "windows"
++  {{- end }}
++  {{- if .Values.csiNode.tolerations }}
++  tolerations:
++  {{- with .Values.csiNode.tolerations }}
++    {{- toYaml . | nindent 6 }}
++  {{- end }}
++  {{- else }}
++  tolerations:
++    - key: node-role.kubernetes.io/master
++      operator: Exists
++      effect: NoSchedule
++    # Rancher specific change: These tolerations are added to account for RKE1 and RKE2 taints
++    - key: node-role.kubernetes.io/controlplane
++      effect: NoSchedule
++      value: "true"
++    - key: node-role.kubernetes.io/control-plane
++      effect: NoSchedule
++      value: "true"
++    - key: node-role.kubernetes.io/etcd
++      effect: NoSchedule
++      value: "true"
++  {{- end }}
+   updateStrategy:
+     type: "RollingUpdate"
+     rollingUpdate:
