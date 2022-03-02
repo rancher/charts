@@ -1,6 +1,9 @@
 {{- $chartLabel := .Values.chartLabel }}
 {{- if eq $chartLabel "" }}
-{{- $chartLabel = (index (lookup "apps/v1" "Deployment" "cattle-system" "rancher").metadata.labels "chart") }}
+{{- $rancherDeployment := (lookup "apps/v1" "Deployment" "cattle-system" "rancher") }}
+{{- if $rancherDeployment }}
+{{- $chartLabel = (index $rancherDeployment.metadata.labels "chart") }}
+{{- end }}
 {{- end }}
 {{- if ne $chartLabel "" }}
 apiVersion: monitoring.coreos.com/v1
