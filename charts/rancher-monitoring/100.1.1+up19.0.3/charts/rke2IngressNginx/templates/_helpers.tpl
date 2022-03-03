@@ -30,6 +30,16 @@ kubernetes.io/os: linux
 
 # General
 
+{{- define "applyKubeVersionOverrides" -}}
+{{- $overrides := dict -}}
+{{- range $override := .Values.kubeVersionOverrides -}}
+{{- if semverCompare $override.constraint $.Capabilities.KubeVersion.Version -}}
+{{- $_ := mergeOverwrite $overrides $override.values -}}
+{{- end -}}
+{{- end -}}
+{{- $_ := mergeOverwrite .Values $overrides -}}
+{{- end -}}
+
 {{- define "pushprox.namespace" -}}
   {{- if .Values.namespaceOverride -}}
     {{- .Values.namespaceOverride -}}
