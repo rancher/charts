@@ -21,9 +21,13 @@ prometheus-adapter:
 ##
 rkeControllerManager:
   enabled: false
-  metricsPort: 10252
+  metricsPort: 10257 # default to secure port as of k8s >= 1.22
   component: kube-controller-manager
   clients:
+    https:
+      enabled: true
+      insecureSkipVerify: true
+      useServiceAccountCredentials: true
     port: 10011
     useLocalhost: true
     nodeSelector:
@@ -33,6 +37,15 @@ rkeControllerManager:
       operator: "Exists"
     - effect: "NoSchedule"
       operator: "Exists"
+  kubeVersionOverrides:
+  - constraint: "< 1.22"
+    values:
+      metricsPort: 10252 # default to insecure port in k8s < 1.22
+      clients:
+        https:
+          enabled: false
+          insecureSkipVerify: false
+          useServiceAccountCredentials: false
 
 rkeScheduler:
   enabled: false
@@ -63,7 +76,7 @@ rkeProxy:
       operator: "Exists"
 
 rkeEtcd:
-  enabled: false
+  enabled: true
   metricsPort: 2379
   component: kube-etcd
   clients:
@@ -74,6 +87,10 @@ rkeEtcd:
       certFile: kube-etcd-*.pem
       keyFile: kube-etcd-*-key.pem
       caCertFile: kube-ca.pem
+      seLinuxOptions:
+        # Gives rkeEtcd permissions to read files in /etc/kubernetes/*
+        # Type is defined in https://github.com/rancher/rancher-selinux
+        type: rke_kubereader_t
     nodeSelector:
       node-role.kubernetes.io/etcd: "true"
     tolerations:
@@ -217,9 +234,13 @@ kubeAdmEtcd:
 ##
 rke2ControllerManager:
   enabled: false
-  metricsPort: 10252
+  metricsPort: 10257 # default to secure port as of k8s >= 1.22
   component: kube-controller-manager
   clients:
+    https:
+      enabled: true
+      insecureSkipVerify: true
+      useServiceAccountCredentials: true
     port: 10011
     useLocalhost: true
     nodeSelector:
@@ -229,12 +250,25 @@ rke2ControllerManager:
         operator: "Exists"
       - effect: "NoSchedule"
         operator: "Exists"
+  kubeVersionOverrides:
+  - constraint: "< 1.22"
+    values:
+      metricsPort: 10252 # default to insecure port in k8s < 1.22
+      clients:
+        https:
+          enabled: false
+          insecureSkipVerify: false
+          useServiceAccountCredentials: false
 
 rke2Scheduler:
   enabled: false
-  metricsPort: 10251
+  metricsPort: 10259 # default to secure port as of k8s >= 1.22
   component: kube-scheduler
   clients:
+    https:
+      enabled: true
+      insecureSkipVerify: true
+      useServiceAccountCredentials: true
     port: 10012
     useLocalhost: true
     nodeSelector:
@@ -244,6 +278,15 @@ rke2Scheduler:
         operator: "Exists"
       - effect: "NoSchedule"
         operator: "Exists"
+  kubeVersionOverrides:
+  - constraint: "< 1.22"
+    values:
+      metricsPort: 10251 # default to insecure port in k8s < 1.22
+      clients:
+        https:
+          enabled: false
+          insecureSkipVerify: false
+          useServiceAccountCredentials: false
 
 rke2Proxy:
   enabled: false
@@ -518,6 +561,8 @@ global:
     ##
     windows:
       enabled: false
+  seLinux:
+    enabled: false
   kubectl:
      repository: rancher/kubectl
      tag: v1.20.2

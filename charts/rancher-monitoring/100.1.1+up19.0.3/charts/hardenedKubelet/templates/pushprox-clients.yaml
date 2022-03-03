@@ -1,3 +1,4 @@
+{{- template "applyKubeVersionOverrides" . -}}
 {{- if .Values.clients }}{{- if .Values.clients.enabled }}
 apiVersion: apps/v1
 {{- if .Values.clients.deployment.enabled }}
@@ -102,7 +103,7 @@ spec:
           CERT_FILE_SOURCE=$(find /etc/source/ -type f -name "${CERT_FILE_NAME}" | sort -r | head -n 1)
           KEY_FILE_SOURCE=$(find /etc/source/ -type f -name "${KEY_FILE_NAME}" | sort -r | head -n 1)
           CACERT_FILE_SOURCE=$(find /etc/source/ -type f -name "${CACERT_FILE_NAME}" | sort -r | head -n 1)
-          
+
           test -z ${CERT_FILE_SOURCE} && echo "Failed to find cert file" && exit 1
           test -z ${KEY_FILE_SOURCE} && echo "Failed to find key file" && exit 1
           test -z ${CACERT_FILE_SOURCE} && echo "Failed to find cacert file" && exit 1
@@ -133,6 +134,9 @@ spec:
           value: /etc/ssl/push-proxy/push-proxy-ca-cert.pem
         securityContext:
           runAsNonRoot: false
+{{- if and .Values.global.seLinux.enabled .Values.clients.https.seLinuxOptions }}
+          seLinuxOptions: {{ .Values.clients.https.seLinuxOptions | toYaml | nindent 12 }}
+{{- end }}
         volumeMounts:
         - name: metrics-cert-dir-source
           mountPath: /etc/source
