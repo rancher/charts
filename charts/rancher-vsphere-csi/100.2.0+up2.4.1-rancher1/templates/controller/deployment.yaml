@@ -5,7 +5,12 @@ metadata:
   name: vsphere-csi-controller
   namespace: {{ .Release.Namespace }}
 spec:
-  replicas: 1
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 0
   selector:
     matchLabels:
       app: vsphere-csi-controller
@@ -61,10 +66,10 @@ spec:
           value: "true"
         - key: node-role.kubernetes.io/control-plane
           effect: NoSchedule
-          value: "true"
+          operator: Exists
         - key: node-role.kubernetes.io/etcd
-          effect: NoSchedule
-          value: "true"
+          effect: NoExecute
+          operator: Exists
       {{- end }}
       dnsPolicy: "Default"
       containers:
@@ -106,6 +111,7 @@ spec:
           args:
             - "--fss-name=internal-feature-states.csi.vsphere.vmware.com"
             - "--fss-namespace=$(CSI_NAMESPACE)"
+            - "--use-gocsi=false"
           imagePullPolicy: "Always"
           env:
             - name: CSI_ENDPOINT
