@@ -1,0 +1,82 @@
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  components:
+    base:
+      enabled: {{ .Values.base.enabled }}
+    cni:
+      enabled: {{ .Values.cni.enabled }}
+    egressGateways:
+    - enabled: {{ .Values.egressGateways.enabled }}
+      name: istio-egressgateway
+    ingressGateways:
+    - enabled: {{ .Values.ingressGateways.enabled }}
+      name: istio-ingressgateway
+      k8s:
+        service:
+          ports:
+          - name: status-port
+            port: 15021
+            targetPort: 15021
+          - name: http2
+            port: 80
+            targetPort: 8080
+            nodePort: 31380
+          - name: https
+            port: 443
+            targetPort: 8443
+            nodePort: 31390
+          - name: tcp
+            port: 31400
+            targetPort: 31400
+            nodePort: 31400
+          - name: tls
+            port: 15443
+            targetPort: 15443
+    istiodRemote:
+      enabled: {{ .Values.istiodRemote.enabled }}
+    pilot:
+      enabled: {{ .Values.pilot.enabled }}
+  hub: {{ .Values.systemDefaultRegistry | default "docker.io" }}
+  profile: default
+  tag: {{ .Values.tag }}
+  revision: {{ .Values.revision }}
+  meshConfig:
+    defaultConfig:
+      proxyMetadata:
+      {{- if .Values.dns.enabled }}
+        ISTIO_META_DNS_CAPTURE: "true"
+      {{- end }}
+  values:
+    gateways:
+      istio-egressgateway:
+        name: istio-egressgateway
+        type: {{ .Values.egressGateways.type }}
+      istio-ingressgateway:
+        name: istio-ingressgateway
+        type: {{ .Values.ingressGateways.type }}
+    global:
+      istioNamespace: {{ template "istio.namespace" . }}
+      proxy:
+        image: {{ template "system_default_registry" . }}{{ .Values.global.proxy.repository }}:{{ .Values.global.proxy.tag }}
+      proxy_init:
+        image: {{ template "system_default_registry" . }}{{ .Values.global.proxy_init.repository }}:{{ .Values.global.proxy_init.tag }}
+      {{- if .Values.global.defaultPodDisruptionBudget.enabled }}
+      defaultPodDisruptionBudget:
+        enabled: {{ .Values.global.defaultPodDisruptionBudget.enabled }}
+      {{- end }}
+    {{- if .Values.pilot.enabled }}
+    pilot:
+      image: {{ template "system_default_registry" . }}{{ .Values.pilot.repository }}:{{ .Values.pilot.tag }}
+    {{- end }}
+    telemetry:
+      enabled: {{ .Values.telemetry.enabled }}
+      v2:
+        enabled: {{ .Values.telemetry.v2.enabled }}
+    {{- if .Values.cni.enabled }}
+    cni:
+      image: {{ template "system_default_registry" . }}{{ .Values.cni.repository }}:{{ .Values.cni.tag }}
+      excludeNamespaces:
+      {{- toYaml .Values.cni.excludeNamespaces | nindent 8 }}
+      logLevel: {{ .Values.cni.logLevel }}
+    {{- end }}
