@@ -1,0 +1,44 @@
+provider: jaeger
+contextPath: ""
+nodeSelector: {}
+podAntiAffinityLabelSelector: []
+podAntiAffinityTermLabelSelector: []
+nameOverride: ""
+fullnameOverride: ""
+
+global:
+  cattle:
+    systemDefaultRegistry: ""
+  defaultResources: {}
+  imagePullPolicy: IfNotPresent
+  imagePullSecrets: []
+  arch:
+    amd64: 2
+    s390x: 2
+    ppc64le: 2
+  defaultNodeSelector: {}
+  rbac:
+    pspEnabled: false
+
+jaeger:
+  repository: rancher/mirrored-jaegertracing-all-in-one
+  tag: 1.31.0
+  # spanStorageType value can be "memory" and "badger" for all-in-one image
+  spanStorageType: badger
+  resources:
+    requests:
+      cpu: 10m
+  persistentVolumeClaim: 
+    enabled: false
+    storage: 5Gi
+  storageClassName: ""
+  accessMode: ReadWriteMany
+  memory:
+    max_traces: 50000
+zipkin:
+  queryPort: 9411
+service:
+  annotations: {}
+  name: http-query
+  type: ClusterIP
+  externalPort: 16686
