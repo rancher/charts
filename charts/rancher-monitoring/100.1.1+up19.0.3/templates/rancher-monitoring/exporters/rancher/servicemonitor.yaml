@@ -1,16 +1,9 @@
-{{- $chartLabel := .Values.chartLabel }}
-{{- if eq $chartLabel "" }}
-{{- $rancherDeployment := (lookup "apps/v1" "Deployment" "cattle-system" "rancher") }}
-{{- if $rancherDeployment }}
-{{- $chartLabel = (index $rancherDeployment.metadata.labels "chart") }}
-{{- end }}
-{{- end }}
-{{- if ne $chartLabel "" }}
+{{- $selector := (include "rancher.serviceMonitor.selector" .) -}}
+{{- if and .Values.rancherMonitoring.enabled $selector }}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  labels:
-{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+  labels: {{ include "kube-prometheus-stack.labels" . | nindent 4 }}
   name: rancher
   namespace: cattle-system
 spec:
@@ -22,19 +15,15 @@ spec:
       insecureSkipVerify: true
       serverName: rancher
   jobLabel: rancher
-  namespaceSelector:
-    matchNames:
-    - cattle-system
-  selector:
-    matchLabels:
-      app: rancher
-      chart: {{ $chartLabel }}
-      release: rancher
+{{- if .Values.rancherMonitoring.namespaceSelector }}
+  namespaceSelector: {{ .Values.rancherMonitoring.namespaceSelector | toYaml | nindent 4 }}
+{{- end }}
+  selector: {{ include "rancher.serviceMonitor.selector" . | nindent 4 }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: rancher-monitoring-metrics-view
+  name: {{ template "kube-prometheus-stack.fullname" . }}-rancher-metrics
 rules:
 - apiGroups:
   - management.cattle.io
@@ -46,13 +35,13 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1   
 kind: ClusterRoleBinding                                                                                                                       
 metadata:                                                                                                                                      
-  name: rancher-monitoring-operator-metrics
+  name: {{ template "kube-prometheus-stack.fullname" . }}-rancher-metrics
 roleRef:                                         
   apiGroup: rbac.authorization.k8s.io          
   kind: ClusterRole                           
-  name: rancher-monitoring-metrics-view
+  name: {{ template "kube-prometheus-stack.fullname" . }}-rancher-metrics
 subjects:
   - kind: ServiceAccount
-    name: rancher-monitoring-prometheus
-    namespace: cattle-monitoring-system
+    name: {{ template "kube-prometheus-stack.fullname" . }}-prometheus
+    namespace: {{ template "kube-prometheus-stack.namespace" . }}
 {{- end }}
