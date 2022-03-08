@@ -1,0 +1,44 @@
+--- charts-original/templates/image-renderer-deployment.yaml
++++ charts/templates/image-renderer-deployment.yaml
+@@ -42,6 +42,8 @@
+       {{- end }}
+       {{- if .Values.imageRenderer.serviceAccountName }}
+       serviceAccountName: "{{ .Values.imageRenderer.serviceAccountName }}"
++      {{- else }}
++      serviceAccountName: {{ template "grafana.serviceAccountName" . }}
+       {{- end }}
+       {{- if .Values.imageRenderer.securityContext }}
+       securityContext:
+@@ -63,9 +65,9 @@
+       containers:
+         - name: {{ .Chart.Name }}-image-renderer
+           {{- if .Values.imageRenderer.image.sha }}
+-          image: "{{ .Values.imageRenderer.image.repository }}:{{ .Values.imageRenderer.image.tag }}@sha256:{{ .Values.imageRenderer.image.sha }}"
++          image: "{{ template "system_default_registry" . }}{{ .Values.imageRenderer.image.repository }}:{{ .Values.imageRenderer.image.tag }}@sha256:{{ .Values.imageRenderer.image.sha }}"
+           {{- else }}
+-          image: "{{ .Values.imageRenderer.image.repository }}:{{ .Values.imageRenderer.image.tag }}"
++          image: "{{ template "system_default_registry" . }}{{ .Values.imageRenderer.image.repository }}:{{ .Values.imageRenderer.image.tag }}"
+           {{- end }}
+           imagePullPolicy: {{ .Values.imageRenderer.image.pullPolicy }}
+         {{- if .Values.imageRenderer.command }}
+@@ -101,16 +103,16 @@
+           resources:
+ {{ toYaml . | indent 12 }}
+       {{- end }}
+-      {{- with .Values.imageRenderer.nodeSelector }}
+-      nodeSelector:
++      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
++      {{- if .Values.imageRenderer.nodeSelector }}
+ {{ toYaml . | indent 8 }}
+       {{- end }}
+       {{- with .Values.imageRenderer.affinity }}
+       affinity:
+ {{ toYaml . | indent 8 }}
+       {{- end }}
+-      {{- with .Values.imageRenderer.tolerations }}
+-      tolerations:
++      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
++      {{- if .Values.imageRenderer.tolerations }}
+ {{ toYaml . | indent 8 }}
+       {{- end }}
+       volumes:

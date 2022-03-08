@@ -1,0 +1,77 @@
+{{- if .Values.clients }}{{ if .Values.clients.enabled }}
+{{ include "windowsExporter.validatePathPrefix" . }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ template "windowsExporter.name" . }}
+  namespace: {{ template "windowsExporter.namespace" . }}
+  labels: {{ include "windowsExporter.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels: {{ include "windowsExporter.labels" . | nindent 6 }}
+  template:
+    metadata:
+      labels: {{ include "windowsExporter.labels" . | nindent 8 }}
+    spec:
+      nodeSelector: {{ include "windowsExporter.client.nodeSelector" . | nindent 8 }}
+      tolerations: {{ include "windowsExporter.client.tolerations" . | nindent 8 }}
+      serviceAccountName: {{ template "windowsExporter.name" . }}
+      containers:
+      - name: exporter-node-proxy
+        image: {{ template "system_default_registry" . }}{{ .Values.clients.image.repository }}:{{ .Values.clients.image.tag }}
+        command: ["pwsh", "-f", "c:/scripts/proxy-entry.ps1"]
+        ports:
+        - name: http
+          containerPort: {{ required "Need .Values.clients.port to figure out where to get metrics from" .Values.clients.port }}
+        env: {{ include "windowsExporter.client.env" . | nindent 10 }}
+{{- if .Values.resources }}
+        resources: {{ toYaml .Values.clients.proxy.resources | nindent 10 }}
+{{- end }}
+        volumeMounts:
+        - name: wins-pipe-proxy
+          mountPath: \\.\pipe\rancher_wins_proxy
+        - name: exporter-scripts
+          mountPath: c:/scripts/
+      - name: exporter-node
+        image: {{ template "system_default_registry" . }}{{ .Values.clients.image.repository }}:{{ .Values.clients.image.tag }}
+        command: ["pwsh", "-f", "c:/scripts/run.ps1"]
+{{- if .Values.clients.args }}
+        args: {{ .Values.clients.args }}
+{{- end }}
+        env: {{ include "windowsExporter.client.env" . | nindent 8 }}
+        - name: CATTLE_PREFIX_PATH
+          value: {{ default "c:\\" .Values.global.cattle.rkeWindowsPathPrefix | replace "/" "\\" }}
+{{- if .Values.resources }}
+        resources: {{ toYaml .Values.clients.resources | nindent 10 }}
+{{- end }}
+        volumeMounts:
+        - name: wins-pipe
+          mountPath: \\.\pipe\rancher_wins
+        - name: binary-host-path
+          mountPath: c:/host/etc/windows-exporter
+        - name: exporter-scripts
+          mountPath: c:/scripts/
+      initContainers:
+      - name: check-wins-version
+        image: {{ template "system_default_registry" . }}{{ .Values.clients.image.repository }}:{{ .Values.clients.image.tag }}
+        command: ["pwsh", "-f", "c:/scripts/check-wins-version.ps1"]
+        volumeMounts:
+        - name: wins-pipe
+          mountPath: \\.\pipe\rancher_wins
+        - name: exporter-scripts
+          mountPath: c:/scripts/
+      volumes:
+      - name: wins-pipe
+        hostPath:
+          path: \\.\pipe\rancher_wins
+      - name: wins-pipe-proxy
+        hostPath:
+          path: \\.\pipe\rancher_wins_proxy
+      - name: binary-host-path
+        hostPath:
+          path: {{ default "c:\\" .Values.global.cattle.rkeWindowsPathPrefix | replace "\\" "/" }}etc/windows-exporter
+          type: DirectoryOrCreate
+      - name: exporter-scripts
+        configMap:
+          name: {{ template "windowsExporter.name" . }}-scripts
+{{- end }}{{- end }}

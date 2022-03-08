@@ -1,0 +1,39 @@
+--- charts-original/templates/podsecuritypolicy.yaml
++++ charts/templates/podsecuritypolicy.yaml
+@@ -5,19 +5,27 @@
+   name: {{ template "grafana.fullname" . }}
+   labels:
+     {{- include "grafana.labels" . | nindent 4 }}
+-  annotations:
+-    seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'docker/default,runtime/default'
+-    seccomp.security.alpha.kubernetes.io/defaultProfileName:  'docker/default'
+-    {{- if .Values.rbac.pspUseAppArmor }}
+-    apparmor.security.beta.kubernetes.io/allowedProfileNames: 'runtime/default'
+-    apparmor.security.beta.kubernetes.io/defaultProfileName:  'runtime/default'
+-    {{- end }}
++{{- if .Values.rbac.pspAnnotations }}
++    annotations: {{ toYaml .Values.rbac.pspAnnotations | nindent 4 }}
++{{- end }}
+ spec:
+   privileged: false
+   allowPrivilegeEscalation: false
+   requiredDropCapabilities:
+-    # Default set from Docker, with DAC_OVERRIDE and CHOWN
+-      - ALL
++    # The list comes from K8s' pod security standards, with only CHOWN left
++    # ref: https://kubernetes.io/docs/concepts/security/pod-security-standards/
++    - AUDIT_WRITE
++    - DAC_OVERRIDE
++    - FOWNER
++    - FSETID
++    - KILL
++    - MKNOD
++    - NET_BIND_SERVICE
++    - SETFCAP
++    - SETGID
++    - SETPCAP
++    - SETUID
++    - SYS_CHROOT
+   volumes:
+     - 'configMap'
+     - 'emptyDir'

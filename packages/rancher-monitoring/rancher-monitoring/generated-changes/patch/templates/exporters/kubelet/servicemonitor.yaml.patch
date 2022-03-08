@@ -1,0 +1,35 @@
+--- charts-original/templates/exporters/kubelet/servicemonitor.yaml
++++ charts/templates/exporters/kubelet/servicemonitor.yaml
+@@ -1,9 +1,12 @@
+-{{- if .Values.kubelet.enabled }}
++{{- if (and (not .Values.kubelet.enabled) .Values.hardenedKubelet.enabled) }}
++{{ required "Cannot set .Values.hardenedKubelet.enabled=true when .Values.kubelet.enabled=false" "" }}
++{{- end }}
++{{- if (and .Values.kubelet.enabled (not .Values.hardenedKubelet.enabled) (not .Values.k3sServer.enabled)) }}
+ apiVersion: monitoring.coreos.com/v1
+ kind: ServiceMonitor
+ metadata:
+   name: {{ template "kube-prometheus-stack.fullname" . }}-kubelet
+-  namespace: {{ template "kube-prometheus-stack.namespace" . }}
++  namespace: {{ .Values.kubelet.namespace }}
+   labels:
+     app: {{ template "kube-prometheus-stack.name" . }}-kubelet
+ {{- include "kube-prometheus-stack.labels" . | indent 4 }}
+@@ -85,7 +88,7 @@
+ {{- if .Values.kubelet.serviceMonitor.resource }}
+   - port: https-metrics
+     scheme: https
+-    path: {{ .Values.kubelet.serviceMonitor.resourcePath }}
++    path: {{ include "kubelet.serviceMonitor.resourcePath" . }}
+     {{- if .Values.kubelet.serviceMonitor.interval }}
+     interval: {{ .Values.kubelet.serviceMonitor.interval }}
+     {{- end }}
+@@ -143,7 +146,7 @@
+ {{- end }}
+ {{- if .Values.kubelet.serviceMonitor.resource }}
+   - port: http-metrics
+-    path: {{ .Values.kubelet.serviceMonitor.resourcePath }}
++    path: {{ include "kubelet.serviceMonitor.resourcePath" . }}
+     {{- if .Values.kubelet.serviceMonitor.interval }}
+     interval: {{ .Values.kubelet.serviceMonitor.interval }}
+     {{- end }}

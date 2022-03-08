@@ -1,0 +1,119 @@
+--- charts-original/templates/_pod.tpl
++++ charts/templates/_pod.tpl
+@@ -1,4 +1,3 @@
+-
+ {{- define "grafana.pod" -}}
+ {{- if .Values.schedulerName }}
+ schedulerName: "{{ .Values.schedulerName }}"
+@@ -22,9 +21,9 @@
+ {{- if ( and .Values.persistence.enabled .Values.initChownData.enabled ) }}
+   - name: init-chown-data
+     {{- if .Values.initChownData.image.sha }}
+-    image: "{{ .Values.initChownData.image.repository }}:{{ .Values.initChownData.image.tag }}@sha256:{{ .Values.initChownData.image.sha }}"
++    image: "{{ template "system_default_registry" . }}{{ .Values.initChownData.image.repository }}:{{ .Values.initChownData.image.tag }}@sha256:{{ .Values.initChownData.image.sha }}"
+     {{- else }}
+-    image: "{{ .Values.initChownData.image.repository }}:{{ .Values.initChownData.image.tag }}"
++    image: "{{ template "system_default_registry" . }}{{ .Values.initChownData.image.repository }}:{{ .Values.initChownData.image.tag }}"
+     {{- end }}
+     imagePullPolicy: {{ .Values.initChownData.image.pullPolicy }}
+     securityContext:
+@@ -43,9 +42,9 @@
+ {{- if .Values.dashboards }}
+   - name: download-dashboards
+     {{- if .Values.downloadDashboardsImage.sha }}
+-    image: "{{ .Values.downloadDashboardsImage.repository }}:{{ .Values.downloadDashboardsImage.tag }}@sha256:{{ .Values.downloadDashboardsImage.sha }}"
++    image: "{{ template "system_default_registry" . }}{{ .Values.downloadDashboardsImage.repository }}:{{ .Values.downloadDashboardsImage.tag }}@sha256:{{ .Values.downloadDashboardsImage.sha }}"
+     {{- else }}
+-    image: "{{ .Values.downloadDashboardsImage.repository }}:{{ .Values.downloadDashboardsImage.tag }}"
++    image: "{{ template "system_default_registry" . }}{{ .Values.downloadDashboardsImage.repository }}:{{ .Values.downloadDashboardsImage.tag }}"
+     {{- end }}
+     imagePullPolicy: {{ .Values.downloadDashboardsImage.pullPolicy }}
+     command: ["/bin/sh"]
+@@ -80,11 +79,16 @@
+ {{- if .Values.sidecar.datasources.enabled }}
+   - name: {{ template "grafana.name" . }}-sc-datasources
+     {{- if .Values.sidecar.image.sha }}
+-    image: "{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}@sha256:{{ .Values.sidecar.image.sha }}"
++    image: "{{ template "system_default_registry" . }}{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}@sha256:{{ .Values.sidecar.image.sha }}"
+     {{- else }}
+-    image: "{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}"
++    image: "{{ template "system_default_registry" . }}{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}"
+     {{- end }}
+     imagePullPolicy: {{ .Values.sidecar.imagePullPolicy }}
++    {{- if .Values.sidecar.datasources.envFromSecret }}
++    envFrom:
++      - secretRef:
++          name: {{ tpl .Values.sidecar.datasources.envFromSecret . }}
++    {{- end }}
+     env:
+       - name: METHOD
+         value: LIST
+@@ -119,9 +123,9 @@
+ {{- if .Values.sidecar.notifiers.enabled }}
+   - name: {{ template "grafana.name" . }}-sc-notifiers
+     {{- if .Values.sidecar.image.sha }}
+-    image: "{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}@sha256:{{ .Values.sidecar.image.sha }}"
++    image: "{{ template "system_default_registry" . }}{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}@sha256:{{ .Values.sidecar.image.sha }}"
+     {{- else }}
+-    image: "{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}"
++    image: "{{ template "system_default_registry" . }}{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}"
+     {{- end }}
+     imagePullPolicy: {{ .Values.sidecar.imagePullPolicy }}
+     env:
+@@ -165,9 +169,9 @@
+ {{- if .Values.sidecar.dashboards.enabled }}
+   - name: {{ template "grafana.name" . }}-sc-dashboard
+     {{- if .Values.sidecar.image.sha }}
+-    image: "{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}@sha256:{{ .Values.sidecar.image.sha }}"
++    image: "{{ template "system_default_registry" . }}{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}@sha256:{{ .Values.sidecar.image.sha }}"
+     {{- else }}
+-    image: "{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}"
++    image: "{{ template "system_default_registry" . }}{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}"
+     {{- end }}
+     imagePullPolicy: {{ .Values.sidecar.imagePullPolicy }}
+     env:
+@@ -207,9 +211,9 @@
+ {{- end}}
+   - name: {{ .Chart.Name }}
+     {{- if .Values.image.sha }}
+-    image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}@sha256:{{ .Values.image.sha }}"
++    image: "{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}@sha256:{{ .Values.image.sha }}"
+     {{- else }}
+-    image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
++    image: "{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+     {{- end }}
+     imagePullPolicy: {{ .Values.image.pullPolicy }}
+   {{- if .Values.command }}
+@@ -315,7 +319,7 @@
+     {{- end }}
+     ports:
+       - name: {{ .Values.service.portName }}
+-        containerPort: {{ .Values.service.port }}
++        containerPort: {{ .Values.service.targetPort }}
+         protocol: TCP
+       - name: {{ .Values.podPortName }}
+         containerPort: 3000
+@@ -402,17 +406,17 @@
+ {{- with .Values.extraContainers }}
+ {{ tpl . $ | indent 2 }}
+ {{- end }}
+-{{- with .Values.nodeSelector }}
+-nodeSelector:
+-{{ toYaml . | indent 2 }}
++nodeSelector: {{ include "linux-node-selector" . | nindent 2 }}
++{{- if .Values.nodeSelector }}
++{{ toYaml .Values.nodeSelector | indent 2 }}
+ {{- end }}
+ {{- with .Values.affinity }}
+ affinity:
+ {{ toYaml . | indent 2 }}
+ {{- end }}
+-{{- with .Values.tolerations }}
+-tolerations:
+-{{ toYaml . | indent 2 }}
++tolerations: {{ include "linux-node-tolerations" . | nindent 2 }}
++{{- if .Values.tolerations }}
++{{ toYaml .Values.tolerations | indent 2 }}
+ {{- end }}
+ volumes:
+   - name: config
