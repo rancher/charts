@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -e
+
+cd $(dirname $0)
+cd ..
+
+if [ -n "$(git status --porcelain)" ]; then
+    echo "Git needs to be clean to run this script"
+    exit 1
+fi
+
+if [[ -z ${CHART} ]] || [[ -z ${VERSION} ]] || [[ -z ${UPSTREAM} ]] || [[ -z ${BRANCH} ]]; then
+    echo "Usage: CHART=<chart> VERSION=<version> UPSTREAM=<git-remote> BRANCH=<git-branch> make forward-port"
+    exit 1
+fi
+
+if [[ -d charts/${CHART}/${VERSION} ]] && [[ -f  assets/${CHART}/${CHART}-${VERSION}.tgz ]]; then
+    rm -rf charts/${CHART}/${VERSION}
+    rm -rf assets/${CHART}/${CHART}-${VERSION}.tgz
+fi
+
+git fetch ${UPSTREAM} ${BRANCH}
+if ! git cat-file -e ${UPSTREAM}/${BRANCH}:assets/${CHART}/${CHART}-${VERSION}.tgz; then
+    exit 1
+fi
+git checkout ${UPSTREAM}/${BRANCH} -- assets/${CHART}/${CHART}-${VERSION}.tgz 2>&1 1>/dev/null
+git reset HEAD 2>&1 1>/dev/null
+ASSET=${CHART}/${CHART}-${VERSION}.tgz make unzip
+
+touch release.yaml
+yq e -i ".${CHART} = ((.${CHART} + [\"${VERSION}\"]) | unique)" release.yaml
+
+make index
