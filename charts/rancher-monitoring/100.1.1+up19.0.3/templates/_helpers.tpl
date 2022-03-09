@@ -101,6 +101,20 @@ kubelet
 {{- end -}}
 {{- end }}
 
+{{- define "rancher.serviceMonitor.selector" -}}
+{{- if .Values.rancherMonitoring.selector }}
+{{ .Values.rancherMonitoring.selector | toYaml }}
+{{- else }}
+{{- $rancherDeployment := (lookup "apps/v1" "Deployment" "cattle-system" "rancher") }}
+{{- if $rancherDeployment }}
+matchLabels:
+  app: rancher
+  chart: {{ index $rancherDeployment.metadata.labels "chart" }}
+  release: rancher
+{{- end }}
+{{- end }}
+{{- end }}
+
 # Windows Support
 
 {{/*
