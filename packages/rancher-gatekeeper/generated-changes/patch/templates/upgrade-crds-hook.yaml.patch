@@ -1,6 +1,6 @@
 --- charts-original/templates/upgrade-crds-hook.yaml
 +++ charts/templates/upgrade-crds-hook.yaml
-@@ -72,8 +72,8 @@
+@@ -72,11 +72,20 @@
        restartPolicy: Never
        containers:
        - name: crds-upgrade
@@ -11,3 +11,15 @@
          args:
          - apply
          - -f
+         - crds/
++        securityContext:
++          allowPrivilegeEscalation: false
++          capabilities:
++            drop:
++            - all
++          readOnlyRootFilesystem: true
++          runAsGroup: 999
++          runAsNonRoot: true
++          runAsUser: 1000
+       nodeSelector:
+         kubernetes.io/os: linux
