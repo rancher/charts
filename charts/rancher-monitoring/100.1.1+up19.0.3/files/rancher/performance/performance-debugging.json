@@ -15,7 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 39,
+  "id": 33,
   "links": [],
   "panels": [
     {
@@ -66,7 +66,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "topk(20,rate(lasso_controller_reconcile_time_seconds_sum[5m])\n/\nrate(lasso_controller_reconcile_time_seconds_count[5m]))",
+          "expr": "topk(20,sum by (handler_name) (rate(lasso_controller_reconcile_time_seconds_sum[5m]))\n/\nsum by (handler_name) (rate(lasso_controller_reconcile_time_seconds_count[5m])))",
           "interval": "",
           "legendFormat": "{{handler_name}}",
           "refId": "A"
@@ -164,7 +164,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "topk(20,rate(steve_api_request_time_sum{resource!=\"subscribe\"}[5m])\n/\nrate(steve_api_request_time_count{resource!=\"subscribe\"}[5m]))",
+          "expr": "topk(20,sum by (resource, method, code) (rate(steve_api_request_time_sum{resource!=\"subscribe\"}[5m]))\n/\nsum by (resource, method, code) (rate(steve_api_request_time_count{resource!=\"subscribe\"}[5m])))",
           "interval": "",
           "legendFormat": "{{resource}} {{method}} {{code}}",
           "refId": "A"
@@ -458,7 +458,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "topk(20,steve_api_total_requests)",
+          "expr": "topk(20,sum by (id, resource, method, code) (steve_api_total_requests))",
           "instant": false,
           "interval": "",
           "legendFormat": "{{id}} {{resource}} {{method}} {{code}}",
@@ -556,7 +556,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "topk(20,steve_api_total_requests{code!=\"200\",code!=\"201\"})",
+          "expr": "topk(20,sum by (id, resource, method) (steve_api_total_requests{code!=\"200\",code!=\"201\"}))",
           "interval": "",
           "legendFormat": "{{id}} {{resource}} {{method}} {{code}}",
           "refId": "A"
@@ -654,7 +654,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "topk(20,rate(k8s_proxy_store_request_time_sum[5m])\n/\nrate(k8s_proxy_store_request_time_count[5m]))",
+          "expr": "topk(20,sum by (resource, method, code) (rate(k8s_proxy_store_request_time_sum[5m]))\n/\nsum by (resource, method, code) (rate(k8s_proxy_store_request_time_count[5m])))",
           "interval": "",
           "legendFormat": "{{resource}} {{method}} {{code}}",
           "refId": "A"
@@ -751,7 +751,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "topk(20,rate(k8s_proxy_client_request_time_sum[5m])\n/\nrate(k8s_proxy_client_request_time_count[5m]))",
+          "expr": "topk(20,sum by (resource, method, code) (rate(k8s_proxy_client_request_time_sum[5m]))\n/\nsum by (resource, method, code) (rate(k8s_proxy_client_request_time_count[5m])))",
           "interval": "",
           "legendFormat": "{{resource}} {{method}} {{code}}",
           "refId": "A"
@@ -850,7 +850,7 @@
           "exemplar": true,
           "expr": "topk(20,lasso_controller_total_cached_object)",
           "interval": "",
-          "legendFormat": "{{kind}} {{version}} {{group}}",
+          "legendFormat": "{{kind}} {{version}} {{group}} {{pod}}",
           "refId": "A"
         }
       ],
@@ -1142,7 +1142,7 @@
           "exemplar": true,
           "expr": "topk(20,session_server_total_transmit_bytes)",
           "interval": "",
-          "legendFormat": "{{clientkey}}",
+          "legendFormat": "{{clientkey}} {{pod}}",
           "refId": "A"
         }
       ],
@@ -1240,7 +1240,7 @@
           "exemplar": true,
           "expr": "session_server_total_transmit_error_bytes",
           "interval": "",
-          "legendFormat": "{{clientkey}}",
+          "legendFormat": "{{clientkey}} {{pod}}",
           "refId": "A"
         }
       ],
@@ -1337,7 +1337,7 @@
           "exemplar": true,
           "expr": "session_server_total_remove_connections",
           "interval": "",
-          "legendFormat": "{{clientkey}}",
+          "legendFormat": "{{clientkey}} {{pod}}",
           "refId": "A"
         }
       ],
@@ -1434,7 +1434,7 @@
           "exemplar": true,
           "expr": "session_server_total_add_connections",
           "interval": "",
-          "legendFormat": "{{clientkey}}",
+          "legendFormat": "{{clientkey}} {{pod}}",
           "refId": "A"
         }
       ],
