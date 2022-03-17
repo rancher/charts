@@ -11,12 +11,26 @@
          livenessProbe:
            httpGet:
              path: /healthz
-@@ -96,7 +96,7 @@
+@@ -96,13 +96,17 @@
            runAsUser: 1000
        hostNetwork: {{ .Values.audit.hostNetwork }}
        imagePullSecrets:
 -        {{- toYaml .Values.image.pullSecrets | nindent 8 }}
+-      nodeSelector:
+-        {{- toYaml .Values.audit.nodeSelector | nindent 8 }}
 +        {{- toYaml .Values.images.pullSecrets | nindent 8 }}
-       nodeSelector:
-         {{- toYaml .Values.audit.nodeSelector | nindent 8 }}
++      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
++{{- if .Values.audit.nodeSelector }}
++{{ toYaml .Values.audit.nodeSelector | indent 8 }}
++{{- end }}
        {{- if .Values.audit.priorityClassName }} 
+       priorityClassName:  {{ .Values.audit.priorityClassName }}
+       {{- end }}
+       serviceAccountName: gatekeeper-admin
+       terminationGracePeriodSeconds: 60
+-      tolerations:
+-        {{- toYaml .Values.audit.tolerations | nindent 8 }}
++      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
++{{- if .Values.audit.tolerations }}
++{{ toYaml .Values.audit.tolerations | indent 8 }}
++{{- end }}
