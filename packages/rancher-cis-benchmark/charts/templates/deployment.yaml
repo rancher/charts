@@ -41,17 +41,15 @@ spec:
           value: {{ .Values.global.cattle.clusterName }}
         resources:
           {{- toYaml .Values.resources | nindent 12 }}
-      nodeSelector:
-        kubernetes.io/os: linux
-      {{- with .Values.nodeSelector }}
-      {{- toYaml . | nindent 8 }}
-      {{- end }}
+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
+{{- if .Values.nodeSelector }}
+{{ toYaml .Values.nodeSelector | indent 8 }}
+{{- end }}
+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+{{- if .Values.tolerations }}
+{{ toYaml .Values.tolerations | indent 8 }}
+{{- end }}
       {{- with .Values.affinity }}
       affinity:
-      {{- toYaml . | nindent 8 }}
-      {{- end }}
-      tolerations:
-      {{- include "linux_node_tolerations" . | nindent 8}}
-      {{- with .Values.tolerations }}
       {{- toYaml . | nindent 8 }}
       {{- end }}
