@@ -23,7 +23,26 @@
    labels:
    {{- include "sriov-network-operator.labels" . | nindent 4 }}
  spec:
-@@ -25,7 +40,7 @@
+@@ -14,18 +29,18 @@
+       labels:
+         name: sriov-network-operator
+     spec:
+-      {{- with .Values.operator.nodeSelector }}
+-      nodeSelector:
+-      {{- toYaml . | nindent 8 }}
+-      {{- end }}
+-      {{- with .Values.operator.tolerations }}
+-      tolerations:
+-      {{- toYaml . | nindent 8 }}
+-      {{- end }}
++      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
++{{- if .Values.operator.nodeSelector }}
++{{ toYaml .Values.operator.nodeSelector | indent 8 }}
++{{- end }}
++      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
++{{- if .Values.operator.tolerations }}
++{{ toYaml .Values.operator.tolerations | indent 8 }}
++{{- end }}
        serviceAccountName: {{ include "sriov-network-operator.fullname" . }}
        containers:
          - name: {{ include "sriov-network-operator.fullname" . }}
