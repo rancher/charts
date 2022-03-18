@@ -49,9 +49,13 @@ rkeControllerManager:
 
 rkeScheduler:
   enabled: false
-  metricsPort: 10251
+  metricsPort: 10259
   component: kube-scheduler
   clients:
+    https:
+      enabled: true
+      insecureSkipVerify: true
+      useServiceAccountCredentials: true
     port: 10012
     useLocalhost: true
     nodeSelector:
@@ -61,6 +65,15 @@ rkeScheduler:
       operator: "Exists"
     - effect: "NoSchedule"
       operator: "Exists"
+  kubeVersionOverrides:
+  - constraint: "< 1.23"
+    values:
+      metricsPort: 10251 # default to insecure port in k8s < 1.23
+      clients:
+        https:
+          enabled: false
+          insecureSkipVerify: false
+          useServiceAccountCredentials: false
 
 rkeProxy:
   enabled: false
