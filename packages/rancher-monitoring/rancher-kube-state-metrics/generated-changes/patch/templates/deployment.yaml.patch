@@ -1,0 +1,34 @@
+--- charts-original/templates/deployment.yaml
++++ charts/templates/deployment.yaml
+@@ -45,6 +45,7 @@
+         fsGroup: {{ .Values.securityContext.fsGroup }}
+         runAsGroup: {{ .Values.securityContext.runAsGroup }}
+         runAsUser: {{ .Values.securityContext.runAsUser }}
++        runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+       {{- end }}
+     {{- if .Values.priorityClassName }}
+       priorityClassName: {{ .Values.priorityClassName }}
+@@ -107,7 +108,7 @@
+           readOnly: true
+         {{- end }}
+         imagePullPolicy: {{ .Values.image.pullPolicy }}
+-        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
++        image: "{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+         ports:
+         - containerPort: {{ .Values.service.port | default 8080}}
+         {{- if .Values.selfMonitor.enabled }}
+@@ -141,12 +142,12 @@
+       affinity:
+ {{ toYaml .Values.affinity | indent 8 }}
+       {{- end }}
++      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
+       {{- if .Values.nodeSelector }}
+-      nodeSelector:
+ {{ toYaml .Values.nodeSelector | indent 8 }}
+       {{- end }}
++      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+       {{- if .Values.tolerations }}
+-      tolerations:
+ {{ toYaml .Values.tolerations | indent 8 }}
+       {{- end }}
+       {{- if .Values.kubeconfig.enabled}}
