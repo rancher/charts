@@ -1,0 +1,19 @@
+{{- if .Values.kubernetes.deployment.enabled -}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubernetes-sensor
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "instana-agent.commonLabels" . | nindent 4 }}
+data:
+  # TODO We should get rid of this and imply the ring-fence iff the mode is "KUBERNETES"
+  configuration.yaml: |
+    com.instana.plugin.kubernetes:
+      enabled: true
+
+    com.instana.kubernetes:
+      leader:
+        isRingFenced: true
+{{- end }}

@@ -1,0 +1,123 @@
+{{- if .Values.kubernetes.deployment.enabled -}}
+{{- if or .Values.agent.key .Values.agent.keysSecret -}}
+{{- if or .Values.zone.name .Values.cluster.name -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubernetes-sensor
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "instana-agent.commonLabels" . | nindent 4 }}
+spec:
+  replicas: {{ default "1" .Values.kubernetes.deployment.replicas }}
+  selector:
+    matchLabels:
+      {{- include "instana-agent.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+      {{- if .Values.agent.pod.labels }}
+        {{- toYaml .Values.agent.pod.labels | nindent 8 }}
+      {{- end }}
+        {{- include "instana-agent.commonLabels" . | nindent 8 }}
+        instana/agent-mode: KUBERNETES
+      annotations:
+      {{- if .Values.agent.pod.annotations }}
+        {{- toYaml .Values.agent.pod.annotations | nindent 8 }}
+      {{- end }}
+        # To ensure that changes to agent.configuration_yaml or agent.additional_backends trigger a Pod recreation, we keep a SHA here
+        # Unfortunately, we cannot use the lookup function to check on the values in the configmap, otherwise we break Helm < 3.2
+        instana-configuration-hash: {{ cat ( join "," .Values.agent.additionalBackends ) | sha1sum }}
+    spec:
+      serviceAccountName: {{ template "instana-agent.serviceAccountName" . }}
+      {{- if .Values.kubernetes.deployment.pod.nodeSelector }}
+      nodeSelector:
+      {{- range $key, $value := .Values.kubernetes.deployment.pod.nodeSelector }}
+        {{ $key }}: {{ $value | quote }}
+      {{- end }}
+      {{- end }}
+      {{- if .Values.kubernetes.deployment.pod.priorityClassName }}
+      priorityClassName: {{ .Values.kubernetes.deployment.pod.priorityClassName | quote }}
+      {{- end }}
+      {{- if typeIs "[]interface {}" .Values.agent.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.agent.image.pullSecrets | nindent 8 }}
+      {{- else if .Values.agent.image.name | hasPrefix "containers.instana.io" }}
+      imagePullSecrets:
+        - name: containers-instana-io
+      {{- end }}
+      containers:
+        - name: instana-agent
+          image: {{ include "image" .Values.agent.image | quote }}
+          imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
+          securityContext:
+            privileged: true
+          env:
+            - name: INSTANA_AGENT_MODE
+              value: KUBERNETES
+            {{- include "instana-agent.commonEnv" . | nindent 12 }}
+          volumeMounts:
+            {{- include "instana-agent.commonVolumeMounts" . | nindent 12 }}
+            - name: kubernetes-sensor-configuration
+              subPath: configuration.yaml
+              mountPath: /root/configuration.yaml
+            {{- if .Values.agent.tls }}
+            {{- if or .Values.agent.tls.secretName (and .Values.agent.tls.certificate .Values.agent.tls.key) }}
+              {{- include "instana-agent.tls-volumeMounts" . | nindent 12 }}
+            {{- end }}
+            {{- end }}
+          resources:
+            requests:
+              {{- include "instana-agent.resources" .Values.kubernetes.deployment.pod.requests | nindent 14 }}
+            limits:
+              {{- include "instana-agent.resources" .Values.kubernetes.deployment.pod.limits | nindent 14 }}
+          ports:
+            - containerPort: 42699
+        - name: leader-elector
+          image: {{ include "image" .Values.leaderElector.image | quote }}
+          env:
+            - name: INSTANA_AGENT_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          command:
+            - "/busybox/sh"
+            - "-c"
+            - "sleep 12 && /app/server --election=instana --http=localhost:{{ .Values.leaderElector.port }} --id=$(INSTANA_AGENT_POD_NAME)"
+          resources:
+            requests:
+              cpu: 0.1
+              memory: "64Mi"
+          ports:
+            - containerPort: {{ .Values.leaderElector.port }}
+      {{- if .Values.kubernetes.deployment.pod.tolerations }}
+      tolerations:
+        {{- toYaml .Values.kubernetes.deployment.pod.tolerations | nindent 8 }}
+      {{- end }}
+      affinity:
+        podAntiAffinity:
+          # Soft anti-affinity policy: try not to schedule multiple kubernetes-sensor pods on the same node.
+          # If the policy is set to "requiredDuringSchedulingIgnoredDuringExecution", if the cluster has
+          # fewer nodes than the amount of desired replicas, `helm install/upgrade --wait` will not return.
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: instana/agent-mode
+                  operator: In
+                  values: [ KUBERNETES ]
+              topologyKey: "kubernetes.io/hostname"
+      volumes:
+        {{- include "instana-agent.commonVolumes" . | nindent 8 }}
+        - name: kubernetes-sensor-configuration
+          configMap:
+            name: kubernetes-sensor
+        {{- if .Values.agent.tls }}
+        {{- if or .Values.agent.tls.secretName (and .Values.agent.tls.certificate .Values.agent.tls.key) }}
+          {{- include "instana-agent.tls-volume" . | nindent 8 }}
+        {{- end }}
+        {{- end }}
+{{- end -}}
+{{- end -}}
+{{- end -}}

@@ -1,0 +1,33 @@
+{{- if or .Values.service.create (or .Values.opentelemetry.enabled .Values.prometheus.remoteWrite.enabled ) -}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "instana-agent.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "instana-agent.commonLabels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "instana-agent.selectorLabels" . | nindent 4 }}
+  ports:
+    # Prometheus remote_write, Trace Web SDK and other APIs
+    - name: agent-apis
+      protocol: TCP
+      port: 42699
+      targetPort: 42699
+    {{- if .Values.opentelemetry.enabled }}
+    # OpenTelemetry original default port
+    - name: opentelemetry
+      protocol: TCP
+      port: 55680
+      targetPort: 55680
+    # OpenTelemetry as registered and reserved by IANA
+    - name: opentelemetry-iana
+      protocol: TCP
+      port: 4317
+      targetPort: 4317
+    {{- end }}
+  topologyKeys:
+    - "kubernetes.io/hostname"
+{{- end -}}
