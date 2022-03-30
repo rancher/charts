@@ -1,0 +1,69 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-nginx-proxy-config
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  labels:
+    app: {{ template "kube-prometheus-stack.name" . }}-prometheus
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+{{- if .Values.prometheus.annotations }}
+  annotations:
+{{ toYaml .Values.prometheus.annotations | indent 4 }}
+{{- end }}
+data:
+  nginx.conf: |-
+    worker_processes      auto;
+    error_log             /dev/stdout warn;
+    pid                   /var/cache/nginx/nginx.pid;
+
+    events {
+       worker_connections 1024;
+    }
+
+    http {
+      include       /etc/nginx/mime.types;
+      log_format    main '[$time_local - $status] $remote_addr - $remote_user $request ($http_referer)';
+
+      proxy_connect_timeout       10;
+      proxy_read_timeout          180;
+      proxy_send_timeout          5;
+      proxy_buffering             off;
+      proxy_cache_path            /var/cache/nginx/cache levels=1:2 keys_zone=my_zone:100m inactive=1d max_size=10g;
+
+      server {
+        listen          8081;
+        access_log      off;
+
+        gzip            on;
+        gzip_min_length 1k;
+        gzip_comp_level 2;
+        gzip_types      text/plain application/javascript application/x-javascript text/css application/xml text/javascript image/jpeg image/gif image/png;
+        gzip_vary       on;
+        gzip_disable    "MSIE [1-6]\.";
+
+        proxy_set_header Host $host;
+
+        location / {
+          proxy_cache         my_zone;
+          proxy_cache_valid   200 302 1d;
+          proxy_cache_valid   301 30d;
+          proxy_cache_valid   any 5m;
+          proxy_cache_bypass  $http_cache_control;
+          add_header          X-Proxy-Cache $upstream_cache_status;
+          add_header          Cache-Control "public";
+          
+          proxy_pass     http://localhost:9090/;
+
+          sub_filter_types text/html;
+          sub_filter_once off;
+          sub_filter          'var PATH_PREFIX = "";' 'var PATH_PREFIX = ".";';
+
+          if ($request_filename ~ .*\.(?:js|css|jpg|jpeg|gif|png|ico|cur|gz|svg|svgz|mp4|ogg|ogv|webm)$) {
+            expires             90d;
+          }
+
+          rewrite ^/k8s/clusters/.*/proxy(.*) /$1 break;
+
+        }
+      }
+    }
