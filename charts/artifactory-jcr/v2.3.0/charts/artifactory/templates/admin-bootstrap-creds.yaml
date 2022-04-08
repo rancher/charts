@@ -1,0 +1,15 @@
+{{- if not (and .Values.artifactory.admin.secret .Values.artifactory.admin.dataKey) }}
+{{- if .Values.artifactory.admin.password }}
+kind: Secret
+apiVersion: v1
+metadata:
+  name: {{ template "artifactory.fullname" . }}-bootstrap-creds
+  labels:
+    app: {{ template "artifactory.name" . }}
+    chart: {{ template "artifactory.chart" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+data:
+  bootstrap.creds: {{ (printf "%s@%s=%s" .Values.artifactory.admin.username .Values.artifactory.admin.ip .Values.artifactory.admin.password) | b64enc }}
+{{- end }}
+{{- end }}

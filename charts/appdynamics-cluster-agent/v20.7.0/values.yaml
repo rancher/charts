@@ -1,0 +1,55 @@
+deployment:
+  image:
+    repository: docker.io/appdynamics/cluster-agent
+    tag: 20.7.0
+    pullPolicy: Always
+  envValueFrom:
+    APPDYNAMICS_AGENT_NODE_NAME:
+      fieldRef:
+        fieldPath: spec.nodeName
+  envValueFromConfigMap: {}
+  resources:
+    limits:
+      cpu: 200m
+      memory: "300M"
+    requests:
+      cpu: 100m
+      memory: "100M"
+
+controller:
+  dns: ""
+  port: ""
+  ssl: ""
+  accountName: ""
+  accessKey: ""
+  proxyUrl: ""
+  proxyUser: ""
+
+agent:
+  appName: "My-Rancher-Kubernetes-Cluster"
+  logLevel: INFO
+  maxLogFileSize: 5
+  maxLogBackups: 3
+  writeToStdout: true
+  containerRegInterval: 120
+  eventUploadInterval: 10
+  httpClientTimeout: 30
+  metricsCollectionInterval: "30"
+  clusterMetricsCollectionInterval: "60"
+  metadataCollectionInterval: "60"
+  containerRegBatchSize: "5"
+  containerRegMaxParallelRequests: "1"
+  podRegBatchSize: "6"
+  metricUploadRetryCount: "2"
+  metricUploadRetryInterval: "5"
+  maxPodsToRegister: "750"
+  containerFilter: "blacklisted-label: {appdynamics.exclude: true}"
+  monitoredNamespaces: "default"
+
+# Namespace
+serviceAccount:
+  name: appdynamics
+
+# Default with Rancher
+metrics-server:
+  install: false

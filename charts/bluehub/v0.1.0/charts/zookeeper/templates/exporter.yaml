@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ template "zookeeper.name" . }}
+    release: {{ .Release.Name }}
+  name: {{ template "bluehub.fullname" . }}-exporter
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ template "zookeeper.name" . }}
+      release: {{ .Release.Name }}
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: {{ .Values.metrics.port | default "9141" | quote }}
+        prometheus.io/scrape: "true"
+      labels:
+        app: {{ template "zookeeper.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+      - name: zk-exporter
+        args:
+          - -zk-hosts={{ template "bluehub.fullname" . }}:{{ .Values.service.port | default "2181" }}
+        image: bluespireinc/zookeeper-exporter:1.0.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: {{ .Values.metrics.port | default "9141" | int }}
+          protocol: TCP
+        resources: {}
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext:
+        runAsNonRoot: false

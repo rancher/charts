@@ -1,0 +1,309 @@
+rancher_max_version: 2.6.2
+labels:
+ io.rancher.certified: partner
+questions:
+- variable: zookeeper.defaultSecret
+  required: true
+  default: "true"
+  type: boolean
+  label: "Install default zookeeper secrets"
+  description: "Only for testing. Do not use these for production deployment"
+  group: "Zookeeper Settings"
+- variable: zookeeper.imgVersion
+  required: true
+  default: "3.5.8"
+  type: string
+  label: "Zookeeper Version"
+  group: "Zookeeper Settings"
+- variable: zookeeper.type
+  required: true
+  default: "ClusterIP"
+  type: enum
+  label: "Service Type"
+  group: "Zookeeper Settings"
+  options:
+  - "ClusterIP"
+  - "NodePort"
+  - "LoadBalancer"
+- variable: zookeeper.port
+  required: true
+  default: "2181"
+  type: int
+  label: "Zookeeper Port"
+  group: "Zookeeper Settings"
+- variable: zookeeper.replicas
+  required: true
+  default: "5"
+  type: int
+  label: "Zookeeper Instances"
+  group: "Zookeeper Settings"
+- variable: zookeeper.maxClientConnections
+  default: "60"
+  type: int
+  label: "Zookeeper Client Connections"
+  group: "Zookeeper Settings"
+- variable: zookeeper.podManagementPolicy
+  default: "Parallel"
+  type: enum
+  label: "POD Deployment"
+  group: "Zookeeper Settings"
+  options:
+  - Parallel
+  - OrderedReady
+- variable: zookeeper.storage.class
+  required: true
+  default: ""
+  type: storageclass
+  label: "Storage Class"
+  group: "Zookeeper Settings"
+- variable: zookeeper.storage.capacity
+  required: true
+  default: "10Gi"
+  type: string
+  label: "Storage Capacity"
+  group: "Zookeeper Settings"
+
+- variable: kafka.defaultSecret
+  required: true
+  default: "true"
+  type: boolean
+  label: "Install default kafka secrets"
+  description: "Only for testing. Do not use these for production deployment"
+  group: "Kafka Settings"
+- variable: kafka.replicas
+  required: true
+  default: "5"
+  type: int
+  label: "Kafka Instances"
+  group: "Kafka Settings"
+- variable: kafka.imgVersion
+  required: true
+  default: "2.5.0"
+  type: string
+  label: "Kafka Version"
+  group: "Kafka Settings"
+- variable: kafka.type
+  required: true
+  default: "ClusterIP"
+  type: enum
+  label: "Service Type"
+  group: "Kafka Settings"
+  options:
+  - "ClusterIP"
+  - "NodePort"
+  - "LoadBalancer"
+- variable: kafka.securePort
+  required: true
+  default: "9093"
+  type: int
+  label: "Kafka SASL_SSL Port"
+  group: "Kafka Settings"
+- variable: kafka.externalPort
+  required: true
+  default: "30000"
+  description: This port should be unique across namespaces as these ports are exposed as NodePort on Kubernetes nodes
+  type: int
+  label: "Kafka External Port"
+  group: "Kafka Settings"
+- variable: kafka.externalIP
+  required: true
+  default: ""
+  description: This is the IP name for one of the Kubernetes Cluster Host machines. Used to allow external access to kafka Brokers
+  type: string
+  label: "Kafka HOST IP"
+  group: "Kafka Settings"
+- variable: kafka.logRetentionHours
+  required: true
+  default: "168"
+  type: int
+  label: "Log Retention Policy (in hours)"
+  group: "Kafka Settings"
+- variable: kafka.zookeeper.port
+  required: true
+  default: "2181"
+  type: int
+  label: "Zookeeper Port"
+  group: "Kafka Settings"
+- variable: kafka.storage.class
+  required: true
+  default: ""
+  type: storageclass
+  label: "Storage Class"
+  group: "Kafka Settings"
+- variable: kafka.storage.capacity
+  required: true
+  default: "500Gi"
+  type: string
+  label: "Storage Capacity"
+  group: "Kafka Settings"
+
+- variable: securitymgr.defaultSecret
+  required: true
+  default: "true"
+  type: boolean
+  label: "Install default secrets"
+  description: "Only for testing. Do not use these for production deployment"
+  group: "Security Manager Settings"
+- variable: securitymgr.replicas
+  required: true
+  default: "1"
+  type: int
+  label: "Security Manager Instances"
+  group: "Security Manager Settings"
+- variable: securitymgr.imgVersion
+  required: true
+  default: "1.0.0"
+  type: string
+  label: "Security Manager Version"
+  group: "Security Manager Settings"
+- variable: securitymgr.refreshRateInMS
+  required: true
+  default: "10000"
+  type: int
+  label: "Auto refresh of ACLs policies"
+  group: "Security Manager Settings"
+
+- variable: schemareg.enabled
+  default: "false"
+  type: boolean
+  label: "Install Schema Registry"
+  group: "Schema Registry Settings"
+  show_subquestion_if: true
+  subquestions:
+    - variable: schemareg.defaultSecret
+      required: true
+      default: "true"
+      type: boolean
+      label: "Install default secrets"
+      description: "Only for testing. Do not use these for production deployment"
+      group: "Schema Registry Settings"
+    - variable: schemareg.replicas
+      required: true
+      default: "2"
+      type: int
+      label: "Schema Registry Instances"
+      group: "Schema Registry Settings"
+    - variable: schemareg.imgVersion
+      required: true
+      default: "5.5.1"
+      type: string
+      label: "Schema Registry Version"
+      group: "Schema Registry Settings"
+    - variable: schemareg.port
+      required: true
+      default: "8081"
+      type: int
+      label: "Schema Registry Port"
+      group: "Schema Registry Settings"
+    - variable: schemareg.type
+      required: true
+      default: "NodePort"
+      type: enum
+      label: "Service Type"
+      group: "Schema Registry Settings"
+      options:
+      - "ClusterIP"
+      - "NodePort"
+      - "LoadBalancer"
+    - variable: schemareg.kafka.port
+      required: true
+      default: "9093"
+      description: "This is the same securedPort used in deploying Kafka Brokers"
+      type: int
+      label: "Kafka SASL_SSL Port"
+      group: "Schema Registry Settings"
+
+- variable: clustermgr.enabled
+  default: "false"
+  type: boolean
+  label: "Install Cluster Manager"
+  description: "Cluster Manager is self servicing tool to manage clusters, topics, partitions and more"
+  group: "Cluster Manager Settings"
+  show_subquestion_if: true
+  subquestions:
+    - variable: clustermgr.defaultSecret
+      required: true
+      default: "true"
+      type: boolean
+      label: "Install default secrets"
+      description: "Only for testing. Do not use these for production deployment"
+      group: "Cluster Manager Settings"
+    - variable: clustermgr.replicas
+      required: true
+      default: "1"
+      type: int
+      label: "Cluster Manager Instances"
+      group: "Cluster Manager Settings"
+    - variable: clustermgr.imgVersion
+      required: true
+      default: "1.0.0"
+      type: string
+      label: "Cluster Manager Version"
+      group: "Cluster Manager Settings"
+    - variable: clustermgr.zookeeper.port
+      required: true
+      default: "2181"
+      type: int
+      description: "This is the same port used while deploying Zookeeper Cluster"
+      label: "Zookeeper Port"
+      group: "Cluster Manager Settings"
+    - variable: clustermgr.type
+      required: true
+      default: "NodePort"
+      type: enum
+      label: "Service Type"
+      group: "Cluster Manager Settings"
+      options:
+      - "ClusterIP"
+      - "NodePort"
+      - "LoadBalancer"
+
+- variable: kproducer.enabled
+  default: "false"
+  type: boolean
+  label: "Install KProducer (producer app)"
+  description: "Easy to use configuration driven producer app"
+  group: "Kproducer Settings"
+  show_subquestion_if: true
+  subquestions:
+    - variable: kproducer.defaultSecret
+      required: true
+      default: "true"
+      type: boolean
+      label: "Install default secrets"
+      description: "Only for testing. Do not use these for production deployment"
+      group: "Kproducer Settings"
+    - variable: kproducer.replicas
+      required: true
+      default: "3"
+      type: int
+      label: "Kproducer Instances"
+      group: "Kproducer Settings"
+    - variable: kproducer.imgVersion
+      required: true
+      default: "1.0.0"
+      type: string
+      label: "Kproducer Version"
+      group: "Kproducer Settings"
+    - variable: kproducer.port
+      required: true
+      default: "3443"
+      type: int
+      label: "Kproducer Port"
+      group: "Kproducer Settings"
+    - variable: kproducer.type
+      required: true
+      default: "NodePort"
+      type: enum
+      label: "Service Type"
+      group: "Kproducer Settings"
+      options:
+      - "ClusterIP"
+      - "NodePort"
+      - "LoadBalancer"
+    - variable: kproducer.maxBodySize
+      required: true
+      default: "50000"
+      type: int
+      label: "Max Payload Size (in bytes)"
+      group: "Kproducer Settings"

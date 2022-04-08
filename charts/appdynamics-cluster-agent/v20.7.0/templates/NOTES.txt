@@ -1,0 +1,28 @@
+{{- if and .Values.controller.accessKey .Values.controller.dns }}
+AppDynamics ClusterAgent is deployed successfully.
+
+To get more information about the release, try these commands:
+
+  $ helm status {{ .Release.Name }}
+  $ helm get {{ .Release.Name }}
+
+To get the status of the ClusterAgent deployment, run this command:
+
+    kubectl get deploy -o wide -n {{ .Release.Namespace }} {{ template "cluster-agent.fullname" . }}
+
+To run the command continuously, use -w parameter.
+{{- else -}}
+**************************************************************************************
+****       ERROR: AppDynamics ClusterAgent will not function properly            ****
+**************************************************************************************
+
+Controller Url is required to run the AppDynamics ClusterAgent. If you do not have access to an AppDynamics Controller, you can sign up for a free trial of AppDynamics at https://www.appdynamics.com/free-trial/
+
+Once the access key is obtained, run:
+
+    helm upgrade {{ .Release.Name }} \
+        --reuse-values \
+        --set controller.url=http://saas.appdynamics.com \
+        appdynamics-charts/{{ template "cluster-agent.fullname" . }}
+
+{{- end -}}

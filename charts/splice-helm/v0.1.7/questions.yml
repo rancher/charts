@@ -1,0 +1,95 @@
+rancher_max_version: 2.6.2
+labels:
+  io.cattle.role: project # options are cluster/project
+  io.rancher.certified: partner
+categories:
+- Database
+- Machine Learning
+- sql
+questions:
+- variable: global.environmentName
+  default: "dev1"
+  description: "This value is used to build the host names of the resources for Splice Machine."
+  type: string
+  label: Environment Name
+  required: true
+  group: "General"
+
+- variable: global.dnsPrefix
+  default: "splicedb"
+  description: "This value is added as a prefix to all host names followed by a '-' dash."
+  type: string
+  label: DNS Prefix
+  required: true
+  group: "General"
+
+- variable: global.certificateName
+  default: "dev.splicemachine-dev.io"
+  description: "Domain name to be used for DNS resolution of the endpoints that Splice Machine configures."
+  type: string
+  label: Domain Name
+  required: true
+  group: "General"
+
+- variable: global.tls.enabled
+  default: false
+  description: "If selected, a TLS Secret will be created to store the Certificate and Key"
+  type: boolean
+  label: Install TLS Certificate
+  required: true
+  show_subquestion_if: true
+  group: "Certificates"
+  subquestions:
+  - variable: global.tls.crt
+    default: ""
+    description: |
+      -----BEGIN CERTIFICATE-----
+      {certificate encoded data}
+      -----END CERTIFICATE-----
+
+    type: multiline
+    label: Certificate Data
+    required: false
+
+  - variable: global.tls.key
+    default: ""
+    description: |
+      -----BEGIN PRIVATE KEY-----
+      {encoded private key}
+      -----END PRIVATE KEY-----
+
+    type: multiline
+    label: Certificate Private Key
+    required: false
+
+- variable: global.splice.password
+  default: admin
+  description: "This is the password for the super user 'splice'."
+  type: password
+  label: Password
+  required: true
+  group: Database Credentials
+
+- variable: hadoop.dataNode.persistence.size
+  default: .2T
+  description: Internal Dataset (TB)
+  type: string
+  label: Dataset Size (TB)
+  required: true
+  group: Optional Settings
+
+- variable: hbase.region.replicas
+  default: 3
+  description: OLTP Splice Units
+  type: int
+  label: OLTP Splice Units
+  requied: true
+  group: Optional Settings
+
+- variable: hadoop.dataNode.replicas
+  default: 3
+  description: OLAP Splice Units
+  type: int
+  label: OLAP Splice Units
+  required: true
+  group: Optional Settings

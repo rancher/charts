@@ -1,0 +1,85 @@
+Thank you for installing {{ .Chart.Name }}.
+
+To monitor the progress of your newly installed Splice Machine Database Cluster you can run:
+
+kubectl -n {{ .Release.Namespace }} get pods
+
+The last pod to become ready will be the {{ .Release.Name }}-postinstall-* pod.  Once that pod becomes
+ready, you should be able to test connectivity to your database.  A simple test will be a connection
+to port 1527 for JDBC.  The IP address that Kubernetes is listening on for JDBC is associated with
+the haproxy-controller:
+
+    kubectl -n {{ .Release.Namespace }} get service --selector=app=haproxy-ingress,component=controller --no-headers -o custom-columns="DNS_NAME:.status.loadBalancer.ingress[*].hostname"
+
+Then use a tool like `nc` to test connectivity to the JDBC port:
+
+    nc -zv {ip address from service} 1527
+
+Set the following DNS hostname to point to the address of the haproxy controller service:
+
+    jdbc-{{ .Values.global.dnsPrefix }}-{{ .Values.global.environmentName }}.{{ .Values.global.certificateName }}
+
+Please follow the `Post Install Configuration` section from the README.md to setup DNS records.
+These will allow the nginx controller to direct incoming traffic to the correct user interfaces.
+
+At a minimum set DNS for {{ .Values.global.dnsPrefix }}-{{ .Values.global.environmentName }}.{{ .Values.global.certificateName }}
+
+This will point to the nginx controller:
+
+    kubectl -n {{ .Release.Namespace }} get service --selector=app=nginx-ingress,component=controller --no-headers -o custom-columns="DNS_NAME:.status.loadBalancer.ingress[*].hostname"
+
+This will allow you to logon to [Jupyter Notebooks](https://{{ .Values.global.dnsPrefix }}-{{ .Values.global.environmentName }}.{{ .Values.global.certificateName }}/splicejupyter/)
+
+Other DNS hostnames to set to the NGINX service address
+
+DNS hostnames:
+    kafka-broker-0-{{ .Values.global.dnsPrefix }}-{{ .Values.global.environmentName }}.{{ .Values.global.certificateName }}
+    {{ .Values.global.dnsPrefix }}-{{ .Values.global.environmentName }}admin-hbase.{{ .Values.global.certificateName }}
+    {{ .Values.global.dnsPrefix }}-{{ .Values.global.environmentName }}-spark.{{ .Values.global.certificateName }}
+    {{ .Values.global.dnsPrefix }}-{{ .Values.global.environmentName }}-kafka.{{ .Values.global.certificateName }}
+    {{ .Values.global.dnsPrefix }}-{{ .Values.global.environmentName }}admin-hdfs.{{ .Values.global.certificateName }}
+    {{ .Values.global.dnsPrefix }}-{{ .Values.global.environmentName }}-jobtracker.{{ .Values.global.certificateName }}
+
+URLs:
+    Jupyter:       https://{{ .Values.global.dnsPrefix }}-{{ .Values.global.environmentName }}.{{ .Values.global.certificateName }}/splicejupyter/
+    ML Flow:       https://{{ .Values.global.dnsPrefix }}-{{ .Values.global.environmentName }}.{{ .Values.global.certificateName }}/mlflow/
+    Splice Spark:  https://db2-nonprod-eks-dev1-spark.eks.splicemachine-dev.io/
+    Jobtracker:    https://{{ .Values.global.dnsPrefix }}-{{ .Values.global.environmentName }}-jobtracker.{{ .Values.global.certificateName }}
+    hbase:         https://{{ .Values.global.dnsPrefix }}-{{ .Values.global.environmentName }}admin-hbase.{{ .Values.global.certificateName }}/
+    hdfs:          https://{{ .Values.global.dnsPrefix }}-{{ .Values.global.environmentName }}admin-hdfs.{{ .Values.global.certificateName }}/
+
+JDBC:
+    jdbc:splice://{{ .Values.global.dnsPrefix }}-{{ .Values.global.environmentName }}.{{ .Values.global.certificateName }}:1527/splicedb;ssl=basic
+
+To test the functionality of the database from within Kubernetes, we can `exec` into one of the hregion pods and run our `sqlshell` client.
+
+    HREGION=$(kubectl -n {{ .Release.Namespace }} get pods --selector=app=hbase,component=hregion --no-headers | awk 'NR<2 { print $1 }')
+    kubectl -n {{ .Release.Namespace }} exec -it ${HREGION} /bin/bash
+
+Once `exec'd` into the hregion pod you can run `sqlshell.sh`.  You should end up at a prompt:
+
+    java version 1.8.0_121
+    ========= rlwrap detected and enabled. Use up and down arrow keys to scroll through command line history. ========
+    Running Splice Machine SQL shell
+    For help: "splice> help;"
+    SPLICE* - 	jdbc:splice://localhost:1527/splicedb
+    * = current connection
+    splice>
+
+Run the command `show tables;` from the `splice>` prompt.  The command should show a list of database tables.
+
+    TABLE_SCHEM         |TABLE_NAME                                        |CONGLOM_ID|REMARKS
+    -------------------------------------------------------------------------------------------------------
+    SYS                 |SYSTABLES                                         |80        |
+    SYS                 |SYSUSERS                                          |864       |
+    SYS                 |SYSVIEWS                                          |304       |
+
+The Jupyter notebooks are also a great place to start.  If you have setup the DNS entry, visit the Jupyter logon page:
+
+    https://{{ .Values.global.dnsPrefix }}-{{ .Values.global.environmentName }}.{{ .Values.global.certificateName }}/splicejupyter/
+    Username: splice
+    Password: {{ .Values.global.splice.password }}
+
+Please stop by our Slack (https://splicemachine.slack.com) channel #splice-community.  We would be happy to assist in the deployment of our Helm chart
+as well as assist with the Splice Machine database itself.
+

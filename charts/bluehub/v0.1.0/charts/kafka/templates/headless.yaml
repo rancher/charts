@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+  labels:
+    app.kubernetes.io/component: kafka-broker
+    app.kubernetes.io/name: kafka
+  name: {{ template "bluehub.fullname" . }}-headless
+  namespace: {{ .Release.Namespace }}
+spec:
+  clusterIP: None
+  ports:
+  - name: broker
+    port: {{ .Values.securePort | default "9093" | int }}
+    protocol: TCP
+    targetPort: {{ .Values.securePort | default "9093" | int }}
+  selector:
+    app.kubernetes.io/component: kafka-broker
+    app.kubernetes.io/name: kafka
+  sessionAffinity: None
+  type: {{ .Values.type | default "ClusterIP" | quote }}

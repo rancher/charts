@@ -19,7 +19,7 @@ charts/wordpress/<app version>/
   templates/               # A directory of templates that, when combined with values.yml will generate K8s YAML
   values.yaml              # The default configuration values for this chart
 ```
-*See the upstream Helm chart [developer reference](https://helm.sh/docs/topics/chart_template_guide/) for a complete walk through of developing charts.*
+*See the upstream Helm chart [developer reference](https://helm.sh/docs/chart_template_guide/) for a complete walk through of developing charts.*
 
 To convert an upstream chart to take advantage of Rancher's enhanced UX, first create an `app-readme.md` file in the root of your chart.
 

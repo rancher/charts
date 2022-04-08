@@ -1,0 +1,154 @@
+# ---------------------
+# Values for Zookeeper
+# ---------------------
+zookeeper:
+  enabled: true
+  defaultSecret: true
+  imgName: bluespireinc/zookeeper
+  imgVersion: 3.5.8
+  type: ClusterIP
+  port: 2181
+  replicas: 3
+  heapOpts: -Xms1G -Xmx1G
+  tickTime:
+  syncLimit:
+  initLimit:
+  maxClientConnections:
+  podManagementPolicy: Parallel
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  storage:
+    class: shared-sc
+    capacity: 1Gi
+  metrics:
+    port: 9141
+  service:
+    port: 2181
+
+# -----------------
+# Values for Kafka
+# -----------------
+kafka:
+  enabled: true
+  defaultSecret: true
+  replicas: 3
+  imgName: bluespireinc/kafka
+  imgVersion: 2.5.0
+  type: ClusterIP
+  heapOpts: -Xms4G -Xmx4G
+  KAFKA_BROKER_ID:
+  securePort: 9093
+  nonsecurePort: 9092
+  externalIP:
+  externalPort: 30000
+  internalPort: 19092
+  logRetentionHours: 168
+  podManagementPolicy: OrderedReady
+  sslEnabledProtocols: TLSv1.2
+  topicReplicationFactor: 3
+  topicDeleteEnabled: true
+  autoTopicCreateEnabled: false
+  numNetworkThreads: 12
+  compressionType: snappy
+  zookeeper:
+    port: 2181
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+  storage:
+    class: shared-sc
+    capacity: 1Gi
+  metrics:
+    port: 9308
+
+# ---------------------------
+# Values for Schema Registry
+# ---------------------------
+schemareg:
+  enabled: true
+  defaultSecret: true
+  replicas: 2
+  imgName: bluespireinc/schemareg
+  imgVersion: 5.5.1
+  port: 8081
+  type: NodePort
+  heapOpts: -Xms1G -Xmx1G
+  sslEnabledProtocols: TLSv1.2
+  topic: _schemas
+  topicReplicationFactor: 3
+  kafka:
+    port: 9093
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+# ---------------------------
+# Values for Cluster Manager
+# ---------------------------
+clustermgr:
+  enabled: true
+  defaultSecret: true
+  replicas: 1
+  imgName: bluespireinc/clustermgr
+  imgVersion: 1.0.0
+  port: 9000
+  type: NodePort
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+  zookeeper:
+    port: 2181
+
+# ----------------------------
+# Values for Security Manager
+# ----------------------------
+securitymgr:
+  enabled: true
+  defaultSecret: true
+  imgName: bluespireinc/securitymgr
+  imgVersion: 1.0.0
+  refreshRateInMS: 10000
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# ---------------------
+# Values for Kproducer
+# ---------------------
+kproducer:
+  enabled: true
+  defaultSecret: true
+  replicas: 1
+  imgName: bluespireinc/kproducer
+  imgVersion: 1.0.0
+  port: 3443
+  type: NodePort
+  maxBodySize: 50000
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 2Gi

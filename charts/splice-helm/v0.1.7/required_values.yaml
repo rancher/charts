@@ -1,0 +1,91 @@
+
+condition:
+  mlmanager:
+    # enable/disable feature ML Manager
+    enabled: true
+global:
+  # Set base timezone for environment
+  timezoneFlag: "UTC"
+  aws:
+    # Access ID for access to AWS S3
+    accessId: ""
+    accessKey: "" # Required :: s3secret
+  cloudprovider: "aws"
+  # TODO: Add Azure Storage/GCP Storage credentials
+  splice:
+    # password for the database superuser 'splice'
+    password: "..........SpliceMachine!.........."
+  # Specify an environment name, used to build hostnames
+  environmentName: "dev"
+  # This should be a domain for which you have the ability to add DNS records to
+  certificateName: "dev.splicemachine-dev.io"
+  # As the name suggests, this name will be prepended to the front of hostnames
+  dnsPrefix: "splicedb"
+
+  jupyterhub:
+    extraConfig:
+      # Set the limit for the number of concurrent Jupyter Notebook sessions
+      UserConfig: |
+        c.JupyterHub.active_server_limit=10
+    notebooksPerUser: "" # Required :: NotebooksPerUser TODO: Not Real?
+    singleuser:
+      extraEnv:
+        # Limit the number of Spark Executors a Jupyter Notebook can create
+        SPARKEXECUTOR_COUNT: 2
+  # Node Selectors are disabled by default, the three potential node selectors
+  # are defined here.
+  nodeSelector:
+    enabled: false
+    db: db
+    core: core
+    meta: meta
+  tls:
+    enabled: false
+    tls.crt: |
+      -----BEGIN CERTIFICATE-----
+      {certificate encoded data}
+      -----END CERTIFICATE-----
+
+    tls.key: |
+      -----BEGIN PRIVATE KEY-----
+      {encoded private key}
+      -----END PRIVATE KEY-----
+
+hadoop:
+  dataNode:
+    persistence:
+      # Size of the volumes each Hadoop DataNode will request.
+      size: "1T"
+    # Number of Hadoop DataNodes
+    replicas: 3
+hbase:
+  region:
+    # Number of Hbase Region Servers, usually matched to hadoop.dataNode.replicas
+    # There is an affinity rule to keep same numbered Hadoop DataNode and Hbase
+    # region servers on the same Kubernetes node
+    replicas: 3
+  config:
+    # The number of spark executors the database is allowed to create
+    sparkexecutors: 3
+  # TODO: should this default to true in splice chart values.yaml file?
+  # TODO: that way we wouldn't need to include it here at all.
+  # when installing with Helm we don't need a post restart action to happen
+  postrestart: false
+  # DB Backups require an Enterprise Key, the job is created and set to disabled
+  # by default.
+  dbbackup:
+    # Your Enterprise Key
+    enterprisecode: ""
+    # Path to S3, Azure, GCP storage to save backups to
+    destinationpath: "s3://bucket/backuptest/"
+    # 0 to disable backups, 1 to enable backups
+    replicas: 0
+    # Number of Backups to keep
+    window: 1
+    # TODO: what is the description for this?
+    # true/false
+    retention: true
+    # Type of backup to perform: Full|Incremental
+    type: "Full"
+    # crontab format (man crontab -S5)
+    schedule: "30 02 * * *" # Required :: backupSchedule

@@ -1,0 +1,50 @@
+{{- if .Values.cve.updater.enabled -}}
+{{- if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: batch/v1beta1
+{{- else }}
+apiVersion: batch/v2alpha1
+{{- end }}
+kind: CronJob
+metadata:
+  name: neuvector-updater-pod
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  schedule: {{ .Values.cve.updater.schedule | quote }}
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: neuvector-updater-pod
+            release: {{ .Release.Name }}
+        spec:
+        {{- if .Values.imagePullSecrets }}
+          imagePullSecrets:
+            - name: {{ .Values.imagePullSecrets }}
+        {{- end }}
+          containers:
+            - name: neuvector-updater-pod
+              image: "{{ .Values.registry }}/{{ .Values.cve.updater.image.repository }}:{{ .Values.cve.updater.image.tag }}"
+              imagePullPolicy: Always
+          {{- if .Values.cve.scanner.enabled }}
+              lifecycle:
+                postStart:
+                  exec:
+                    command:
+                    - /bin/sh
+                    - -c
+                  {{- if (semverCompare ">=1.9-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+                    - TOKEN=`cat /var/run/secrets/kubernetes.io/serviceaccount/token`; /usr/bin/curl -kv -X PATCH -H "Authorization:Bearer $TOKEN" -H "Content-Type:application/strategic-merge-patch+json" -d '{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"'`date +%Y-%m-%dT%H:%M:%S%z`'"}}}}}' 'https://kubernetes.default/apis/apps/v1/namespaces/{{ .Release.Namespace }}/deployments/neuvector-scanner-pod'
+                  {{- else }}
+                    - TOKEN=`cat /var/run/secrets/kubernetes.io/serviceaccount/token`; /usr/bin/curl -kv -X PATCH -H "Authorization:Bearer $TOKEN" -H "Content-Type:application/strategic-merge-patch+json" -d '{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"'`date +%Y-%m-%dT%H:%M:%S%z`'"}}}}}' 'https://kubernetes.default/apis/extensions/v1beta1/namespaces/{{ .Release.Namespace }}/deployments/neuvector-scanner-pod'
+                  {{- end }}
+          {{- end }}
+              env:
+                - name: CLUSTER_JOIN_ADDR
+                  value: neuvector-svc-controller.{{ .Release.Namespace }}
+          restartPolicy: Never
+{{- end }}

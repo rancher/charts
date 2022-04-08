@@ -1,0 +1,57 @@
+StorageOS Operator deployed.
+
+If you disabled automatic cluster creation, you can deploy a StorageOS cluster
+by creating a custom StorageOSCluster resource:
+
+1. Create a secret containing StorageOS cluster credentials. This secret
+contains the API username and password that will be used to authenticate to the
+StorageOS cluster. Base64 encode the username and password that you want to use
+for your StorageOS cluster.
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: storageos-api
+  namespace: storageos-operator
+  labels:
+    app: storageos
+type: kubernetes.io/storageos
+data:
+  # echo -n '<secret>' | base64
+  apiUsername: c3RvcmFnZW9z
+  apiPassword: c3RvcmFnZW9z
+  csiProvisionUsername: c3RvcmFnZW9z
+  csiProvisionPassword: c3RvcmFnZW9z
+  csiControllerPublishUsername: c3RvcmFnZW9z
+  csiControllerPublishPassword: c3RvcmFnZW9z
+  csiNodePublishUsername: c3RvcmFnZW9z
+  csiNodePublishPassword: c3RvcmFnZW9z
+  csiControllerExpandUsername: c3RvcmFnZW9z
+  csiControllerExpandPassword: c3RvcmFnZW9z
+
+2. Create a StorageOS custom resource that references the secret created
+above (storageos-api in the above example). When the resource is created, the
+cluster will be deployed.
+
+apiVersion: storageos.com/v1
+kind: StorageOSCluster
+metadata:
+  name: example-storageos
+  namespace: storageos-operator
+spec:
+  secretRefName: storageos-api
+  secretRefNamespace: storageos-operator
+  csi:
+    enable: true
+    deploymentStrategy: "deployment"
+    enableProvisionCreds: true
+    enableControllerPublishCreds: true
+    enableNodePublishCreds: true
+    enableControllerExpandCreds: true
+  kvBackend:
+    address: <etcd-endpoint>
+
+Newly installed StorageOS clusters require a license to function. For
+instructions on applying our free developer license, or obtaining a commercial
+license, please see our documentation at
+https://docs.storageos.com/docs/reference/licence/.

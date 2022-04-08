@@ -1,0 +1,146 @@
+{{- if .Values.controller.enabled -}}
+{{- if (semverCompare ">=1.9-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: apps/v1
+{{- else }}
+apiVersion: extensions/v1beta1
+{{- end }}
+kind: Deployment
+metadata:
+  name: neuvector-controller-pod
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.controller.replicas }}
+  minReadySeconds: 60
+  strategy:
+{{ toYaml .Values.controller.strategy | indent 4 }}
+  selector:
+    matchLabels:
+      app: neuvector-controller-pod
+  template:
+    metadata:
+      labels:
+        app: neuvector-controller-pod
+        release: {{ .Release.Name }}
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - neuvector-controller-pod
+              topologyKey: "kubernetes.io/hostname"
+    {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecrets }}
+    {{- end }}
+      containers:
+        - name: neuvector-controller-pod
+          image: "{{ .Values.registry }}/{{ .Values.controller.image.repository }}:{{ .Values.tag }}"
+          securityContext:
+            privileged: true
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+          readinessProbe:
+            exec:
+              command:
+                - cat
+                - /tmp/ready
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          env:
+            - name: CLUSTER_JOIN_ADDR
+              value: neuvector-svc-controller.{{ .Release.Namespace }}
+            - name: CLUSTER_ADVERTISED_ADDR
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: CLUSTER_BIND_ADDR
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          {{- if or .Values.controller.pvc.enabled .Values.controller.azureFileShare.enabled }}
+            - name: CTRL_PERSIST_CONFIG
+              value: "1"
+          {{- end }}
+          volumeMounts:
+            - mountPath: /var/neuvector
+              name: nv-share
+              readOnly: false
+          {{- if .Values.containerd.enabled }}
+            - mountPath: /var/run/containerd/containerd.sock
+          {{- else if .Values.crio.enabled }}
+            - mountPath: /var/run/crio/crio.sock
+          {{- else }}
+            - mountPath: /var/run/docker.sock
+          {{- end }}
+              name: runtime-sock
+              readOnly: true
+            - mountPath: /host/proc
+              name: proc-vol
+              readOnly: true
+            - mountPath: /host/cgroup
+              name: cgroup-vol
+              readOnly: true
+            - mountPath: /etc/config
+              name: config-volume
+              readOnly: true              
+      terminationGracePeriodSeconds: 300
+      restartPolicy: Always
+      volumes:
+        - name: nv-share
+        {{- if .Values.controller.pvc.enabled }}
+          persistentVolumeClaim:
+            claimName: neuvector-data
+        {{- else if .Values.controller.azureFileShare.enabled }}
+          azureFile:
+            secretName: {{ .Values.controller.azureFileShare.secretName }}
+            shareName: {{ .Values.controller.azureFileShare.shareName }}
+            readOnly: false
+        {{- else }}
+          hostPath:
+            path: /var/neuvector
+        {{- end }}
+        - name: runtime-sock
+          hostPath:
+          {{- if .Values.containerd.enabled }}
+            path: {{ .Values.containerd.path }}
+          {{- else if .Values.crio.enabled }}
+            path: {{ .Values.crio.path }}
+          {{- else }}
+            path: {{ .Values.docker.path }}
+          {{- end }}
+        - name: proc-vol
+          hostPath:
+            path: /proc
+        - name: cgroup-vol
+          hostPath:
+            path: /sys/fs/cgroup
+        - name: config-volume
+          configMap:
+            name: neuvector-init 
+          {{- if not .Values.controller.configmap.enabled }}
+            optional: true
+          {{- end }}
+{{- if gt (int .Values.controller.disruptionbudget) 0 }}
+---
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: neuvector-controller-pdb
+  namespace: neuvector
+spec:
+  minAvailable: {{ .Values.controller.disruptionbudget }}
+  selector:
+    matchLabels:
+      app: neuvector-controller-pod
+{{- end }}
+{{- end }}

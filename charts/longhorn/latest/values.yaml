@@ -1,16 +1,46 @@
 # Default values for longhorn.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+global:
+  cattle:
+    systemDefaultRegistry: ""
+
 image:
   longhorn:
-    engine: longhornio/longhorn-engine
-    engineTag: v0.8.0
-    manager: longhornio/longhorn-manager
-    managerTag: v0.8.0
-    ui: longhornio/longhorn-ui
-    uiTag: v0.8.0
-    instanceManager: longhornio/longhorn-instance-manager
-    instanceManagerTag: v1_20200301
+    engine:
+      repository: longhornio/longhorn-engine
+      tag: v1.2.4
+    manager:
+      repository: longhornio/longhorn-manager
+      tag: v1.2.4
+    ui:
+      repository: longhornio/longhorn-ui
+      tag: v1.2.4
+    instanceManager:
+      repository: longhornio/longhorn-instance-manager
+      tag: v1_20220303
+    shareManager:
+      repository: longhornio/longhorn-share-manager
+      tag: v1_20211020
+    backingImageManager:
+      repository: longhornio/backing-image-manager
+      tag: v2_20210820
+  csi:
+    attacher:
+      repository: longhornio/csi-attacher
+      tag: v3.2.1
+    provisioner:
+      repository: longhornio/csi-provisioner
+      tag: v2.1.2
+    nodeDriverRegistrar:
+      repository: longhornio/csi-node-driver-registrar
+      tag: v2.3.0
+    resizer:
+      repository: longhornio/csi-resizer
+      tag: v1.2.0
+    snapshotter:
+      repository: longhornio/csi-snapshotter
+      tag: v3.0.3
   pullPolicy: IfNotPresent
 
 service:
@@ -23,30 +53,113 @@ service:
 
 persistence:
   defaultClass: true
+  defaultFsType: ext4
   defaultClassReplicaCount: 3
+  reclaimPolicy: Delete
+  recurringJobSelector:
+    enable: false
+    jobList: []
+  backingImage:
+    enable: false
+    name: ~
+    dataSourceType: ~
+    dataSourceParameters: ~
+    expectedChecksum: ~
 
 csi:
-  attacherImage:
-  provisionerImage:
-  driverRegistrarImage:
-  kubeletRootDir:
-  attacherReplicaCount:
-  provisionerReplicaCount:
+  kubeletRootDir: ~
+  attacherReplicaCount: ~
+  provisionerReplicaCount: ~
+  resizerReplicaCount: ~
+  snapshotterReplicaCount: ~
 
 defaultSettings:
-  backupTarget:
-  backupTargetCredentialSecret:
-  createDefaultDiskLabeledNodes:
-  defaultDataPath:
-  replicaSoftAntiAffinity:
-  storageOverProvisioningPercentage:
-  storageMinimalAvailablePercentage:
-  upgradeChecker:
-  defaultReplicaCount:
-  guaranteedEngineCPU:
-  defaultLonghornStaticStorageClass:
-  backupstorePollInterval:
-  taintToleration:
+  backupTarget: ~
+  backupTargetCredentialSecret: ~
+  allowRecurringJobWhileVolumeDetached: ~
+  createDefaultDiskLabeledNodes: ~
+  defaultDataPath: ~
+  defaultDataLocality: ~
+  replicaSoftAntiAffinity: ~
+  replicaAutoBalance: ~
+  storageOverProvisioningPercentage: ~
+  storageMinimalAvailablePercentage: ~
+  upgradeChecker: ~
+  defaultReplicaCount: ~
+  defaultLonghornStaticStorageClass: ~
+  backupstorePollInterval: ~
+  taintToleration: ~
+  systemManagedComponentsNodeSelector: ~
+  priorityClass: ~
+  autoSalvage: ~
+  autoDeletePodWhenVolumeDetachedUnexpectedly: ~
+  disableSchedulingOnCordonedNode: ~
+  replicaZoneSoftAntiAffinity: ~
+  nodeDownPodDeletionPolicy: ~
+  allowNodeDrainWithLastHealthyReplica: ~
+  mkfsExt4Parameters: ~
+  disableReplicaRebuild: ~
+  replicaReplenishmentWaitInterval: ~
+  concurrentReplicaRebuildPerNodeLimit: ~
+  disableRevisionCounter: ~
+  systemManagedPodsImagePullPolicy: ~
+  allowVolumeCreationWithDegradedAvailability: ~
+  autoCleanupSystemGeneratedSnapshot: ~
+  concurrentAutomaticEngineUpgradePerNodeLimit: ~
+  backingImageCleanupWaitInterval: ~
+  backingImageRecoveryWaitInterval: ~
+  guaranteedEngineManagerCPU: ~
+  guaranteedReplicaManagerCPU: ~
+privateRegistry:
+  registryUrl: ~
+  registryUser: ~
+  registryPasswd: ~
+  registrySecret: ~
+
+longhornManager:
+  priorityClass: ~
+  tolerations: []
+  ## If you want to set tolerations for Longhorn Manager DaemonSet, delete the `[]` in the line above
+  ## and uncomment this example block
+  # - key: "key"
+  #   operator: "Equal"
+  #   value: "value"
+  #   effect: "NoSchedule"
+  nodeSelector: {}
+  ## If you want to set node selector for Longhorn Manager DaemonSet, delete the `{}` in the line above
+  ## and uncomment this example block
+  #  label-key1: "label-value1"
+  #  label-key2: "label-value2"
+
+longhornDriver:
+  priorityClass: ~
+  tolerations: []
+  ## If you want to set tolerations for Longhorn Driver Deployer Deployment, delete the `[]` in the line above
+  ## and uncomment this example block
+  # - key: "key"
+  #   operator: "Equal"
+  #   value: "value"
+  #   effect: "NoSchedule"
+  nodeSelector: {}
+  ## If you want to set node selector for Longhorn Driver Deployer Deployment, delete the `{}` in the line above
+  ## and uncomment this example block
+  #  label-key1: "label-value1"
+  #  label-key2: "label-value2"
+
+longhornUI:
+  priorityClass: ~
+  tolerations: []
+  ## If you want to set tolerations for Longhorn UI Deployment, delete the `[]` in the line above
+  ## and uncomment this example block
+  # - key: "key"
+  #   operator: "Equal"
+  #   value: "value"
+  #   effect: "NoSchedule"
+  nodeSelector: {}
+  ## If you want to set node selector for Longhorn UI Deployment, delete the `{}` in the line above
+  ## and uncomment this example block
+  #  label-key1: "label-value1"
+  #  label-key2: "label-value2"
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
@@ -65,8 +178,11 @@ ingress:
   ## Set to true to enable ingress record generation
   enabled: false
 
+  ## Add ingressClassName to the Ingress
+  ## Can replace the kubernetes.io/ingress.class annotation on v1.18+
+  ingressClassName: ~
 
-  host: xip.io
+  host: sslip.io
 
   ## Set this to true in order to enable TLS on the ingress record
   ## A side effect of this will be that the backend service will be connected at port 443
@@ -100,3 +216,13 @@ ingress:
   # - name: longhorn.local-tls
   #   key:
   #   certificate:
+
+# Configure a pod security policy in the Longhorn namespace to allow privileged pods
+enablePSP: true
+
+## Specify override namespace, specifically this is useful for using longhorn as sub-chart
+## and its release namespace is not the `longhorn-system`
+namespaceOverride: ""
+
+# Annotations to add to the Longhorn Manager DaemonSet Pods. Optional.
+annotations: {}

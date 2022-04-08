@@ -1,0 +1,101 @@
+# Service for all Artifactory cluster nodes.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "artifactory-ha.fullname" . }}
+  labels:
+    app: {{ template "artifactory-ha.name" . }}
+    chart: {{ template "artifactory-ha.chart" . }}
+    component: {{ .Values.artifactory.name }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+{{- if .Values.artifactory.service.annotations }}
+  annotations:
+{{ toYaml .Values.artifactory.service.annotations | indent 4 }}
+{{- end }}
+spec:
+  type: {{ .Values.artifactory.service.type }}
+  {{- if and (eq .Values.artifactory.service.type "ClusterIP") .Values.artifactory.service.clusterIP }}
+  clusterIP: {{ .Values.artifactory.service.clusterIP }}
+  {{- end }}
+  {{- if .Values.artifactory.service.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+{{ toYaml .Values.artifactory.service.loadBalancerSourceRanges | indent 4 }}
+  {{- end }}
+  ports:
+  - port: {{ .Values.artifactory.externalPort }}
+    targetPort: {{ .Values.artifactory.internalPort }}
+    protocol: TCP
+    name: router
+  {{- if .Values.artifactory.ssh.enabled }}
+  - port: {{ .Values.artifactory.ssh.externalPort }}
+    targetPort: {{ .Values.artifactory.ssh.internalPort }}
+    protocol: TCP
+    name: ssh
+  {{- end }}
+  - port: {{ .Values.artifactory.externalArtifactoryPort }}
+    targetPort: {{ .Values.artifactory.internalArtifactoryPort }}
+    protocol: TCP
+    name: artifactory
+  {{- with .Values.artifactory.node.javaOpts.jmx }}
+  {{- if .enabled }}
+  - port: {{ .port }}
+    targetPort: {{ .port }}
+    protocol: TCP
+    name: jmx
+  {{- end }}
+  {{- end }}
+  selector:
+{{- if eq .Values.artifactory.service.pool "members" }}
+    role: {{ template "artifactory-ha.node.name" . }}
+{{- end }}
+    app: {{ template "artifactory-ha.name" . }}
+    component: "{{ .Values.artifactory.name }}"
+    release: {{ .Release.Name }}
+---
+# Internal service for Artifactory primary node only!
+# Used by member nodes to check readiness of primary node before starting up
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "artifactory-ha.primary.name" . }}
+  labels:
+    app: {{ template "artifactory-ha.name" . }}
+    chart: {{ template "artifactory-ha.chart" . }}
+    component: {{ .Values.artifactory.name }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+spec:
+  # Statically setting service type to ClusterIP since this is an internal only service
+  type: ClusterIP
+  {{- if and (eq .Values.artifactory.service.type "ClusterIP") .Values.artifactory.service.clusterIP }}
+  clusterIP: {{ .Values.artifactory.service.clusterIP }}
+  {{- end }}
+  ports:
+  - port: {{ .Values.artifactory.externalPort }}
+    targetPort: {{ .Values.artifactory.internalPort }}
+    protocol: TCP
+    name: router
+  - port: {{ .Values.artifactory.externalArtifactoryPort }}
+    targetPort: {{ .Values.artifactory.internalArtifactoryPort }}
+    protocol: TCP
+    name: artifactory
+  {{- if .Values.artifactory.ssh.enabled }}
+  - port: {{ .Values.artifactory.ssh.externalPort }}
+    targetPort: {{ .Values.artifactory.ssh.internalPort }}
+    protocol: TCP
+    name: ssh
+  {{- end }}
+  {{- with .Values.artifactory.primary.javaOpts.jmx }}
+  {{- if .enabled }}
+  - port: {{ .port }}
+    targetPort: {{ .port }}
+    protocol: TCP
+    name: jmx
+  {{- end }}
+  {{- end }}
+  selector:
+    role: {{ template "artifactory-ha.primary.name" . }}
+    app: {{ template "artifactory-ha.name" . }}
+    component: "{{ .Values.artifactory.name }}"
+    release: {{ .Release.Name }}

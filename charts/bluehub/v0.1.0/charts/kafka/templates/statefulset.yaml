@@ -1,0 +1,193 @@
+{{ $replicas := (mul .Values.replicas | default "5" | int) }}
+{{ $externalPort := .Values.externalPort }}
+{{ $internalPort := .Values.internalPort }}
+{{ $externalIP := .Values.externalIP }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/component: kafka-broker
+    app.kubernetes.io/name: kafka
+  name: {{ template "bluehub.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  podManagementPolicy: {{ .Values.podManagementPolicy | default "OrderedReady" | quote }}
+  replicas: {{ .Values.replicas | default "5" | int }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: kafka-broker
+      app.kubernetes.io/name: kafka
+  serviceName: {{ template "bluehub.fullname" . }}-headless
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: {{ .Values.metrics.port | default "9308" | quote }}
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+      labels:
+        app.kubernetes.io/component: kafka-broker
+        app.kubernetes.io/name: kafka
+    spec:
+      containers:
+      - command:
+        - sh
+        - -exc
+        - |
+          unset KAFKA_PORT && \
+          export KAFKA_BROKER_ID=${POD_NAME##*-} && export \
+          KAFKA_ADVERTISED_LISTENERS=SASL_SSL://${POD_NAME}.{{ template "bluehub.fullname" . }}-headless.{{ .Release.Namespace }}:{{ .Values.securePort | default "9093" | int }},\
+          EXTERNAL://{{ $externalIP }}:$(({{ $externalPort }} + ${KAFKA_BROKER_ID})) && \
+          rm -rf /etc/kafka/logs/lost+found && \
+          exec /etc/confluent/docker/run
+        env:
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: KAFKA_LISTENERS
+          value: SASL_SSL://:{{ .Values.securePort | default "9093" | int }}, PLAINTEXT://:{{ .Values.nonsecurePort | default "9092" | int }}, EXTERNAL://:{{ .Values.internalPort | default "19092" | int }}
+        - name: KAFKA_DELETE_TOPIC_ENABLE
+          value: {{ .Values.topicDeleteEnabled | default "true" | quote }}
+        - name: KAFKA_NUM_NETWORK_THREADS
+          value: {{ .Values.numNetworkThreads | default "12" | quote }}
+        - name: KAFKA_COMPRESSION_TYPE
+          value: {{ .Values.compressionType | default "snappy" | quote }}
+        - name: KAFKA_LOG_RETENTION_HOURS
+          value: "{{ .Values.logRetentionHours | default "168" | int }}"
+        - name: KAFKA_HEAP_OPTS
+          value: {{ .Values.heapOpts | default "-Xms6144M -Xmx6144M" | quote }}
+        - name: KAFKA_ZOOKEEPER_SET_ACL
+          value: "false"
+        - name: KAFKA_SUPER_USERS
+          value: "User:zookeeper;User:brokeradmin;User:schemareg;User:securitymgr"
+        - name: KAFKA_AUTHORIZER_CLASS_NAME
+          value: "kafka.security.authorizer.AclAuthorizer"
+        - name: KAFKA_SASL_ENABLED_MECHANISMS
+          value: "PLAIN"
+        - name: KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL
+          value: "PLAIN"
+        - name: KAFKA_OPTS
+          value: "-Djava.security.auth.login.config=/etc/kafka/secrets/kfk_jaas.conf"
+        - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+          value: {{ .Values.topicReplicationFactor | default "3" | quote }}
+        - name: KAFKA_ZOOKEEPER_CONNECT
+          value: {{ .Release.Name }}-zookeeper:{{ .Values.zookeeper.port | default "2181" | int }}
+        - name: KAFKA_LOG_DIRS
+          value: /etc/kafka/logs
+        - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+          value: PLAINTEXT:PLAINTEXT,SASL_SSL:SASL_SSL,EXTERNAL:SASL_SSL
+        - name: KAFKA_AUTO_CREATE_TOPICS_ENABLE
+          value: {{ .Values.autoTopicCreateEnabled | default "false" | quote }}
+        - name: KAFKA_AUTO_LEADER_REBALANCE_ENABLE
+          value: "true"
+        - name: KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE
+          value: "false"
+        - name: KAFKA_SECURITY_INTER_BROKER_PROTOCOL
+          value: SASL_SSL
+        - name: KAFKA_SSL_CLIENT_AUTH
+          value: required
+        - name: KAFKA_SSL_ENABLED_PROTOCOLS
+          value: {{ .Values.sslEnabledProtocols | default "TLSv1.2" | quote }}
+        - name: KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM
+        - name: KAFKA_SSL_KEY_CREDENTIALS
+          value: kafka.key.creds
+        - name: KAFKA_SSL_KEY_CREDENTIALS_LOCATION
+          value: /etc/kafka/secrets/kafka.key.creds
+        - name: KAFKA_SSL_KEYSTORE_CREDENTIALS
+          value: kafka.keystore.creds
+        - name: KAFKA_SSL_KEYSTORE_CREDENTIALS_LOCATION
+          value: /etc/kafka/secrets/kafka.keystore.creds
+        - name: KAFKA_SSL_KEYSTORE_FILENAME
+          value: kafka.keystore.jks
+        - name: KAFKA_SSL_KEYSTORE_LOCATION
+          value: /etc/kafka/secrets/kafka.keystore.jks
+        - name: KAFKA_SSL_TRUSTSTORE_CREDENTIALS
+          value: kafka.truststore.creds
+        - name: KAFKA_SSL_TRUSTSTORE_CREDENTIALS_LOCATION
+          value: /etc/kafka/secrets/kafka.truststore.creds
+        - name: KAFKA_SSL_TRUSTSTORE_FILENAME
+          value: kafka.truststore.jks
+        - name: KAFKA_SSL_TRUSTSTORE_LOCATION
+          value: /etc/kafka/secrets/kafka.truststore.jks
+        - name: KAFKA_JMX_PORT
+          value: "5555"
+        image: {{ .Values.imgName | default "bluespireinc/kafka" }}:{{ .Values.imgVersion | default "2.5.0" }}
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -ec
+            - /usr/bin/jps | /bin/grep -q SupportedKafka
+          failureThreshold: 3
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: kafka-broker
+        resources:
+          requests:
+            memory: {{ .Values.resources.requests.memory | default "16Gi" | quote }}
+            cpu: {{ .Values.resources.requests.cpu | default "2000m" | quote }}
+          limits:
+            memory: {{ .Values.resources.limits.memory | default "32Gi" | quote }}
+            cpu: {{ .Values.resources.limits.cpu | default "8000m" | quote }}
+        ports:
+        - containerPort: {{ .Values.nonsecurePort | default "9092" | int }}
+          name: kafka
+          protocol: TCP
+        - containerPort: {{ .Values.externalPort }}
+          name: external
+          protocol: TCP
+        - containerPort: {{ .Values.metrics.port | default "9308" | int }}
+          name: metrics
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          tcpSocket:
+            port: kafka
+          timeoutSeconds: 5
+        volumeMounts:
+        - mountPath: /etc/kafka/secrets
+          name: secretdir
+        - mountPath: /etc/kafka/logs
+          name: logdir
+      volumes:
+        - name: secretdir
+          secret:
+            defaultMode: 256
+            optional: false
+            secretName: {{ template "bluehub.fullname" . }}-secrets
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        runAsNonRoot: false
+      terminationGracePeriodSeconds: 60
+  updateStrategy:
+    type: RollingUpdate
+  volumeClaimTemplates:
+  - metadata:
+      name: logdir
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: {{ .Values.storage.capacity | default "500Gi" | quote }}
+      storageClassName: {{ .Values.storage.class }}
+      volumeMode: Filesystem
