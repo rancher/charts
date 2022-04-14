@@ -39,6 +39,12 @@ git push --set-upstream origin ${FORKED_BRANCH}
 # Create your pull request!
 ```
 
+If you run into mass mode changes after checking out try the following:
+```bash
+git reset
+git diff -p --diff-filter=ACM | grep -E  '^(diff|old mode|new mode)' | sed -e 's/^old/NEW/;s/^new/old/;s/^NEW/new/' | git apply
+```
+
 Once complete, you should see the following:
 - The `assets/` and `charts/` directories have been updated to match the Staging branch. All entires should be additions, not modifications.
 - The `index.yaml`'s diff shows only adds additional entries and does not modify or remove existing ones.
