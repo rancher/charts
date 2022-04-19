@@ -1,0 +1,25 @@
+#!/bin/bash
+
+if [ "x${CHARTS}" = "x" ]; then
+  echo "Usage: CHARTS=<chart1,chart2> $0"
+  exit 1
+fi
+
+CHARTS=$1
+
+for CHART in $(echo $CHARTS | sed "s/,/ /g"); do
+  # Check if there already is a version in release.yaml
+  if yq -e 'has("'"$CHART"'")' ../release.yaml >/dev/null 2>&1; then
+    echo "chart ${CHART} already has a version, looking up version to delete"
+    if [[ `yq '."'"$CHART"'" | length' ../release.yaml` -gt 1 ]]; then
+      echo "more than one version found, dont know which one to delete"
+      exit 1
+    else
+      EXISTINGVERSION=$(yq '."'"$CHART"'"[]' ../release.yaml)
+      echo "version to delete for ${CHART} is: ${EXISTINGVERSION}"
+      # $ ./remove-asset 
+      # Usage: CHART=<chart> VERSION=<version> make remove
+      echo CHART=$CHART VERSION=$EXISTINGVERSION make remove
+    fi
+  fi
+done

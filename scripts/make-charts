@@ -1,0 +1,24 @@
+#!/bin/bash
+usage() {
+  echo "Usage: CHARTS=<chart1,chart2> VERSION=<version> $0"
+}
+
+if [ "x${CHARTS}" = "x" ]; then
+  usage
+  exit 1
+fi
+
+if [ "x${VERSION}" = "x" ]; then
+  usage
+  exit 1
+fi
+
+for CHART in $(echo $CHARTS | sed 's/,/ /g'); do
+  if echo $CHART | grep -q '/'; then
+    CHARTNAME=$(echo $CHART | awk -F'/' '{ print $2 }')
+  else
+    CHARTNAME=$CHART
+  fi
+  echo PACKAGE=$CHART make charts
+  yq -i e '. + {"'"$CHARTNAME"'":["'"$VERSION"'"]}' release.yaml
+done

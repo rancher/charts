@@ -14,6 +14,15 @@ Since this repository uses [`rancher/charts-build-scripts`](https://github.com/r
 2. Running `make charts` to automatically generate assets used to serve a Helm repository (`charts/`, `assets/`, and `index.yaml`) based on the contents of `packages/`.
 3. [CI] Running `make validate` to ensure that all generated assets are up-to-date and ready to be merged.
 
+A first attempt was made to automate these steps for url only based charts, in the following way (example with rancher-backup chart values):
+
+1. Remove existing chart(s): `CHARTS=rancher-backup/rancher-backup,rancher-backup/rancher-backup-crd ./scripts/remove-chart-version-if-exists`
+2. Commit changes (git add/git commit)
+3. Add new chart(s): `TEMPLATE_BASE_URL=https://raw.githubusercontent.com/rancher/your_chart CHARTS=rancher-backup/rancher-backup,rancher-backup/rancher-backup-crd TEMPLATE_VALUES='VERSION=2.1.3-rc1' ./scripts/add-chart-version`, the `TEMPLATE_BASE_URL` will be used to retrieve the template `package.yaml` and the `TEMPLATE_VALUES` will be replaced in that template. In this example, the template files should be present at `https://raw.githubusercontent.com/rancher/your_chart/rancher-backup.tmpl` and `https://raw.githubusercontent.com/rancher/your_chart/rancher-backup-crd.tmpl`.
+4. Commit changes (git add/git commit)
+5. Run make charts: `CHARTS=rancher-backup/rancher-backup,rancher-backup/rancher-backup-crd VERSION=2.1.3-rc1 ./scripts/make-charts`
+6. Commit changes (git add/git commit)
+
 #### Versioning Charts
 
 In this repository, all packages specify the `version` field in the `package.yaml`.

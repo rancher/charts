@@ -1,0 +1,39 @@
+#!/bin/bash
+usage() {
+  echo "Usage: CHARTS=<chart1,chart2> TEMPLATE_BASE_URL=https://raw.githubusercontent.com/rancher/your_chart TEMPLATE_VALUES='KEY1=value1' $0"
+}
+
+if [ "x${CHARTS}" = "x" ]; then
+  usage
+  exit 1
+fi
+
+if [ "x${TEMPLATE_BASE_URL}" = "x" ]; then
+  usage
+  exit 1
+fi
+
+if [ "x${TEMPLATE_VALUES}" = "x" ]; then
+  usage
+  exit 1
+fi
+
+for CHART in $(echo $CHARTS | sed 's/,/ /g'); do
+  if echo $CHART | grep -q '/'; then
+    CHARTNAME=$(echo $CHART | awk -F'/' '{ print $2 }')
+  else
+    CHARTNAME=$CHART
+  fi
+
+  TEMPDIR=$(mktemp -d)
+  wget "${TEMPLATE_BASE_URL}/${CHARTNAME}.tmpl" -O "${TEMPDIR}/${CHARTNAME}.tmpl"
+  for KVPAIR in $(echo $TEMPLATE_VALUES | sed 's/,/ /g'); do
+    KVK=$(echo $KVPAIR | awk -F'=' '{ print $1 }')
+    KVV=$(echo $KVPAIR | awk -F'=' '{ print $2 }')
+    sed -i '' "s/$KVK/$KVV/g" "${TEMPDIR}/${CHARTNAME}.tmpl"
+  done
+  mv "${TEMPDIR}/${CHARTNAME}.tmpl" packages/$CHART/package.yaml
+  PACKAGE=$CHART make prepare
+  PACKAGE=$CHART make patch
+  PACKAGE=$CHART make clean
+done
