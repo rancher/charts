@@ -1,0 +1,92 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Chart.Name }}-create
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+  annotations:
+    "helm.sh/hook": post-install, post-upgrade, post-rollback
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  template:
+    metadata:
+      name: {{ .Chart.Name }}-create
+      labels:
+        app: {{ .Chart.Name }}
+    spec:
+      serviceAccountName: {{ .Chart.Name }}-manager
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: create-crds
+          image: {{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: IfNotPresent
+          command:
+          - /bin/kubectl
+          - apply
+          - -f
+          - /etc/config/crd-manifest.yaml
+          volumeMounts:
+            - name: crd-manifest
+              readOnly: true
+              mountPath: /etc/config
+      restartPolicy: OnFailure
+      volumes:
+      - name: crd-manifest
+        configMap:
+          name: {{ .Chart.Name }}-manifest
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Chart.Name }}-delete
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  template:
+    metadata:
+      name: {{ .Chart.Name }}-delete
+      labels:
+        app: {{ .Chart.Name }}
+    spec:
+      serviceAccountName: {{ .Chart.Name }}-manager
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      initContainers:
+        - name: remove-finalizers
+          image: {{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: IfNotPresent
+          command:
+          - /bin/kubectl
+          - apply
+          - -f
+          - /etc/config/crd-manifest.yaml
+          volumeMounts:
+            - name: crd-manifest
+              readOnly: true
+              mountPath: /etc/config
+      containers:
+        - name: delete-crds
+          image: {{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: IfNotPresent
+          command:
+          - /bin/kubectl
+          - delete
+          - -f
+          - /etc/config/crd-manifest.yaml
+          volumeMounts:
+            - name: crd-manifest
+              readOnly: true
+              mountPath: /etc/config
+      restartPolicy: OnFailure
+      volumes:
+      - name: crd-manifest
+        configMap:
+          name: {{ .Chart.Name }}-manifest
