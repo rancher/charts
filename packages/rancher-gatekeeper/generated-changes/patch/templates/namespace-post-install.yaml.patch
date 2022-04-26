@@ -1,7 +1,13 @@
 --- charts-original/templates/namespace-post-install.yaml
 +++ charts/templates/namespace-post-install.yaml
-@@ -30,7 +30,7 @@
-         kubernetes.io/os: linux
+@@ -26,11 +26,11 @@
+       {{- .Values.postInstall.labelNamespace.image.pullSecrets | toYaml | nindent 12 }}
+       {{- end }}
+       serviceAccount: gatekeeper-update-namespace-label
+-      nodeSelector:
+-        kubernetes.io/os: linux
++      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
++      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
        containers:
          - name: kubectl-label
 -          image: "{{ .Values.postInstall.labelNamespace.image.repository }}:{{ .Values.postInstall.labelNamespace.image.tag }}"
