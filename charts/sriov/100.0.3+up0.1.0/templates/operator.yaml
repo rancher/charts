@@ -24,6 +24,10 @@ spec:
   selector:
     matchLabels:
       name: sriov-network-operator
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 33%
   template:
     metadata:
       labels:
@@ -38,12 +42,17 @@ spec:
 {{ toYaml .Values.operator.tolerations | indent 8 }}
 {{- end }}
       serviceAccountName: {{ include "sriov-network-operator.fullname" . }}
+      priorityClassName: "system-node-critical"
       containers:
         - name: {{ include "sriov-network-operator.fullname" . }}
           image: {{ include "system_default_registry" . }}{{ .Values.images.operator.image }}:{{ .Values.images.operator.tag }}
           command:
             - sriov-network-operator
           imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
           env:
             - name: WATCH_NAMESPACE
               valueFrom:
@@ -79,6 +88,8 @@ spec:
               value: {{ .Release.AppVersion }}
             - name: SRIOV_CNI_BIN_PATH
               value: {{ .Values.operator.cniBinPath }}
+            - name: CLUSTER_TYPE
+              value: {{ .Values.operator.clusterType }}
             {{- if .Values.operator.enableAdmissionController }}
             {{- if not .Values.cert_manager }}
             - name: WEBHOOK_CA_BUNDLE
