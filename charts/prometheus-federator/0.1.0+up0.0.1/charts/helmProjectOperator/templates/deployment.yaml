@@ -24,7 +24,6 @@ spec:
           - {{ template "helm-project-operator.name" . }}
           - --namespace={{ template "helm-project-operator.namespace" . }}
           - --controller-name={{ template "helm-project-operator.name" . }}
-          - --helm-job-image={{ template "system_default_registry" . }}{{ .Values.helmcontroller.job.image.repository }}:{{ .Values.helmcontroller.job.image.tag }}
           - --values-override-file=/etc/helmprojectoperator/config/values.yaml
 {{- if .Values.global.cattle.systemDefaultRegistry }}
           - --system-default-registry={{ .Values.global.cattle.systemDefaultRegistry }}
@@ -73,6 +72,14 @@ spec:
 {{- if .Values.debug }}
           - --debug
           - --debug-level={{ .Values.debugLevel }}
+{{- end }}
+{{- if not .Values.helmController.enabled }}
+          - --disable-embedded-helm-controller
+{{- else }}
+           - --helm-job-image={{ template "system_default_registry" . }}{{ .Values.helmController.job.image.repository }}:{{ .Values.helmController.job.image.tag }}
+{{- end }}
+{{- if not .Values.helmLocker.enabled }}
+          - --disable-embedded-helm-locker
 {{- end }}
 {{- if .Values.additionalArgs }}
 {{- toYaml .Values.additionalArgs | nindent 10 }}
