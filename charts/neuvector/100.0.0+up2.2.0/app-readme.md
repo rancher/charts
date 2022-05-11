@@ -11,4 +11,6 @@ NeuVector integrates tightly with Rancher and Kubernetes to extend the built-in 
 + Advanced network controls including DLP detection, service mesh integration, connection blocking and packet captures
 + Run-time vulnerability scanning and CIS benchmarks
 
-Please Note: Configure correct container runtime and runtime path under container runtime. Enable only one runtime.
+Additional Notes:
++ Previous deployments from Rancher, such as from our Partners chart repository or the primary NeuVector Helm chart, must be completely removed in order to update to the new integrated feature chart. See https://github.com/rancher/rancher/issues/37447.
++ Configure correct container runtime and runtime path under container runtime. Enable only one runtime.
