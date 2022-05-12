@@ -1,0 +1,23 @@
+--- charts-original/templates/controller-deployment.yaml
++++ charts/templates/controller-deployment.yaml
+@@ -52,19 +52,7 @@
+       serviceAccount: {{ .Values.serviceAccount }}
+       containers:
+         - name: neuvector-controller-pod
+-          {{ if eq .Values.registry "registry.neuvector.com" }}
+-          {{ if .Values.oem }}
+-          image: "{{ .Values.registry }}/{{ .Values.oem }}/controller:{{ .Values.tag }}"
+-          {{- else }}
+-          image: "{{ .Values.registry }}/controller:{{ .Values.tag }}"
+-          {{- end }}
+-          {{- else }}
+-          {{ if .Values.controller.image.hash }}
+-          image: "{{ .Values.registry }}/{{ .Values.controller.image.repository }}@{{ .Values.controller.image.hash }}"
+-          {{- else }}
+-          image: "{{ .Values.registry }}/{{ .Values.controller.image.repository }}:{{ .Values.tag }}"
+-          {{- end }}
+-          {{- end }}
++          image: {{ template "system_default_registry" . }}{{ .Values.controller.image.repository }}:{{ .Values.controller.image.tag }}
+           securityContext:
+             privileged: true
+           resources:

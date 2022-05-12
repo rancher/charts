@@ -1,0 +1,23 @@
+--- charts-original/templates/scanner-deployment.yaml
++++ charts/templates/scanner-deployment.yaml
+@@ -47,19 +47,7 @@
+       serviceAccount: {{ .Values.serviceAccount }}
+       containers:
+         - name: neuvector-scanner-pod
+-          {{ if eq .Values.registry "registry.neuvector.com" }}
+-          {{ if .Values.oem }}
+-          image: "{{ .Values.registry }}/{{ .Values.oem }}/scanner:{{ .Values.cve.scanner.image.tag }}"
+-          {{- else }}
+-          image: "{{ .Values.registry }}/scanner:{{ .Values.cve.scanner.image.tag }}"
+-          {{- end }}
+-          {{- else }}
+-          {{ if .Values.cve.scanner.image.hash }}
+-          image: "{{ .Values.registry }}/{{ .Values.cve.scanner.image.repository }}@{{ .Values.cve.scanner.image.hash }}"
+-          {{- else }}
+-          image: "{{ .Values.registry }}/{{ .Values.cve.scanner.image.repository }}:{{ .Values.cve.scanner.image.tag }}"
+-          {{- end }}
+-          {{- end }}
++          image: {{ template "system_default_registry" . }}{{ .Values.cve.scanner.image.repository }}:{{ .Values.cve.scanner.image.tag }}
+           imagePullPolicy: Always
+           env:
+             - name: CLUSTER_JOIN_ADDR

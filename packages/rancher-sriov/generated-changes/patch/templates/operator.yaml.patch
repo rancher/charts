@@ -23,7 +23,7 @@
    labels:
    {{- include "sriov-network-operator.labels" . | nindent 4 }}
  spec:
-@@ -14,18 +29,18 @@
+@@ -18,19 +33,19 @@
        labels:
          name: sriov-network-operator
      spec:
@@ -44,6 +44,7 @@
 +{{ toYaml .Values.operator.tolerations | indent 8 }}
 +{{- end }}
        serviceAccountName: {{ include "sriov-network-operator.fullname" . }}
+       priorityClassName: "system-node-critical"
        containers:
          - name: {{ include "sriov-network-operator.fullname" . }}
 -          image: {{ .Values.images.operator }}
@@ -51,7 +52,7 @@
            command:
              - sriov-network-operator
            imagePullPolicy: IfNotPresent
-@@ -35,19 +50,19 @@
+@@ -44,19 +59,19 @@
                  fieldRef:
                    fieldPath: metadata.namespace
              - name: SRIOV_CNI_IMAGE
@@ -77,10 +78,10 @@
              - name: RESOURCE_PREFIX
                value: {{ .Values.operator.resourcePrefix }}
              - name: ENABLE_ADMISSION_CONTROLLER
-@@ -64,3 +79,9 @@
-               value: {{ .Release.AppVersion }}
-             - name: SRIOV_CNI_BIN_PATH
+@@ -75,3 +90,9 @@
                value: {{ .Values.operator.cniBinPath }}
+             - name: CLUSTER_TYPE
+               value: {{ .Values.operator.clusterType }}
 +            {{- if .Values.operator.enableAdmissionController }}
 +            {{- if not .Values.cert_manager }}
 +            - name: WEBHOOK_CA_BUNDLE

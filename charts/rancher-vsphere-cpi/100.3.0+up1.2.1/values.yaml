@@ -1,0 +1,61 @@
+vCenter:
+  host: ""
+  port: 443
+  insecureFlag: "1"
+  datacenters: ""
+  username: ""
+  password: ""
+  credentialsSecret:
+    name: "vsphere-cpi-creds"
+    generate: true
+
+# A list of Semver constraint strings (defined by https://github.com/Masterminds/semver) and values.yaml overrides.
+#
+# For each key in versionOvverides, this chart will check to see if the current Kubernetes cluster's version matches
+# any of the semver constraints provided as keys on the map.
+#
+# On seeing a match, the default value for each values.yaml field overridden will be updated with the new value.
+#
+# If multiple matches are encountered (due to overlapping semver ranges), the matches will be applied in order.
+#
+# Notes:
+# - On running a helm template, Helm generally assumes the kubeVersion is v1.20.0
+# - On running a helm install --dry-run, the correct kubeVersion should be chosen.
+versionOverrides:
+  - constraint: ">= 1.22 < 1.24"
+    values:
+      cloudControllerManager:
+        repository: rancher/mirrored-cloud-provider-vsphere-cpi-release-manager
+        tag: v1.22.6
+  - constraint: "~ 1.21"
+    values:
+      cloudControllerManager:
+        repository: rancher/mirrored-cloud-provider-vsphere-cpi-release-manager
+        tag: v1.21.3
+  - constraint: "~ 1.20"
+    values:
+      cloudControllerManager:
+        repository: rancher/mirrored-cloud-provider-vsphere-cpi-release-manager
+        tag: v1.20.1
+  - constraint: "~ 1.19"
+    values:
+      cloudControllerManager:
+        repository: rancher/mirrored-cloud-provider-vsphere-cpi-release-manager
+        tag: v1.19.0
+  - constraint: "~ 1.18"
+    values:
+      cloudControllerManager:
+        repository: rancher/mirrored-cloud-provider-vsphere-cpi-release-manager
+        tag: v1.18.0
+
+cloudControllerManager:
+  repository: rancher/mirrored-cloud-provider-vsphere-cpi-release-manager
+  tag: v1.22.6
+  nodeSelector: {}
+  tolerations: []
+  rbac:
+    enabled: true
+
+global:
+  cattle:
+    systemDefaultRegistry: ""
