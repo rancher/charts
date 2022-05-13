@@ -40,7 +40,7 @@ spec:
           - name: BADGER_DIRECTORY_KEY
             value: "/badger/key"
           {{- end }}
-          - name: COLLECTOR_ZIPKIN_HOST_PORT
+          - name: COLLECTOR_ZIPKIN_HTTP_PORT
             value: "9411"
           - name: MEMORY_MAX_TRACES
             value: "{{ .Values.jaeger.memory.max_traces }}"
@@ -74,14 +74,6 @@ spec:
         runAsUser: 1000
       serviceAccountName: {{ include "tracing.fullname" . }}
       {{- end }}
-      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
-{{- if .Values.nodeSelector }}
-{{ toYaml .Values.nodeSelector | indent 8 }}
-{{- end }}
-      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
-{{- if .Values.tolerations }}
-{{ toYaml .Values.tolerations | indent 8 }}
-{{- end }}
 {{- if eq .Values.jaeger.spanStorageType "badger" }}
       volumes:
       - name: data
