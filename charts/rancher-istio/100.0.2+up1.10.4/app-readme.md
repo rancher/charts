@@ -5,10 +5,18 @@ Our [Istio](https://istio.io/) installer wraps the istioctl binary commands in a
 * **[Jaeger](https://www.jaegertracing.io/)**: A quick start, all-in-one installation used for tracing distributed system. This is not production qualified, please refer to jaeger documentation to determine which installation you may need instead.
 
 For more information on how to use the feature, refer to our [docs](https://rancher.com/docs/rancher/v2.x/en/istio/v2.5/).
+## Warnings
+- Upgrading across more than two minor versions (e.g., 1.6.x to 1.9.x) in one step is not officially tested or recommended. See [Istio upgrade docs](https://istio.io/latest/docs/setup/upgrade/) for more details.
+
 ## Known Issues
 
 #### Airgapped Environments
-If you are using this chart in an airgapped environment, you will not be able to upgrade. This is because the `istioctl` upgrade command reaches out to an external repo and it is not configurable. We are tracking the fix for this issue [here](https://github.com/rancher/rancher/issues/33402)
+**A temporary fix has been added to this chart to allow upgrades to succeed in an airgapped environment. See [this issue](https://github.com/rancher/rancher/issues/30842) for details.** We are still advocating for an upstream fix in Istio to formally resolve this issue. The root cause is the Istio Operator upgrade command reaches out to an external repo on upgrades and the external repo is not configurable. We are tracking the fix for this issue [here](https://github.com/rancher/rancher/issues/33402)
+
+#### Installing Istio with CNI component enabled on RHEL 8.4 SElinux enabled cluster.
+To install istio with CNI enabled, e.g. when cluster has a default PSP set to "restricted", on a cluster using nodes with RHEL 8.4 SElinux enabled, run the following command on each cluster node before creating a cluster.
+`mkdir -p /var/run/istio-cni && semanage fcontext -a -t container_file_t /var/run/istio-cni && restorecon -v /var/run/istio-cni`
+See [this issue](https://github.com/rancher/rancher/issues/33291) for details.
 
 ## Deprecations
 
@@ -29,7 +37,7 @@ Error: found 6 CRD of unsupported v1alpha1 security policy
  ```
  Continue with the migration steps below before retrying the upgrade process.
 
-##### Migrating Resources:
+#### Migrating Resources:
 Migration steps can be found in this [istio blog post](https://istio.io/latest/blog/2021/migrate-alpha-policy/ "istio blog post").
 
 You can also use these [quick steps](https://github.com/rancher/rancher/issues/34699#issuecomment-921995917 "quick steps") to determine if you need to follow the more extensive migration steps.
