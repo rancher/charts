@@ -2,42 +2,49 @@
 
 Our [Istio](https://istio.io/) installer wraps the istioctl binary commands in a handy helm chart, including an overlay file option to allow complex customization. It also includes:
 * **[Kiali](https://kiali.io/)**: Used for graphing traffic flow throughout the mesh
-* **[Jaeger](https://www.jaegertracing.io/)**: A quick start, all-in-one installation used for tracing distributed system. This is not production qualified, please refer to jaeger documentation to determine which installation you may need instead.
+* **[Jaeger](https://www.jaegertracing.io/)**: A quick start, all-in-one installation used for tracing distributed systemm. This is not production qualified, please refer to jaeger documentation to determine which installation you may need instead.
+
+### Known Issues
+
+**Airgapped Environments**
+If you are using this chart in an airgapped environment, you will not be able to upgrade. This is because the `istioctl` upgrade command reaches out to an external repo and it is not configurable. We are tracking the fix for this issue [here](https://github.com/rancher/rancher/issues/33402)
+
+### Dependencies
+
+**Rancher Monitoring  or other Prometheus installation**
+
+The Prometheus CRDs are required for installing Kiali which is enabled by default. If you do not have Prometheus installed your Istio installation will fail. If you do not plan on using Kiali, set `kiali.enabled=false` to bypass this requirement.
+
+### Customization
+
+**Rancher Monitoring**
+
+The Rancher Monitoring app sets `prometheus.prometheusSpec.ignoreNamespaceSelectors=false` which means all namespaces will be scraped by Prometheus by default. This ensures you can view traffic, metrics and graphs for resources deployed in other namespaces.
+
+To limit scraping to specific namespaces, set `prometheus.prometheusSpec.ignoreNamespaceSelectors=true` and add one of the following configurations to ensure you can continue to view traffic, metrics and graphs for your deployed resources.
+
+1. Add a Service Monitor or Pod Monitor in the namespace with the targets you want to scrape.
+1. Add an additionalScrapeConfig to your rancher-monitoring instance to scrape all targets in all namespaces.
+
+**Custom Prometheus Installation with Kiali**
+
+To use a custom Monitoring installation, set the `kiali.external_services.prometheus` url in the values.yaml. This url depends on the values for `nameOverride`, `namespaceOverride`, and `prometheus.service.port` in your rancher-monitoring or other monitoring instance:
+```
+http://{{ .Values.nameOverride }}-prometheus.{{ .Values.namespaceOverride }}.svc:{{ prometheus.service.port }}
+```
+**Custom Grafana Installation with Kiali**
+
+To use a custom Grafana installation, set the `kiali.external_services.grafana` url in the values.yaml. This url depends on the values for `nameOverride`, `namespaceOverride`, and `granfa.service.port` in your rancher-monitoring or other grafana instance:
+```
+http://{{ .Values.nameOverride }}-grafana.{{ .Values.namespaceOverride }}.svc:{{ grafana.service.port }}
+```
+**Custom Tracing Installation with Kiali**
+
+To use a custom Tracing installation, set the `kiali.external_services.tracing` url and update the `.Values.tracing.contextPath` in the rancher-istio values.yaml.
+
+This url depends on the values for `namespaceOverride`, and `.Values.service.externalPort` in your rancher-tracing or other tracing instance.:
+```
+http://tracing.{{ .Values.namespaceOverride }}.svc:{{ .Values.service.externalPort }}/{{ .Values.tracing.contextPath }}
+```
 
 For more information on how to use the feature, refer to our [docs](https://rancher.com/docs/rancher/v2.x/en/istio/v2.5/).
-## Warnings
-- Upgrading across more than two minor versions (e.g., 1.6.x to 1.9.x) in one step is not officially tested or recommended. See [Istio upgrade docs](https://istio.io/latest/docs/setup/upgrade/) for more details.
-
-## Known Issues
-
-#### Airgapped Environments
-**A temporary fix has been added to this chart to allow upgrades to succeed in an airgapped environment. See [this issue](https://github.com/rancher/rancher/issues/30842) for details.** We are still advocating for an upstream fix in Istio to formally resolve this issue. The root cause is the Istio Operator upgrade command reaches out to an external repo on upgrades and the external repo is not configurable. We are tracking the fix for this issue [here](https://github.com/rancher/rancher/issues/33402)
-
-#### Installing Istio with CNI component enabled on RHEL 8.4 SElinux enabled cluster.
-To install istio with CNI enabled, e.g. when cluster has a default PSP set to "restricted", on a cluster using nodes with RHEL 8.4 SElinux enabled, run the following command on each cluster node before creating a cluster.
-`mkdir -p /var/run/istio-cni && semanage fcontext -a -t container_file_t /var/run/istio-cni && restorecon -v /var/run/istio-cni`
-See [this issue](https://github.com/rancher/rancher/issues/33291) for details.
-
-## Deprecations
-
-#### v1alpha1 security policies
-As of 1.6, Istio removed support for `v1alpha1` security policies resource and replaced the API with `v1beta1` authorization policies. https://istio.io/latest/docs/reference/config/security/authorization-policy/
-
-If you are currently running rancher-istio <= 1.7.x, you need to migrate any existing `v1alpha1` security policies to `v1beta1` authorization policies prior to upgrading to the next minor version.
-
-> **Note:** If you attempt to upgrade prior to migrating your policy resources, you might see errors similar to:
-```
-Error: found 6 CRD of unsupported v1alpha1 security policy
-```
-```
- Error: found 1 unsupported v1alpha1 security policy
- ```
- ```
- Control Plane - policy pod - istio-policy - version: x.x.x does not match the target version x.x.x
- ```
- Continue with the migration steps below before retrying the upgrade process.
-
-#### Migrating Resources:
-Migration steps can be found in this [istio blog post](https://istio.io/latest/blog/2021/migrate-alpha-policy/ "istio blog post").
-
-You can also use these [quick steps](https://github.com/rancher/rancher/issues/34699#issuecomment-921995917 "quick steps") to determine if you need to follow the more extensive migration steps.
