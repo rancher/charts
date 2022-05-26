@@ -11,12 +11,33 @@
          livenessProbe:
            httpGet:
              path: /healthz
-@@ -115,7 +115,7 @@
+@@ -115,18 +115,22 @@
        dnsPolicy: {{ .Values.controllerManager.dnsPolicy }}
        hostNetwork: {{ .Values.controllerManager.hostNetwork }}
        imagePullSecrets:
 -        {{- toYaml .Values.image.pullSecrets | nindent 8 }}
+-      nodeSelector:
+-        {{- toYaml .Values.controllerManager.nodeSelector | nindent 8 }}
 +        {{- toYaml .Values.images.pullSecrets | nindent 8 }}
-       nodeSelector:
-         {{- toYaml .Values.controllerManager.nodeSelector | nindent 8 }}
++      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
++{{- if .Values.controllerManager.nodeSelector }}
++{{ toYaml .Values.controllerManager.nodeSelector | indent 8 }}
++{{- end }}
        {{- if .Values.controllerManager.priorityClassName }} 
+       priorityClassName:  {{ .Values.controllerManager.priorityClassName }}
+       {{- end }}
+       serviceAccountName: gatekeeper-admin
+       terminationGracePeriodSeconds: 60
+-      tolerations:
+-        {{- toYaml .Values.controllerManager.tolerations | nindent 8 }}
++      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
++{{- if .Values.controllerManager.tolerations }}
++{{ toYaml .Values.controllerManager.tolerations | indent 8 }}
++{{- end }}
+       volumes:
+       - name: cert
+         secret:
+           defaultMode: 420
+-          secretName: gatekeeper-webhook-server-cert
++          secretName: gatekeeper-webhook-server-cert
+\ No newline at end of file
