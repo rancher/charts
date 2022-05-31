@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rancher-operator
+spec:
+  selector:
+    matchLabels:
+      app: rancher-operator
+  template:
+    metadata:
+      labels:
+        app: rancher-operator
+    spec:
+      containers:
+      - env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: '{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}'
+        name: rancher-operator
+        imagePullPolicy: "{{ .Values.image.imagePullPolicy }}"
+      serviceAccountName: rancher-operator
