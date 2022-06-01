@@ -10,7 +10,12 @@
  apiVersion: monitoring.coreos.com/v1
  kind: PrometheusRule
  metadata:
-@@ -58,7 +59,7 @@
+@@ -54,11 +55,12 @@
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
++    # Rancher specific: manually patched outside of the scripts in order to reflect the latest query that etcd has to offer for etcdHighNumberOfFailedGRPCRequests
+     - alert: etcdHighNumberOfFailedGRPCRequests
        annotations:
          message: 'etcd cluster "{{`{{`}} $labels.job {{`}}`}}": {{`{{`}} $value {{`}}`}}% of requests for {{`{{`}} $labels.grpc_method {{`}}`}} failed on etcd instance {{`{{`}} $labels.instance {{`}}`}}.'
        expr: |-
@@ -19,7 +24,7 @@
            /
          sum(rate(grpc_server_handled_total{job=~".*etcd.*"}[5m])) BY (job, instance, grpc_service, grpc_method)
            > 1
-@@ -72,7 +73,7 @@
+@@ -72,7 +74,7 @@
        annotations:
          message: 'etcd cluster "{{`{{`}} $labels.job {{`}}`}}": {{`{{`}} $value {{`}}`}}% of requests for {{`{{`}} $labels.grpc_method {{`}}`}} failed on etcd instance {{`{{`}} $labels.instance {{`}}`}}.'
        expr: |-
@@ -28,7 +33,7 @@
            /
          sum(rate(grpc_server_handled_total{job=~".*etcd.*"}[5m])) BY (job, instance, grpc_service, grpc_method)
            > 5
-@@ -176,4 +177,5 @@
+@@ -176,4 +178,5 @@
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
