@@ -18,6 +18,9 @@ To install istio with CNI enabled, e.g. when cluster has a default PSP set to "r
 `mkdir -p /var/run/istio-cni && semanage fcontext -a -t container_file_t /var/run/istio-cni && restorecon -v /var/run/istio-cni`
 See [this issue](https://github.com/rancher/rancher/issues/33291) for details.
 
+## Installing istio with distroless-images.
+Istio `100.4.0+up1.14.1` uses distroless images for `istio-proxyv2`, `istio-install-cni` and `istio-pilot`. Distroless images don't have the common debugging tools like `bash`, `curl`, etc. If you wish to troubleshoot Istio, you can switch to regular images by updating `values.yaml` file. 
+
 ## Deprecations
 
 #### v1alpha1 security policies
