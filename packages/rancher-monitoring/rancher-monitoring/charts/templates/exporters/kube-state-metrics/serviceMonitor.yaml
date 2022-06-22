@@ -1,9 +1,12 @@
 {{- if .Values.kubeStateMetrics.enabled }}
+{{- if .Values.kubeStateMetrics.serviceMonitor.namespaceOverride }}
+{{- fail "kubeStateMetrics.serviceMonitor.namespaceOverride was removed. Please use kube-state-metrics.namespaceOverride instead." }}
+{{- end }}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: {{ template "kube-prometheus-stack.fullname" . }}-kube-state-metrics
-  namespace: {{ template "kube-prometheus-stack-kube-state-metrics.namespace" . }}
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
   labels:
     app: {{ template "kube-prometheus-stack.name" . }}-kube-state-metrics
 {{ include "kube-prometheus-stack.labels" . | indent 4 }}
@@ -47,9 +50,11 @@ spec:
 {{ tpl (toYaml .Values.kubeStateMetrics.serviceMonitor.relabelings | indent 4) . }}
 {{- end }}
 {{- end }}
+  {{- if ne (include "kube-prometheus-stack.namespace" .) (include "kube-prometheus-stack-kube-state-metrics.namespace" .) }}
   namespaceSelector:
     matchNames:
       - {{ printf "%s" (include "kube-prometheus-stack-kube-state-metrics.namespace" .) | quote }}
+  {{- end }}
   selector:
     matchLabels:
 {{- if .Values.kubeStateMetrics.serviceMonitor.selectorOverride }}

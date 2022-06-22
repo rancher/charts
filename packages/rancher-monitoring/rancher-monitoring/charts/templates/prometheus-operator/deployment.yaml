@@ -1,4 +1,5 @@
 {{- $namespace := printf "%s" (include "kube-prometheus-stack.namespace" .) }}
+{{- $defaultKubeletSvcName := printf "%s-kubelet" (include "kube-prometheus-stack.fullname" .) }}
 {{- if .Values.prometheusOperator.enabled }}
 apiVersion: apps/v1
 kind: Deployment
@@ -33,14 +34,14 @@ spec:
       containers:
         - name: {{ template "kube-prometheus-stack.name" . }}
           {{- if .Values.prometheusOperator.image.sha }}
-          image: "{{ .Values.prometheusOperator.image.repository }}:{{ .Values.prometheusOperator.image.tag }}@sha256:{{ .Values.prometheusOperator.image.sha }}"
+          image: "{{ template "system_default_registry" . }}{{ .Values.prometheusOperator.image.repository }}:{{ .Values.prometheusOperator.image.tag }}@sha256:{{ .Values.prometheusOperator.image.sha }}"
           {{- else }}
-          image: "{{ .Values.prometheusOperator.image.repository }}:{{ .Values.prometheusOperator.image.tag }}"
+          image: "{{ template "system_default_registry" . }}{{ .Values.prometheusOperator.image.repository }}:{{ .Values.prometheusOperator.image.tag }}"
           {{- end }}
           imagePullPolicy: "{{ .Values.prometheusOperator.image.pullPolicy }}"
           args:
             {{- if .Values.prometheusOperator.kubeletService.enabled }}
-            - --kubelet-service={{ .Values.prometheusOperator.kubeletService.namespace }}/{{ template "kube-prometheus-stack.fullname" . }}-kubelet
+            - --kubelet-service={{ .Values.prometheusOperator.kubeletService.namespace }}/{{ default $defaultKubeletSvcName .Values.prometheusOperator.kubeletService.name  }}
             {{- end }}
             {{- if .Values.prometheusOperator.logFormat }}
             - --log-format={{ .Values.prometheusOperator.logFormat }}
@@ -52,7 +53,7 @@ spec:
             - --deny-namespaces={{ .Values.prometheusOperator.denyNamespaces | join "," }}
             {{- end }}
             {{- with $.Values.prometheusOperator.namespaces }}
-            {{ $ns := .additional }}
+            {{ $ns := default (list nil) .additional }}
             {{- if .releaseNamespace }}
             {{- $ns = append $ns $namespace }}
             {{- end }}
@@ -65,15 +66,15 @@ spec:
             {{- if .Values.prometheusOperator.alertmanagerDefaultBaseImage }}
             - --alertmanager-default-base-image={{ .Values.prometheusOperator.alertmanagerDefaultBaseImage }}
             {{- end }}
-            {{- if .Values.prometheusOperator.prometheusConfigReloaderImage.sha }}
-            - --prometheus-config-reloader={{ .Values.prometheusOperator.prometheusConfigReloaderImage.repository }}:{{ .Values.prometheusOperator.prometheusConfigReloaderImage.tag }}@sha256:{{ .Values.prometheusOperator.prometheusConfigReloaderImage.sha }}
+            {{- if .Values.prometheusOperator.prometheusConfigReloader.image.sha }}
+            - --prometheus-config-reloader={{ .Values.prometheusOperator.prometheusConfigReloader.image.repository }}:{{ .Values.prometheusOperator.prometheusConfigReloader.image.tag }}@sha256:{{ .Values.prometheusOperator.prometheusConfigReloader.image.sha }}
             {{- else }}
-            - --prometheus-config-reloader={{ .Values.prometheusOperator.prometheusConfigReloaderImage.repository }}:{{ .Values.prometheusOperator.prometheusConfigReloaderImage.tag }}
+            - --prometheus-config-reloader={{ .Values.prometheusOperator.prometheusConfigReloader.image.repository }}:{{ .Values.prometheusOperator.prometheusConfigReloader.image.tag }}
             {{- end }}
-            - --config-reloader-cpu-request={{ .Values.prometheusOperator.configReloaderCpu }}
-            - --config-reloader-cpu-limit={{ .Values.prometheusOperator.configReloaderCpu }}
-            - --config-reloader-memory-request={{ .Values.prometheusOperator.configReloaderMemory }}
-            - --config-reloader-memory-limit={{ .Values.prometheusOperator.configReloaderMemory }}
+            - --config-reloader-cpu-request={{ .Values.prometheusOperator.prometheusConfigReloader.resources.requests.cpu }}
+            - --config-reloader-cpu-limit={{ .Values.prometheusOperator.prometheusConfigReloader.resources.limits.cpu }}
+            - --config-reloader-memory-request={{ .Values.prometheusOperator.prometheusConfigReloader.resources.requests.memory }}
+            - --config-reloader-memory-limit={{ .Values.prometheusOperator.prometheusConfigReloader.resources.limits.memory }}
             {{- if .Values.prometheusOperator.alertmanagerInstanceNamespaces }}
             - --alertmanager-instance-namespaces={{ .Values.prometheusOperator.alertmanagerInstanceNamespaces | join "," }}
             {{- end }}
@@ -81,9 +82,9 @@ spec:
             - --prometheus-instance-namespaces={{ .Values.prometheusOperator.prometheusInstanceNamespaces | join "," }}
             {{- end }}
             {{- if .Values.prometheusOperator.thanosImage.sha }}
-            - --thanos-default-base-image={{ .Values.prometheusOperator.thanosImage.repository }}:{{ .Values.prometheusOperator.thanosImage.tag }}@sha256:{{ .Values.prometheusOperator.thanosImage.sha }}
+            - --thanos-default-base-image={{ template "system_default_registry" . }}{{ .Values.prometheusOperator.thanosImage.repository }}:{{ .Values.prometheusOperator.thanosImage.tag }}@sha256:{{ .Values.prometheusOperator.thanosImage.sha }}
             {{- else }}
-            - --thanos-default-base-image={{ .Values.prometheusOperator.thanosImage.repository }}:{{ .Values.prometheusOperator.thanosImage.tag }}
+            - --thanos-default-base-image={{ template "system_default_registry" . }}{{ .Values.prometheusOperator.thanosImage.repository }}:{{ .Values.prometheusOperator.thanosImage.tag }}
             {{- end }} 
             {{- if .Values.prometheusOperator.thanosRulerInstanceNamespaces }}
             - --thanos-ruler-instance-namespaces={{ .Values.prometheusOperator.thanosRulerInstanceNamespaces | join "," }}
@@ -111,8 +112,7 @@ spec:
           resources:
 {{ toYaml .Values.prometheusOperator.resources | indent 12 }}
           securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
+{{ toYaml .Values.prometheusOperator.containerSecurityContext | indent 12 }}
 {{- if .Values.prometheusOperator.tls.enabled }}
           volumeMounts:
             - name: tls-secret
@@ -137,16 +137,16 @@ spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
 {{- end }}
-    {{- with .Values.prometheusOperator.nodeSelector }}
-      nodeSelector:
+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }} 
+{{- with .Values.prometheusOperator.nodeSelector }}
 {{ toYaml . | indent 8 }}
-    {{- end }}
+{{- end }}
     {{- with .Values.prometheusOperator.affinity }}
       affinity:
 {{ toYaml . | indent 8 }}
     {{- end }}
-    {{- with .Values.prometheusOperator.tolerations }}
-      tolerations:
+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }} 
+{{- with .Values.prometheusOperator.tolerations }}
 {{ toYaml . | indent 8 }}
-    {{- end }}
+{{- end }}
 {{- end }}
