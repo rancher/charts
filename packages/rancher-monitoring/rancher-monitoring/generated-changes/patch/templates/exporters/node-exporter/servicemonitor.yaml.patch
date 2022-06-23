@@ -1,6 +1,6 @@
 --- charts-original/templates/exporters/node-exporter/servicemonitor.yaml
 +++ charts/templates/exporters/node-exporter/servicemonitor.yaml
-@@ -1,4 +1,7 @@
+@@ -1,9 +1,12 @@
 -{{- if .Values.nodeExporter.enabled }}
 +{{- if (and (not .Values.nodeExporter.enabled) .Values.hardenedNodeExporter.enabled) }}
 +{{ required "Cannot set .Values.hardenedNodeExporter.enabled=true when .Values.nodeExporter.enabled=false" "" }}
@@ -9,3 +9,24 @@
  apiVersion: monitoring.coreos.com/v1
  kind: ServiceMonitor
  metadata:
+   name: {{ template "kube-prometheus-stack.fullname" . }}-node-exporter
+-  namespace: {{ template "kube-prometheus-stack-prometheus-node-exporter.namespace" . }}
++  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+   labels:
+     app: {{ template "kube-prometheus-stack.name" . }}-node-exporter
+ {{ include "kube-prometheus-stack.labels" . | indent 4 }}
+@@ -13,11 +16,13 @@
+     matchLabels:
+       app: prometheus-node-exporter
+       release: {{ $.Release.Name }}
++  {{- if ne (include "kube-prometheus-stack.namespace" .) (include "kube-prometheus-stack-prometheus-node-exporter.namespace" .) }}
+   namespaceSelector:
+     matchNames:
+       - {{ printf "%s" (include "kube-prometheus-stack-prometheus-node-exporter.namespace" .) | quote }}
++  {{- end }}
+   endpoints:
+-  - port: metrics
++  - port: {{ index .Values "prometheus-node-exporter" "service" "portName" }}
+     {{- if .Values.nodeExporter.serviceMonitor.interval }}
+     interval: {{ .Values.nodeExporter.serviceMonitor.interval }}
+     {{- end }}

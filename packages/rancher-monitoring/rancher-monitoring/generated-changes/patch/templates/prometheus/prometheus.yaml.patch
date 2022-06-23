@@ -18,7 +18,14 @@
    {{- end }}
    version: {{ .Values.prometheus.prometheusSpec.image.tag }}
    {{- if .Values.prometheus.prometheusSpec.image.sha }}
-@@ -64,11 +64,13 @@
+@@ -60,15 +60,20 @@
+ {{- else if .Values.prometheus.prometheusSpec.replicaExternalLabelName }}
+   replicaExternalLabelName: "{{ .Values.prometheus.prometheusSpec.replicaExternalLabelName }}"
+ {{- end }}
++{{- if .Values.prometheus.prometheusSpec.enableRemoteWriteReceiver }}
++  enableRemoteWriteReceiver: {{ .Values.prometheus.prometheusSpec.enableRemoteWriteReceiver }}
++{{- end }}
+ {{- if .Values.prometheus.prometheusSpec.externalUrl }}
    externalUrl: "{{ tpl .Values.prometheus.prometheusSpec.externalUrl . }}"
  {{- else if and .Values.prometheus.ingress.enabled .Values.prometheus.ingress.hosts }}
    externalUrl: "http://{{ tpl (index .Values.prometheus.ingress.hosts 0) . }}{{ .Values.prometheus.prometheusSpec.routePrefix }}"
@@ -33,7 +40,15 @@
  {{ toYaml .Values.prometheus.prometheusSpec.nodeSelector | indent 4 }}
  {{- end }}
    paused: {{ .Values.prometheus.prometheusSpec.paused }}
-@@ -244,8 +246,8 @@
+@@ -202,7 +207,6 @@
+ {{- else if .Values.prometheus.prometheusSpec.ruleSelectorNilUsesHelmValues }}
+   ruleSelector:
+     matchLabels:
+-      app: {{ template "kube-prometheus-stack.name" . }}
+       release: {{ $.Release.Name | quote }}
+ {{ else }}
+   ruleSelector: {}
+@@ -244,8 +248,8 @@
                - {key: prometheus, operator: In, values: [{{ template "kube-prometheus-stack.fullname" . }}-prometheus]}
  {{- end }}
  {{- end }}
@@ -43,8 +58,24 @@
  {{ toYaml .Values.prometheus.prometheusSpec.tolerations | indent 4 }}
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.topologySpreadConstraints }}
-@@ -284,7 +286,7 @@
+@@ -254,7 +258,7 @@
  {{- end }}
+ {{- if .Values.global.imagePullSecrets }}
+   imagePullSecrets:
+-{{ toYaml .Values.global.imagePullSecrets | indent 4 }}
++{{ include "kube-prometheus-stack.imagePullSecrets" . | trim | indent 4 }}
+ {{- end }}
+ {{- if .Values.prometheus.prometheusSpec.additionalScrapeConfigs }}
+   additionalScrapeConfigs:
+@@ -282,9 +286,14 @@
+     name: {{ template "kube-prometheus-stack.fullname" . }}-prometheus-am-relabel-confg
+     key: additional-alert-relabel-configs.yaml
+ {{- end }}
++{{- if .Values.prometheus.prometheusSpec.additionalAlertRelabelConfigsSecret }}
++  additionalAlertRelabelConfigs:
++    name: {{ .Values.prometheus.prometheusSpec.additionalAlertRelabelConfigsSecret.name }}
++    key: {{ .Values.prometheus.prometheusSpec.additionalAlertRelabelConfigsSecret.key }}
++{{- end }}
  {{- if .Values.prometheus.prometheusSpec.containers }}
    containers:
 -{{ toYaml .Values.prometheus.prometheusSpec.containers | indent 4 }}
@@ -52,15 +83,33 @@
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.initContainers }}
    initContainers:
-@@ -300,6 +302,7 @@
+@@ -300,8 +309,8 @@
  {{- if .Values.prometheus.prometheusSpec.disableCompaction }}
    disableCompaction: {{ .Values.prometheus.prometheusSpec.disableCompaction }}
  {{- end }}
 +{{- if .Values.prometheus.prometheusSpec.portName }}
    portName: {{ .Values.prometheus.prometheusSpec.portName }}
- {{- end }}
+-{{- end }}
  {{- if .Values.prometheus.prometheusSpec.volumes }}
-@@ -356,3 +359,4 @@
+   volumes:
+ {{ toYaml .Values.prometheus.prometheusSpec.volumes | indent 4 }}
+@@ -334,6 +343,15 @@
+ {{- if .Values.prometheus.prometheusSpec.prometheusRulesExcludedFromEnforce }}
+ {{ toYaml .Values.prometheus.prometheusSpec.prometheusRulesExcludedFromEnforce | indent 4 }}
+ {{- end }}
++  excludedFromEnforcement:
++{{- range $prometheusDefaultRulesExcludedFromEnforce.rules }}
++    - resource: prometheusrules
++      namespace: "{{ template "kube-prometheus-stack.namespace" $ }}"
++      name: "{{ printf "%s-%s" (include "kube-prometheus-stack.fullname" $) . | trunc 63 | trimSuffix "-" }}"
++{{- end }}
++{{- if .Values.prometheus.prometheusSpec.excludedFromEnforcement }}
++{{ toYaml .Values.prometheus.prometheusSpec.excludedFromEnforcement | indent 4 }}
++{{- end }}
+ {{- end }}
+ {{- if .Values.prometheus.prometheusSpec.queryLogFile }}
+   queryLogFile: {{ .Values.prometheus.prometheusSpec.queryLogFile }}
+@@ -356,3 +374,4 @@
  {{- if .Values.prometheus.prometheusSpec.allowOverlappingBlocks }}
    allowOverlappingBlocks: {{ .Values.prometheus.prometheusSpec.allowOverlappingBlocks }}
  {{- end }}
