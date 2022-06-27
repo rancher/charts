@@ -29,4 +29,18 @@ spec:
         image: '{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}'
         name: {{ .Chart.Name }}
         imagePullPolicy: "{{ .Values.image.imagePullPolicy }}"
+{{- if .Values.additionalTrustedCAs }}
+        volumeMounts:
+          - mountPath: /etc/ssl/certs/rancher-cert.pem
+            name: tls-ca-volume
+            subPath: ca-additional.pem
+            readOnly: true
+{{- end }}
       serviceAccountName: {{ .Chart.Name }}
+{{- if .Values.additionalTrustedCAs }}
+      volumes:
+        - name: tls-ca-volume
+          secret:
+            defaultMode: 0444
+            secretName: tls-ca-additional
+{{- end }}
