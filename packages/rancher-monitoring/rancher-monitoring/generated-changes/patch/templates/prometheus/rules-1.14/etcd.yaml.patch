@@ -10,13 +10,58 @@
  apiVersion: monitoring.coreos.com/v1
  kind: PrometheusRule
  metadata:
-@@ -54,11 +55,12 @@
+@@ -24,8 +25,12 @@
+   groups:
+   - name: etcd
+     rules:
++{{- if not (.Values.defaultRules.disabled.etcdInsufficientMembers | default false) }}
+     - alert: etcdInsufficientMembers
+       annotations:
++{{- if .Values.defaultRules.additionalRuleAnnotations }}
++{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
++{{- end }}
+         message: 'etcd cluster "{{`{{`}} $labels.job {{`}}`}}": insufficient members ({{`{{`}} $value {{`}}`}}).'
+       expr: sum(up{job=~".*etcd.*"} == bool 1) by (job) < ((count(up{job=~".*etcd.*"}) by (job) + 1) / 2)
+       for: 3m
+@@ -34,8 +39,13 @@
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
-+    # Rancher specific: manually patched outside of the scripts in order to reflect the latest query that etcd has to offer for etcdHighNumberOfFailedGRPCRequests
++{{- end }}
++{{- if not (.Values.defaultRules.disabled.etcdNoLeader | default false) }}
+     - alert: etcdNoLeader
+       annotations:
++{{- if .Values.defaultRules.additionalRuleAnnotations }}
++{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
++{{- end }}
+         message: 'etcd cluster "{{`{{`}} $labels.job {{`}}`}}": member {{`{{`}} $labels.instance {{`}}`}} has no leader.'
+       expr: etcd_server_has_leader{job=~".*etcd.*"} == 0
+       for: 1m
+@@ -44,8 +54,13 @@
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
++{{- end }}
++{{- if not (.Values.defaultRules.disabled.etcdHighNumberOfLeaderChanges | default false) }}
+     - alert: etcdHighNumberOfLeaderChanges
+       annotations:
++{{- if .Values.defaultRules.additionalRuleAnnotations }}
++{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
++{{- end }}
+         message: 'etcd cluster "{{`{{`}} $labels.job {{`}}`}}": instance {{`{{`}} $labels.instance {{`}}`}} has seen {{`{{`}} $value {{`}}`}} leader changes within the last hour.'
+       expr: rate(etcd_server_leader_changes_seen_total{job=~".*etcd.*"}[15m]) > 3
+       for: 15m
+@@ -54,11 +69,16 @@
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
++{{- end }}
++{{- if not (.Values.defaultRules.disabled.etcdHighNumberOfFailedGRPCRequests | default false) }}
      - alert: etcdHighNumberOfFailedGRPCRequests
        annotations:
++{{- if .Values.defaultRules.additionalRuleAnnotations }}
++{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
++{{- end }}
          message: 'etcd cluster "{{`{{`}} $labels.job {{`}}`}}": {{`{{`}} $value {{`}}`}}% of requests for {{`{{`}} $labels.grpc_method {{`}}`}} failed on etcd instance {{`{{`}} $labels.instance {{`}}`}}.'
        expr: |-
 -        100 * sum(rate(grpc_server_handled_total{job=~".*etcd.*", grpc_code!="OK"}[5m])) BY (job, instance, grpc_service, grpc_method)
@@ -24,8 +69,17 @@
            /
          sum(rate(grpc_server_handled_total{job=~".*etcd.*"}[5m])) BY (job, instance, grpc_service, grpc_method)
            > 1
-@@ -72,7 +74,7 @@
+@@ -68,11 +88,16 @@
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
++{{- end }}
++{{- if not (.Values.defaultRules.disabled.etcdHighNumberOfFailedGRPCRequests | default false) }}
+     - alert: etcdHighNumberOfFailedGRPCRequests
        annotations:
++{{- if .Values.defaultRules.additionalRuleAnnotations }}
++{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
++{{- end }}
          message: 'etcd cluster "{{`{{`}} $labels.job {{`}}`}}": {{`{{`}} $value {{`}}`}}% of requests for {{`{{`}} $labels.grpc_method {{`}}`}} failed on etcd instance {{`{{`}} $labels.instance {{`}}`}}.'
        expr: |-
 -        100 * sum(rate(grpc_server_handled_total{job=~".*etcd.*", grpc_code!="OK"}[5m])) BY (job, instance, grpc_service, grpc_method)
@@ -33,7 +87,119 @@
            /
          sum(rate(grpc_server_handled_total{job=~".*etcd.*"}[5m])) BY (job, instance, grpc_service, grpc_method)
            > 5
-@@ -176,4 +178,5 @@
+@@ -82,8 +107,13 @@
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
++{{- end }}
++{{- if not (.Values.defaultRules.disabled.etcdGRPCRequestsSlow | default false) }}
+     - alert: etcdGRPCRequestsSlow
+       annotations:
++{{- if .Values.defaultRules.additionalRuleAnnotations }}
++{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
++{{- end }}
+         message: 'etcd cluster "{{`{{`}} $labels.job {{`}}`}}": gRPC requests to {{`{{`}} $labels.grpc_method {{`}}`}} are taking {{`{{`}} $value {{`}}`}}s on etcd instance {{`{{`}} $labels.instance {{`}}`}}.'
+       expr: |-
+         histogram_quantile(0.99, sum(rate(grpc_server_handling_seconds_bucket{job=~".*etcd.*", grpc_type="unary"}[5m])) by (job, instance, grpc_service, grpc_method, le))
+@@ -94,8 +124,13 @@
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
++{{- end }}
++{{- if not (.Values.defaultRules.disabled.etcdMemberCommunicationSlow | default false) }}
+     - alert: etcdMemberCommunicationSlow
+       annotations:
++{{- if .Values.defaultRules.additionalRuleAnnotations }}
++{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
++{{- end }}
+         message: 'etcd cluster "{{`{{`}} $labels.job {{`}}`}}": member communication with {{`{{`}} $labels.To {{`}}`}} is taking {{`{{`}} $value {{`}}`}}s on etcd instance {{`{{`}} $labels.instance {{`}}`}}.'
+       expr: |-
+         histogram_quantile(0.99, rate(etcd_network_peer_round_trip_time_seconds_bucket{job=~".*etcd.*"}[5m]))
+@@ -106,8 +141,13 @@
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
++{{- end }}
++{{- if not (.Values.defaultRules.disabled.etcdHighNumberOfFailedProposals | default false) }}
+     - alert: etcdHighNumberOfFailedProposals
+       annotations:
++{{- if .Values.defaultRules.additionalRuleAnnotations }}
++{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
++{{- end }}
+         message: 'etcd cluster "{{`{{`}} $labels.job {{`}}`}}": {{`{{`}} $value {{`}}`}} proposal failures within the last hour on etcd instance {{`{{`}} $labels.instance {{`}}`}}.'
+       expr: rate(etcd_server_proposals_failed_total{job=~".*etcd.*"}[15m]) > 5
+       for: 15m
+@@ -116,8 +156,13 @@
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
++{{- end }}
++{{- if not (.Values.defaultRules.disabled.etcdHighFsyncDurations | default false) }}
+     - alert: etcdHighFsyncDurations
+       annotations:
++{{- if .Values.defaultRules.additionalRuleAnnotations }}
++{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
++{{- end }}
+         message: 'etcd cluster "{{`{{`}} $labels.job {{`}}`}}": 99th percentile fync durations are {{`{{`}} $value {{`}}`}}s on etcd instance {{`{{`}} $labels.instance {{`}}`}}.'
+       expr: |-
+         histogram_quantile(0.99, rate(etcd_disk_wal_fsync_duration_seconds_bucket{job=~".*etcd.*"}[5m]))
+@@ -128,8 +173,13 @@
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
++{{- end }}
++{{- if not (.Values.defaultRules.disabled.etcdHighCommitDurations | default false) }}
+     - alert: etcdHighCommitDurations
+       annotations:
++{{- if .Values.defaultRules.additionalRuleAnnotations }}
++{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
++{{- end }}
+         message: 'etcd cluster "{{`{{`}} $labels.job {{`}}`}}": 99th percentile commit durations {{`{{`}} $value {{`}}`}}s on etcd instance {{`{{`}} $labels.instance {{`}}`}}.'
+       expr: |-
+         histogram_quantile(0.99, rate(etcd_disk_backend_commit_duration_seconds_bucket{job=~".*etcd.*"}[5m]))
+@@ -140,8 +190,13 @@
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
++{{- end }}
++{{- if not (.Values.defaultRules.disabled.etcdHighNumberOfFailedHTTPRequests | default false) }}
+     - alert: etcdHighNumberOfFailedHTTPRequests
+       annotations:
++{{- if .Values.defaultRules.additionalRuleAnnotations }}
++{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
++{{- end }}
+         message: '{{`{{`}} $value {{`}}`}}% of requests for {{`{{`}} $labels.method {{`}}`}} failed on etcd instance {{`{{`}} $labels.instance {{`}}`}}'
+       expr: |-
+         sum(rate(etcd_http_failed_total{job=~".*etcd.*", code!="404"}[5m])) BY (method) / sum(rate(etcd_http_received_total{job=~".*etcd.*"}[5m]))
+@@ -152,8 +207,13 @@
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
++{{- end }}
++{{- if not (.Values.defaultRules.disabled.etcdHighNumberOfFailedHTTPRequests | default false) }}
+     - alert: etcdHighNumberOfFailedHTTPRequests
+       annotations:
++{{- if .Values.defaultRules.additionalRuleAnnotations }}
++{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
++{{- end }}
+         message: '{{`{{`}} $value {{`}}`}}% of requests for {{`{{`}} $labels.method {{`}}`}} failed on etcd instance {{`{{`}} $labels.instance {{`}}`}}.'
+       expr: |-
+         sum(rate(etcd_http_failed_total{job=~".*etcd.*", code!="404"}[5m])) BY (method) / sum(rate(etcd_http_received_total{job=~".*etcd.*"}[5m]))
+@@ -164,8 +224,13 @@
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
++{{- end }}
++{{- if not (.Values.defaultRules.disabled.etcdHTTPRequestsSlow | default false) }}
+     - alert: etcdHTTPRequestsSlow
+       annotations:
++{{- if .Values.defaultRules.additionalRuleAnnotations }}
++{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
++{{- end }}
+         message: etcd instance {{`{{`}} $labels.instance {{`}}`}} HTTP requests to {{`{{`}} $labels.method {{`}}`}} are slow.
+       expr: |-
+         histogram_quantile(0.99, rate(etcd_http_successful_duration_seconds_bucket[5m]))
+@@ -176,4 +241,5 @@
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
