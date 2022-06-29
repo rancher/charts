@@ -60,6 +60,9 @@ spec:
 {{- else if .Values.prometheus.prometheusSpec.replicaExternalLabelName }}
   replicaExternalLabelName: "{{ .Values.prometheus.prometheusSpec.replicaExternalLabelName }}"
 {{- end }}
+{{- if .Values.prometheus.prometheusSpec.enableRemoteWriteReceiver }}
+  enableRemoteWriteReceiver: {{ .Values.prometheus.prometheusSpec.enableRemoteWriteReceiver }}
+{{- end }}
 {{- if .Values.prometheus.prometheusSpec.externalUrl }}
   externalUrl: "{{ tpl .Values.prometheus.prometheusSpec.externalUrl . }}"
 {{- else if and .Values.prometheus.ingress.enabled .Values.prometheus.ingress.hosts }}
@@ -204,7 +207,6 @@ spec:
 {{- else if .Values.prometheus.prometheusSpec.ruleSelectorNilUsesHelmValues }}
   ruleSelector:
     matchLabels:
-      app: {{ template "kube-prometheus-stack.name" . }}
       release: {{ $.Release.Name | quote }}
 {{ else }}
   ruleSelector: {}
@@ -256,7 +258,7 @@ spec:
 {{- end }}
 {{- if .Values.global.imagePullSecrets }}
   imagePullSecrets:
-{{ toYaml .Values.global.imagePullSecrets | indent 4 }}
+{{ include "kube-prometheus-stack.imagePullSecrets" . | trim | indent 4 }}
 {{- end }}
 {{- if .Values.prometheus.prometheusSpec.additionalScrapeConfigs }}
   additionalScrapeConfigs:
@@ -284,6 +286,11 @@ spec:
     name: {{ template "kube-prometheus-stack.fullname" . }}-prometheus-am-relabel-confg
     key: additional-alert-relabel-configs.yaml
 {{- end }}
+{{- if .Values.prometheus.prometheusSpec.additionalAlertRelabelConfigsSecret }}
+  additionalAlertRelabelConfigs:
+    name: {{ .Values.prometheus.prometheusSpec.additionalAlertRelabelConfigsSecret.name }}
+    key: {{ .Values.prometheus.prometheusSpec.additionalAlertRelabelConfigsSecret.key }}
+{{- end }}
 {{- if .Values.prometheus.prometheusSpec.containers }}
   containers:
 {{ tpl .Values.prometheus.prometheusSpec.containers $ | indent 4 }}
@@ -304,7 +311,6 @@ spec:
 {{- end }}
 {{- if .Values.prometheus.prometheusSpec.portName }}
   portName: {{ .Values.prometheus.prometheusSpec.portName }}
-{{- end }}
 {{- if .Values.prometheus.prometheusSpec.volumes }}
   volumes:
 {{ toYaml .Values.prometheus.prometheusSpec.volumes | indent 4 }}
@@ -336,6 +342,15 @@ spec:
 {{- end }}
 {{- if .Values.prometheus.prometheusSpec.prometheusRulesExcludedFromEnforce }}
 {{ toYaml .Values.prometheus.prometheusSpec.prometheusRulesExcludedFromEnforce | indent 4 }}
+{{- end }}
+  excludedFromEnforcement:
+{{- range $prometheusDefaultRulesExcludedFromEnforce.rules }}
+    - resource: prometheusrules
+      namespace: "{{ template "kube-prometheus-stack.namespace" $ }}"
+      name: "{{ printf "%s-%s" (include "kube-prometheus-stack.fullname" $) . | trunc 63 | trimSuffix "-" }}"
+{{- end }}
+{{- if .Values.prometheus.prometheusSpec.excludedFromEnforcement }}
+{{ toYaml .Values.prometheus.prometheusSpec.excludedFromEnforcement | indent 4 }}
 {{- end }}
 {{- end }}
 {{- if .Values.prometheus.prometheusSpec.queryLogFile }}

@@ -304,4 +304,65 @@ Use the prometheus-node-exporter namespace override for multi-namespace deployme
   {{- else -}}
     {{- print "policy/v1beta1" -}}
   {{- end -}}
+  {{- end -}}
+
+{{/* Get value based on current Kubernetes version */}}
+{{- define "kube-prometheus-stack.kubeVersionDefaultValue" -}}
+  {{- $values := index . 0 -}}
+  {{- $kubeVersion := index . 1 -}}
+  {{- $old := index . 2 -}}
+  {{- $new := index . 3 -}}
+  {{- $default := index . 4 -}}
+  {{- if kindIs "invalid" $default -}}
+    {{- if semverCompare $kubeVersion (include "kube-prometheus-stack.kubeVersion" $values) -}}
+      {{- print $new -}}
+    {{- else -}}
+      {{- print $old -}}
+    {{- end -}}
+  {{- else -}}
+    {{- print $default }}
+  {{- end -}}
+{{- end -}}
+
+{{/* Get value for kube-controller-manager depending on insecure scraping availability */}}
+{{- define "kube-prometheus-stack.kubeControllerManager.insecureScrape" -}}
+  {{- $values := index . 0 -}}
+  {{- $insecure := index . 1 -}}
+  {{- $secure := index . 2 -}}
+  {{- $userValue := index . 3 -}}
+  {{- include "kube-prometheus-stack.kubeVersionDefaultValue" (list $values ">= 1.22-0" $insecure $secure $userValue) -}}
+{{- end -}}
+
+{{/* Get value for kube-scheduler depending on insecure scraping availability */}}
+{{- define "kube-prometheus-stack.kubeScheduler.insecureScrape" -}}
+  {{- $values := index . 0 -}}
+  {{- $insecure := index . 1 -}}
+  {{- $secure := index . 2 -}}
+  {{- $userValue := index . 3 -}}
+  {{- include "kube-prometheus-stack.kubeVersionDefaultValue" (list $values ">= 1.23-0" $insecure $secure $userValue) -}}
+{{- end -}}
+
+{{/*
+To help compatibility with other charts which use global.imagePullSecrets.
+Allow either an array of {name: pullSecret} maps (k8s-style), or an array of strings (more common helm-style).
+global:
+  imagePullSecrets:
+  - name: pullSecret1
+  - name: pullSecret2
+
+or
+
+global:
+  imagePullSecrets:
+  - pullSecret1
+  - pullSecret2
+*/}}
+{{- define "kube-prometheus-stack.imagePullSecrets" -}}
+{{- range .Values.global.imagePullSecrets }}
+  {{- if eq (typeOf .) "map[string]interface {}" }} 
+- {{ toYaml . | trim }}
+  {{- else }}
+- name: {{ . }}
+  {{- end }}
+{{- end }}
 {{- end -}}

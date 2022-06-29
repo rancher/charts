@@ -6,7 +6,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: {{ template "kube-prometheus-stack.fullname" . }}-node-exporter
-  namespace: {{ template "kube-prometheus-stack-prometheus-node-exporter.namespace" . }}
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
   labels:
     app: {{ template "kube-prometheus-stack.name" . }}-node-exporter
 {{ include "kube-prometheus-stack.labels" . | indent 4 }}
@@ -16,11 +16,13 @@ spec:
     matchLabels:
       app: prometheus-node-exporter
       release: {{ $.Release.Name }}
+  {{- if ne (include "kube-prometheus-stack.namespace" .) (include "kube-prometheus-stack-prometheus-node-exporter.namespace" .) }}
   namespaceSelector:
     matchNames:
       - {{ printf "%s" (include "kube-prometheus-stack-prometheus-node-exporter.namespace" .) | quote }}
+  {{- end }}
   endpoints:
-  - port: metrics
+  - port: {{ index .Values "prometheus-node-exporter" "service" "portName" }}
     {{- if .Values.nodeExporter.serviceMonitor.interval }}
     interval: {{ .Values.nodeExporter.serviceMonitor.interval }}
     {{- end }}
