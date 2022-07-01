@@ -58,8 +58,9 @@ spec:
       {{- end }}
       {{- if .Values.imageRenderer.image.pullSecrets }}
       imagePullSecrets:
+      {{- $root := . }}
       {{- range .Values.imageRenderer.image.pullSecrets }}
-        - name: {{ . }}
+        - name: {{ tpl . $root }}
       {{- end}}
       {{- end }}
       containers:
@@ -107,9 +108,10 @@ spec:
       {{- if .Values.imageRenderer.nodeSelector }}
 {{ toYaml . | indent 8 }}
       {{- end }}
+      {{- $root := . }}
       {{- with .Values.imageRenderer.affinity }}
       affinity:
-{{ toYaml . | indent 8 }}
+{{ tpl (toYaml .) $root | indent 8 }}
       {{- end }}
       tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
       {{- if .Values.imageRenderer.tolerations }}

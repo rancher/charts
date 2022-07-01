@@ -111,6 +111,7 @@ Selector labels
 {{- define "grafana.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "grafana.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: grafana
 {{- end -}}
 
 {{/*
@@ -131,6 +132,7 @@ Selector labels ImageRenderer
 {{- define "grafana.imageRenderer.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "grafana.name" . }}-image-renderer
 app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: grafana
 {{- end -}}
 
 {{/*
@@ -167,6 +169,28 @@ Return the appropriate apiVersion for ingress.
     {{- print "networking.k8s.io/v1beta1" -}}
   {{- else -}}
     {{- print "extensions/v1beta1" -}}
+  {{- end -}}
+{{- end -}}
+
+{{/*
+Return the appropriate apiVersion for podSecurityPolicy.
+*/}}
+{{- define "grafana.podSecurityPolicy.apiVersion" -}}
+  {{- if and (.Capabilities.APIVersions.Has "policy/v1beta1") (semverCompare ">= 1.16-0" .Capabilities.KubeVersion.Version) -}}
+    {{- print "policy/v1beta1" -}}
+  {{- else -}}
+    {{- print "extensions/v1beta1" -}}
+  {{- end -}}
+{{- end -}}
+
+{{/*
+Return the appropriate apiVersion for podDisruptionBudget.
+*/}}
+{{- define "grafana.podDisruptionBudget.apiVersion" -}}
+  {{- if and (.Capabilities.APIVersions.Has "policy/v1") (semverCompare ">= 1.21-0" .Capabilities.KubeVersion.Version) -}}
+    {{- print "policy/v1" -}}
+  {{- else -}}
+    {{- print "policy/v1beta1" -}}
   {{- end -}}
 {{- end -}}
 
