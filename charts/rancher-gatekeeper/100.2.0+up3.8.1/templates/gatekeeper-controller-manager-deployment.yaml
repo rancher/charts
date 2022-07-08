@@ -40,7 +40,9 @@ spec:
         {{- toYaml .Values.controllerManager.affinity | nindent 8 }}
       automountServiceAccountToken: true
       containers:
-      - args:
+      - image: '{{ template "system_default_registry" . }}{{ .Values.images.gatekeeper.repository }}:{{ .Values.images.gatekeeper.tag }}'
+        imagePullPolicy: '{{ .Values.images.pullPolicy }}'
+        args:
         - --port={{ .Values.controllerManager.port }}
         - --health-addr=:{{ .Values.controllerManager.healthPort }}
         - --prometheus-port={{ .Values.controllerManager.metricsPort }}
@@ -51,6 +53,9 @@ spec:
         - --exempt-namespace={{ .Release.Namespace }}
         - --operation=webhook
         - --enable-external-data={{ .Values.enableExternalData }}
+        - --log-mutations={{ .Values.logMutations }}
+        - --mutation-annotations={{ .Values.mutationAnnotations }}
+        {{ if .Values.enableTLSHealthcheck}}- --enable-tls-healthcheck{{- end }}
         {{ if not .Values.disableMutation}}- --operation=mutation-webhook{{- end }}
         
         {{- range .Values.disabledBuiltins}}
@@ -76,8 +81,6 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
-        image: '{{ template "system_default_registry" . }}{{ .Values.images.gatekeeper.repository }}:{{ .Values.images.gatekeeper.tag }}'
-        imagePullPolicy: '{{ .Values.images.pullPolicy }}'
         livenessProbe:
           httpGet:
             path: /healthz
@@ -100,14 +103,7 @@ spec:
         resources:
           {{- toYaml .Values.controllerManager.resources | nindent 10 }}
         securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - all
-          readOnlyRootFilesystem: true
-          runAsGroup: 999
-          runAsNonRoot: true
-          runAsUser: 1000
+          {{- toYaml .Values.controllerManager.securityContext | nindent 10}}
         volumeMounts:
         - mountPath: /certs
           name: cert
@@ -120,7 +116,7 @@ spec:
 {{- if .Values.controllerManager.nodeSelector }}
 {{ toYaml .Values.controllerManager.nodeSelector | indent 8 }}
 {{- end }}
-      {{- if .Values.controllerManager.priorityClassName }} 
+      {{- if .Values.controllerManager.priorityClassName }}
       priorityClassName:  {{ .Values.controllerManager.priorityClassName }}
       {{- end }}
       serviceAccountName: gatekeeper-admin

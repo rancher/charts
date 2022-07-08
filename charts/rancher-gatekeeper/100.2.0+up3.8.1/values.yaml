@@ -1,5 +1,5 @@
 replicas: 3
-auditInterval: 300
+auditInterval: 60
 auditMatchKindOnly: false
 constraintViolationsLimit: 20
 auditFromCache: false
@@ -7,14 +7,22 @@ disableMutation: false
 disableValidatingWebhook: false
 validatingWebhookTimeoutSeconds: 3
 validatingWebhookFailurePolicy: Ignore
+validatingWebhookExemptNamespacesLabels: {}
 validatingWebhookCheckIgnoreFailurePolicy: Fail
+validatingWebhookCustomRules: {}
 enableDeleteOperations: false
 enableExternalData: false
+enableTLSHealthcheck: false
 mutatingWebhookFailurePolicy: Ignore
-mutatingWebhookTimeoutSeconds: 3
+mutatingWebhookReinvocationPolicy: Never
+mutatingWebhookExemptNamespacesLabels: {}
+mutatingWebhookTimeoutSeconds: 1
+mutatingWebhookCustomRules: {}
+mutationAnnotations: false
 auditChunkSize: 500
 logLevel: INFO
 logDenies: false
+logMutations: false
 emitAdmissionEvents: false
 emitAuditEvents: false
 resourceQuota: true
@@ -26,17 +34,43 @@ postInstall:
       tag: v1.20.2
       pullPolicy: IfNotPresent
       pullSecrets: []
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - all
+    readOnlyRootFilesystem: true
+    runAsGroup: 999
+    runAsNonRoot: true
+    runAsUser: 1000
+preUninstall:
+  deleteWebhookConfigurations:
+    enabled: false
+    image:
+      repository: openpolicyagent/gatekeeper-crds
+      tag: v3.8.1
+      pullPolicy: IfNotPresent
+      pullSecrets: []
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - all
+    readOnlyRootFilesystem: true
+    runAsGroup: 999
+    runAsNonRoot: true
+    runAsUser: 1000
 images:
   gatekeeper:
     repository: rancher/mirrored-openpolicyagent-gatekeeper
-    tag: v3.7.1
+    tag: v3.8.1
   gatekeepercrd:
     repository: rancher/mirrored-openpolicyagent-gatekeeper-crds
-    tag: v3.7.1
+    tag: v3.8.1
   pullPolicy: IfNotPresent
   pullSecrets: []
 podAnnotations:
-  { container.seccomp.security.alpha.kubernetes.io/manager: runtime/default }
+  {container.seccomp.security.alpha.kubernetes.io/manager: runtime/default}
 podLabels: {}
 podCountLimit: 100
 secretAnnotations: {}
@@ -70,6 +104,15 @@ controllerManager:
     requests:
       cpu: 100m
       memory: 256Mi
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - all
+    readOnlyRootFilesystem: true
+    runAsGroup: 999
+    runAsNonRoot: true
+    runAsUser: 1000
 audit:
   hostNetwork: false
   dnsPolicy: ClusterFirst
@@ -87,8 +130,26 @@ audit:
     requests:
       cpu: 100m
       memory: 256Mi
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - all
+    readOnlyRootFilesystem: true
+    runAsGroup: 999
+    runAsNonRoot: true
+    runAsUser: 1000
 crds:
   resources: {}
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - all
+    readOnlyRootFilesystem: true
+    runAsGroup: 65532
+    runAsNonRoot: true
+    runAsUser: 65532
 pdb:
   controllerManager:
     minAvailable: 1
@@ -99,7 +160,7 @@ global:
     repository: rancher/kubectl
     tag: v1.20.2
 service: {}
-disabledBuiltins:
+disabledBuiltins: ["{http.send}"]
 psp:
   enabled: true
 upgradeCRDs:

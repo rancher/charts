@@ -40,7 +40,8 @@ spec:
         {{- toYaml .Values.audit.affinity | nindent 8 }}
       automountServiceAccountToken: true
       containers:
-      - args:
+      - image: '{{ template "system_default_registry" . }}{{ .Values.images.gatekeeper.repository }}:{{ .Values.images.gatekeeper.tag }}'
+        args:
         - --audit-interval={{ .Values.auditInterval }}
         - --log-level={{ .Values.logLevel }}
         - --constraint-violations-limit={{ .Values.constraintViolationsLimit }}
@@ -67,7 +68,6 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
-        image: '{{ template "system_default_registry" . }}{{ .Values.images.gatekeeper.repository }}:{{ .Values.images.gatekeeper.tag }}'
         imagePullPolicy: '{{ .Values.images.pullPolicy }}'
         livenessProbe:
           httpGet:
@@ -88,14 +88,7 @@ spec:
         resources:
           {{- toYaml .Values.audit.resources | nindent 10 }}
         securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - all
-          readOnlyRootFilesystem: true
-          runAsGroup: 999
-          runAsNonRoot: true
-          runAsUser: 1000
+          {{- toYaml .Values.audit.securityContext | nindent 10}}
         volumeMounts:
         - mountPath: /tmp/audit
           name: tmp-volume
@@ -117,10 +110,10 @@ spec:
 {{ toYaml .Values.audit.tolerations | indent 8 }}
 {{- end }}
       volumes:
-      {{- if .Values.audit.writeToRAMDisk }} 
+      {{- if .Values.audit.writeToRAMDisk }}
       - emptyDir:
           medium: Memory
-      {{ else }} 
+      {{ else }}
       - emptyDir: {}
       {{- end }}
         name: tmp-volume

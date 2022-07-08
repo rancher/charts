@@ -1,30 +1,40 @@
 --- charts-original/templates/gatekeeper-audit-deployment.yaml
 +++ charts/templates/gatekeeper-audit-deployment.yaml
-@@ -67,8 +67,8 @@
+@@ -40,11 +40,7 @@
+         {{- toYaml .Values.audit.affinity | nindent 8 }}
+       automountServiceAccountToken: true
+       containers:
+-      - {{- if .Values.image.release }}
+-        image: {{ .Values.image.repository }}:{{ .Values.image.release }}
+-        {{- else }}
+-        image: {{ .Values.image.repository }}
+-        {{- end }}
++      - image: '{{ template "system_default_registry" . }}{{ .Values.images.gatekeeper.repository }}:{{ .Values.images.gatekeeper.tag }}'
+         args:
+         - --audit-interval={{ .Values.auditInterval }}
+         - --log-level={{ .Values.logLevel }}
+@@ -72,7 +68,7 @@
            valueFrom:
              fieldRef:
                fieldPath: metadata.name
--        image: '{{ .Values.image.repository }}:{{ .Values.image.release }}'
 -        imagePullPolicy: '{{ .Values.image.pullPolicy }}'
-+        image: '{{ template "system_default_registry" . }}{{ .Values.images.gatekeeper.repository }}:{{ .Values.images.gatekeeper.tag }}'
 +        imagePullPolicy: '{{ .Values.images.pullPolicy }}'
          livenessProbe:
            httpGet:
              path: /healthz
-@@ -102,16 +102,20 @@
+@@ -99,16 +95,20 @@
        dnsPolicy: {{ .Values.audit.dnsPolicy }}
        hostNetwork: {{ .Values.audit.hostNetwork }}
        imagePullSecrets:
 -        {{- toYaml .Values.image.pullSecrets | nindent 8 }}
 -      nodeSelector:
 -        {{- toYaml .Values.audit.nodeSelector | nindent 8 }}
--      {{- if .Values.audit.priorityClassName }} 
 +        {{- toYaml .Values.images.pullSecrets | nindent 8 }}
 +      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
 +{{- if .Values.audit.nodeSelector }}
 +{{ toYaml .Values.audit.nodeSelector | indent 8 }}
 +{{- end }}
-+      {{- if .Values.audit.priorityClassName }}
+       {{- if .Values.audit.priorityClassName }}
        priorityClassName:  {{ .Values.audit.priorityClassName }}
        {{- end }}
        serviceAccountName: gatekeeper-admin
@@ -36,5 +46,5 @@
 +{{ toYaml .Values.audit.tolerations | indent 8 }}
 +{{- end }}
        volumes:
-       {{- if .Values.audit.writeToRAMDisk }} 
+       {{- if .Values.audit.writeToRAMDisk }}
        - emptyDir:
