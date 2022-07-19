@@ -63,13 +63,13 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(etcd_network_client_grpc_received_bytes_total{job=\"kube-etcd\"}[$__rate_interval]))",
+          "expr": "sum(rate(etcd_network_client_grpc_received_bytes_total{cluster=~\"$cluster\",job=\"kube-etcd\"}[$__rate_interval]))",
           "interval": "",
           "legendFormat": "Client Traffic In",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(etcd_network_client_grpc_sent_bytes_total{job=\"kube-etcd\"}[$__rate_interval]))",
+          "expr": "sum(rate(etcd_network_client_grpc_sent_bytes_total{cluster=~\"$cluster\",job=\"kube-etcd\"}[$__rate_interval]))",
           "interval": "",
           "legendFormat": "Client Traffic Out",
           "refId": "B"
@@ -166,7 +166,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(etcd_debugging_mvcc_db_total_size_in_bytes)",
+          "expr": "sum(etcd_debugging_mvcc_db_total_size_in_bytes{cluster=~\"$cluster\"})",
           "interval": "",
           "legendFormat": "DB Size",
           "refId": "A"
@@ -258,13 +258,13 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(grpc_server_started_total{grpc_service=\"etcdserverpb.Watch\",grpc_type=\"bidi_stream\"}) - sum(grpc_server_handled_total{grpc_service=\"etcdserverpb.Watch\",grpc_type=\"bidi_stream\"})",
+          "expr": "sum(grpc_server_started_total{cluster=~\"$cluster\",grpc_service=\"etcdserverpb.Watch\",grpc_type=\"bidi_stream\"}) - sum(grpc_server_handled_total{cluster=~\"$cluster\",grpc_service=\"etcdserverpb.Watch\",grpc_type=\"bidi_stream\"})",
           "interval": "",
           "legendFormat": "Watch Streams",
           "refId": "A"
         },
         {
-          "expr": "sum(grpc_server_started_total{grpc_service=\"etcdserverpb.Lease\",grpc_type=\"bidi_stream\"}) - sum(grpc_server_handled_total{grpc_service=\"etcdserverpb.Lease\",grpc_type=\"bidi_stream\"})",
+          "expr": "sum(grpc_server_started_total{cluster=~\"$cluster\",grpc_service=\"etcdserverpb.Lease\",grpc_type=\"bidi_stream\"}) - sum(grpc_server_handled_total{cluster=~\"$cluster\",grpc_service=\"etcdserverpb.Lease\",grpc_type=\"bidi_stream\"})",
           "interval": "",
           "legendFormat": "Lease Watch Stream",
           "refId": "B"
@@ -357,25 +357,25 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(etcd_server_proposals_committed_total[$__rate_interval]))",
+          "expr": "sum(rate(etcd_server_proposals_committed_total{cluster=~\"$cluster\"}[$__rate_interval]))",
           "interval": "",
           "legendFormat": "Proposal Committed",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(etcd_server_proposals_applied_total[$__rate_interval]))",
+          "expr": "sum(rate(etcd_server_proposals_applied_total{cluster=~\"$cluster\"}[$__rate_interval]))",
           "interval": "",
           "legendFormat": "Proposal Applied",
           "refId": "B"
         },
         {
-          "expr": "sum(rate(etcd_server_proposals_failed_total[$__rate_interval]))",
+          "expr": "sum(rate(etcd_server_proposals_failed_total{cluster=~\"$cluster\"}[$__rate_interval]))",
           "interval": "",
           "legendFormat": "Proposal Failed",
           "refId": "C"
         },
         {
-          "expr": "sum(etcd_server_proposals_pending)",
+          "expr": "sum(etcd_server_proposals_pending{cluster=~\"$cluster\"})",
           "interval": "",
           "legendFormat": "Proposal Pending",
           "refId": "D"
@@ -467,13 +467,13 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(grpc_server_started_total{grpc_type=\"unary\"}[$__rate_interval]))",
+          "expr": "sum(rate(grpc_server_started_total{cluster=~\"$cluster\",grpc_type=\"unary\"}[$__rate_interval]))",
           "interval": "",
           "legendFormat": "RPC Rate",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(grpc_server_handled_total{grpc_type=\"unary\",grpc_code!=\"OK\"}[$__rate_interval]))",
+          "expr": "sum(rate(grpc_server_handled_total{cluster=~\"$cluster\",grpc_type=\"unary\",grpc_code!=\"OK\"}[$__rate_interval]))",
           "interval": "",
           "legendFormat": "RPC Failure Rate",
           "refId": "B"
@@ -566,13 +566,13 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.99, sum(rate(etcd_disk_wal_fsync_duration_seconds_bucket[$__rate_interval])) by (instance, le))",
+          "expr": "histogram_quantile(0.99, sum(rate(etcd_disk_wal_fsync_duration_seconds_bucket{cluster=~\"$cluster\"}[$__rate_interval])) by (instance, le))",
           "interval": "",
           "legendFormat": "WAL fsync",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(etcd_disk_backend_commit_duration_seconds_bucket[$__rate_interval])) by (instance, le))",
+          "expr": "histogram_quantile(0.99, sum(rate(etcd_disk_backend_commit_duration_seconds_bucket{cluster=~\"$cluster\"}[$__rate_interval])) by (instance, le))",
           "interval": "",
           "legendFormat": "DB fsync",
           "refId": "B"
@@ -625,7 +625,29 @@
   "style": "dark",
   "tags": [],
   "templating": {
-    "list": []
+    "list": [{
+         "current": {
+           "isNone": true,
+           "selected": false,
+           "text": "None",
+           "value": ""
+         },
+         "definition": "label_values(up{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\"},cluster)",
+         "hide": 2,
+         "includeAll": false,
+         "multi": false,
+         "name": "cluster",
+         "options": [],
+         "query": {
+           "query": "label_values(up{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\"},cluster)",
+           "refId": "StandardVariableQuery"
+         },
+         "refresh": 2,
+         "regex": "",
+         "skipUrlSync": false,
+         "sort": 1,
+         "type": "query"
+       }]
   },
   "time": {
     "from": "now-1h",

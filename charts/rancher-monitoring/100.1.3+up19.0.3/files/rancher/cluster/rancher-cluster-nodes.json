@@ -65,7 +65,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "1 - avg(irate({__name__=~\"node_cpu_seconds_total|windows_cpu_time_total\",mode=\"idle\"}[$__rate_interval])) by (instance)",
+          "expr": "1 - avg(irate({cluster=~\"$cluster\",__name__=~\"node_cpu_seconds_total|windows_cpu_time_total\",mode=\"idle\"}[$__rate_interval])) by (instance)",
           "interval": "",
           "legendFormat": "{{instance}}",
           "refId": "A"
@@ -168,19 +168,19 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(node_load5 OR avg_over_time(windows_system_processor_queue_length[5m])) by (instance)",
+          "expr": "sum(node_load5{cluster=~\"$cluster\"} OR avg_over_time(windows_system_processor_queue_length{cluster=~\"$cluster\"}[5m])) by (instance)",
           "interval": "",
           "legendFormat": "Load[5m] ({{instance}})",
           "refId": "A"
         },
         {
-          "expr": "sum(node_load1 OR avg_over_time(windows_system_processor_queue_length[1m])) by (instance)",
+          "expr": "sum(node_load1{cluster=~\"$cluster\"} OR avg_over_time(windows_system_processor_queue_length{cluster=~\"$cluster\"}[1m])) by (instance)",
           "interval": "",
           "legendFormat": "Load[1m] ({{instance}})",
           "refId": "B"
         },
         {
-          "expr": "sum(node_load15 OR avg_over_time(windows_system_processor_queue_length[15m])) by (instance)",
+          "expr": "sum(node_load15{cluster=~\"$cluster\"} OR avg_over_time(windows_system_processor_queue_length{cluster=~\"$cluster\"}[15m])) by (instance)",
           "interval": "",
           "legendFormat": "Load[15m] ({{instance}})",
           "refId": "C"
@@ -274,7 +274,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "1 - sum(node_memory_MemAvailable_bytes OR windows_os_physical_memory_free_bytes) by (instance) / sum(node_memory_MemTotal_bytes OR windows_cs_physical_memory_bytes) by (instance) ",
+          "expr": "1 - sum(node_memory_MemAvailable_bytes{cluster=~\"$cluster\"} OR windows_os_physical_memory_free_bytes{cluster=~\"$cluster\"}) by (instance) / sum(node_memory_MemTotal_bytes{cluster=~\"$cluster\"} OR windows_cs_physical_memory_bytes{cluster=~\"$cluster\"}) by (instance) ",
           "interval": "",
           "legendFormat": "{{instance}}",
           "refId": "A"
@@ -369,7 +369,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "1 - (sum(node_filesystem_free_bytes{device!~\"rootfs|HarddiskVolume.+\"} OR windows_logical_disk_free_bytes{volume!~\"(HarddiskVolume.+|[A-Z]:.+)\"}) by (instance) / sum(node_filesystem_size_bytes{device!~\"rootfs|HarddiskVolume.+\"} OR windows_logical_disk_size_bytes{volume!~\"(HarddiskVolume.+|[A-Z]:.+)\"}) by (instance))",
+          "expr": "1 - (sum(node_filesystem_free_bytes{cluster=~\"$cluster\",device!~\"rootfs|HarddiskVolume.+\"} OR windows_logical_disk_free_bytes{cluster=~\"$cluster\",volume!~\"(HarddiskVolume.+|[A-Z]:.+)\"}) by (instance) / sum(node_filesystem_size_bytes{cluster=~\"$cluster\",device!~\"rootfs|HarddiskVolume.+\"} OR windows_logical_disk_size_bytes{cluster=~\"$cluster\",volume!~\"(HarddiskVolume.+|[A-Z]:.+)\"}) by (instance))",
           "interval": "",
           "legendFormat": "{{instance}}",
           "refId": "A"
@@ -464,13 +464,13 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(node_disk_read_bytes_total[$__rate_interval]) OR rate(windows_logical_disk_read_bytes_total[$__rate_interval])) by (instance)",
+          "expr": "sum(rate(node_disk_read_bytes_total{cluster=~\"$cluster\"}[$__rate_interval]) OR rate(windows_logical_disk_read_bytes_total{cluster=~\"$cluster\"}[$__rate_interval])) by (instance)",
           "interval": "",
           "legendFormat": "Read ({{instance}})",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(node_disk_written_bytes_total[$__rate_interval]) OR rate(windows_logical_disk_write_bytes_total[$__rate_interval])) by (instance)",
+          "expr": "sum(rate(node_disk_written_bytes_total{cluster=~\"$cluster\"}[$__rate_interval]) OR rate(windows_logical_disk_write_bytes_total{cluster=~\"$cluster\"}[$__rate_interval])) by (instance)",
           "interval": "",
           "legendFormat": "Write ({{instance}})",
           "refId": "B"
@@ -565,37 +565,37 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(node_network_receive_errs_total{device!~\"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*\"}[$__rate_interval])) by (instance) OR sum(rate(windows_net_packets_received_errors_total{nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*'}[$__rate_interval])) by (instance)",
+          "expr": "sum(rate(node_network_receive_errs_total{cluster=~\"$cluster\",device!~\"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*\"}[$__rate_interval])) by (instance) OR sum(rate(windows_net_packets_received_errors_total{cluster=~\"$cluster\",nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*'}[$__rate_interval])) by (instance)",
           "interval": "",
           "legendFormat": "Receive Errors ({{instance}})",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(node_network_receive_packets_total{device!~\"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*\"}[$__rate_interval])) by (instance) OR sum(rate(windows_net_packets_received_total_total{nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*'}[$__rate_interval])) by (instance)",
+          "expr": "sum(rate(node_network_receive_packets_total{cluster=~\"$cluster\",device!~\"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*\"}[$__rate_interval])) by (instance) OR sum(rate(windows_net_packets_received_total_total{cluster=~\"$cluster\",nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*'}[$__rate_interval])) by (instance)",
           "interval": "",
           "legendFormat": "Receive Total ({{instance}})",
           "refId": "B"
         },
         {
-          "expr": "sum(rate(node_network_transmit_errs_total{device!~\"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*\"}[$__rate_interval])) by (instance) OR sum(rate(windows_net_packets_outbound_errors_total{nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*'}[$__rate_interval])) by (instance)",
+          "expr": "sum(rate(node_network_transmit_errs_total{cluster=~\"$cluster\",device!~\"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*\"}[$__rate_interval])) by (instance) OR sum(rate(windows_net_packets_outbound_errors_total{cluster=~\"$cluster\",nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*'}[$__rate_interval])) by (instance)",
           "interval": "",
           "legendFormat": "Transmit Errors ({{instance}})",
           "refId": "C"
         },
         {
-          "expr": "sum(rate(node_network_receive_drop_total{device!~\"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*\"}[$__rate_interval])) by (instance) OR sum(rate(windows_net_packets_received_discarded_total{nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*'}[$__rate_interval])) by (instance)",
+          "expr": "sum(rate(node_network_receive_drop_total{cluster=~\"$cluster\",device!~\"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*\"}[$__rate_interval])) by (instance) OR sum(rate(windows_net_packets_received_discarded_total{cluster=~\"$cluster\",nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*'}[$__rate_interval])) by (instance)",
           "interval": "",
           "legendFormat": "Receive Dropped ({{instance}})",
           "refId": "D"
         },
         {
-          "expr": "sum(rate(node_network_transmit_drop_total{device!~\"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*\"}[$__rate_interval])) by (instance) OR sum(rate(windows_net_packets_outbound_discarded{nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*'}[$__rate_interval])) by (instance)",
+          "expr": "sum(rate(node_network_transmit_drop_total{cluster=~\"$cluster\",device!~\"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*\"}[$__rate_interval])) by (instance) OR sum(rate(windows_net_packets_outbound_discarded{cluster=~\"$cluster\",nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*'}[$__rate_interval])) by (instance)",
           "interval": "",
           "legendFormat": "Transmit Dropped ({{instance}})",
           "refId": "E"
         },
         {
-          "expr": "sum(rate(node_network_transmit_packets_total{device!~\"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*\"}[$__rate_interval])) by (instance) OR sum(rate(windows_net_packets_sent_total{nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*'}[$__rate_interval])) by (instance)",
+          "expr": "sum(rate(node_network_transmit_packets_total{cluster=~\"$cluster\",device!~\"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*\"}[$__rate_interval])) by (instance) OR sum(rate(windows_net_packets_sent_total{cluster=~\"$cluster\",nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*'}[$__rate_interval])) by (instance)",
           "interval": "",
           "legendFormat": "Transmit Total ({{instance}})",
           "refId": "F"
@@ -690,13 +690,13 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(node_network_transmit_bytes_total{device!~\"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*\"}[$__rate_interval]) OR rate(windows_net_packets_sent_total{nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*'}[$__rate_interval])) by (instance)",
+          "expr": "sum(rate(node_network_transmit_bytes_total{cluster=~\"$cluster\",device!~\"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*\"}[$__rate_interval]) OR rate(windows_net_packets_sent_total{cluster=~\"$cluster\",nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*'}[$__rate_interval])) by (instance)",
           "interval": "",
           "legendFormat": "Transmit Total ({{instance}})",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(node_network_receive_bytes_total{device!~\"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*\"}[$__rate_interval]) OR rate(windows_net_packets_received_total_total{nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*'}[$__rate_interval])) by (instance)",
+          "expr": "sum(rate(node_network_receive_bytes_total{cluster=~\"$cluster\",device!~\"lo|veth.*|docker.*|flannel.*|cali.*|cbr.*\"}[$__rate_interval]) OR rate(windows_net_packets_received_total_total{cluster=~\"$cluster\",nic!~'.*isatap.*|.*VPN.*|.*Pseudo.*|.*tunneling.*'}[$__rate_interval])) by (instance)",
           "interval": "",
           "legendFormat": "Receive Total ({{instance}})",
           "refId": "B"
@@ -749,7 +749,30 @@
   "style": "dark",
   "tags": [],
   "templating": {
-    "list": []
+    "list": [
+      {
+         "current": {
+           "isNone": true,
+           "selected": false,
+           "text": "None",
+           "value": ""
+         },
+         "definition": "label_values(up{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\"},cluster)",
+         "hide": 2,
+         "includeAll": false,
+         "multi": false,
+         "name": "cluster",
+         "options": [],
+         "query": {
+           "query": "label_values(up{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\"},cluster)",
+           "refId": "StandardVariableQuery"
+         },
+         "refresh": 2,
+         "regex": "",
+         "skipUrlSync": false,
+         "sort": 1,
+         "type": "query"
+       }]
   },
   "time": {
     "from": "now-1h",
