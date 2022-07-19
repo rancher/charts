@@ -92,19 +92,19 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "histogram_quantile(\n  0.5,\n  sum by (le)(\n    rate(\n      nginx_ingress_controller_request_duration_seconds_bucket{\n        ingress =~ \"$ingress\"\n      }[1m]\n    )\n  )\n)",
+            "expr": "histogram_quantile(\n  0.5,\n  sum by (le)(\n    rate(\n      nginx_ingress_controller_request_duration_seconds_bucket{\n        cluster=~\"$cluster\",ingress =~ \"$ingress\"\n      }[1m]\n    )\n  )\n)",
             "interval": "",
             "legendFormat": ".5",
             "refId": "D"
           },
           {
-            "expr": "histogram_quantile(\n  0.95,\n  sum by (le)(\n    rate(\n    nginx_ingress_controller_request_duration_seconds_bucket{\n        ingress =~ \"$ingress\"\n      }[1m]\n    )\n  )\n)",
+            "expr": "histogram_quantile(\n  0.95,\n  sum by (le)(\n    rate(\n    nginx_ingress_controller_request_duration_seconds_bucket{\n        cluster=~\"$cluster\",ingress =~ \"$ingress\"\n      }[1m]\n    )\n  )\n)",
             "interval": "",
             "legendFormat": ".95",
             "refId": "B"
           },
           {
-            "expr": "histogram_quantile(\n  0.99,\n  sum by (le)(\n    rate(\n      nginx_ingress_controller_request_duration_seconds_bucket{\n        ingress =~ \"$ingress\"\n      }[1m]\n    )\n  )\n)",
+            "expr": "histogram_quantile(\n  0.99,\n  sum by (le)(\n    rate(\n      nginx_ingress_controller_request_duration_seconds_bucket{\n        cluster=~\"$cluster\",ingress =~ \"$ingress\"\n      }[1m]\n    )\n  )\n)",
             "interval": "",
             "legendFormat": ".99",
             "refId": "A"
@@ -193,7 +193,7 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "histogram_quantile(\n  0.5,\n  sum by (le)(\n    rate(\n      nginx_ingress_controller_response_duration_seconds_bucket{\n        ingress =~ \"$ingress\"\n      }[1m]\n    )\n  )\n)",
+            "expr": "histogram_quantile(\n  0.5,\n  sum by (le)(\n    rate(\n      nginx_ingress_controller_response_duration_seconds_bucket{\n        cluster=~\"$cluster\",ingress =~ \"$ingress\"\n      }[1m]\n    )\n  )\n)",
             "instant": false,
             "interval": "",
             "intervalFactor": 1,
@@ -201,13 +201,13 @@
             "refId": "D"
           },
           {
-            "expr": "histogram_quantile(\n  0.95,\n  sum by (le)(\n    rate(\n    nginx_ingress_controller_response_duration_seconds_bucket{\n        ingress =~ \"$ingress\"\n      }[1m]\n    )\n  )\n)",
+            "expr": "histogram_quantile(\n  0.95,\n  sum by (le)(\n    rate(\n    nginx_ingress_controller_response_duration_seconds_bucket{\n        cluster=~\"$cluster\",ingress =~ \"$ingress\"\n      }[1m]\n    )\n  )\n)",
             "interval": "",
             "legendFormat": ".95",
             "refId": "B"
           },
           {
-            "expr": "histogram_quantile(\n  0.99,\n  sum by (le)(\n    rate(\n      nginx_ingress_controller_response_duration_seconds_bucket{\n        ingress =~ \"$ingress\"\n      }[1m]\n    )\n  )\n)",
+            "expr": "histogram_quantile(\n  0.99,\n  sum by (le)(\n    rate(\n      nginx_ingress_controller_response_duration_seconds_bucket{\n        cluster=~\"$cluster\",ingress =~ \"$ingress\"\n      }[1m]\n    )\n  )\n)",
             "interval": "",
             "legendFormat": ".99",
             "refId": "A"
@@ -297,7 +297,7 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "  sum by (path)(\n    rate(\n      nginx_ingress_controller_request_duration_seconds_count{\n        ingress =~ \"$ingress\"\n      }[1m]\n    )\n  )\n",
+            "expr": "  sum by (path)(\n    rate(\n      nginx_ingress_controller_request_duration_seconds_count{\n        cluster=~\"$cluster\",ingress =~ \"$ingress\"\n      }[1m]\n    )\n  )\n",
             "interval": "",
             "intervalFactor": 1,
             "legendFormat": "{{ path }}",
@@ -389,7 +389,7 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "histogram_quantile(\n  .5,\n  sum by (le, path)(\n    rate(\n      nginx_ingress_controller_response_duration_seconds_bucket{\n        ingress =~ \"$ingress\"\n      }[1m]\n    )\n  )\n)",
+            "expr": "histogram_quantile(\n  .5,\n  sum by (le, path)(\n    rate(\n      nginx_ingress_controller_response_duration_seconds_bucket{\n        cluster=~\"$cluster\",ingress =~ \"$ingress\"\n      }[1m]\n    )\n  )\n)",
             "interval": "",
             "intervalFactor": 1,
             "legendFormat": "{{ path }}",
@@ -481,7 +481,7 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "sum by (path) (rate(nginx_ingress_controller_request_duration_seconds_count{\n  ingress =~ \"$ingress\",\n  status =~ \"[4-5].*\"\n}[1m])) / sum by (path) (rate(nginx_ingress_controller_request_duration_seconds_count{\n  ingress =~ \"$ingress\",\n}[1m]))",
+            "expr": "sum by (path) (rate(nginx_ingress_controller_request_duration_seconds_count{\n  cluster=~\"$cluster\",ingress =~ \"$ingress\",\n  status =~ \"[4-5].*\"\n}[1m])) / sum by (path) (rate(nginx_ingress_controller_request_duration_seconds_count{\n  cluster=~\"$cluster\",ingress =~ \"$ingress\",\n}[1m]))",
             "interval": "",
             "intervalFactor": 1,
             "legendFormat": "{{ path }}",
@@ -664,7 +664,7 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "  sum (\n    rate(\n      nginx_ingress_controller_request_duration_seconds_count{\n        ingress =~ \"$ingress\",\n        status =~\"[4-5].*\",\n      }[1m]\n    )\n  ) by(path, status)\n",
+            "expr": "  sum (\n    rate(\n      nginx_ingress_controller_request_duration_seconds_count{\n        cluster=~\"$cluster\",ingress =~ \"$ingress\",\n        status =~\"[4-5].*\",\n      }[1m]\n    )\n  ) by(path, status)\n",
             "interval": "",
             "intervalFactor": 1,
             "legendFormat": "{{ path }} {{ status }}",
@@ -755,7 +755,7 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "sum (\n  rate (\n      nginx_ingress_controller_response_size_sum {\n        ingress =~ \"$ingress\",\n      }[1m]\n  )\n)  by (path) / sum (\n  rate(\n      nginx_ingress_controller_response_size_count {\n        ingress =~ \"$ingress\",\n      }[1m]\n  )\n) by (path)\n",
+            "expr": "sum (\n  rate (\n      nginx_ingress_controller_response_size_sum {\n        cluster=~\"$cluster\",ingress =~ \"$ingress\",\n      }[1m]\n  )\n)  by (path) / sum (\n  rate(\n      nginx_ingress_controller_response_size_count {\n        cluster=~\"$cluster\",ingress =~ \"$ingress\",\n      }[1m]\n  )\n) by (path)\n",
             "hide": false,
             "instant": false,
             "interval": "",
@@ -764,7 +764,7 @@
             "refId": "D"
           },
           {
-            "expr": "    sum (rate(nginx_ingress_controller_response_size_bucket{\n        ingress =~ \"$ingress\",\n    }[1m])) by (le)\n",
+            "expr": "    sum (rate(nginx_ingress_controller_response_size_bucket{\n        cluster=~\"$cluster\",ingress =~ \"$ingress\",\n    }[1m])) by (le)\n",
             "hide": true,
             "legendFormat": "{{le}}",
             "refId": "A"
@@ -852,7 +852,7 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "sum (\n  rate(\n      nginx_ingress_controller_ingress_upstream_latency_seconds_sum {\n        ingress =~ \"$ingress\",\n      }[1m]\n)) / sum (\n  rate(\n      nginx_ingress_controller_ingress_upstream_latency_seconds_count {\n        ingress =~ \"$ingress\",\n      }[1m]\n  )\n)\n",
+            "expr": "sum (\n  rate(\n      nginx_ingress_controller_ingress_upstream_latency_seconds_sum {\n        cluster=~\"$cluster\",ingress =~ \"$ingress\",\n      }[1m]\n)) / sum (\n  rate(\n      nginx_ingress_controller_ingress_upstream_latency_seconds_count {\n        cluster=~\"$cluster\",ingress =~ \"$ingress\",\n      }[1m]\n  )\n)\n",
             "hide": false,
             "instant": false,
             "interval": "",
@@ -922,17 +922,40 @@
           "type": "datasource"
         },
         {
+          "current": {
+            "isNone": true,
+            "selected": false,
+            "text": "None",
+            "value": ""
+          },
+          "definition": "label_values(nginx_ingress_controller_build_info,cluster)",
+          "hide": 2,
+          "includeAll": false,
+          "multi": false,
+          "name": "cluster",
+          "options": [],
+          "query": {
+            "query": "label_values(nginx_ingress_controller_build_info,cluster)",
+            "refId": "StandardVariableQuery"
+          },
+          "refresh": 2,
+          "regex": "",
+          "skipUrlSync": false,
+          "sort": 1,
+          "type": "query"
+        },        
+        {
           "allValue": ".*",
           "current": {},
           "datasource": "${DS_PROMETHEUS}",
-          "definition": "label_values(nginx_ingress_controller_requests, ingress) ",
+          "definition": "label_values(nginx_ingress_controller_requests{cluster=~\"$cluster\"}, ingress) ",
           "hide": 0,
           "includeAll": true,
           "label": "Service Ingress",
           "multi": false,
           "name": "ingress",
           "options": [],
-          "query": "label_values(nginx_ingress_controller_requests, ingress) ",
+          "query": "label_values(nginx_ingress_controller_requests{cluster=~\"$cluster\"}, ingress) ",
           "refresh": 1,
           "regex": "",
           "skipUrlSync": false,
