@@ -6,7 +6,7 @@
  image:
 -  repository: ghcr.io/banzaicloud/logging-operator
 +  repository: rancher/mirrored-banzaicloud-logging-operator
-   tag: 3.15.0
+   tag: 3.17.7
    pullPolicy: IfNotPresent
  
 @@ -38,9 +38,14 @@
@@ -36,14 +36,65 @@
  rbac:
    enabled: true
    psp:
-@@ -95,3 +103,114 @@
-     additionalLabels: {}
-     metricRelabelings: []
-     relabelings: []
+@@ -98,3 +106,139 @@
+ 
+ serviceAccount:
+   annotations: {}
 +
++###################################
++# Rancher Logging Operator Values #
++###################################
++
++# Enable debug to use fluent-bit images that allow exec
++debug: false
++
++# Disable persistent volumes for buffers
 +disablePvc: true
 +
++# If your additional logging sources collect logs from systemd configure the systemd log path here
 +systemdLogPath: "/run/log/journal"
++
++global:
++  cattle:
++    systemDefaultRegistry: ""
++    # Uncomment the below two lines to either enable or disable Windows logging. If this chart is
++    # installed via the Rancher UI, it will set this value to "true" if the cluster is a Windows
++    # cluster. In that scenario, if you would like to disable Windows logging on Windows clusters,
++    # set the value below to "false".
++    # windows:
++    #   enabled: true
++
++  # Change the "dockerRootDirectory" if the default Docker directory has changed.
++  dockerRootDirectory: ""
++
++  # This psp setting differs from the upstream "rbac.psp" by only enabling psp settings for the
++  # overlay files, which include the Logging CRs created, whereas the upstream "rbac.psp" affects the
++  # logging operator.
++  psp:
++    enabled: true
++
++  rkeWindowsPathPrefix: "c:\\"
++
++  seLinux:
++    enabled: false
++
++images:
++  config_reloader:
++    repository: rancher/mirrored-jimmidyson-configmap-reload
++    tag: v0.4.0
++  fluentbit:
++    repository: rancher/mirrored-fluent-fluent-bit
++    tag: 1.9.3
++  nodeagent_fluentbit:
++    os: "windows"
++    repository: rancher/fluent-bit
++    tag: 1.9.3
++  fluentbit_debug:
++    repository: rancher/mirrored-fluent-fluent-bit
++    tag: 1.9.3-debug
++  fluentd:
++    repository: rancher/mirrored-banzaicloud-fluentd
++    tag: v1.14.6-alpine-5
 +
 +additionalLoggingSources:
 +  rke:
@@ -78,29 +129,13 @@
 +        value: "true"
 +        effect: NoExecute
 +
-+images:
-+  config_reloader:
-+    repository: rancher/mirrored-jimmidyson-configmap-reload
-+    tag: v0.4.0
-+  fluentbit:
-+    repository: rancher/mirrored-fluent-fluent-bit
-+    tag: 1.8.8
-+  fluentbit_debug:
-+    repository: rancher/mirrored-fluent-fluent-bit
-+    tag: 1.8.8-debug
-+  fluentd:
-+    repository: rancher/mirrored-banzaicloud-fluentd
-+    tag: v1.13.3-alpine-11
-+  nodeagent_fluentbit:
-+    os: "windows"
-+    repository: rancher/fluent-bit
-+    tag: 1.7.4
-+
-+# These settings apply to every Logging CR, including vendor Logging CRs enabled in "additionalLoggingSources".
-+# Changing these affects every Logging CR installed.
++# configures node agent options for windows node agents
 +nodeAgents:
 +  tls:
 +    enabled: false
++
++# These settings apply to every Logging CR, including vendor Logging CRs enabled in "additionalLoggingSources".
++# Changing these affects every Logging CR installed.
 +fluentd:
 +  bufferStorageVolume: {}
 +  livenessProbe:
@@ -132,22 +167,12 @@
 +    Merge_Log_Trim: ""
 +    Merge_Parser: ""
 +
-+global:
-+  cattle:
-+    systemDefaultRegistry: ""
-+    # Uncomment the below two lines to either enable or disable Windows logging. If this chart is
-+    # installed via the Rancher UI, it will set this value to "true" if the cluster is a Windows
-+    # cluster. In that scenario, if you would like to disable Windows logging on Windows clusters,
-+    # set the value below to "false".
-+    # windows:
-+    #   enabled: true
-+  # Change the "dockerRootDirectory" if the default Docker directory has changed.
-+  dockerRootDirectory: ""
-+  # This psp setting differs from the upstream "rbac.psp" by only enabling psp settings for the
-+  # overlay files, which include the Logging CRs created, whereas the upstream "rbac.psp" affects the
-+  # logging operator.
-+  psp:
-+    enabled: true
-+  rkeWindowsPathPrefix: "c:\\"
-+  seLinux:
-+    enabled: false
++# DO NOT SET THIS UNLESS YOU KNOW WHAT YOU ARE DOING.
++# Setting fields on this object can break rancher logging or cause unexpected behavior. It is intended to be used if you
++# need to configure functionality not exposed by rancher logging. It is highly recommended you check the `app-readme.md`
++# for the functionality you need before modifying this object.
++
++# this object will be merged with every logging CR created by this chart. Any fields that collide with fields from the
++# settings above will be overridden. Any fields that collide with fields set in the files in `templates/loggings` will
++# be ignored.
++loggingOverlay: {}
