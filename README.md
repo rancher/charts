@@ -37,9 +37,9 @@ In addition to modifying the chart version, the `catalog.cattle.io/rancher-versi
 
 General guidelines when releasing a new version of a user-facing chart:
 
-1. **Ensure the chart has the annotation `catalog.cattle.io/rancher-version` with an upper bound, such as `< 2.6.99-0`**. This indicates that a fresh install of the chart should be allowed in any version of Rancher at or below `2.6.99-0` line, but should not be freshly installable in Rancher `2.7.0+`.
-2. If and only if a chart will **not** work in an older version of Rancher, you will need to **amend this annotation to also include a lower bound like `>= 2.6.2-0`**. e.g. `catalog.cattle.io/rancher-version: >= 2.6.2-0 < 2.6.99-0` indicates that this chart should only be freshly installable in Rancher `2.6.2+`, but should not be freshmy installable in `Rancher 2.7.0+`.
+1. **Ensure the chart has the annotation `catalog.cattle.io/rancher-version` with a lower and upper bound, such as `>= 2.6.0-0 < 2.7.0-0`**. This indicates that a fresh install of the chart should be allowed in any version of Rancher over `2.6.0-0` and below `2.7.0-0` line. It should be freshly installable in `2.6.0+`, but should not be freshly installable in Rancher `2.7.0+`. The lower bound is particularly useful for charts that will **not** work in an older version of Rancher, e.g. `catalog.cattle.io/rancher-version: >= 2.6.2-0 < 2.7.0-0` indicates that this chart should only be freshly installable in Rancher `2.6.2+`, but should not be freshly installable in `Rancher 2.7.0+`.
   - If you do this, it is also recommended that you **modify the previously released chart to have `catalog.cattle.io/rancher-version: < 2.6.2-0`**. For instructions on how to modify existing charts, see [`docs/developing.md`](docs/developing.md).
+2. **Ensure the chart has the annotation `catalog.cattle.io/kube-version` with a lower and upper bound, such as `>= 1.16.0-0 < 1.25.0-0`**. This indicates that a fresh install of the chart should be allowed in a cluster with any version of Kubernetes over `1.16.0` and below `1.25.0` line. It should be freshly installable in a `1.16.0+` cluster, but should not be freshly installable in `1.25.0+`.
 
 #### Versioning FAQ
 
