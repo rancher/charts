@@ -30,3 +30,11 @@ Create chart name and version as used by the chart label.
 {{- define "neuvector.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
+
+{{- define "system_default_registry" -}}
+{{- if .Values.global.cattle.systemDefaultRegistry -}}
+{{- printf "%s/" .Values.global.cattle.systemDefaultRegistry -}}
+{{- else -}}
+{{- "" -}}
+{{- end -}}
+{{- end -}}
