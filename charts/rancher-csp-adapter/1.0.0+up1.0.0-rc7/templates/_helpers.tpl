@@ -1,11 +1,3 @@
-{{- define "system_default_registry" -}}
-{{- if .Values.global.cattle.systemDefaultRegistry -}}
-{{- printf "%s/" .Values.global.cattle.systemDefaultRegistry -}}
-{{- else -}}
-{{- "" -}}
-{{- end -}}
-{{- end -}}
-
 {{- define "csp-adapter.labels" -}}
 app: rancher-csp-adapter
 {{- end }}
@@ -51,3 +43,15 @@ aws
 false
 {{- end -}}
 {{- end }}
+
+{{- define "system_default_registry" -}}
+{{- if .Values.global.cattle.systemDefaultRegistry -}}
+{{- printf "%s/" .Values.global.cattle.systemDefaultRegistry -}}
+{{- else -}}
+    {{- if eq (include "csp-adapter.csp" .) "aws" -}}
+    {{- "709825985650.dkr.ecr.us-east-1.amazonaws.com/suse/" -}}
+    {{- else -}}
+    {{- "" -}}
+    {{- end -}}
+{{- end -}}
+{{- end -}}
