@@ -1,20 +1,22 @@
 --- charts-original/values.yaml
 +++ charts/values.yaml
-@@ -1,23 +1,53 @@
+@@ -1,11 +1,11 @@
  operator:
    tolerations:
 -    - key: "node-role.kubernetes.io/master"
 -      operator: "Exists"
 -      effect: "NoSchedule"
-+  - effect: NoSchedule
-+    key: node-role.kubernetes.io/control-plane
-+    operator: Exists
-+  - effect: NoExecute
-+    key: node-role.kubernetes.io/etcd
-+    operator: Exists
-   nodeSelector:
--    node-role.kubernetes.io/master: ""
-+    node-role.kubernetes.io/control-plane: "true"
+     - key: "node-role.kubernetes.io/control-plane"
+       operator: "Exists"
+       effect: "NoSchedule"
++    - effect: NoExecute
++      key: node-role.kubernetes.io/etcd
++      operator: Exists
+   nodeSelector: {}
+   affinity:
+     nodeAffinity:
+@@ -21,17 +21,44 @@
+                 values: [ "" ]
    nameOverride: ""
    fullnameOverride: ""
 -  resourcePrefix: "openshift.io"
@@ -34,25 +36,25 @@
 -  webhook: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-webhook
 +  operator:
 +    image: rancher/hardened-sriov-network-operator
-+    tag: v1.1.0-build20220419
++    tag: v1.2.0-build20220816
 +  sriovConfigDaemon:
 +    image: rancher/hardened-sriov-network-config-daemon
-+    tag: v1.1.0-build20220419
++    tag: v1.2.0-build20220816
 +  sriovCni:
 +    image: rancher/hardened-sriov-cni
-+    tag: v2.6.2-build20220419
++    tag: v2.6.3-build20220816
 +  ibSriovCni: 
 +    image: rancher/hardened-ib-sriov-cni
 +    tag: v1.0.2-build20220419
 +  sriovDevicePlugin: 
 +    image: rancher/hardened-sriov-network-device-plugin
-+    tag: v3.4.0-build20220419
++    tag: v3.5.1-build20220816
 +  resourcesInjector: 
 +    image: rancher/hardened-sriov-network-resources-injector
-+    tag: v1.3-build20220419
++    tag: v1.5-build20220816
 +  webhook:
 +    image: rancher/hardened-sriov-network-webhook
-+    tag: v1.1.0-build20220419
++    tag: v1.2.0-build20220816
 +
 +# cert_manager enables integration with cert-manager to generate
 +# certificates for the operator webhooks. Otherwise the chart will
