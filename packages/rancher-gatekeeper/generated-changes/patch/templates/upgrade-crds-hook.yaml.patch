@@ -1,6 +1,6 @@
 --- charts-original/templates/upgrade-crds-hook.yaml
 +++ charts/templates/upgrade-crds-hook.yaml
-@@ -75,14 +75,14 @@
+@@ -75,18 +75,14 @@
      spec:
        serviceAccountName: gatekeeper-admin-upgrade-crds
        restartPolicy: Never
@@ -12,10 +12,24 @@
        {{- end }}
        containers:
        - name: crds-upgrade
+-        {{- if not .Values.image.release }}
+-        image: '{{ .Values.image.crdRepository }}'
+-        {{- else }}
 -        image: '{{ .Values.image.crdRepository }}:{{ .Values.image.release }}'
+-        {{- end }}
 -        imagePullPolicy: '{{ .Values.image.pullPolicy }}'
 +        image: '{{ template "system_default_registry" . }}{{ .Values.images.gatekeepercrd.repository }}:{{ .Values.images.gatekeepercrd.tag }}'
 +        imagePullPolicy: '{{ .Values.images.pullPolicy }}'
          args:
          - apply
          - -f
+@@ -95,7 +91,6 @@
+           {{- toYaml .Values.crds.resources | nindent 10 }}
+         securityContext:
+           {{- toYaml .Values.crds.securityContext | nindent 10 }}
+-      nodeSelector:
+-        kubernetes.io/os: linux
+-
++      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
++      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+ {{- end }}

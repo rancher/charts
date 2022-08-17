@@ -1,0 +1,89 @@
+overlayFile: ""
+tag: 1.11.7
+##Setting forceInstall: true will remove the check for istio version < 1.6.x and will not analyze your install cluster prior to install
+forceInstall: false
+
+installer:
+  repository: rancher/istio-installer
+  tag: 1.11.7-rancher1
+  ##releaseMirror are configurations for istio upgrades. 
+  ##Setting releaseMirror.enabled: true will cause istio to use bundled in images from rancher/istio-installer to perfom an upgrade - this is ideal
+  ##for airgap setups. Setting releaseMirror.enabled to false means istio will call externally to github to fetch the required assets.
+  releaseMirror:
+    enabled: false
+  ##Set the secondsSleep to run a sleep command `sleep <secondsSleep>s` to allow time to exec into istio-installer pod for debugging
+  debug:
+    secondsSleep: 0
+
+##Native support for dns added in 1.8
+dns:
+  enabled: false
+
+base:
+  enabled: true
+
+cni:
+  enabled: false
+  repository: rancher/mirrored-istio-install-cni
+  tag: 1.11.7
+  logLevel: info
+  excludeNamespaces:
+  - istio-system
+  - kube-system
+
+egressGateways:
+  enabled: false
+  type: NodePort
+
+ingressGateways:
+  enabled: true
+  type: NodePort
+
+istiodRemote:
+  enabled: false
+
+pilot:
+  enabled: true
+  repository: rancher/mirrored-istio-pilot
+  tag: 1.11.7
+
+telemetry:
+  enabled: true
+  v2:
+    enabled: true
+
+global:
+  cattle:
+    systemDefaultRegistry: ""
+  proxy:
+    repository: rancher/mirrored-istio-proxyv2
+    tag: 1.11.7
+  proxy_init:
+    repository: rancher/mirrored-istio-proxyv2
+    tag: 1.11.7
+  defaultPodDisruptionBudget:
+    enabled: true
+  rbac:
+    pspEnabled: true
+
+# Kiali subchart from rancher-kiali-server
+kiali:
+  enabled: true
+  auth:
+    strategy: anonymous
+  deployment:
+    ingress_enabled: false
+  external_services:
+    prometheus:
+      custom_metrics_url: "http://rancher-monitoring-prometheus.cattle-monitoring-system.svc:9090"
+      url: "http://rancher-monitoring-prometheus.cattle-monitoring-system.svc:9090"
+    tracing:
+      in_cluster_url: "http://tracing.istio-system.svc:16686/jaeger"
+      use_grpc: false
+    grafana:
+      in_cluster_url: "http://rancher-monitoring-grafana.cattle-monitoring-system.svc:80"
+      url: "http://rancher-monitoring-grafana.cattle-monitoring-system.svc:80"
+
+tracing:
+  enabled: false
+  contextPath: "/jaeger"

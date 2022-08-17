@@ -1,22 +1,50 @@
 --- charts-original/templates/gatekeeper-controller-manager-deployment.yaml
 +++ charts/templates/gatekeeper-controller-manager-deployment.yaml
-@@ -76,8 +76,8 @@
+@@ -40,11 +40,8 @@
+         {{- toYaml .Values.controllerManager.affinity | nindent 8 }}
+       automountServiceAccountToken: true
+       containers:
+-      - {{- if .Values.image.release }}
+-        image: {{ .Values.image.repository }}:{{ .Values.image.release }}
+-        {{- else }}
+-        image: {{ .Values.image.repository }}
+-        {{- end }}
++      - image: '{{ template "system_default_registry" . }}{{ .Values.images.gatekeeper.repository }}:{{ .Values.images.gatekeeper.tag }}'
++        imagePullPolicy: '{{ .Values.images.pullPolicy }}'
+         args:
+         - --port={{ .Values.controllerManager.port }}
+         - --health-addr=:{{ .Values.controllerManager.healthPort }}
+@@ -84,7 +81,6 @@
            valueFrom:
              fieldRef:
                fieldPath: metadata.name
--        image: '{{ .Values.image.repository }}:{{ .Values.image.release }}'
 -        imagePullPolicy: '{{ .Values.image.pullPolicy }}'
-+        image: '{{ template "system_default_registry" . }}{{ .Values.images.gatekeeper.repository }}:{{ .Values.images.gatekeeper.tag }}'
-+        imagePullPolicy: '{{ .Values.images.pullPolicy }}'
          livenessProbe:
            httpGet:
              path: /healthz
-@@ -115,7 +115,7 @@
+@@ -115,16 +111,20 @@
        dnsPolicy: {{ .Values.controllerManager.dnsPolicy }}
        hostNetwork: {{ .Values.controllerManager.hostNetwork }}
        imagePullSecrets:
 -        {{- toYaml .Values.image.pullSecrets | nindent 8 }}
+-      nodeSelector:
+-        {{- toYaml .Values.controllerManager.nodeSelector | nindent 8 }}
 +        {{- toYaml .Values.images.pullSecrets | nindent 8 }}
-       nodeSelector:
-         {{- toYaml .Values.controllerManager.nodeSelector | nindent 8 }}
-       {{- if .Values.controllerManager.priorityClassName }} 
++      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
++{{- if .Values.controllerManager.nodeSelector }}
++{{ toYaml .Values.controllerManager.nodeSelector | indent 8 }}
++{{- end }}
+       {{- if .Values.controllerManager.priorityClassName }}
+       priorityClassName:  {{ .Values.controllerManager.priorityClassName }}
+       {{- end }}
+       serviceAccountName: gatekeeper-admin
+       terminationGracePeriodSeconds: 60
+-      tolerations:
+-        {{- toYaml .Values.controllerManager.tolerations | nindent 8 }}
++      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
++{{- if .Values.controllerManager.tolerations }}
++{{ toYaml .Values.controllerManager.tolerations | indent 8 }}
++{{- end }}
+       volumes:
+       - name: cert
+         secret:
