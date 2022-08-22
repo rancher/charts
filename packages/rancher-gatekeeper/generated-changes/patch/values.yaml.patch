@@ -1,44 +1,62 @@
 --- charts-original/values.yaml
 +++ charts/values.yaml
-@@ -30,8 +30,8 @@
+@@ -33,8 +33,8 @@
    labelNamespace:
-     enabled: true
+     enabled: false
      image:
 -      repository: openpolicyagent/gatekeeper-crds
--      tag: v3.8.1
+-      tag: v3.9.0
 +      repository: rancher/kubectl
 +      tag: v1.20.2
        pullPolicy: IfNotPresent
        pullSecrets: []
-   securityContext:
-@@ -47,7 +47,7 @@
-   deleteWebhookConfigurations:
+     extraNamespaces: []
+@@ -52,7 +52,7 @@
+     extraRules: []
+     enabled: true
+     image:
+-      repository: openpolicyagent/gatekeeper-crds
++      repository: rancher/mirrored-openpolicyagent-gatekeeper-crds
+       tag: v3.9.0
+       pullPolicy: IfNotPresent
+       pullSecrets: []
+@@ -60,7 +60,7 @@
+   probeWebhook:
+     enabled: true
+     image:
+-      repository: curlimages/curl
++      repository: rancher/mirrored-curlimages-curl
+       tag: 7.83.1
+       pullPolicy: IfNotPresent
+       pullSecrets: []
+@@ -81,7 +81,7 @@
+     extraRules: []
      enabled: false
      image:
 -      repository: openpolicyagent/gatekeeper-crds
 +      repository: rancher/mirrored-openpolicyagent-gatekeeper-crds
-       tag: v3.8.1
+       tag: v3.9.0
        pullPolicy: IfNotPresent
        pullSecrets: []
-@@ -60,10 +60,13 @@
+@@ -94,10 +94,13 @@
      runAsGroup: 999
      runAsNonRoot: true
      runAsUser: 1000
 -image:
 -  repository: openpolicyagent/gatekeeper
 -  crdRepository: openpolicyagent/gatekeeper-crds
--  release: v3.8.1
+-  release: v3.9.0
 +images:
 +  gatekeeper:
 +    repository: rancher/mirrored-openpolicyagent-gatekeeper
-+    tag: v3.8.1
++    tag: v3.9.0
 +  gatekeepercrd:
 +    repository: rancher/mirrored-openpolicyagent-gatekeeper-crds
-+    tag: v3.8.1
++    tag: v3.9.0
    pullPolicy: IfNotPresent
    pullSecrets: []
- podAnnotations:
-@@ -93,7 +96,7 @@
+ podAnnotations: {}
+@@ -128,7 +131,7 @@
              topologyKey: kubernetes.io/hostname
            weight: 100
    tolerations: []
@@ -47,8 +65,8 @@
    resources:
      limits:
        cpu: 1000m
-@@ -118,7 +121,7 @@
-   priorityClassName: system-cluster-critical
+@@ -159,7 +162,7 @@
+   disableCertRotation: true
    affinity: {}
    tolerations: []
 -  nodeSelector: {kubernetes.io/os: linux}
@@ -56,7 +74,7 @@
    writeToRAMDisk: false
    resources:
      limits:
-@@ -150,6 +153,12 @@
+@@ -196,6 +199,12 @@
  pdb:
    controllerManager:
      minAvailable: 1
