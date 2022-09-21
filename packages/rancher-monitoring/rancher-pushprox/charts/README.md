@@ -48,11 +48,13 @@ The following tables list the configurable parameters of the rancher-pushprox ch
 | `clients.deployment.enabled` | Deploys the client as a Deployment (generally used if the underlying hostNetwork Pod that is being scraped is managed by a Deployment) | `false` |
 | `clients.deployment.replicas` | The number of pods the Deployment has, it should match the number of pod the hostNetwork Deployment has. Required and only used if `client.deployment.enable` is set | `0` |
 | `clients.deployment.affinity` | The affinity rules that allocate the pod to the node in which the hostNetwork Deployment's pods run. Required and only used if `client.deployment.enable` is set | `{}` |
+| `clients.podAnnotations` | Set pod annotations for the client container | `{}` |
 | `clients.resources` | Set resource limits and requests for the client container | `{}` |
 | `clients.nodeSelector` | Select which nodes to deploy the clients on | `{}` |
 | `clients.tolerations` | Specify tolerations for clients | `[]` |
 | `proxy.enabled` | Deploys the proxy that each client will register with | `true` |
 | `proxy.port` | The port exposed by the proxy that each client will register with to allow metrics to be scraped from the host | `8080` |
+| `proxy.podAnnotations` | Set pod annotations for the proxy container | `{}` |
 | `proxy.resources` | Set resource limits and requests for the proxy container | `{}` |
 | `proxy.nodeSelector` | Select which nodes the proxy can be deployed on | `{}` |
 | `proxy.tolerations` | Specify tolerations (if necessary) to allow the proxy to be deployed on the selected node | `[]` |
