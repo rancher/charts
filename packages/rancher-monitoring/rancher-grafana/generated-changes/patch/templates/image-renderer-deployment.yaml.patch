@@ -9,16 +9,7 @@
        {{- end }}
        {{- if .Values.imageRenderer.securityContext }}
        securityContext:
-@@ -56,16 +58,17 @@
-       {{- end }}
-       {{- if .Values.imageRenderer.image.pullSecrets }}
-       imagePullSecrets:
-+      {{- $root := . }}
-       {{- range .Values.imageRenderer.image.pullSecrets }}
--        - name: {{ . }}
-+        - name: {{ tpl . $root }}
-       {{- end}}
-       {{- end }}
+@@ -64,9 +66,9 @@
        containers:
          - name: {{ .Chart.Name }}-image-renderer
            {{- if .Values.imageRenderer.image.sha }}
@@ -30,25 +21,7 @@
            {{- end }}
            imagePullPolicy: {{ .Values.imageRenderer.image.pullPolicy }}
          {{- if .Values.imageRenderer.command }}
-@@ -76,7 +79,7 @@
-         {{- end}}
-           ports:
-             - name: {{ .Values.imageRenderer.service.portName }}
--              containerPort: {{ .Values.imageRenderer.service.port }}
-+              containerPort: {{ .Values.imageRenderer.service.targetPort }}
-               protocol: TCP
-           livenessProbe:
-             httpGet:
-@@ -84,7 +87,7 @@
-               port: {{ .Values.imageRenderer.service.portName }}
-           env:
-             - name: HTTP_PORT
--              value: {{ .Values.imageRenderer.service.port | quote }}
-+              value: {{ .Values.imageRenderer.service.targetPort | quote }}
-           {{- range $key, $value := .Values.imageRenderer.env }}
-             - name: {{ $key | quote }}
-               value: {{ $value | quote }}
-@@ -101,16 +104,17 @@
+@@ -102,8 +104,8 @@
            resources:
  {{ toYaml . | indent 12 }}
        {{- end }}
@@ -58,11 +31,10 @@
 +      {{- if .Values.imageRenderer.nodeSelector }}
  {{ toYaml . | indent 8 }}
        {{- end }}
-+      {{- $root := . }}
-       {{- with .Values.imageRenderer.affinity }}
+       {{- $root := . }}
+@@ -111,8 +113,8 @@
        affinity:
--{{ toYaml . | indent 8 }}
-+{{ tpl (toYaml .) $root | indent 8 }}
+ {{ tpl (toYaml .) $root | indent 8 }}
        {{- end }}
 -      {{- with .Values.imageRenderer.tolerations }}
 -      tolerations:
