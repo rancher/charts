@@ -1,123 +1,15 @@
 --- charts-original/templates/daemonset.yaml
 +++ charts/templates/daemonset.yaml
-@@ -7,8 +7,7 @@
- spec:
-   selector:
-     matchLabels:
--      app: {{ template "prometheus-node-exporter.name" . }}
--      release: {{ .Release.Name }}
-+      {{- include "prometheus-node-exporter.selectorLabels" . | indent 6 }}
-   {{- if .Values.updateStrategy }}
-   updateStrategy:
- {{ toYaml .Values.updateStrategy | indent 4 }}
-@@ -36,15 +35,15 @@
+@@ -35,7 +35,7 @@
        {{- end }}
        containers:
          - name: node-exporter
--          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+-          image: {{ include "prometheus-node-exporter.image" . }}
 +          image: {{ template "system_default_registry" . }}{{ include "prometheus-node-exporter.image" . }}
            imagePullPolicy: {{ .Values.image.pullPolicy }}
            args:
              - --path.procfs=/host/proc
-             - --path.sysfs=/host/sys
--            {{- if .Values.hostRootFsMount }}
-+            {{- if .Values.hostRootFsMount.enabled }}
-             - --path.rootfs=/host/root
-             {{- end }}
--            - --web.listen-address=$(HOST_IP):{{ .Values.service.port }}
-+            - --web.listen-address=[$(HOST_IP)]:{{ .Values.service.port }}
- {{- if .Values.extraArgs }}
- {{ toYaml .Values.extraArgs | indent 12 }}
- {{- end }}
-@@ -61,18 +60,44 @@
-                 apiVersion: v1
-                 fieldPath: status.hostIP
-             {{- end }}
-+          {{- range $key, $value := .Values.env }}
-+          - name: {{ $key }}
-+            value: {{ $value | quote }}
-+          {{- end }}
-           ports:
-             - name: {{ .Values.service.portName }}
-               containerPort: {{ .Values.service.port }}
-               protocol: TCP
-           livenessProbe:
-+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
-             httpGet:
-+              httpHeaders:
-+              {{- range $_, $header := .Values.livenessProbe.httpGet.httpHeaders }}
-+              - name: {{ $header.name }}
-+                value: {{ $header.value }}
-+              {{- end }}
-               path: /
-               port: {{ .Values.service.port }}
-+              scheme: {{ upper .Values.livenessProbe.httpGet.scheme }}
-+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
-+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
-+            successThreshold: {{ .Values.livenessProbe.successThreshold }}
-+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
-           readinessProbe:
-+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
-             httpGet:
-+              httpHeaders:
-+              {{- range $_, $header := .Values.readinessProbe.httpGet.httpHeaders }}
-+              - name: {{ $header.name }}
-+                value: {{ $header.value }}
-+              {{- end }}
-               path: /
-               port: {{ .Values.service.port }}
-+              scheme: {{ upper .Values.readinessProbe.httpGet.scheme }}
-+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
-+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
-+            successThreshold: {{ .Values.readinessProbe.successThreshold }}
-+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
-           resources:
- {{ toYaml .Values.resources | indent 12 }}
-           volumeMounts:
-@@ -82,10 +107,12 @@
-             - name: sys
-               mountPath: /host/sys
-               readOnly: true
--            {{- if .Values.hostRootFsMount }}
-+            {{- if .Values.hostRootFsMount.enabled }}
-             - name: root
-               mountPath: /host/root
--              mountPropagation: HostToContainer
-+              {{- with .Values.hostRootFsMount.mountPropagation }}
-+              mountPropagation: {{ . }}
-+              {{- end }}
-               readOnly: true
-             {{- end }}
-             {{- if .Values.extraHostVolumeMounts }}
-@@ -119,33 +146,45 @@
-             {{- end }}
- {{- if .Values.sidecars }}
- {{ toYaml .Values.sidecars | indent 8 }}
--          {{- if .Values.sidecarVolumeMount }}
-+          {{- if or .Values.sidecarVolumeMount .Values.sidecarHostVolumeMounts }}
-           volumeMounts:
-             {{- range $_, $mount := .Values.sidecarVolumeMount }}
-             - name: {{ $mount.name }}
-               mountPath: {{ $mount.mountPath }}
-               readOnly: {{ $mount.readOnly }}
-             {{- end }}
-+            {{- range $_, $mount := .Values.sidecarHostVolumeMounts }}
-+            - name: {{ $mount.name }}
-+              mountPath: {{ $mount.mountPath }}
-+              readOnly: {{ $mount.readOnly }}
-+            {{- if $mount.mountPropagation }}
-+              mountPropagation: {{ $mount.mountPropagation }}
-+            {{- end }}
-+            {{- end }}
-           {{- end }}
- {{- end }}
-+{{- if .Values.imagePullSecrets }}
-+      imagePullSecrets:
-+{{ toYaml .Values.imagePullSecrets | indent 8 }}
-+      {{- end }}
-       hostNetwork: {{ .Values.hostNetwork }}
-       hostPID: {{ .Values.hostPID }}
- {{- if .Values.affinity }}
+@@ -173,18 +173,18 @@
        affinity:
  {{ toYaml .Values.affinity | indent 8 }}
  {{- end }}
@@ -142,26 +34,3 @@
        volumes:
          - name: proc
            hostPath:
-@@ -153,7 +192,7 @@
-         - name: sys
-           hostPath:
-             path: /sys
--        {{- if .Values.hostRootFsMount }}
-+        {{- if .Values.hostRootFsMount.enabled }}
-         - name: root
-           hostPath:
-             path: /
-@@ -172,6 +211,13 @@
-             medium: Memory
-         {{- end }}
-         {{- end }}
-+        {{- if .Values.sidecarHostVolumeMounts }}
-+        {{- range $_, $mount := .Values.sidecarHostVolumeMounts }}
-+        - name: {{ $mount.name }}
-+          hostPath:
-+            path: {{ $mount.hostPath }}
-+        {{- end }}
-+        {{- end }}
-         {{- if .Values.configmaps }}
-         {{- range $_, $mount := .Values.configmaps }}
-         - name: {{ $mount.name }}
