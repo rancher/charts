@@ -1,6 +1,17 @@
 --- charts-original/templates/statefulset.yaml
 +++ charts/templates/statefulset.yaml
-@@ -39,11 +39,13 @@
+@@ -1,4 +1,4 @@
+-{{- if and .Values.persistence.enabled (not .Values.persistence.existingClaim) (eq .Values.persistence.type "statefulset")}}
++{{- if (or (.Values.useStatefulSet) (and .Values.persistence.enabled (not .Values.persistence.existingClaim) (eq .Values.persistence.type "statefulset")))}}
+ apiVersion: apps/v1
+ kind: StatefulSet
+ metadata:
+@@ -35,18 +35,22 @@
+ {{- end }}
+     spec:
+       {{- include "grafana.pod" . | nindent 6 }}
++  {{- if .Values.persistence.enabled}}
+   volumeClaimTemplates:
    - metadata:
        name: storage
      spec:
@@ -15,3 +26,7 @@
        {{- with .Values.persistence.selectorLabels }}
        selector:
          matchLabels:
+ {{ toYaml . | indent 10 }}
+       {{- end }}
++  {{- end }}
+ {{- end }}
