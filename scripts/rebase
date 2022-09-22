@@ -6,7 +6,7 @@ cd $(dirname $0)
 cd ..
 
 if [ -z "${PACKAGE}" ] || [ -z ${NEW_TAG} ]; then
-    echo "Usage: PACKAGE=<package-name> NEW_TAG=<tag-or-commit-in-upstream> ./scripts/rebase"
+    echo "Usage: NONINCREMENTAL=<0|1> PACKAGE=<package-name> NEW_TAG=<tag-or-commit-in-upstream> ./scripts/rebase"
     exit 1
 fi
 
@@ -180,10 +180,14 @@ SUBTREE_COMMIT=$(git rev-parse --short HEAD~1)
 # Process each commit
 if [ -z "${SUB_DIRECTORY}" ]; then
     COMMITS=$(git log --first-parent --oneline ${CURRENT_COMMIT}..${NEW_COMMIT} | cut -d' ' -f1 | tail -r)
-    NUM_COMMITS=$(git log --first-parent --oneline ${CURRENT_COMMIT}..${NEW_COMMIT} | cut -d' ' -f1 | tail -r | wc -l)
+    NUM_COMMITS=$(git log --first-parent --oneline ${CURRENT_COMMIT}..${NEW_COMMIT} | cut -d' ' -f1 | tail -r | wc -l | xargs)
 else
     COMMITS=$(git log --first-parent --oneline ${CURRENT_COMMIT}..${NEW_COMMIT} -- ${SUB_DIRECTORY} | cut -d' ' -f1 | tail -r)
-    NUM_COMMITS=$(git log --first-parent --oneline ${CURRENT_COMMIT}..${NEW_COMMIT} -- ${SUB_DIRECTORY} | cut -d' ' -f1 | tail -r | wc -l)
+    NUM_COMMITS=$(git log --first-parent --oneline ${CURRENT_COMMIT}..${NEW_COMMIT} -- ${SUB_DIRECTORY} | cut -d' ' -f1 | tail -r | wc -l | xargs)
+fi
+
+if [ -n "${NONINCREMENTAL}" ]; then
+    COMMITS="${NEW_COMMIT}"
 fi
 
 i=0
@@ -269,8 +273,12 @@ for commit in ${COMMITS}; do
     find . -type d -empty -delete 1>/dev/null 2>/dev/null
 
     echo ""
-    echo "Performing rebase on commit ${i}/$(echo ${NUM_COMMITS}):"
-    git log ${commit} --oneline --no-walk
+    if [ -z "${NONINCREMENTAL}" ]; then
+        echo "Performing rebase on commit ${i}/$(echo ${NUM_COMMITS}):"
+        git log ${commit} --oneline --no-walk
+    else
+        echo "Pulling in ${NUM_COMMITS} commits up to ${NEW_COMMIT}:"
+    fi
     echo ""
     echo "The contents of this commit have been loaded into your working directory."
     echo ""
