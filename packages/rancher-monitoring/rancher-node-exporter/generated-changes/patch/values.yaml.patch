@@ -1,6 +1,6 @@
 --- charts-original/values.yaml
 +++ charts/values.yaml
-@@ -1,8 +1,13 @@
+@@ -1,10 +1,19 @@
  # Default values for prometheus-node-exporter.
  # This is a YAML-formatted file.
  # Declare variables to be passed into your templates.
@@ -11,11 +11,83 @@
 +
  image:
 -  repository: quay.io/prometheus/node-exporter
+-  tag: v1.2.2
 +  repository: rancher/mirrored-prometheus-node-exporter
-   tag: v1.2.2
++  tag: v1.3.1
    pullPolicy: IfNotPresent
++  sha: ""
++
++imagePullSecrets: []
++# - name: "image-pull-secret"
  
-@@ -135,6 +140,8 @@
+ service:
+   type: ClusterIP
+@@ -16,12 +25,21 @@
+   annotations:
+     prometheus.io/scrape: "true"
+ 
++# Additional environment variables that will be passed to the daemonset
++env: {}
++##  env:
++##    VARIABLE: value
++
+ prometheus:
+   monitor:
+     enabled: false
+     additionalLabels: {}
+     namespace: ""
++
++    jobLabel: ""
++
+     scheme: http
++    basicAuth: {}
+     bearerTokenFile:
+     tlsConfig: {}
+ 
+@@ -29,7 +47,13 @@
+     ##
+     proxyUrl: ""
+ 
++    ## Override serviceMonitor selector
++    ##
++    selectorOverride: {}
++
+     relabelings: []
++    metricRelabelings: []
++    interval: ""
+     scrapeTimeout: 10s
+ 
+ ## Customize the updateStrategy if set
+@@ -90,9 +114,15 @@
+ # Share the host process ID namespace
+ hostPID: true
+ 
+-## If true, node-exporter pods mounts host / at /host/root
+-##
+-hostRootFsMount: true
++# Mount the node's root file system (/) at /host/root in the container
++hostRootFsMount:
++  enabled: true
++  # Defines how new mounts in existing mounts on the node or in the container
++  # are propagated to the container or node, respectively. Possible values are
++  # None, HostToContainer, and Bidirectional. If this field is omitted, then
++  # None is used. More information on:
++  # https://kubernetes.io/docs/concepts/storage/volumes/#mount-propagation
++  mountPropagation: HostToContainer
+ 
+ ## Assign a group of affinity scheduling rules
+ ##
+@@ -114,6 +144,9 @@
+ # Extra labels to be added to node exporter pods
+ podLabels: {}
+ 
++## set to true to add the release label so scraping of the servicemonitor with kube-prometheus-stack works out of the box
++releaseLabel: false
++
+ # Custom DNS configuration to be added to prometheus-node-exporter pods
+ dnsConfig: {}
+ # nameservers:
+@@ -135,6 +168,8 @@
  tolerations:
    - effect: NoSchedule
      operator: Exists
@@ -24,3 +96,52 @@
  
  ## Assign a PriorityClassName to pods if set
  # priorityClassName: ""
+@@ -145,7 +180,7 @@
+ #   - --collector.diskstats.ignored-devices=^(ram|loop|fd|(h|s|v)d[a-z]|nvme\\d+n\\d+p)\\d+$
+ #   - --collector.textfile.directory=/run/prometheus
+ 
+-## Additional mounts from the host
++## Additional mounts from the host to node-exporter container
+ ##
+ extraHostVolumeMounts: []
+ #  - name: <mountName>
+@@ -179,6 +214,39 @@
+ ##    mountPath: /run/prometheus
+ ##    readOnly: false
+ 
++## Additional mounts from the host to sidecar containers
++##
++sidecarHostVolumeMounts: []
++#  - name: <mountName>
++#    hostPath: <hostPath>
++#    mountPath: <mountPath>
++#    readOnly: true|false
++#    mountPropagation: None|HostToContainer|Bidirectional
++
+ ## Additional InitContainers to initialize the pod
+ ##
+ extraInitContainers: []
++
++## Liveness probe
++##
++livenessProbe:
++  failureThreshold: 3
++  httpGet:
++    httpHeaders: []
++    scheme: http
++  initialDelaySeconds: 0
++  periodSeconds: 10
++  successThreshold: 1
++  timeoutSeconds: 1
++
++## Readiness probe
++##
++readinessProbe:
++  failureThreshold: 3
++  httpGet:
++    httpHeaders: []
++    scheme: http
++  initialDelaySeconds: 0
++  periodSeconds: 10
++  successThreshold: 1
++  timeoutSeconds: 1
