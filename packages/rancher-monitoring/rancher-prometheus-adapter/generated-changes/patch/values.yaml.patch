@@ -1,6 +1,6 @@
 --- charts-original/values.yaml
 +++ charts/values.yaml
-@@ -1,8 +1,12 @@
+@@ -1,9 +1,15 @@
  # Default values for k8s-prometheus-adapter..
 +global:
 +  cattle:
@@ -8,9 +8,167 @@
 +
  affinity: {}
  
++topologySpreadConstraints: []
++
  image:
 -  repository: k8s.gcr.io/prometheus-adapter/prometheus-adapter
+-  tag: v0.9.0
 +  repository: rancher/mirrored-prometheus-adapter-prometheus-adapter
-   tag: v0.9.0
++  tag: v0.10.0
    pullPolicy: IfNotPresent
  
+ logLevel: 4
+@@ -12,10 +18,24 @@
+ 
+ listenPort: 6443
+ 
++# User to run adapter container as
++runAsUser: 10001
++
+ nodeSelector: {}
+ 
+ priorityClassName: ""
+ 
++## Override the release namespace (for multi-namespace deployments in combined charts)
++namespaceOverride: ""
++
++## Additional annotations to add to all resources
++customAnnotations: {}
++  # role: custom-metrics
++
++## Additional labels to add to all resources
++customLabels: {}
++  # monitoring: prometheus-adapter
++
+ # Url to access prometheus
+ prometheus:
+   # Value is templated
+@@ -51,15 +71,16 @@
+ 
+ # Custom DNS configuration to be added to prometheus-adapter pods
+ dnsConfig: {}
+-# nameservers:
+-#   - 1.2.3.4
+-# searches:
+-#   - ns1.svc.cluster-domain.example
+-#   - my.dns.search.suffix
+-# options:
+-#   - name: ndots
+-#     value: "2"
+-#   - name: edns0
++  # nameservers:
++  #   - 1.2.3.4
++  # searches:
++  #   - ns1.svc.cluster-domain.example
++  #   - my.dns.search.suffix
++  # options:
++  #   - name: ndots
++  #     value: "2"
++  #   - name: edns0
++
+ resources: {}
+   # requests:
+   #   cpu: 100m
+@@ -70,57 +91,61 @@
+ 
+ rules:
+   default: true
++
+   custom: []
+-# - seriesQuery: '{__name__=~"^some_metric_count$"}'
+-#   resources:
+-#     template: <<.Resource>>
+-#   name:
+-#     matches: ""
+-#     as: "my_custom_metric"
+-#   metricsQuery: sum(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)
++    # - seriesQuery: '{__name__=~"^some_metric_count$"}'
++    #   resources:
++    #     template: <<.Resource>>
++    #   name:
++    #     matches: ""
++    #     as: "my_custom_metric"
++    #   metricsQuery: sum(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)
++
+   # Mounts a configMap with pre-generated rules for use. Overrides the
+   # default, custom, external and resource entries
+   existing:
++
+   external: []
+-# - seriesQuery: '{__name__=~"^some_metric_count$"}'
+-#   resources:
+-#     template: <<.Resource>>
+-#   name:
+-#     matches: ""
+-#     as: "my_external_metric"
+-#   metricsQuery: sum(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)
+-  resource: {}
+-#   cpu:
+-#     containerQuery: sum(rate(container_cpu_usage_seconds_total{<<.LabelMatchers>>, container!=""}[3m])) by (<<.GroupBy>>)
+-#     nodeQuery: sum(rate(container_cpu_usage_seconds_total{<<.LabelMatchers>>, id='/'}[3m])) by (<<.GroupBy>>)
+-#     resources:
+-#       overrides:
+-#         node:
+-#           resource: node
+-#         namespace:
+-#           resource: namespace
+-#         pod:
+-#           resource: pod
+-#     containerLabel: container
+-#   memory:
+-#     containerQuery: sum(container_memory_working_set_bytes{<<.LabelMatchers>>, container!=""}) by (<<.GroupBy>>)
+-#     nodeQuery: sum(container_memory_working_set_bytes{<<.LabelMatchers>>,id='/'}) by (<<.GroupBy>>)
+-#     resources:
+-#       overrides:
+-#         node:
+-#           resource: node
+-#         namespace:
+-#           resource: namespace
+-#         pod:
+-#           resource: pod
+-#     containerLabel: container
+-#   window: 3m
++    # - seriesQuery: '{__name__=~"^some_metric_count$"}'
++    #   resources:
++    #     template: <<.Resource>>
++    #   name:
++    #     matches: ""
++    #     as: "my_external_metric"
++    #   metricsQuery: sum(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)
++
++  # resource:
++  #   cpu:
++  #     containerQuery: sum(rate(container_cpu_usage_seconds_total{<<.LabelMatchers>>, container!=""}[3m])) by (<<.GroupBy>>)
++  #     nodeQuery: sum(rate(container_cpu_usage_seconds_total{<<.LabelMatchers>>, id='/'}[3m])) by (<<.GroupBy>>)
++  #     resources:
++  #       overrides:
++  #         node:
++  #           resource: node
++  #         namespace:
++  #           resource: namespace
++  #         pod:
++  #           resource: pod
++  #     containerLabel: container
++  #   memory:
++  #     containerQuery: sum(container_memory_working_set_bytes{<<.LabelMatchers>>, container!=""}) by (<<.GroupBy>>)
++  #     nodeQuery: sum(container_memory_working_set_bytes{<<.LabelMatchers>>,id='/'}) by (<<.GroupBy>>)
++  #     resources:
++  #       overrides:
++  #         node:
++  #           resource: node
++  #         namespace:
++  #           resource: namespace
++  #         pod:
++  #           resource: pod
++  #     containerLabel: container
++  #   window: 3m
+ 
+ service:
+   annotations: {}
+   port: 443
+   type: ClusterIP
+-# clusterIP: 1.2.3.4
++  # clusterIP: 1.2.3.4
+ 
+ tls:
+   enable: false
