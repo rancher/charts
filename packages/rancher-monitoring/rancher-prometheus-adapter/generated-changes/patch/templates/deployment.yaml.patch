@@ -1,6 +1,46 @@
 --- charts-original/templates/deployment.yaml
 +++ charts/templates/deployment.yaml
-@@ -41,7 +41,7 @@
+@@ -1,27 +1,28 @@
+ apiVersion: apps/v1
+ kind: Deployment
+ metadata:
++  {{- if .Values.customAnnotations }}
++  annotations:
++  {{- toYaml .Values.customAnnotations | nindent 4 }}
++  {{- end }}
+   labels:
+-    app: {{ template "k8s-prometheus-adapter.name" . }}
+-    chart: {{ template "k8s-prometheus-adapter.chart" . }}
+-    release: {{ .Release.Name }}
+-    heritage: {{ .Release.Service }}
++    {{- include "k8s-prometheus-adapter.labels" . | indent 4 }}
+   name: {{ template "k8s-prometheus-adapter.fullname" . }}
+-  namespace: {{ .Release.Namespace }}
++  namespace: {{ include "k8s-prometheus-adapter.namespace" . }}
+ spec:
+   replicas: {{ .Values.replicas }}
+   strategy: {{ toYaml .Values.strategy | nindent 4 }}
+   selector:
+     matchLabels:
+-      app: {{ template "k8s-prometheus-adapter.name" . }}
+-      release: {{ .Release.Name }}
++      {{- include "k8s-prometheus-adapter.selectorLabels" . | indent 6 }}
+   template:
+     metadata:
++      {{- if .Values.customAnnotations }}
++      annotations:
++      {{- toYaml .Values.customAnnotations | nindent 8 }}
++      {{- end }}
+       labels:
+-        app: {{ template "k8s-prometheus-adapter.name" . }}
+-        chart: {{ template "k8s-prometheus-adapter.chart" . }}
+-        release: {{ .Release.Name }}
+-        heritage: {{ .Release.Service }}
++        {{- include "k8s-prometheus-adapter.labels" . | indent 8 }}
+         {{- with .Values.podLabels }}
+         {{- toYaml . | trim | nindent 8 }}
+         {{- end }}
+@@ -41,7 +42,7 @@
        {{- end}}
        containers:
        - name: {{ .Chart.Name }}
@@ -9,7 +49,18 @@
          imagePullPolicy: {{ .Values.image.pullPolicy }}
          args:
          - /adapter
-@@ -105,8 +105,10 @@
+@@ -90,7 +91,9 @@
+             drop: ["all"]
+           readOnlyRootFilesystem: true
+           runAsNonRoot: true
+-          runAsUser: 10001
++          {{- if .Values.runAsUser }}
++          runAsUser: {{ .Values.runAsUser }}
++          {{- end }}
+         volumeMounts:
+         {{- if .Values.extraVolumeMounts }}
+         {{ toYaml .Values.extraVolumeMounts | trim | nindent 8 }}
+@@ -105,17 +108,23 @@
            name: volume-serving-cert
            readOnly: true
          {{- end }}
@@ -21,8 +72,10 @@
 +{{- end }}
        affinity:
          {{- toYaml .Values.affinity | nindent 8 }}
++      topologySpreadConstraints:
++        {{- toYaml .Values.topologySpreadConstraints | nindent 8 }}
        priorityClassName: {{ .Values.priorityClassName }}
-@@ -114,8 +116,10 @@
+       {{- if .Values.podSecurityContext }}
        securityContext:
          {{- toYaml .Values.podSecurityContext | nindent 8 }}
        {{- end }}
