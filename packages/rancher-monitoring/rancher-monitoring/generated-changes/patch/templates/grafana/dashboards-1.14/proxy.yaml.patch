@@ -1,6 +1,6 @@
 --- charts-original/templates/grafana/dashboards-1.14/proxy.yaml
 +++ charts/templates/grafana/dashboards-1.14/proxy.yaml
-@@ -4,11 +4,12 @@
+@@ -4,17 +4,18 @@
  https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack/hack
  */ -}}
  {{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion .Values.kubeTargetVersionOverride }}
@@ -15,7 +15,27 @@
    name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" $) "proxy" | trunc 63 | trimSuffix "-" }}
    annotations:
  {{ toYaml .Values.grafana.sidecar.dashboards.annotations | indent 4 }}
-@@ -107,7 +108,11 @@
+   labels:
+     {{- if $.Values.grafana.sidecar.dashboards.label }}
+-    {{ $.Values.grafana.sidecar.dashboards.label }}: "1"
++    {{ $.Values.grafana.sidecar.dashboards.label }}: {{ ternary $.Values.grafana.sidecar.dashboards.labelValue "1" (not (empty $.Values.grafana.sidecar.dashboards.labelValue)) | quote }}
+     {{- end }}
+     app: {{ template "kube-prometheus-stack.name" $ }}-grafana
+ {{ include "kube-prometheus-stack.labels" $ | indent 4 }}
+@@ -68,7 +69,11 @@
+ 
+                         },
+                         "id": 2,
+-                        "interval": null,
++                        "interval": "1m",
++                        "legend": {
++                            "alignAsTable": true,
++                            "rightSide": true
++                        },
+                         "links": [
+ 
+                         ],
+@@ -107,7 +112,11 @@
                          "tableColumn": "",
                          "targets": [
                              {
@@ -28,48 +48,115 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "",
-@@ -176,7 +181,7 @@
+@@ -144,13 +153,14 @@
+ 
+                         },
+                         "id": 3,
++                        "interval": "1m",
+                         "legend": {
+-                            "alignAsTable": false,
++                            "alignAsTable": true,
+                             "avg": false,
+                             "current": false,
+                             "max": false,
+                             "min": false,
+-                            "rightSide": false,
++                            "rightSide": true,
+                             "show": true,
+                             "sideWidth": null,
+                             "total": false,
+@@ -176,7 +186,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
 -                                "expr": "sum(rate(kubeproxy_sync_proxy_rules_duration_seconds_count{cluster=\"$cluster\", job=\"kube-proxy\", instance=~\"$instance\"}[5m]))",
-+                                "expr": "sum(rate(kubeproxy_sync_proxy_rules_duration_seconds_count{cluster=\"$cluster\", job=\"{{ include "exporter.kubeProxy.jobName" . }}\", instance=~\"$instance\"}[5m]))",
++                                "expr": "sum(rate(kubeproxy_sync_proxy_rules_duration_seconds_count{cluster=\"$cluster\", job=\"kube-proxy\", instance=~\"$instance\"}[$__rate_interval]))",
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "rate",
-@@ -269,7 +274,7 @@
+@@ -237,6 +247,7 @@
+ 
+                         },
+                         "id": 4,
++                        "interval": "1m",
+                         "legend": {
+                             "alignAsTable": true,
+                             "avg": false,
+@@ -269,7 +280,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
 -                                "expr": "histogram_quantile(0.99,rate(kubeproxy_sync_proxy_rules_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-proxy\", instance=~\"$instance\"}[5m]))",
-+                                "expr": "histogram_quantile(0.99,rate(kubeproxy_sync_proxy_rules_duration_seconds_bucket{cluster=\"$cluster\", job=\"{{ include "exporter.kubeProxy.jobName" . }}\", instance=~\"$instance\"}[5m]))",
++                                "expr": "histogram_quantile(0.99,rate(kubeproxy_sync_proxy_rules_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-proxy\", instance=~\"$instance\"}[$__rate_interval]))",
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}instance{{`}}`}}",
-@@ -375,7 +380,7 @@
+@@ -343,13 +354,14 @@
+ 
+                         },
+                         "id": 5,
++                        "interval": "1m",
+                         "legend": {
+-                            "alignAsTable": false,
++                            "alignAsTable": true,
+                             "avg": false,
+                             "current": false,
+                             "max": false,
+                             "min": false,
+-                            "rightSide": false,
++                            "rightSide": true,
+                             "show": true,
+                             "sideWidth": null,
+                             "total": false,
+@@ -375,7 +387,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
 -                                "expr": "sum(rate(kubeproxy_network_programming_duration_seconds_count{cluster=\"$cluster\", job=\"kube-proxy\", instance=~\"$instance\"}[5m]))",
-+                                "expr": "sum(rate(kubeproxy_network_programming_duration_seconds_count{cluster=\"$cluster\", job=\"{{ include "exporter.kubeProxy.jobName" . }}\", instance=~\"$instance\"}[5m]))",
++                                "expr": "sum(rate(kubeproxy_network_programming_duration_seconds_count{cluster=\"$cluster\", job=\"kube-proxy\", instance=~\"$instance\"}[$__rate_interval]))",
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "rate",
-@@ -468,7 +473,7 @@
+@@ -436,6 +448,7 @@
+ 
+                         },
+                         "id": 6,
++                        "interval": "1m",
+                         "legend": {
+                             "alignAsTable": true,
+                             "avg": false,
+@@ -468,7 +481,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
 -                                "expr": "histogram_quantile(0.99, sum(rate(kubeproxy_network_programming_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-proxy\", instance=~\"$instance\"}[5m])) by (instance, le))",
-+                                "expr": "histogram_quantile(0.99, sum(rate(kubeproxy_network_programming_duration_seconds_bucket{cluster=\"$cluster\", job=\"{{ include "exporter.kubeProxy.jobName" . }}\", instance=~\"$instance\"}[5m])) by (instance, le))",
++                                "expr": "histogram_quantile(0.99, sum(rate(kubeproxy_network_programming_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-proxy\", instance=~\"$instance\"}[$__rate_interval])) by (instance, le))",
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}instance{{`}}`}}",
-@@ -574,28 +579,28 @@
+@@ -542,13 +555,14 @@
+ 
+                         },
+                         "id": 7,
++                        "interval": "1m",
+                         "legend": {
+-                            "alignAsTable": false,
++                            "alignAsTable": true,
+                             "avg": false,
+                             "current": false,
+                             "max": false,
+                             "min": false,
+-                            "rightSide": false,
++                            "rightSide": true,
+                             "show": true,
+                             "sideWidth": null,
+                             "total": false,
+@@ -574,28 +588,28 @@
                          "steppedLine": false,
                          "targets": [
                              {
 -                                "expr": "sum(rate(rest_client_requests_total{cluster=\"$cluster\", job=\"kube-proxy\", instance=~\"$instance\",code=~\"2..\"}[5m]))",
-+                                "expr": "sum(rate(rest_client_requests_total{cluster=\"$cluster\", job=\"{{ include "exporter.kubeProxy.jobName" . }}\", instance=~\"$instance\",code=~\"2..\"}[5m]))",
++                                "expr": "sum(rate(rest_client_requests_total{cluster=\"$cluster\", job=\"kube-proxy\", instance=~\"$instance\",code=~\"2..\"}[$__rate_interval]))",
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "2xx",
@@ -77,7 +164,7 @@
                              },
                              {
 -                                "expr": "sum(rate(rest_client_requests_total{cluster=\"$cluster\", job=\"kube-proxy\", instance=~\"$instance\",code=~\"3..\"}[5m]))",
-+                                "expr": "sum(rate(rest_client_requests_total{cluster=\"$cluster\", job=\"{{ include "exporter.kubeProxy.jobName" . }}\", instance=~\"$instance\",code=~\"3..\"}[5m]))",
++                                "expr": "sum(rate(rest_client_requests_total{cluster=\"$cluster\", job=\"kube-proxy\", instance=~\"$instance\",code=~\"3..\"}[$__rate_interval]))",
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "3xx",
@@ -85,7 +172,7 @@
                              },
                              {
 -                                "expr": "sum(rate(rest_client_requests_total{cluster=\"$cluster\", job=\"kube-proxy\", instance=~\"$instance\",code=~\"4..\"}[5m]))",
-+                                "expr": "sum(rate(rest_client_requests_total{cluster=\"$cluster\", job=\"{{ include "exporter.kubeProxy.jobName" . }}\", instance=~\"$instance\",code=~\"4..\"}[5m]))",
++                                "expr": "sum(rate(rest_client_requests_total{cluster=\"$cluster\", job=\"kube-proxy\", instance=~\"$instance\",code=~\"4..\"}[$__rate_interval]))",
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "4xx",
@@ -93,29 +180,71 @@
                              },
                              {
 -                                "expr": "sum(rate(rest_client_requests_total{cluster=\"$cluster\", job=\"kube-proxy\", instance=~\"$instance\",code=~\"5..\"}[5m]))",
-+                                "expr": "sum(rate(rest_client_requests_total{cluster=\"$cluster\", job=\"{{ include "exporter.kubeProxy.jobName" . }}\", instance=~\"$instance\",code=~\"5..\"}[5m]))",
++                                "expr": "sum(rate(rest_client_requests_total{cluster=\"$cluster\", job=\"kube-proxy\", instance=~\"$instance\",code=~\"5..\"}[$__rate_interval]))",
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "5xx",
-@@ -688,7 +693,7 @@
+@@ -656,13 +670,14 @@
+ 
+                         },
+                         "id": 8,
++                        "interval": "1m",
+                         "legend": {
+-                            "alignAsTable": false,
++                            "alignAsTable": true,
+                             "avg": false,
+                             "current": false,
+                             "max": false,
+                             "min": false,
+-                            "rightSide": false,
++                            "rightSide": true,
+                             "show": true,
+                             "sideWidth": null,
+                             "total": false,
+@@ -688,7 +703,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
 -                                "expr": "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-proxy\",instance=~\"$instance\",verb=\"POST\"}[5m])) by (verb, url, le))",
-+                                "expr": "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{cluster=\"$cluster\", job=\"{{ include "exporter.kubeProxy.jobName" . }}\",instance=~\"$instance\",verb=\"POST\"}[5m])) by (verb, url, le))",
++                                "expr": "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-proxy\",instance=~\"$instance\",verb=\"POST\"}[$__rate_interval])) by (verb, url, le))",
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}verb{{`}}`}} {{`{{`}}url{{`}}`}}",
-@@ -794,7 +799,7 @@
+@@ -762,6 +777,7 @@
+ 
+                         },
+                         "id": 9,
++                        "interval": "1m",
+                         "legend": {
+                             "alignAsTable": true,
+                             "avg": false,
+@@ -794,7 +810,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
 -                                "expr": "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-proxy\", instance=~\"$instance\", verb=\"GET\"}[5m])) by (verb, url, le))",
-+                                "expr": "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{cluster=\"$cluster\", job=\"{{ include "exporter.kubeProxy.jobName" . }}\", instance=~\"$instance\", verb=\"GET\"}[5m])) by (verb, url, le))",
++                                "expr": "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-proxy\", instance=~\"$instance\", verb=\"GET\"}[$__rate_interval])) by (verb, url, le))",
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}verb{{`}}`}} {{`{{`}}url{{`}}`}}",
-@@ -900,7 +905,7 @@
+@@ -868,13 +884,14 @@
+ 
+                         },
+                         "id": 10,
++                        "interval": "1m",
+                         "legend": {
+-                            "alignAsTable": false,
++                            "alignAsTable": true,
+                             "avg": false,
+                             "current": false,
+                             "max": false,
+                             "min": false,
+-                            "rightSide": false,
++                            "rightSide": true,
+                             "show": true,
+                             "sideWidth": null,
+                             "total": false,
+@@ -900,7 +917,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
@@ -124,16 +253,50 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}instance{{`}}`}}",
-@@ -993,7 +998,7 @@
+@@ -961,13 +978,14 @@
+ 
+                         },
+                         "id": 11,
++                        "interval": "1m",
+                         "legend": {
+-                            "alignAsTable": false,
++                            "alignAsTable": true,
+                             "avg": false,
+                             "current": false,
+                             "max": false,
+                             "min": false,
+-                            "rightSide": false,
++                            "rightSide": true,
+                             "show": true,
+                             "sideWidth": null,
+                             "total": false,
+@@ -993,7 +1011,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
 -                                "expr": "rate(process_cpu_seconds_total{cluster=\"$cluster\", job=\"kube-proxy\",instance=~\"$instance\"}[5m])",
-+                                "expr": "rate(process_cpu_seconds_total{cluster=\"$cluster\", job=\"{{ include "exporter.kubeProxy.jobName" . }}\",instance=~\"$instance\"}[5m])",
++                                "expr": "rate(process_cpu_seconds_total{cluster=\"$cluster\", job=\"kube-proxy\",instance=~\"$instance\"}[$__rate_interval])",
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}instance{{`}}`}}",
-@@ -1086,7 +1091,7 @@
+@@ -1054,13 +1072,14 @@
+ 
+                         },
+                         "id": 12,
++                        "interval": "1m",
+                         "legend": {
+-                            "alignAsTable": false,
++                            "alignAsTable": true,
+                             "avg": false,
+                             "current": false,
+                             "max": false,
+                             "min": false,
+-                            "rightSide": false,
++                            "rightSide": true,
+                             "show": true,
+                             "sideWidth": null,
+                             "total": false,
+@@ -1086,7 +1105,7 @@
                          "steppedLine": false,
                          "targets": [
                              {
@@ -142,16 +305,34 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "{{`{{`}}instance{{`}}`}}",
-@@ -1206,7 +1211,7 @@
+@@ -1156,7 +1175,7 @@
+                         "value": "default"
+                     },
+                     "hide": 0,
+-                    "label": null,
++                    "label": "Data Source",
+                     "name": "datasource",
+                     "options": [
+ 
+@@ -1180,7 +1199,7 @@
+                     "options": [
+ 
+                     ],
+-                    "query": "label_values(kube_pod_info, cluster)",
++                    "query": "label_values(up{job=\"kube-proxy\"}, cluster)",
+                     "refresh": 2,
+                     "regex": "",
+                     "sort": 1,
+@@ -1206,7 +1225,7 @@
                      "options": [
  
                      ],
 -                    "query": "label_values(kubeproxy_network_programming_duration_seconds_bucket{cluster=\"$cluster\", job=\"kube-proxy\"}, instance)",
-+                    "query": "label_values(kubeproxy_network_programming_duration_seconds_bucket{cluster=\"$cluster\", job=\"{{ include "exporter.kubeProxy.jobName" . }}\"}, instance)",
++                    "query": "label_values(up{job=\"kube-proxy\", cluster=\"$cluster\", job=\"kube-proxy\"}, instance)",
                      "refresh": 2,
                      "regex": "",
                      "sort": 1,
-@@ -1254,4 +1259,4 @@
+@@ -1254,4 +1273,4 @@
          "uid": "632e265de029684c40b21cb76bca4f94",
          "version": 0
      }

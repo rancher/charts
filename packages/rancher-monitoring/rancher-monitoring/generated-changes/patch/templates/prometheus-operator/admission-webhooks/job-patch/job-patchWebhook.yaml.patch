@@ -12,7 +12,15 @@
            {{- end }}
            imagePullPolicy: {{ .Values.prometheusOperator.admissionWebhooks.patch.image.pullPolicy }}
            args:
-@@ -47,16 +47,16 @@
+@@ -43,20 +43,24 @@
+             - --namespace={{ template "kube-prometheus-stack.namespace" . }}
+             - --secret-name={{ template "kube-prometheus-stack.fullname" . }}-admission
+             - --patch-failure-policy={{ .Values.prometheusOperator.admissionWebhooks.failurePolicy }}
++          {{- with .Values.prometheusOperator.admissionWebhooks.patchWebhookJob }}
++          securityContext:
++          {{ toYaml .securityContext | nindent 12 }}
++          {{- end }}
+           resources:
  {{ toYaml .Values.prometheusOperator.admissionWebhooks.patch.resources | indent 12 }}
        restartPolicy: OnFailure
        serviceAccountName: {{ template "kube-prometheus-stack.fullname" . }}-admission
