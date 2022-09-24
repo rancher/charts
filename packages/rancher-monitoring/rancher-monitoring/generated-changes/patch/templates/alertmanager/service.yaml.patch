@@ -1,0 +1,22 @@
+--- charts-original/templates/alertmanager/service.yaml
++++ charts/templates/alertmanager/service.yaml
+@@ -32,6 +32,9 @@
+     - {{ $cidr }}
+   {{- end }}
+ {{- end }}
++{{- if ne .Values.alertmanager.service.type "ClusterIP" }}
++  externalTrafficPolicy: {{ .Values.alertmanager.service.externalTrafficPolicy }}
++{{- end }}
+   ports:
+   - name: {{ .Values.alertmanager.alertmanagerSpec.portName }}
+   {{- if eq .Values.alertmanager.service.type "NodePort" }}
+@@ -44,7 +47,7 @@
+ {{ toYaml .Values.alertmanager.service.additionalPorts | indent 2 }}
+ {{- end }}
+   selector:
+-    app: alertmanager
+-    alertmanager: {{ template "kube-prometheus-stack.fullname" . }}-alertmanager
++    app.kubernetes.io/name: alertmanager
++    alertmanager: {{ template "kube-prometheus-stack.alertmanager.crname" . }}
+   type: "{{ .Values.alertmanager.service.type }}"
+ {{- end }}

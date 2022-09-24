@@ -1,0 +1,19 @@
+--- charts-original/templates/prometheus/serviceThanosSidecar.yaml
++++ charts/templates/prometheus/serviceThanosSidecar.yaml
+@@ -17,6 +17,9 @@
+ spec:
+   type: {{ .Values.prometheus.thanosService.type }}
+   clusterIP: {{ .Values.prometheus.thanosService.clusterIP }}
++{{- if ne .Values.prometheus.thanosService.type "ClusterIP" }}
++  externalTrafficPolicy: {{ .Values.prometheus.thanosService.externalTrafficPolicy }}
++{{- end }}
+   ports:
+   - name: {{ .Values.prometheus.thanosService.portName }}
+     port: {{ .Values.prometheus.thanosService.port }}
+@@ -32,5 +35,5 @@
+     {{- end }}
+   selector:
+     app.kubernetes.io/name: prometheus
+-    prometheus: {{ template "kube-prometheus-stack.fullname" . }}-prometheus
++    prometheus: {{ template "kube-prometheus-stack.prometheus.crname" . }}
+ {{- end }}
