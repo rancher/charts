@@ -1450,8 +1450,63 @@ grafana:
   ## Passed to grafana subchart and used by servicemonitor below
   ##
   service:
-    portName: http-web
+    portName: nginx-http
+    ## Port for Grafana Service to listen on
+    ##
+    port: 80
+    ## To be used with a proxy extraContainer port
+    ##
+    targetPort: 8080
+    ## Port to expose on each node
+    ## Only used if service.type is 'NodePort'
+    ##
+    nodePort: 30950
+    ## Service type
+    ##
+    type: ClusterIP
 
+  proxy:
+    image:
+      repository: rancher/mirrored-library-nginx
+      tag: 1.21.1-alpine
+
+  ## Enable an Specify container in extraContainers. This is meant to allow adding an authentication proxy to a grafana pod
+  extraContainers: |
+    - name: grafana-proxy
+      args:
+      - nginx
+      - -g
+      - daemon off;
+      - -c
+      - /nginx/nginx.conf
+      image: "{{ template "system_default_registry" . }}{{ .Values.proxy.image.repository }}:{{ .Values.proxy.image.tag }}"
+      ports:
+      - containerPort: 8080
+        name: nginx-http
+        protocol: TCP
+      volumeMounts:
+      - mountPath: /nginx
+        name: grafana-nginx
+      - mountPath: /var/cache/nginx
+        name: nginx-home
+      securityContext:
+        runAsUser: 101
+        runAsGroup: 101
+
+  ## Volumes that can be used in containers
+  extraContainerVolumes:
+    - name: nginx-home
+      emptyDir: {}
+    - name: grafana-nginx
+      configMap:
+        name: grafana-nginx-proxy-config
+        items:
+        - key: nginx.conf
+          mode: 438
+          path: nginx.conf
+
+  ## If true, create a serviceMonitor for grafana
+  ##
   serviceMonitor:
     # If true, a ServiceMonitor CRD is created for a prometheus operator
     # https://github.com/coreos/prometheus-operator
