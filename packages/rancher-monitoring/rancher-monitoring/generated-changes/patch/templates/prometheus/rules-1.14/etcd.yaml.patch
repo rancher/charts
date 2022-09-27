@@ -1,20 +1,13 @@
 --- charts-original/templates/prometheus/rules-1.14/etcd.yaml
 +++ charts/templates/prometheus/rules-1.14/etcd.yaml
-@@ -1,10 +1,11 @@
+@@ -1,5 +1,5 @@
  {{- /*
 -Generated from 'etcd' group from https://raw.githubusercontent.com/etcd-io/website/master/content/en/docs/v3.4/op-guide/etcd3_alert.rules.yml
 +Generated from 'etcd' group from https://raw.githubusercontent.com/etcd-io/etcd/main/contrib/mixin/mixin.libsonnet
  Do not change in-place! In order to change this file first read following link:
  https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack/hack
  */ -}}
- {{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion .Values.kubeTargetVersionOverride }}
--{{- if and (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.defaultRules.create .Values.kubeEtcd.enabled .Values.defaultRules.rules.etcd }}
-+{{- if and (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.defaultRules.create .Values.defaultRules.rules.etcd }}
-+{{- if (include "exporter.kubeEtcd.enabled" .)}}
- apiVersion: monitoring.coreos.com/v1
- kind: PrometheusRule
- metadata:
-@@ -24,19 +25,54 @@
+@@ -24,19 +24,54 @@
    groups:
    - name: etcd
      rules:
@@ -72,7 +65,7 @@
        expr: etcd_server_has_leader{job=~".*etcd.*"} == 0
        for: 1m
        labels:
-@@ -44,23 +80,35 @@
+@@ -44,23 +79,35 @@
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
@@ -114,7 +107,7 @@
            > 1
        for: 10m
        labels:
-@@ -68,13 +116,19 @@
+@@ -68,13 +115,19 @@
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
@@ -137,7 +130,7 @@
            > 5
        for: 5m
        labels:
-@@ -82,11 +136,17 @@
+@@ -82,11 +135,17 @@
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
@@ -157,7 +150,7 @@
          > 0.15
        for: 10m
        labels:
-@@ -94,9 +154,15 @@
+@@ -94,9 +153,15 @@
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
@@ -174,7 +167,7 @@
        expr: |-
          histogram_quantile(0.99, rate(etcd_network_peer_round_trip_time_seconds_bucket{job=~".*etcd.*"}[5m]))
          > 0.15
-@@ -106,9 +172,15 @@
+@@ -106,9 +171,15 @@
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
@@ -191,7 +184,7 @@
        expr: rate(etcd_server_proposals_failed_total{job=~".*etcd.*"}[15m]) > 5
        for: 15m
        labels:
-@@ -116,9 +188,15 @@
+@@ -116,9 +187,15 @@
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
@@ -208,7 +201,7 @@
        expr: |-
          histogram_quantile(0.99, rate(etcd_disk_wal_fsync_duration_seconds_bucket{job=~".*etcd.*"}[5m]))
          > 0.5
-@@ -128,9 +206,33 @@
+@@ -128,9 +205,33 @@
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
@@ -243,7 +236,7 @@
        expr: |-
          histogram_quantile(0.99, rate(etcd_disk_backend_commit_duration_seconds_bucket{job=~".*etcd.*"}[5m]))
          > 0.25
-@@ -140,40 +242,54 @@
+@@ -140,40 +241,54 @@
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
