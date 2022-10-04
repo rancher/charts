@@ -2269,7 +2269,7 @@
      ##
      thanos: {}
        # secretProviderClass:
-@@ -2475,9 +3484,26 @@
+@@ -2475,9 +3484,48 @@
        #         fileName: "objstore.yaml"
        # objectStorageConfigFile: /var/secrets/object-store.yaml
  
@@ -2280,7 +2280,8 @@
 +
      ## Containers allows injecting additional containers. This is meant to allow adding an authentication proxy to a Prometheus pod.
      ## if using proxy extraContainer update targetPort with proxy container port
-     containers: []
+-    containers: []
++    #containers: []
 +    # containers:
 +    # - name: oauth-proxy
 +    #   image: quay.io/oauth2-proxy/oauth2-proxy:v7.3.0
@@ -2293,10 +2294,32 @@
 +    #     name: oauth-proxy
 +    #     protocol: TCP
 +    #   resources: {}
++
++    containers: 
++    - name: prometheus-proxy
++      args:
++      - nginx
++      - -g
++      - daemon off;
++      - -c
++      - /nginx/nginx.conf
++      image: rancher/mirrored-library-nginx:1.21.1-alpine
++      ports:
++      - containerPort: 8081
++        name: nginx-http
++        protocol: TCP
++      volumeMounts:
++      - mountPath: /nginx
++        name: prometheus-nginx
++      - mountPath: /var/cache/nginx
++        name: nginx-home
++      securityContext:
++        runAsUser: 101
++        runAsGroup: 101
  
      ## InitContainers allows injecting additional initContainers. This is meant to allow doing some changes
      ## (permissions, dir tree) on mounted volumes before starting prometheus
-@@ -2485,7 +3511,7 @@
+@@ -2485,7 +3533,7 @@
  
      ## PortName to use for Prometheus.
      ##
@@ -2305,7 +2328,7 @@
  
      ## ArbitraryFSAccessThroughSMs configures whether configuration based on a service monitor can access arbitrary files
      ## on the file system of the Prometheus container e.g. bearer token files.
-@@ -2509,8 +3535,15 @@
+@@ -2509,8 +3557,15 @@
  
      ## PrometheusRulesExcludedFromEnforce - list of prometheus rules to be excluded from enforcing of adding namespace labels.
      ## Works only if enforcedNamespaceLabel set to true. Make sure both ruleNamespace and ruleName are set for each pair
@@ -2321,7 +2344,7 @@
      ## QueryLogFile specifies the file to which PromQL queries are logged. Note that this location must be writable,
      ## and can be persisted using an attached volume. Alternatively, the location can be set to a stdout location such
      ## as /dev/stdout to log querie information to the default Prometheus log stream. This is only available in versions
-@@ -2548,6 +3581,10 @@
+@@ -2548,6 +3603,10 @@
      ## in Prometheus so it may change in any upcoming release.
      allowOverlappingBlocks: false
  
@@ -2332,7 +2355,7 @@
    additionalRulesForClusterRole: []
    #  - apiGroups: [ "" ]
    #    resources:
-@@ -2682,6 +3719,380 @@
+@@ -2682,6 +3741,380 @@
        # matchNames: []
  
      ## Endpoints of the selected pods to be monitored
