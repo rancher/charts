@@ -1,0 +1,16 @@
+--- charts-original/templates/server.yaml
++++ charts/templates/server.yaml
+@@ -30,6 +30,13 @@
+       labels:
+         {{- include "epinio-ui.labels" . | nindent 8 }}
+     spec:
++      nodeSelector:
++        {{- include "linux-node-selector" . | nindent 8 }}
++      tolerations:
++        {{- include "linux-node-tolerations" . | nindent 8 }}
++{{- if .Values.global.rbac.pspEnabled }}
++      serviceAccountName: epinio-ui
++{{- end }}
+       containers:
+       - name: epinio-ui
+         image: {{ template "epinio-ui.registry" . }}{{ .Values.epinioUI.image.repository }}:{{ .Values.epinioUI.image.tag }}
