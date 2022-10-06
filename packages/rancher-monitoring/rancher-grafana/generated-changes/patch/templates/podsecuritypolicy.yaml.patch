@@ -1,6 +1,11 @@
 --- charts-original/templates/podsecuritypolicy.yaml
 +++ charts/templates/podsecuritypolicy.yaml
-@@ -6,19 +6,27 @@
+@@ -1,23 +1,31 @@
+-{{- if .Values.rbac.pspEnabled }}
++{{- if and (.Values.rbac.pspEnabled) (semverCompare "<1.21.0-0" .Capabilities.KubeVersion.Version) }}
+ apiVersion: policy/v1beta1
+ kind: PodSecurityPolicy
+ metadata:
    name: {{ template "grafana.fullname" . }}
    labels:
      {{- include "grafana.labels" . | nindent 4 }}
