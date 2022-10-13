@@ -300,7 +300,15 @@
      volumeMounts:
        - name: sc-dashboard-volume
          mountPath: {{ .Values.sidecar.dashboards.folder | quote }}
-@@ -319,14 +264,6 @@
+@@ -313,20 +258,12 @@
+ {{- if .Values.sidecar.datasources.enabled }}
+   - name: {{ template "grafana.name" . }}-sc-datasources
+     {{- if .Values.sidecar.image.sha }}
+-    image: "{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}@sha256:{{ .Values.sidecar.image.sha }}"
++    image: "{{ template "system_default_registry" . }}{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}@sha256:{{ .Values.sidecar.image.sha }}"
+     {{- else }}
+-    image: "{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}"
++    image: "{{ template "system_default_registry" . }}{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}"
      {{- end }}
      imagePullPolicy: {{ .Values.sidecar.imagePullPolicy }}
      env:
@@ -391,7 +399,15 @@
      volumeMounts:
        - name: sc-datasources-volume
          mountPath: "/etc/grafana/provisioning/datasources"
-@@ -422,14 +335,6 @@
+@@ -416,20 +329,12 @@
+ {{- if .Values.sidecar.plugins.enabled }}
+   - name: {{ template "grafana.name" . }}-sc-plugins
+     {{- if .Values.sidecar.image.sha }}
+-    image: "{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}@sha256:{{ .Values.sidecar.image.sha }}"
++    image: "{{ template "system_default_registry" . }}{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}@sha256:{{ .Values.sidecar.image.sha }}"
+     {{- else }}
+-    image: "{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}"
++    image: "{{ template "system_default_registry" . }}{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}"
      {{- end }}
      imagePullPolicy: {{ .Values.sidecar.imagePullPolicy }}
      env:
@@ -430,7 +446,7 @@
        {{- end }}
        {{- if .Values.sidecar.skipTlsVerify }}
        - name: SKIP_TLS_VERIFY
-@@ -482,36 +379,20 @@
+@@ -482,45 +379,29 @@
        - name: REQ_METHOD
          value: POST
        {{- end }}
@@ -477,6 +493,17 @@
      volumeMounts:
        - name: sc-plugins-volume
          mountPath: "/etc/grafana/provisioning/plugins"
+ {{- end}}
+   - name: {{ .Chart.Name }}
+     {{- if .Values.image.sha }}
+-    image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}@sha256:{{ .Values.image.sha }}"
++    image: "{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}@sha256:{{ .Values.image.sha }}"
+     {{- else }}
+-    image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
++    image: "{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+     {{- end }}
+     imagePullPolicy: {{ .Values.image.pullPolicy }}
+   {{- if .Values.command }}
 @@ -529,10 +410,10 @@
        - {{ . }}
      {{- end }}
