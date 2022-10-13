@@ -1,41 +1,11 @@
 --- charts-original/templates/prometheus/rules-1.14/kubernetes-system-controller-manager.yaml
 +++ charts/templates/prometheus/rules-1.14/kubernetes-system-controller-manager.yaml
-@@ -1,10 +1,10 @@
- {{- /*
--Generated from 'kubernetes-system-controller-manager' group from https://raw.githubusercontent.com/prometheus-operator/kube-prometheus/main/manifests/kubernetes-prometheusRule.yaml
-+Generated from 'kubernetes-system-controller-manager' group from https://raw.githubusercontent.com/prometheus-operator/kube-prometheus/main/manifests/kubernetesControlPlane-prometheusRule.yaml
- Do not change in-place! In order to change this file first read following link:
- https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack/hack
- */ -}}
- {{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion .Values.kubeTargetVersionOverride }}
--{{- if and (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.defaultRules.create .Values.kubeControllerManager.enabled }}
-+{{- if and (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.defaultRules.create .Values.kubeControllerManager.enabled .Values.defaultRules.rules.kubeControllerManager }}
- apiVersion: monitoring.coreos.com/v1
- kind: PrometheusRule
- metadata:
-@@ -25,12 +25,16 @@
-   - name: kubernetes-system-controller-manager
-     rules:
- {{- if .Values.kubeControllerManager.enabled }}
-+{{- if not (.Values.defaultRules.disabled.KubeControllerManagerDown | default false) }}
-     - alert: KubeControllerManagerDown
-       annotations:
-+{{- if .Values.defaultRules.additionalRuleAnnotations }}
-+{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
-+{{- end }}
+@@ -34,7 +34,7 @@
          description: KubeControllerManager has disappeared from Prometheus target discovery.
--        runbook_url: {{ .Values.defaultRules.runbookUrl }}alert-name-kubecontrollermanagerdown
-+        runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubecontrollermanagerdown
+         runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubecontrollermanagerdown
          summary: Target disappeared from Prometheus target discovery.
 -      expr: absent(up{job="kube-controller-manager"} == 1)
 +      expr: absent(up{job="{{ include "exporter.kubeControllerManager.jobName" . }}"} == 1)
        for: 15m
        labels:
          severity: critical
-@@ -38,4 +42,5 @@
- {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
- {{- end }}
- {{- end }}
-+{{- end }}
- {{- end }}
-\ No newline at end of file
