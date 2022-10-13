@@ -1,0 +1,23 @@
+--- charts-original/templates/image-renderer-network-policy.yaml
++++ charts/templates/image-renderer-network-policy.yaml
+@@ -19,7 +19,7 @@
+     - Ingress
+   ingress:
+     - ports:
+-        - port: {{ .Values.imageRenderer.service.targetPort }}
++        - port: {{ .Values.imageRenderer.service.port }}
+           protocol: TCP
+       from:
+         - namespaceSelector:
+@@ -64,7 +64,10 @@
+         - port: {{ .Values.service.port }}
+           protocol: TCP
+       to:
+-        - podSelector:
++        - namespaceSelector:
++            matchLabels:
++              name: {{ template "grafana.namespace" . }}
++          podSelector:
+             matchLabels:
+               {{- include "grafana.selectorLabels" . | nindent 14 }}
+               {{- if .Values.podLabels }}
