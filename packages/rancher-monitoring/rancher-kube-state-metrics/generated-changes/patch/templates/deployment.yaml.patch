@@ -1,5 +1,17 @@
 --- charts-original/templates/deployment.yaml
 +++ charts/templates/deployment.yaml
+@@ -108,9 +108,9 @@
+         {{- end }}
+         imagePullPolicy: {{ .Values.image.pullPolicy }}
+         {{- if .Values.image.sha }}
+-        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}@sha256:{{ .Values.image.sha }}"
++        image: "{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}@sha256:{{ .Values.image.sha }}"
+         {{- else }}
+-        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
++        image: "{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+         {{- end }}
+         ports:
+         - containerPort: {{ .Values.service.port | default 8080}}
 @@ -147,12 +147,12 @@
        affinity:
  {{ toYaml .Values.affinity | indent 8 }}
