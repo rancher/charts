@@ -1,5 +1,18 @@
 --- charts-original/templates/tests/test.yaml
 +++ charts/templates/tests/test.yaml
+@@ -21,9 +21,9 @@
+     - name: {{ tpl . $root }}
+   {{- end}}
+   {{- end }}
+-  {{- with .Values.nodeSelector }}
+-  nodeSelector:
+-{{ toYaml . | indent 4 }}
++  nodeSelector: {{ include "linux-node-selector" . | nindent 4 }}
++  {{- if .Values.nodeSelector }}
++{{ toYaml .Values.nodeSelector | indent 4 }}
+   {{- end }}
+   {{- $root := . }}
+   {{- with .Values.affinity }}
 @@ -36,7 +36,7 @@
    {{- end }}
    containers:
