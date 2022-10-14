@@ -1,5 +1,14 @@
 --- charts-original/templates/prometheus/rules-1.14/kubernetes-system-kubelet.yaml
 +++ charts/templates/prometheus/rules-1.14/kubernetes-system-kubelet.yaml
+@@ -125,7 +125,7 @@
+         description: Kubelet Pod startup 99th percentile latency is {{`{{`}} $value {{`}}`}} seconds on node {{`{{`}} $labels.node {{`}}`}}.
+         runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubeletpodstartuplatencyhigh
+         summary: Kubelet Pod startup latency is too high.
+-      expr: histogram_quantile(0.99, sum(rate(kubelet_pod_worker_duration_seconds_bucket{job="kubelet", metrics_path="/metrics"}[5m])) by (cluster, instance, le)) * on(cluster, instance) group_left(node) kubelet_node_name{job="kubelet", metrics_path="/metrics"} > 60
++      expr: histogram_quantile(0.99, sum(rate(kubelet_pod_worker_duration_seconds_bucket{job="{{ include "exporter.kubelet.jobName" . }}", metrics_path="/metrics"}[5m])) by (cluster, instance, le)) * on(cluster, instance) group_left(node) kubelet_node_name{job="{{ include "exporter.kubelet.jobName" . }}", metrics_path="/metrics"} > 60
+       for: 15m
+       labels:
+         severity: warning
 @@ -231,7 +231,7 @@
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
