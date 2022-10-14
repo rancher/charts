@@ -1,6 +1,6 @@
 --- charts-original/templates/tests/test.yaml
 +++ charts/templates/tests/test.yaml
-@@ -21,9 +21,9 @@
+@@ -21,22 +21,22 @@
      - name: {{ tpl . $root }}
    {{- end}}
    {{- end }}
@@ -13,8 +13,17 @@
    {{- end }}
    {{- $root := . }}
    {{- with .Values.affinity }}
-@@ -36,7 +36,7 @@
+   affinity:
+ {{ tpl (toYaml .) $root | indent 4 }}
    {{- end }}
+-  {{- with .Values.tolerations }}
+-  tolerations:
+-{{ toYaml . | indent 4 }}
+-  {{- end }}
++  tolerations: {{ include "linux-node-tolerations" . | nindent 4 }}
++{{- if .Values.tolerations }}
++{{ toYaml .Values.tolerations | indent 4 }}
++{{- end }}
    containers:
      - name: {{ .Release.Name }}-test
 -      image: "{{ .Values.testFramework.image}}:{{ .Values.testFramework.tag }}"
