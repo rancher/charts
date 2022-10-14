@@ -18,7 +18,7 @@
    {{- end }}
    version: {{ .Values.prometheus.prometheusSpec.image.tag }}
    {{- if .Values.prometheus.prometheusSpec.image.sha }}
-@@ -67,6 +67,8 @@
+@@ -67,11 +67,13 @@
    externalUrl: "{{ tpl .Values.prometheus.prometheusSpec.externalUrl . }}"
  {{- else if and .Values.prometheus.ingress.enabled .Values.prometheus.ingress.hosts }}
    externalUrl: "http://{{ tpl (index .Values.prometheus.ingress.hosts 0) . }}{{ .Values.prometheus.prometheusSpec.routePrefix }}"
@@ -27,6 +27,22 @@
  {{- else }}
    externalUrl: http://{{ template "kube-prometheus-stack.fullname" . }}-prometheus.{{ template "kube-prometheus-stack.namespace" . }}:{{ .Values.prometheus.service.port }}
  {{- end }}
++  nodeSelector: {{ include "linux-node-selector" . | nindent 4 }}
+ {{- if .Values.prometheus.prometheusSpec.nodeSelector }}
+-  nodeSelector:
+ {{ toYaml .Values.prometheus.prometheusSpec.nodeSelector | indent 4 }}
+ {{- end }}
+   paused: {{ .Values.prometheus.prometheusSpec.paused }}
+@@ -252,8 +254,8 @@
+               - {key: prometheus, operator: In, values: [{{ template "kube-prometheus-stack.fullname" . }}-prometheus]}
+ {{- end }}
+ {{- end }}
++  tolerations: {{ include "linux-node-tolerations" . | nindent 4 }}
+ {{- if .Values.prometheus.prometheusSpec.tolerations }}
+-  tolerations:
+ {{ toYaml .Values.prometheus.prometheusSpec.tolerations | indent 4 }}
+ {{- end }}
+ {{- if .Values.prometheus.prometheusSpec.topologySpreadConstraints }}
 @@ -383,4 +385,4 @@
  {{- if .Values.prometheus.prometheusSpec.minReadySeconds }}
    minReadySeconds: {{ .Values.prometheus.prometheusSpec.minReadySeconds }}
