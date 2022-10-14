@@ -762,7 +762,7 @@
 +    ## Service type
 +    ##
 +    type: ClusterIP
- 
++
 +  proxy:
 +    image:
 +      repository: rancher/mirrored-library-nginx
@@ -802,7 +802,7 @@
 +        - key: nginx.conf
 +          mode: 438
 +          path: nginx.conf
-+
+ 
 +  ## If true, create a serviceMonitor for grafana
 +  ##
    serviceMonitor:
@@ -862,90 +862,7 @@
  
    ## If your kube proxy is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1471,18 +2141,7 @@
- ##
- kubeStateMetrics:
-   enabled: true
--
--## Configuration for kube-state-metrics subchart
--##
--kube-state-metrics:
--  namespaceOverride: ""
--  rbac:
--    create: true
--  releaseLabel: true
--  prometheus:
--    monitor:
--      enabled: true
--
-+  serviceMonitor:
-       ## Scrape interval. If not set, the Prometheus default scrape interval is used.
-       ##
-       interval: ""
-@@ -1518,14 +2177,52 @@
-       #   replacement: $1
-       #   action: replace
- 
--  selfMonitor:
--    enabled: false
-+      selfMonitor:
-+        enabled: false
- 
- ## Deploy node exporter as a daemonset to all nodes
- ##
- nodeExporter:
-   enabled: true
- 
-+  ## Use the value configured in prometheus-node-exporter.podLabels
-+  ##
-+  jobLabel: jobLabel
-+
-+  serviceMonitor:
-+    ## Scrape interval. If not set, the Prometheus default scrape interval is used.
-+    ##
-+    interval: ""
-+
-+    ## proxyUrl: URL of a proxy that should be used for scraping.
-+    ##
-+    proxyUrl: ""
-+
-+    ## How long until a scrape request times out. If not set, the Prometheus default scape timeout is used.
-+    ##
-+    scrapeTimeout: ""
-+
-+    ## MetricRelabelConfigs to apply to samples after scraping, but before ingestion.
-+    ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/api.md#relabelconfig
-+    ##
-+    metricRelabelings: []
-+    # - sourceLabels: [__name__]
-+    #   separator: ;
-+    #   regex: ^node_mountstats_nfs_(event|operations|transport)_.+
-+    #   replacement: $1
-+    #   action: drop
-+
-+    ## RelabelConfigs to apply to samples before scraping
-+    ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/api.md#relabelconfig
-+    ##
-+    relabelings: []
-+    # - sourceLabels: [__meta_kubernetes_pod_node_name]
-+    #   separator: ;
-+    #   regex: ^(.*)$
-+    #   targetLabel: nodename
-+    #   replacement: $1
-+    #   action: replace
-+
- ## Configuration for prometheus-node-exporter subchart
- ##
- prometheus-node-exporter:
-@@ -1546,6 +2243,7 @@
- 
-       jobLabel: jobLabel
- 
-+  serviceMonitor:
-       ## Scrape interval. If not set, the Prometheus default scrape interval is used.
-       ##
-       interval: ""
-@@ -1578,10 +2276,6 @@
+@@ -1578,10 +2248,6 @@
        #   targetLabel: nodename
        #   replacement: $1
        #   action: replace
@@ -956,7 +873,7 @@
  
  ## Manages Prometheus and Alertmanager components
  ##
-@@ -1594,8 +2288,8 @@
+@@ -1594,8 +2260,8 @@
      enabled: true
      # Value must match version names from https://golang.org/pkg/crypto/tls/#pkg-constants
      tlsMinVersion: VersionTLS13
@@ -967,7 +884,7 @@
  
    ## Admission webhook support for PrometheusRules resources added in Prometheus Operator 0.30 can be enabled to prevent incorrectly formatted
    ## rules from making their way into prometheus and potentially preventing the container from starting
-@@ -1614,7 +2308,7 @@
+@@ -1614,7 +2280,7 @@
      patch:
        enabled: true
        image:
@@ -976,7 +893,7 @@
          tag: v1.3.0
          sha: ""
          pullPolicy: IfNotPresent
-@@ -1787,13 +2481,13 @@
+@@ -1787,13 +2453,13 @@
  
    ## Resource limits & requests
    ##
@@ -997,7 +914,7 @@
  
    # Required for use in managed kubernetes clusters (such as AWS EKS) with custom CNI (such as calico),
    # because control-plane managed by AWS cannot communicate with pods' IP CIDR and admission webhooks are not working
-@@ -1853,7 +2547,7 @@
+@@ -1853,7 +2519,7 @@
    ## Prometheus-operator image
    ##
    image:
@@ -1006,7 +923,7 @@
      tag: v0.59.1
      sha: ""
      pullPolicy: IfNotPresent
-@@ -1870,7 +2564,7 @@
+@@ -1870,7 +2536,7 @@
    ##
    prometheusConfigReloader:
      image:
@@ -1015,7 +932,7 @@
        tag: v0.59.1
        sha: ""
  
-@@ -1886,7 +2580,7 @@
+@@ -1886,7 +2552,7 @@
    ## Thanos side-car image when configured
    ##
    thanosImage:
@@ -1024,7 +941,7 @@
      tag: v0.28.0
      sha: ""
  
-@@ -2014,7 +2708,7 @@
+@@ -2014,7 +2680,7 @@
      port: 9090
  
      ## To be used with a proxy extraContainer port
@@ -1033,7 +950,7 @@
  
      ## List of IP addresses at which the Prometheus server service is available
      ## Ref: https://kubernetes.io/docs/user-guide/services/#external-ips
-@@ -2319,7 +3013,7 @@
+@@ -2319,7 +2985,7 @@
      ## Image of Prometheus.
      ##
      image:
@@ -1042,7 +959,7 @@
        tag: v2.38.0
        sha: ""
  
-@@ -2418,7 +3112,7 @@
+@@ -2418,7 +3084,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the PrometheusRule resources created
      ##
@@ -1051,7 +968,7 @@
  
      ## PrometheusRules to be selected for target discovery.
      ## If {}, select all PrometheusRules
-@@ -2443,7 +3137,7 @@
+@@ -2443,7 +3109,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the servicemonitors created
      ##
@@ -1060,7 +977,7 @@
  
      ## ServiceMonitors to be selected for target discovery.
      ## If {}, select all ServiceMonitors
-@@ -2466,7 +3160,7 @@
+@@ -2466,7 +3132,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the podmonitors created
      ##
@@ -1069,7 +986,7 @@
  
      ## PodMonitors to be selected for target discovery.
      ## If {}, select all PodMonitors
-@@ -2597,9 +3291,13 @@
+@@ -2597,9 +3263,13 @@
  
      ## Resource limits & requests
      ##
@@ -1086,7 +1003,7 @@
  
      ## Prometheus StorageSpec for persistent data
      ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/user-guides/storage.md
-@@ -2622,7 +3320,13 @@
+@@ -2622,7 +3292,13 @@
      #    medium: Memory
  
      # Additional volumes on the output StatefulSet definition.
@@ -1101,7 +1018,7 @@
  
      # Additional VolumeMounts on the output StatefulSet definition.
      volumeMounts: []
-@@ -2768,9 +3472,14 @@
+@@ -2768,9 +3444,14 @@
        #         fileName: "objstore.yaml"
        # objectStorageConfigFile: /var/secrets/object-store.yaml
  
@@ -1117,7 +1034,7 @@
      # containers:
      # - name: oauth-proxy
      #   image: quay.io/oauth2-proxy/oauth2-proxy:v7.3.0
-@@ -2784,6 +3493,28 @@
+@@ -2784,6 +3465,28 @@
      #     protocol: TCP
      #   resources: {}
  
@@ -1146,7 +1063,7 @@
      ## InitContainers allows injecting additional initContainers. This is meant to allow doing some changes
      ## (permissions, dir tree) on mounted volumes before starting prometheus
      initContainers: []
-@@ -3154,7 +3885,7 @@
+@@ -3154,7 +3857,7 @@
      ## Image of ThanosRuler
      ##
      image:
