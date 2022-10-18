@@ -167,6 +167,8 @@ Once declared, `make prepare` will automatically pull in your dependency under `
 
 *Note: if you manage a dependency as a separate package, it's often a good idea to set `doNotRelease: true` on that dependency package's `package.yaml` to indicate that the dependency should not be independently released. This prevents `make charts` from generating assets for the dependency, since it will already be packaged directly into your main chart.*
 
+*Note: When adding net-new dependencies, a PR must first be raised and merged in the `rancher/Rancher` repository with the required updates to the `rancher/pkg/image/origins.go` file. This file must be updated with the name of the dependency (without any version information) and the Github repository URL from where the image originates from. This information is used to generate an artifact during Rancher releases, and failure to provide it will interfere with Rancher's CI. This file does not need to be updated when bumping versions of released dependencies.*
+
 #### Known Issue: Managed Files
 
 In any Helm chart managed by these scripts, we consider the `Chart.yaml` / `requirements.yaml` to be `Managed Files` since they are the only files that end up going through a three-way merge. 
