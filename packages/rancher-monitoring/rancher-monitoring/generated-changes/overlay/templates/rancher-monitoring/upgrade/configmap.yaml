@@ -1,0 +1,13 @@
+{{- if .Values.upgrade.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "kube-prometheus-stack.fullname" . }}-upgrade
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  annotations:
+    "helm.sh/hook": pre-upgrade, pre-rollback
+    "helm.sh/hook-delete-policy": before-hook-creation, hook-succeeded, hook-failed
+    "helm.sh/hook-weight": "0"
+data:
+{{ (.Files.Glob "files/upgrade/scripts/*").AsConfig | indent 2 }}
+{{- end }}
