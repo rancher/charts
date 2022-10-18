@@ -100,7 +100,9 @@ app: {{ template "pushprox.serviceMonitor.name" . }}
 {{- $useHTTPS := .Values.clients.https.enabled -}}
 {{- $endpoints := .Values.serviceMonitor.endpoints }}
 {{- range $endpoints }}
+{{- if $.Values.proxy.enabled }}
 {{- $_ := set . "proxyUrl" $proxyURL }}
+{{- end }}
 {{- if $useHTTPS -}}
 {{- if (hasKey . "params") }}
 {{- $_ := set (get . "params") "_scheme" (list "https") }}
