@@ -1,6 +1,6 @@
---- charts-original/templates/prometheus/rules-1.14/kubernetes-system-kubelet.yaml
-+++ charts/templates/prometheus/rules-1.14/kubernetes-system-kubelet.yaml
-@@ -33,6 +33,7 @@
+--- charts-original/templates/prometheus/rules-1.14/kubernetes-apps.yaml
++++ charts/templates/prometheus/rules-1.14/kubernetes-apps.yaml
+@@ -37,6 +37,7 @@
        for: 15m
        labels:
          severity: warning
@@ -8,7 +8,7 @@
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
-@@ -45,6 +46,7 @@
+@@ -56,6 +57,7 @@
        for: 15m
        labels:
          severity: warning
@@ -16,7 +16,7 @@
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
-@@ -64,6 +66,7 @@
+@@ -71,6 +73,7 @@
        for: 15m
        labels:
          severity: warning
@@ -24,20 +24,7 @@
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
-@@ -88,6 +91,7 @@
-       for: 5m
-       labels:
-         severity: warning
-+        cluster_id: {{.Values.global.cattle.clusterId}}
- {{- if .Values.defaultRules.additionalRuleLabels }}
- {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
- {{- end }}
-@@ -96,10 +100,11 @@
-         description: Kubelet Pod startup 99th percentile latency is {{`{{`}} $value {{`}}`}} seconds on node {{`{{`}} $labels.node {{`}}`}}.
-         runbook_url: {{ .Values.defaultRules.runbookUrl }}alert-name-kubeletpodstartuplatencyhigh
-         summary: Kubelet Pod startup latency is too high.
--      expr: histogram_quantile(0.99, sum(rate(kubelet_pod_worker_duration_seconds_bucket{job="kubelet", metrics_path="/metrics"}[5m])) by (instance, le)) * on(instance) group_left(node) kubelet_node_name{job="kubelet", metrics_path="/metrics"} > 60
-+      expr: histogram_quantile(0.99, sum(rate(kubelet_pod_worker_duration_seconds_bucket{job="{{ include "exporter.kubelet.jobName" . }}", metrics_path="/metrics"}[5m])) by (instance, le)) * on(instance) group_left(node) kubelet_node_name{job="{{ include "exporter.kubelet.jobName" . }}", metrics_path="/metrics"} > 60
+@@ -92,6 +95,7 @@
        for: 15m
        labels:
          severity: warning
@@ -45,39 +32,7 @@
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
-@@ -111,6 +116,7 @@
-       expr: kubelet_certificate_manager_client_ttl_seconds < 604800
-       labels:
-         severity: warning
-+        cluster_id: {{.Values.global.cattle.clusterId}}
- {{- if .Values.defaultRules.additionalRuleLabels }}
- {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
- {{- end }}
-@@ -122,6 +128,7 @@
-       expr: kubelet_certificate_manager_client_ttl_seconds < 86400
-       labels:
-         severity: critical
-+        cluster_id: {{.Values.global.cattle.clusterId}}
- {{- if .Values.defaultRules.additionalRuleLabels }}
- {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
- {{- end }}
-@@ -133,6 +140,7 @@
-       expr: kubelet_certificate_manager_server_ttl_seconds < 604800
-       labels:
-         severity: warning
-+        cluster_id: {{.Values.global.cattle.clusterId}}
- {{- if .Values.defaultRules.additionalRuleLabels }}
- {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
- {{- end }}
-@@ -144,6 +152,7 @@
-       expr: kubelet_certificate_manager_server_ttl_seconds < 86400
-       labels:
-         severity: critical
-+        cluster_id: {{.Values.global.cattle.clusterId}}
- {{- if .Values.defaultRules.additionalRuleLabels }}
- {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
- {{- end }}
-@@ -156,6 +165,7 @@
+@@ -113,6 +117,7 @@
        for: 15m
        labels:
          severity: warning
@@ -85,7 +40,7 @@
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
-@@ -168,19 +178,21 @@
+@@ -128,6 +133,7 @@
        for: 15m
        labels:
          severity: warning
@@ -93,18 +48,74 @@
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
--{{- if .Values.prometheusOperator.kubeletService.enabled }}
-+{{- if (include "exporter.kubeletService.enabled" .) }}
-     - alert: KubeletDown
-       annotations:
-         description: Kubelet has disappeared from Prometheus target discovery.
-         runbook_url: {{ .Values.defaultRules.runbookUrl }}alert-name-kubeletdown
-         summary: Target disappeared from Prometheus target discovery.
--      expr: absent(up{job="kubelet", metrics_path="/metrics"} == 1)
-+      expr: absent(up{job="{{ include "exporter.kubelet.jobName" . }}", metrics_path="/metrics"} == 1)
+@@ -157,6 +163,7 @@
        for: 15m
        labels:
-         severity: critical
+         severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -192,6 +199,7 @@
+       for: 15m
+       labels:
+         severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -204,6 +212,7 @@
+       for: 1h
+       labels:
+         severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -219,6 +228,7 @@
+       for: 10m
+       labels:
+         severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -231,6 +241,7 @@
+       for: 15m
+       labels:
+         severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -243,6 +254,7 @@
+       for: 12h
+       labels:
+         severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -255,6 +267,7 @@
+       for: 15m
+       labels:
+         severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -280,6 +293,7 @@
+       for: 15m
+       labels:
+         severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -295,6 +309,7 @@
+       for: 15m
+       labels:
+         severity: warning
 +        cluster_id: {{.Values.global.cattle.clusterId}}
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}

@@ -1,6 +1,6 @@
 --- charts-original/templates/prometheus/rules-1.14/kubernetes-storage.yaml
 +++ charts/templates/prometheus/rules-1.14/kubernetes-storage.yaml
-@@ -31,13 +31,12 @@
+@@ -31,16 +31,16 @@
          runbook_url: {{ .Values.defaultRules.runbookUrl }}alert-name-kubepersistentvolumefillingup
          summary: PersistentVolume is filling up.
        expr: |-
@@ -19,7 +19,11 @@
        for: 1m
        labels:
          severity: critical
-@@ -51,14 +50,14 @@
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -51,17 +51,18 @@
          summary: PersistentVolume is filling up.
        expr: |-
          (
@@ -38,3 +42,15 @@
        for: 1h
        labels:
          severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -74,6 +75,7 @@
+       for: 5m
+       labels:
+         severity: critical
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}

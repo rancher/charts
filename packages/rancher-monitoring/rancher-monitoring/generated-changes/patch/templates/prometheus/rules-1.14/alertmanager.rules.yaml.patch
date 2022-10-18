@@ -8,7 +8,68 @@
  apiVersion: monitoring.coreos.com/v1
  kind: PrometheusRule
  metadata:
-@@ -172,4 +173,5 @@
+@@ -29,7 +30,7 @@
+     - alert: AlertmanagerFailedReload
+       annotations:
+         description: Configuration has failed to load for {{`{{`}} $labels.namespace {{`}}`}}/{{`{{`}} $labels.pod{{`}}`}}.
+-        runbook_url: {{ .Values.defaultRules.runbookUrl }}alert-name-alertmanagerfailedreload
++        runbook_url: {{ .Values.defaultRules.runbookUrl  }}alert-name-alertmanagerfailedreload
+         summary: Reloading an Alertmanager configuration has failed.
+       expr: |-
+         # Without max_over_time, failed scrapes could create false negatives, see
+@@ -38,6 +39,7 @@
+       for: 10m
+       labels:
+         severity: critical
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -55,6 +57,7 @@
+       for: 15m
+       labels:
+         severity: critical
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -73,6 +76,7 @@
+       for: 5m
+       labels:
+         severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -91,6 +95,7 @@
+       for: 5m
+       labels:
+         severity: critical
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -125,6 +130,7 @@
+       for: 20m
+       labels:
+         severity: critical
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -147,6 +153,7 @@
+       for: 5m
+       labels:
+         severity: critical
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -169,7 +176,9 @@
+       for: 5m
+       labels:
+         severity: critical
++        cluster_id: {{.Values.global.cattle.clusterId}}
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
