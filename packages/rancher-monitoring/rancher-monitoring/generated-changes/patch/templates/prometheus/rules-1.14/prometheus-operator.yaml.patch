@@ -1,30 +1,46 @@
---- charts-original/templates/prometheus/rules-1.14/alertmanager.rules.yaml
-+++ charts/templates/prometheus/rules-1.14/alertmanager.rules.yaml
-@@ -7,6 +7,7 @@
- {{- if and (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.defaultRules.create .Values.defaultRules.rules.alertmanager }}
- {{- $alertmanagerJob := printf "%s-%s" (include "kube-prometheus-stack.fullname" .) "alertmanager" }}
- {{- $namespace := printf "%s" (include "kube-prometheus-stack.namespace" .) }}
-+{{- if and .Values.alertmanager.enabled .Values.alertmanager.serviceMonitor.selfMonitor }}
- apiVersion: monitoring.coreos.com/v1
- kind: PrometheusRule
- metadata:
-@@ -38,6 +39,7 @@
-       for: 10m
-       labels:
-         severity: critical
-+        cluster_id: {{.Values.global.cattle.clusterId}}
- {{- if .Values.defaultRules.additionalRuleLabels }}
- {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
- {{- end }}
-@@ -55,6 +57,7 @@
+--- charts-original/templates/prometheus/rules-1.14/prometheus-operator.yaml
++++ charts/templates/prometheus/rules-1.14/prometheus-operator.yaml
+@@ -35,6 +35,7 @@
        for: 15m
        labels:
-         severity: critical
+         severity: warning
 +        cluster_id: {{.Values.global.cattle.clusterId}}
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
-@@ -73,6 +76,7 @@
+@@ -47,6 +48,7 @@
+       for: 15m
+       labels:
+         severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -59,6 +61,7 @@
+       for: 10m
+       labels:
+         severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -71,6 +74,7 @@
+       for: 10m
+       labels:
+         severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -83,6 +87,7 @@
+       for: 10m
+       labels:
+         severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -95,6 +100,7 @@
        for: 5m
        labels:
          severity: warning
@@ -32,39 +48,11 @@
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
-@@ -91,6 +95,7 @@
+@@ -107,6 +113,7 @@
        for: 5m
        labels:
-         severity: critical
+         severity: warning
 +        cluster_id: {{.Values.global.cattle.clusterId}}
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
-@@ -125,6 +130,7 @@
-       for: 20m
-       labels:
-         severity: critical
-+        cluster_id: {{.Values.global.cattle.clusterId}}
- {{- if .Values.defaultRules.additionalRuleLabels }}
- {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
- {{- end }}
-@@ -147,6 +153,7 @@
-       for: 5m
-       labels:
-         severity: critical
-+        cluster_id: {{.Values.global.cattle.clusterId}}
- {{- if .Values.defaultRules.additionalRuleLabels }}
- {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
- {{- end }}
-@@ -169,7 +176,9 @@
-       for: 5m
-       labels:
-         severity: critical
-+        cluster_id: {{.Values.global.cattle.clusterId}}
- {{- if .Values.defaultRules.additionalRuleLabels }}
- {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
- {{- end }}
--{{- end }}
-\ No newline at end of file
-+{{- end }}
-+{{- end }}
