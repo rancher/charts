@@ -1,3 +1,10 @@
+{{- $files := (.Files.Glob "files/rancher/k8s/*").AsConfig }}
+{{- if not (include "exporter.kubeEtcd.enabled" .) }}
+{{- $filesDict := (fromYaml $files) }}
+{{- $filesDict = (unset $filesDict "rancher-etcd-nodes.json") -}}
+{{- $filesDict = (unset $filesDict "rancher-etcd.json") -}}
+{{ $files = (toYaml $filesDict) }}
+{{- end }}
 {{- if and .Values.grafana.enabled .Values.grafana.defaultDashboardsEnabled }}
 apiVersion: v1
 kind: ConfigMap
@@ -13,5 +20,5 @@ metadata:
     app: {{ template "kube-prometheus-stack.name" $ }}-grafana
 {{ include "kube-prometheus-stack.labels" $ | indent 4 }}
 data:
-{{ (.Files.Glob "files/rancher/k8s/*").AsConfig | indent 2 }}
+{{ $files | indent 2 }}
 {{- end }}
