@@ -1,10 +1,17 @@
 {{- $files := (.Files.Glob "files/rancher/k8s/*").AsConfig }}
-{{- if not (include "exporter.kubeEtcd.enabled" .) }}
 {{- $filesDict := (fromYaml $files) }}
+{{- if not (include "exporter.kubeEtcd.enabled" .) }}
 {{- $filesDict = (unset $filesDict "rancher-etcd-nodes.json") -}}
 {{- $filesDict = (unset $filesDict "rancher-etcd.json") -}}
-{{ $files = (toYaml $filesDict) }}
 {{- end }}
+{{- if not (include "exporter.kubeControllerManager.enabled" .) }}
+{{- $filesDict = (unset $filesDict "rancher-k8s-components-nodes.json") -}}
+{{- $filesDict = (unset $filesDict "rancher-k8s-components.json") -}}
+{{- else }}
+{{- $_ := (set $filesDict "rancher-k8s-components-nodes.json" (get $filesDict "rancher-k8s-components-nodes.json" | replace "kube-controller-manager" (include "exporter.kubeControllerManager.jobName" .))) -}}
+{{- $_ := (set $filesDict "rancher-k8s-components.json" (get $filesDict "rancher-k8s-components.json" | replace "kube-controller-manager" (include "exporter.kubeControllerManager.jobName" .))) -}}
+{{- end }}
+{{ $files = (toYaml $filesDict) }}
 {{- if and .Values.grafana.enabled .Values.grafana.defaultDashboardsEnabled }}
 apiVersion: v1
 kind: ConfigMap
