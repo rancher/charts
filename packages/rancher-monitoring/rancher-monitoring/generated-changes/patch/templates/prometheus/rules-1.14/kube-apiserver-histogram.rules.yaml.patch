@@ -1,0 +1,22 @@
+--- charts-original/templates/prometheus/rules-1.14/kube-apiserver-histogram.rules.yaml
++++ charts/templates/prometheus/rules-1.14/kube-apiserver-histogram.rules.yaml
+@@ -24,14 +24,14 @@
+   groups:
+   - name: kube-apiserver-histogram.rules
+     rules:
+-    - expr: histogram_quantile(0.99, sum by (cluster, le, resource) (rate(apiserver_request_slo_duration_seconds_bucket{job="apiserver",verb=~"LIST|GET",subresource!~"proxy|attach|log|exec|portforward"}[5m]))) > 0
++    - expr: histogram_quantile(0.99, sum by (cluster, le, resource) (rate(apiserver_request{{ if (semverCompare ">=1.23.0-0" $kubeTargetVersion) }}_slo{{ end }}_duration_seconds_bucket{job="apiserver",verb=~"LIST|GET",subresource!~"proxy|attach|log|exec|portforward"}[5m]))) > 0
+       labels:
+         quantile: '0.99'
+         verb: read
+-      record: cluster_quantile:apiserver_request_slo_duration_seconds:histogram_quantile
+-    - expr: histogram_quantile(0.99, sum by (cluster, le, resource) (rate(apiserver_request_slo_duration_seconds_bucket{job="apiserver",verb=~"POST|PUT|PATCH|DELETE",subresource!~"proxy|attach|log|exec|portforward"}[5m]))) > 0
++      record: cluster_quantile:apiserver_request{{ if (semverCompare ">=1.23.0-0" $kubeTargetVersion) }}_slo{{ end }}_duration_seconds:histogram_quantile
++    - expr: histogram_quantile(0.99, sum by (cluster, le, resource) (rate(apiserver_request{{ if (semverCompare ">=1.23.0-0" $kubeTargetVersion) }}_slo{{ end }}_duration_seconds_bucket{job="apiserver",verb=~"POST|PUT|PATCH|DELETE",subresource!~"proxy|attach|log|exec|portforward"}[5m]))) > 0
+       labels:
+         quantile: '0.99'
+         verb: write
+-      record: cluster_quantile:apiserver_request_slo_duration_seconds:histogram_quantile
++      record: cluster_quantile:apiserver_request{{ if (semverCompare ">=1.23.0-0" $kubeTargetVersion) }}_slo{{ end }}_duration_seconds:histogram_quantile
+ {{- end }}
+\ No newline at end of file

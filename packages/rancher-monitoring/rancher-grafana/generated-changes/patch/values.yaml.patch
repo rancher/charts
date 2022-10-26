@@ -25,18 +25,19 @@
    namespaced: false
    extraRoleRules: []
    # - apiGroups: []
-@@ -69,8 +83,8 @@
+@@ -73,9 +87,9 @@
  # schedulerName: "default-scheduler"
  
  image:
 -  repository: grafana/grafana
--  tag: 8.2.1
 +  repository: rancher/mirrored-grafana-grafana
-+  tag: 7.5.11
+   # Overrides the Grafana image tag whose default is the chart appVersion
+-  tag: ""
++  tag: 9.1.5
    sha: ""
    pullPolicy: IfNotPresent
  
-@@ -82,13 +96,16 @@
+@@ -88,13 +102,16 @@
    #   - myRegistrKeySecretName
  
  testFramework:
@@ -44,7 +45,7 @@
 -  image: "bats/bats"
 +  enabled: false
 +  image: "rancher/mirrored-bats-bats"
-   tag: "v1.1.0"
+   tag: "v1.4.1"
    imagePullPolicy: IfNotPresent
 -  securityContext: {}
 +  securityContext:
@@ -56,18 +57,16 @@
    runAsUser: 472
    runAsGroup: 472
    fsGroup: 472
-@@ -116,8 +133,8 @@
+@@ -127,7 +144,7 @@
  # priorityClassName:
  
  downloadDashboardsImage:
 -  repository: curlimages/curl
--  tag: 7.73.0
 +  repository: rancher/mirrored-curlimages-curl
-+  tag: 7.77.0
+   tag: 7.85.0
    sha: ""
    pullPolicy: IfNotPresent
- 
-@@ -189,7 +206,7 @@
+@@ -204,7 +221,7 @@
    labels: {}
    path: /
  
@@ -76,7 +75,7 @@
    pathType: Prefix
  
    hosts:
-@@ -303,7 +320,7 @@
+@@ -328,7 +345,7 @@
    ## initChownData container image
    ##
    image:
@@ -85,16 +84,29 @@
      tag: "1.31.1"
      sha: ""
      pullPolicy: IfNotPresent
-@@ -614,7 +631,7 @@
+@@ -739,7 +756,7 @@
  ## Requires at least Grafana 5 to work and can't be used together with parameters dashboardProviders, datasources and dashboards
  sidecar:
    image:
 -    repository: quay.io/kiwigrid/k8s-sidecar
 +    repository: rancher/mirrored-kiwigrid-k8s-sidecar
-     tag: 1.12.3
+     tag: 1.19.2
      sha: ""
    imagePullPolicy: IfNotPresent
-@@ -702,9 +719,9 @@
+@@ -852,10 +869,10 @@
+     reloadURL: "http://localhost:3000/api/admin/provisioning/datasources/reload"
+     # Absolute path to shell script to execute after a datasource got reloaded
+     script: null
+-    skipReload: false
++    skipReload: true
+     # Deploy the datasource sidecar as an initContainer in addition to a container.
+     # This is needed if skipReload is true, to load any datasources defined at startup time.
+-    initDatasources: false
++    initDatasources: true
+     # Sets the size limit of the datasource sidecar emptyDir volume
+     sizeLimit: {}
+   plugins:
+@@ -934,9 +951,9 @@
    replicas: 1
    image:
      # image-renderer Image repository

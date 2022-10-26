@@ -1,23 +1,18 @@
 --- charts-original/templates/deployment.yaml
 +++ charts/templates/deployment.yaml
-@@ -45,6 +45,7 @@
-         fsGroup: {{ .Values.securityContext.fsGroup }}
-         runAsGroup: {{ .Values.securityContext.runAsGroup }}
-         runAsUser: {{ .Values.securityContext.runAsUser }}
-+        runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
-       {{- end }}
-     {{- if .Values.priorityClassName }}
-       priorityClassName: {{ .Values.priorityClassName }}
-@@ -107,7 +108,7 @@
-           readOnly: true
+@@ -108,9 +108,9 @@
          {{- end }}
          imagePullPolicy: {{ .Values.image.pullPolicy }}
+         {{- if .Values.image.sha }}
+-        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}@sha256:{{ .Values.image.sha }}"
++        image: "{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}@sha256:{{ .Values.image.sha }}"
+         {{- else }}
 -        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
 +        image: "{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+         {{- end }}
          ports:
          - containerPort: {{ .Values.service.port | default 8080}}
-         {{- if .Values.selfMonitor.enabled }}
-@@ -141,12 +142,12 @@
+@@ -147,12 +147,12 @@
        affinity:
  {{ toYaml .Values.affinity | indent 8 }}
        {{- end }}
@@ -31,4 +26,4 @@
 -      tolerations:
  {{ toYaml .Values.tolerations | indent 8 }}
        {{- end }}
-       {{- if .Values.kubeconfig.enabled}}
+       {{- if .Values.topologySpreadConstraints }}
