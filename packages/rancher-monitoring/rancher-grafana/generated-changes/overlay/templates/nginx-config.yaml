@@ -25,6 +25,11 @@ data:
       proxy_buffering             off;
       proxy_cache_path            /var/cache/nginx/cache levels=1:2 keys_zone=my_zone:100m inactive=1d max_size=10g;
 
+      map $http_upgrade $connection_upgrade {
+        default upgrade;
+        '' close;
+      }
+
       server {
         listen          8080;
         access_log      off;
@@ -50,6 +55,14 @@ data:
           sub_filter '"url":"/d' '"url":"d';
         }
 
+        location /api/live/ {
+          proxy_http_version 1.1;
+          proxy_set_header Upgrade $http_upgrade;
+          proxy_set_header Connection $connection_upgrade;
+          proxy_set_header Host $http_host;
+          proxy_pass http://localhost:3000;
+        }
+
         location / {
           proxy_cache         my_zone;
           proxy_cache_valid   200 302 1d;
@@ -61,9 +74,8 @@ data:
           
           proxy_pass     http://localhost:3000/;
 
-          sub_filter_types text/html;
           sub_filter_once off;
-          sub_filter '"appSubUrl":""' '"appSubUrl":"."';
+          sub_filter '"appSubUrl":""' '"appSubUrl":"/k8s/clusters/{{ .Values.global.cattle.clusterId }}/api/v1/namespaces/{{ template "grafana.namespace" . }}/services/http:{{ template "grafana.fullname" . }}:{{ .Values.service.port }}/proxy"';
           sub_filter '"url":"/' '"url":"./';
           sub_filter ':"/avatar/' ':"avatar/';
 

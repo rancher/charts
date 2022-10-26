@@ -1,8 +1,10 @@
-#!/bin/bash -eu
+#!/bin/bash
 
-VERSION=$1
-
-[ -z "${VERSION}" ] && echo "Pass prometheus-operator version as first comandline argument" && exit 1
+if [[ $(uname -s) = "Darwin" ]]; then
+    VERSION="$(grep ^appVersion ../Chart.yaml | sed 's/appVersion: /v/g')"
+else
+    VERSION="$(grep ^appVersion ../Chart.yaml | sed 's/appVersion:\s/v/g')"
+fi
 
 FILES=(
   "crd-alertmanagerconfigs.yaml :  monitoring.coreos.com_alertmanagerconfigs.yaml"
@@ -15,12 +17,18 @@ FILES=(
   "crd-thanosrulers.yaml        :  monitoring.coreos.com_thanosrulers.yaml"
 )
 
-for line in "${FILES[@]}" ; do
+for line in "${FILES[@]}"; do
     DESTINATION=$(echo "${line%%:*}" | xargs)
     SOURCE=$(echo "${line##*:}" | xargs)
 
     URL="https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/$VERSION/example/prometheus-operator-crd/$SOURCE"
-    echo "# ${URL}" > ../crds/"${DESTINATION}"
-    curl -L "${URL}" >> ../crds/"${DESTINATION}"
 
+    echo -e "Downloading Prometheus Operator CRD with Version ${VERSION}:\n${URL}\n"
+
+    echo "# ${URL}" > ../crds/"${DESTINATION}"
+
+    if ! curl --silent --retry-all-errors --fail --location "${URL}" >> ../crds/"${DESTINATION}"; then
+      echo -e "Failed to download ${URL}!"
+      exit 1
+    fi
 done
