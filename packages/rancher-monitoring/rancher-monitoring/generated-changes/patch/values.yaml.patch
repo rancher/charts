@@ -1,6 +1,6 @@
 --- charts-original/values.yaml
 +++ charts/values.yaml
-@@ -2,13 +2,507 @@
+@@ -2,13 +2,632 @@
  # This is a YAML-formatted file.
  # Declare variables to be passed into your templates.
  
@@ -310,11 +310,11 @@
 +  clients:
 +    port: 10013
 +    useLocalhost: true
-+  tolerations:
-+    - effect: "NoExecute"
-+      operator: "Exists"
-+    - effect: "NoSchedule"
-+      operator: "Exists"
++    tolerations:
++      - effect: "NoExecute"
++        operator: "Exists"
++      - effect: "NoSchedule"
++        operator: "Exists"
 +
 +rke2Etcd:
 +  enabled: false
@@ -335,38 +335,154 @@
 +  enabled: false
 +  metricsPort: 10254
 +  component: ingress-nginx
++  # in the RKE2 cluster, the ingress-nginx-controller is deployed
++  # as a non-hostNetwork workload starting at the following versions
++  # - >= v1.22.12+rke2r1 < 1.23.0-0
++  # - >= v1.23.9+rke2r1 < 1.24.0-0
++  # - >= v1.24.3+rke2r1 < 1.25.0-0
++  # - >= v1.25.0+rke2r1
++  # As a result we do not need clients and proxies as we can directly create
++  # a service that targets the workload with the given app name
++  namespaceOverride: kube-system
 +  clients:
-+    port: 10015
-+    useLocalhost: true
-+    tolerations:
-+      - effect: "NoExecute"
-+        operator: "Exists"
-+      - effect: "NoSchedule"
-+        operator: "Exists"
-+    affinity:
-+      podAffinity:
-+        requiredDuringSchedulingIgnoredDuringExecution:
-+          - labelSelector:
-+              matchExpressions:
-+                - key: "app.kubernetes.io/component"
-+                  operator: "In"
-+                  values:
-+                    - "controller"
-+            topologyKey: "kubernetes.io/hostname"
-+            namespaces:
-+              - "kube-system"
-+    # in the RKE2 cluster, the ingress-nginx-controller is deployed as
-+    # a DaemonSet with 1 pod when RKE2 version is <= 1.20,
-+    # a Deployment when RKE2 version is >= 1.21
-+    deployment:
-+      enabled: true
-+      replicas: 1
++    enabled: false
++  proxy:
++    enabled: false
++  service:
++    selector:
++      app.kubernetes.io/name: rke2-ingress-nginx
 +  kubeVersionOverrides:
-+  - constraint: "<= 1.20"
++  - constraint: "< 1.21.0-0"
 +    values:
++      namespaceOverride: ""
 +      clients:
++        enabled: true
++        port: 10015
++        useLocalhost: true
++        tolerations:
++          - effect: "NoExecute"
++            operator: "Exists"
++          - effect: "NoSchedule"
++            operator: "Exists"
++        affinity:
++          podAffinity:
++            requiredDuringSchedulingIgnoredDuringExecution:
++              - labelSelector:
++                  matchExpressions:
++                    - key: "app.kubernetes.io/component"
++                      operator: "In"
++                      values:
++                        - "controller"
++                topologyKey: "kubernetes.io/hostname"
++                namespaces:
++                  - "kube-system"
++        # in the RKE2 cluster, the ingress-nginx-controller is deployed as
++        # a DaemonSet with 1 pod when RKE2 version is < 1.21.0-0
 +        deployment:
 +          enabled: false
++      proxy:
++        enabled: true
++      service:
++        selector: false
++  - constraint: ">= 1.21.0-0 < 1.22.12-0"
++    values:
++      namespaceOverride: ""
++      clients:
++        enabled: true
++        port: 10015
++        useLocalhost: true
++        tolerations:
++          - effect: "NoExecute"
++            operator: "Exists"
++          - effect: "NoSchedule"
++            operator: "Exists"
++        affinity:
++          podAffinity:
++            requiredDuringSchedulingIgnoredDuringExecution:
++              - labelSelector:
++                  matchExpressions:
++                    - key: "app.kubernetes.io/component"
++                      operator: "In"
++                      values:
++                        - "controller"
++                topologyKey: "kubernetes.io/hostname"
++                namespaces:
++                  - "kube-system"
++        # in the RKE2 cluster, the ingress-nginx-controller is deployed as
++        # a hostNetwork Deployment with 1 pod when RKE2 version is >= 1.21.0-0
++        deployment:
++          enabled: true
++          replicas: 1
++      proxy:
++        enabled: true
++      service:
++        selector: false
++  - constraint: ">= 1.23.0-0 < v1.23.9-0"
++    values:
++      namespaceOverride: ""
++      clients:
++        enabled: true
++        port: 10015
++        useLocalhost: true
++        tolerations:
++          - effect: "NoExecute"
++            operator: "Exists"
++          - effect: "NoSchedule"
++            operator: "Exists"
++        affinity:
++          podAffinity:
++            requiredDuringSchedulingIgnoredDuringExecution:
++              - labelSelector:
++                  matchExpressions:
++                    - key: "app.kubernetes.io/component"
++                      operator: "In"
++                      values:
++                        - "controller"
++                topologyKey: "kubernetes.io/hostname"
++                namespaces:
++                  - "kube-system"
++        # in the RKE2 cluster, the ingress-nginx-controller is deployed as
++        # a hostNetwork Deployment with 1 pod when RKE2 version is >= 1.20.0-0
++        deployment:
++          enabled: true
++          replicas: 1
++      proxy:
++        enabled: true
++      service:
++        selector: false
++  - constraint: ">= 1.24.0-0 < v1.24.3-0"
++    values:
++      namespaceOverride: ""
++      clients:
++        enabled: true
++        port: 10015
++        useLocalhost: true
++        tolerations:
++          - effect: "NoExecute"
++            operator: "Exists"
++          - effect: "NoSchedule"
++            operator: "Exists"
++        affinity:
++          podAffinity:
++            requiredDuringSchedulingIgnoredDuringExecution:
++              - labelSelector:
++                  matchExpressions:
++                    - key: "app.kubernetes.io/component"
++                      operator: "In"
++                      values:
++                        - "controller"
++                topologyKey: "kubernetes.io/hostname"
++                namespaces:
++                  - "kube-system"
++        # in the RKE2 cluster, the ingress-nginx-controller is deployed as
++        # a hostNetwork Deployment with 1 pod when RKE2 version is >= 1.20.0-0
++        deployment:
++          enabled: true
++          replicas: 1
++      proxy:
++        enabled: true
++      service:
++        selector: false
 +
 +
 +
@@ -435,6 +551,15 @@
 +        operator: "Exists"
 +      - effect: "NoSchedule"
 +        operator: "Exists"
++
++## Upgrades
++upgrade:
++  ## Run upgrade scripts before an upgrade or rollback via a Job hook
++  enabled: true
++  ## Image to use to run the scripts
++  image:
++    repository: rancher/shell
++    tag: v0.1.18
 +
 +## Rancher Monitoring
 +##
@@ -510,7 +635,7 @@
  
  ## Provide a k8s version to auto dashboard import script example: kubeTargetVersionOverride: 1.16.6
  ##
-@@ -93,8 +587,34 @@
+@@ -104,13 +723,35 @@
  
  ##
  global:
@@ -535,17 +660,22 @@
 +    ## Create RBAC resources for ServiceAccounts and users
 +    ##
      create: true
-+
+ 
+-    ## Create ClusterRoles that extend the existing view, edit and admin ClusterRoles to interact with prometheus-operator CRDs
+-    ## Ref: https://kubernetes.io/docs/reference/access-authn-authz/rbac/#aggregated-clusterroles
+-    createAggregateClusterRoles: false
+-    pspEnabled: false
 +    userRoles:
 +      ## Create default user ClusterRoles to allow users to interact with Prometheus CRs, ConfigMaps, and Secrets
 +      create: true
 +      ## Aggregate default user ClusterRoles into default k8s ClusterRoles
 +      aggregateToDefaultRoles: true
 +
-     pspEnabled: true
++    pspEnabled: true
      pspAnnotations: {}
        ## Specify pod annotations
-@@ -187,25 +707,77 @@
+       ## Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/#apparmor
+@@ -225,25 +866,77 @@
    ## ref: https://prometheus.io/docs/alerting/notifications/
    ##      https://prometheus.io/docs/alerting/notification_examples/
    ##
@@ -642,16 +772,16 @@
  
    ingress:
      enabled: false
-@@ -397,7 +969,7 @@
+@@ -452,7 +1145,7 @@
      ## Image of Alertmanager
      ##
      image:
 -      repository: quay.io/prometheus/alertmanager
 +      repository: rancher/mirrored-prometheus-alertmanager
-       tag: v0.22.2
+       tag: v0.24.0
        sha: ""
  
-@@ -509,9 +1081,13 @@
+@@ -575,9 +1268,13 @@
      ## Define resources requests and limits for single Pods.
      ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
      ##
@@ -668,7 +798,7 @@
  
      ## Pod anti-affinity can prevent the scheduler from placing Prometheus replicas on the same node.
      ## The default value "soft" means that the scheduler should *prefer* to not schedule two replica pods onto the same node but no guarantee is provided.
-@@ -625,6 +1201,30 @@
+@@ -707,6 +1404,30 @@
    enabled: true
    namespaceOverride: ""
  
@@ -699,7 +829,7 @@
    ## ForceDeployDatasources Create datasource configmap even if grafana deployment has been disabled
    ##
    forceDeployDatasources: false
-@@ -637,6 +1237,18 @@
+@@ -719,6 +1440,18 @@
    ##
    defaultDashboardsEnabled: true
  
@@ -718,19 +848,31 @@
    ## Timezone for the default dashboards
    ## Other options are: browser or a specific timezone, i.e. Europe/Luxembourg
    ##
-@@ -681,6 +1293,7 @@
+@@ -726,11 +1459,6 @@
+ 
+   adminPassword: prom-operator
+ 
+-  rbac:
+-    ## If true, Grafana PSPs will be created
+-    ##
+-    pspEnabled: false
+-
+   ingress:
+     ## If true, Grafana Ingress will be created
+     ##
+@@ -773,6 +1501,7 @@
      dashboards:
        enabled: true
        label: grafana_dashboard
 +      searchNamespace: cattle-dashboards
+       labelValue: "1"
  
        ## Annotations for Grafana dashboard configmaps
-       ##
-@@ -739,7 +1352,60 @@
+@@ -845,8 +1574,63 @@
    ## Passed to grafana subchart and used by servicemonitor below
    ##
    service:
--    portName: service
+-    portName: http-web
 +    portName: nginx-http
 +    ## Port for Grafana Service to listen on
 +    ##
@@ -786,9 +928,12 @@
 +          mode: 438
 +          path: nginx.conf
  
-   ## If true, create a serviceMonitor for grafana
-   ##
-@@ -773,6 +1439,17 @@
++  ## If true, create a serviceMonitor for grafana
++  ##
+   serviceMonitor:
+     # If true, a ServiceMonitor CRD is created for a prometheus operator
+     # https://github.com/coreos/prometheus-operator
+@@ -880,6 +1664,17 @@
      #   replacement: $1
      #   action: replace
  
@@ -806,7 +951,7 @@
  ## Component scraping the kube api server
  ##
  kubeApiServer:
-@@ -952,7 +1629,7 @@
+@@ -1099,7 +1894,7 @@
  ## Component scraping the kube controller manager
  ##
  kubeControllerManager:
@@ -815,7 +960,7 @@
  
    ## If your kube controller manager is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1110,7 +1787,7 @@
+@@ -1276,7 +2071,7 @@
  ## Component scraping etcd
  ##
  kubeEtcd:
@@ -824,7 +969,7 @@
  
    ## If your etcd is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1177,7 +1854,7 @@
+@@ -1347,7 +2142,7 @@
  ## Component scraping kube scheduler
  ##
  kubeScheduler:
@@ -833,7 +978,7 @@
  
    ## If your kube scheduler is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1237,7 +1914,7 @@
+@@ -1415,7 +2210,7 @@
  ## Component scraping kube proxy
  ##
  kubeProxy:
@@ -842,38 +987,18 @@
  
    ## If your kube proxy is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1337,6 +2014,13 @@
-     create: true
-   podSecurityPolicy:
-     enabled: true
-+  resources:
-+    limits:
-+      cpu: 100m
-+      memory: 200Mi
-+    requests:
-+      cpu: 100m
-+      memory: 130Mi
- 
- ## Deploy node exporter as a daemonset to all nodes
- ##
-@@ -1392,6 +2076,16 @@
-   extraArgs:
-     - --collector.filesystem.ignored-mount-points=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
-     - --collector.filesystem.ignored-fs-types=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$
-+  service:
-+    port: 9796
-+    targetPort: 9796
-+  resources:
-+    limits:
-+      cpu: 200m
-+      memory: 50Mi
-+    requests:
-+      cpu: 100m
-+      memory: 30Mi
+@@ -1578,10 +2373,6 @@
+       #   targetLabel: nodename
+       #   replacement: $1
+       #   action: replace
+-  rbac:
+-    ## If true, create PSPs for node-exporter
+-    ##
+-    pspEnabled: false
  
  ## Manages Prometheus and Alertmanager components
  ##
-@@ -1404,8 +2098,8 @@
+@@ -1594,8 +2385,8 @@
      enabled: true
      # Value must match version names from https://golang.org/pkg/crypto/tls/#pkg-constants
      tlsMinVersion: VersionTLS13
@@ -884,19 +1009,16 @@
  
    ## Admission webhook support for PrometheusRules resources added in Prometheus Operator 0.30 can be enabled to prevent incorrectly formatted
    ## rules from making their way into prometheus and potentially preventing the container from starting
-@@ -1422,9 +2116,9 @@
+@@ -1614,7 +2405,7 @@
      patch:
        enabled: true
        image:
 -        repository: k8s.gcr.io/ingress-nginx/kube-webhook-certgen
 +        repository: rancher/mirrored-ingress-nginx-kube-webhook-certgen
-         tag: v1.0
--        sha: "f3b6b39a6062328c095337b4cadcefd1612348fdd5190b1dcbcb9b9e90bd8068"
-+        sha: ""
+         tag: v1.3.0
+         sha: ""
          pullPolicy: IfNotPresent
-       resources: {}
-       ## Provide a priority class name to the webhook patching job
-@@ -1571,13 +2265,13 @@
+@@ -1787,13 +2578,13 @@
  
    ## Resource limits & requests
    ##
@@ -917,34 +1039,34 @@
  
    # Required for use in managed kubernetes clusters (such as AWS EKS) with custom CNI (such as calico),
    # because control-plane managed by AWS cannot communicate with pods' IP CIDR and admission webhooks are not working
-@@ -1630,7 +2324,7 @@
+@@ -1853,7 +2644,7 @@
    ## Prometheus-operator image
    ##
    image:
 -    repository: quay.io/prometheus-operator/prometheus-operator
 +    repository: rancher/mirrored-prometheus-operator-prometheus-operator
-     tag: v0.50.0
+     tag: v0.59.1
      sha: ""
      pullPolicy: IfNotPresent
-@@ -1646,7 +2340,7 @@
-   ## Prometheus-config-reloader image to use for config and rule reloading
+@@ -1870,7 +2661,7 @@
    ##
-   prometheusConfigReloaderImage:
--    repository: quay.io/prometheus-operator/prometheus-config-reloader
-+    repository: rancher/mirrored-prometheus-operator-prometheus-config-reloader
-     tag: v0.50.0
-     sha: ""
+   prometheusConfigReloader:
+     image:
+-      repository: quay.io/prometheus-operator/prometheus-config-reloader
++      repository: rancher/mirrored-prometheus-operator-prometheus-config-reloader
+       tag: v0.59.1
+       sha: ""
  
-@@ -1661,7 +2355,7 @@
+@@ -1886,7 +2677,7 @@
    ## Thanos side-car image when configured
    ##
    thanosImage:
 -    repository: quay.io/thanos/thanos
 +    repository: rancher/mirrored-thanos-thanos
-     tag: v0.17.2
+     tag: v0.28.0
      sha: ""
  
-@@ -1781,7 +2475,7 @@
+@@ -2014,7 +2805,7 @@
      port: 9090
  
      ## To be used with a proxy extraContainer port
@@ -953,16 +1075,16 @@
  
      ## List of IP addresses at which the Prometheus server service is available
      ## Ref: https://kubernetes.io/docs/user-guide/services/#external-ips
-@@ -2054,7 +2748,7 @@
+@@ -2319,7 +3110,7 @@
      ## Image of Prometheus.
      ##
      image:
 -      repository: quay.io/prometheus/prometheus
 +      repository: rancher/mirrored-prometheus-prometheus
-       tag: v2.28.1
+       tag: v2.38.0
        sha: ""
  
-@@ -2149,7 +2843,7 @@
+@@ -2418,7 +3209,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the PrometheusRule resources created
      ##
@@ -971,7 +1093,7 @@
  
      ## PrometheusRules to be selected for target discovery.
      ## If {}, select all PrometheusRules
-@@ -2174,7 +2868,7 @@
+@@ -2443,7 +3234,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the servicemonitors created
      ##
@@ -980,7 +1102,7 @@
  
      ## ServiceMonitors to be selected for target discovery.
      ## If {}, select all ServiceMonitors
-@@ -2197,7 +2891,7 @@
+@@ -2466,7 +3257,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the podmonitors created
      ##
@@ -989,7 +1111,7 @@
  
      ## PodMonitors to be selected for target discovery.
      ## If {}, select all PodMonitors
-@@ -2328,9 +3022,13 @@
+@@ -2597,9 +3388,13 @@
  
      ## Resource limits & requests
      ##
@@ -1005,8 +1127,8 @@
 +        cpu: 750m
  
      ## Prometheus StorageSpec for persistent data
-     ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/user-guides/storage.md
-@@ -2353,7 +3051,13 @@
+     ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/user-guides/storage.md
+@@ -2622,7 +3417,13 @@
      #    medium: Memory
  
      # Additional volumes on the output StatefulSet definition.
@@ -1021,7 +1143,7 @@
  
      # Additional VolumeMounts on the output StatefulSet definition.
      volumeMounts: []
-@@ -2475,9 +3179,34 @@
+@@ -2768,6 +3569,11 @@
        #         fileName: "objstore.yaml"
        # objectStorageConfigFile: /var/secrets/object-store.yaml
  
@@ -1032,37 +1154,42 @@
 +
      ## Containers allows injecting additional containers. This is meant to allow adding an authentication proxy to a Prometheus pod.
      ## if using proxy extraContainer update targetPort with proxy container port
--    containers: []
-+    containers: |
-+      - name: prometheus-proxy
-+        args:
-+        - nginx
-+        - -g
-+        - daemon off;
-+        - -c
-+        - /nginx/nginx.conf
-+        image: "{{ template "system_default_registry" . }}{{ .Values.prometheus.prometheusSpec.proxy.image.repository }}:{{ .Values.prometheus.prometheusSpec.proxy.image.tag }}"
-+        ports:
-+        - containerPort: 8081
-+          name: nginx-http
-+          protocol: TCP
-+        volumeMounts:
-+        - mountPath: /nginx
-+          name: prometheus-nginx
-+        - mountPath: /var/cache/nginx
-+          name: nginx-home
-+        securityContext:
-+          runAsUser: 101
-+          runAsGroup: 101
+     containers: []
+@@ -2784,6 +3590,28 @@
+     #     protocol: TCP
+     #   resources: {}
  
++    containers: 
++    - name: prometheus-proxy
++      args:
++      - nginx
++      - -g
++      - daemon off;
++      - -c
++      - /nginx/nginx.conf
++      image: rancher/mirrored-library-nginx:1.21.1-alpine
++      ports:
++      - containerPort: 8081
++        name: nginx-http
++        protocol: TCP
++      volumeMounts:
++      - mountPath: /nginx
++        name: prometheus-nginx
++      - mountPath: /var/cache/nginx
++        name: nginx-home
++      securityContext:
++        runAsUser: 101
++        runAsGroup: 101
++
      ## InitContainers allows injecting additional initContainers. This is meant to allow doing some changes
      ## (permissions, dir tree) on mounted volumes before starting prometheus
-@@ -2485,7 +3214,7 @@
- 
-     ## PortName to use for Prometheus.
+     initContainers: []
+@@ -3154,7 +3982,7 @@
+     ## Image of ThanosRuler
      ##
--    portName: "web"
-+    portName: "nginx-http"
+     image:
+-      repository: quay.io/thanos/thanos
++      repository: rancher/mirrored-thanos-thanos
+       tag: v0.28.0
+       sha: ""
  
-     ## ArbitraryFSAccessThroughSMs configures whether configuration based on a service monitor can access arbitrary files
-     ## on the file system of the Prometheus container e.g. bearer token files.

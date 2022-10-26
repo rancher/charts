@@ -1,27 +1,23 @@
 --- charts-original/templates/daemonset.yaml
 +++ charts/templates/daemonset.yaml
-@@ -36,7 +36,7 @@
+@@ -35,7 +35,7 @@
        {{- end }}
        containers:
          - name: node-exporter
--          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-+          image: "{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+-          image: {{ include "prometheus-node-exporter.image" . }}
++          image: {{ template "system_default_registry" . }}{{ include "prometheus-node-exporter.image" . }}
            imagePullPolicy: {{ .Values.image.pullPolicy }}
            args:
              - --path.procfs=/host/proc
-@@ -134,18 +134,18 @@
-       affinity:
- {{ toYaml .Values.affinity | indent 8 }}
- {{- end }}
-+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
- {{- with .Values.dnsConfig }}
+@@ -177,14 +177,14 @@
        dnsConfig:
  {{ toYaml . | indent 8 }}
  {{- end }}
++      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
  {{- if .Values.nodeSelector }}
 -      nodeSelector:
 -{{ toYaml .Values.nodeSelector | indent 8 }}
-+{{- toYaml .Values.Selector | nindent 8 }}
++{{- toYaml .Values.nodeSelector | nindent 8 }}
 +{{- end }}
 +      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
 +{{- if .Values.tolerations }}

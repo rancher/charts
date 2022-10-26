@@ -5,6 +5,7 @@ import re
 import textwrap
 from os import makedirs, path
 
+import _jsonnet
 import requests
 import yaml
 from yaml.representer import SafeRepresenter
@@ -34,9 +35,9 @@ charts = [
         'multicluster_key': '.Values.grafana.sidecar.dashboards.multicluster.global.enabled',
     },
     {
-        'source': 'https://raw.githubusercontent.com/etcd-io/website/master/content/en/docs/v3.4/op-guide/grafana.json',
+        'source': 'https://raw.githubusercontent.com/etcd-io/etcd/main/contrib/mixin/mixin.libsonnet',
         'destination': '../templates/grafana/dashboards-1.14',
-        'type': 'json',
+        'type': 'jsonnet_mixin',
         'min_kubernetes': '1.14.0-0',
         'multicluster_key': '(or .Values.grafana.sidecar.dashboards.multicluster.global.enabled .Values.grafana.sidecar.dashboards.multicluster.etcd.enabled)'
     },
@@ -53,6 +54,7 @@ condition_map = {
     'scheduler': ' .Values.kubeScheduler.enabled',
     'node-rsrc-use': ' .Values.nodeExporter.enabled',
     'node-cluster-rsrc-use': ' .Values.nodeExporter.enabled',
+    'nodes': ' .Values.nodeExporter.enabled',
     'prometheus-remote-write': ' .Values.prometheus.prometheusSpec.remoteWriteDashboards'
 }
 
@@ -73,7 +75,7 @@ metadata:
 {{ toYaml .Values.grafana.sidecar.dashboards.annotations | indent 4 }}
   labels:
     {{- if $.Values.grafana.sidecar.dashboards.label }}
-    {{ $.Values.grafana.sidecar.dashboards.label }}: "1"
+    {{ $.Values.grafana.sidecar.dashboards.label }}: {{ ternary $.Values.grafana.sidecar.dashboards.labelValue "1" (not (empty $.Values.grafana.sidecar.dashboards.labelValue)) | quote }}
     {{- end }}
     app: {{ template "kube-prometheus-stack.name" $ }}-grafana
 {{ include "kube-prometheus-stack.labels" $ | indent 4 }}
@@ -215,8 +217,8 @@ def main():
             for group in groups:
                 for resource, content in group['data'].items():
                     write_group_to_file(resource.replace('.json', ''), content, chart['source'], chart['destination'], chart['min_kubernetes'], chart['max_kubernetes'], chart['multicluster_key'])
-        elif chart['type'] == 'json':
-            json_text = json.loads(raw_text)
+        elif chart['type'] == 'jsonnet_mixin':
+            json_text = json.loads(_jsonnet.evaluate_snippet(chart['source'], raw_text + '.grafanaDashboards'))
             # is it already a dashboard structure or is it nested (etcd case)?
             flat_structure = bool(json_text.get('annotations'))
             if flat_structure:

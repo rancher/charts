@@ -18,6 +18,17 @@ spec:
   selector:
     matchLabels: {{ include "pushProxy.client.labels" . | nindent 6 }}
 ---
+{{- $selector := "" }}
+{{- if not (kindIs "invalid" .Values.service)  }}
+{{- if not (kindIs "invalid" .Values.service.selector) }}
+{{ if .Values.service.selector }}
+{{- if .Values.clients.enabled }}
+{{- required (printf "Cannot override .Values.service.selector=%s when .Values.clients.enabled=true" (toJson .Values.service.selector)) "" }}
+{{- end }}
+{{- $selector = (toYaml .Values.service.selector) }}
+{{- end }}
+{{- end }}
+{{- end }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -30,5 +41,5 @@ spec:
     port: {{ required "Need .Values.metricsPort to configure client to listen to metrics at port" .Values.metricsPort}}
     protocol: TCP
     targetPort: {{ .Values.metricsPort }}
-  selector: {{ include "pushProxy.client.labels" . | nindent 4 }}
+  selector: {{ default (include "pushProxy.client.labels" .) $selector | nindent 4 }}
 {{- end }}{{- end }}
