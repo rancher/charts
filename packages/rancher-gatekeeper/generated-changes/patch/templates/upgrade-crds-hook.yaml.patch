@@ -1,6 +1,6 @@
 --- charts-original/templates/upgrade-crds-hook.yaml
 +++ charts/templates/upgrade-crds-hook.yaml
-@@ -75,18 +75,14 @@
+@@ -87,18 +87,14 @@
      spec:
        serviceAccountName: gatekeeper-admin-upgrade-crds
        restartPolicy: Never
@@ -23,13 +23,15 @@
          args:
          - apply
          - -f
-@@ -95,7 +91,6 @@
-           {{- toYaml .Values.crds.resources | nindent 10 }}
-         securityContext:
-           {{- toYaml .Values.crds.securityContext | nindent 10 }}
+@@ -114,9 +110,7 @@
+       {{- with .Values.crds }}
+       affinity:
+         {{- toYaml .affinity | nindent 8 }}
+-      tolerations:
+-        {{- toYaml .tolerations | nindent 8 }}
 -      nodeSelector:
--        kubernetes.io/os: linux
--
+-        {{- toYaml .nodeSelector | nindent 8 }}
 +      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
 +      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+       {{- end }}
  {{- end }}

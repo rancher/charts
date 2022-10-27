@@ -1,6 +1,6 @@
 --- charts-original/templates/gatekeeper-controller-manager-deployment.yaml
 +++ charts/templates/gatekeeper-controller-manager-deployment.yaml
-@@ -40,11 +40,8 @@
+@@ -42,11 +42,8 @@
          {{- toYaml .Values.controllerManager.affinity | nindent 8 }}
        automountServiceAccountToken: true
        containers:
@@ -14,15 +14,15 @@
          args:
          - --port={{ .Values.controllerManager.port }}
          - --health-addr=:{{ .Values.controllerManager.healthPort }}
-@@ -84,7 +81,6 @@
-           valueFrom:
-             fieldRef:
-               fieldPath: metadata.name
+@@ -101,7 +98,6 @@
+               fieldPath: metadata.namespace
+         - name: CONTAINER_NAME
+           value: manager
 -        imagePullPolicy: '{{ .Values.image.pullPolicy }}'
          livenessProbe:
            httpGet:
              path: /healthz
-@@ -115,16 +111,20 @@
+@@ -138,9 +134,11 @@
        dnsPolicy: {{ .Values.controllerManager.dnsPolicy }}
        hostNetwork: {{ .Values.controllerManager.hostNetwork }}
        imagePullSecrets:
@@ -37,6 +37,8 @@
        {{- if .Values.controllerManager.priorityClassName }}
        priorityClassName:  {{ .Values.controllerManager.priorityClassName }}
        {{- end }}
+@@ -148,8 +146,10 @@
+         {{- toYaml .Values.controllerManager.podSecurityContext | nindent 8 }}
        serviceAccountName: gatekeeper-admin
        terminationGracePeriodSeconds: 60
 -      tolerations:
@@ -45,6 +47,6 @@
 +{{- if .Values.controllerManager.tolerations }}
 +{{ toYaml .Values.controllerManager.tolerations | indent 8 }}
 +{{- end }}
+       topologySpreadConstraints:
+         {{- toYaml .Values.controllerManager.topologySpreadConstraints | nindent 8 }}
        volumes:
-       - name: cert
-         secret:
