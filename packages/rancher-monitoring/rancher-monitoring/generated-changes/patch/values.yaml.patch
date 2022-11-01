@@ -675,7 +675,7 @@
      pspAnnotations: {}
        ## Specify pod annotations
        ## Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/#apparmor
-@@ -225,25 +866,77 @@
+@@ -225,26 +866,78 @@
    ## ref: https://prometheus.io/docs/alerting/notifications/
    ##      https://prometheus.io/docs/alerting/notification_examples/
    ##
@@ -698,7 +698,7 @@
 -  #           {{ end }}
 -  #       {{ end }}
 -  #       {{ end }}
-+
+ 
 +  templateFiles:
 +    rancher_defaults.tmpl: |-
 +        {{- define "slack.rancher.text" -}}
@@ -769,9 +769,10 @@
 +        {{- end }}
 +        {{- end }}
 +        {{- end -}}
- 
++
    ingress:
      enabled: false
+ 
 @@ -452,7 +1145,7 @@
      ## Image of Alertmanager
      ##
@@ -887,7 +888,7 @@
 +    ## Service type
 +    ##
 +    type: ClusterIP
-+
+ 
 +  proxy:
 +    image:
 +      repository: rancher/mirrored-library-nginx
@@ -927,7 +928,7 @@
 +        - key: nginx.conf
 +          mode: 438
 +          path: nginx.conf
- 
++
 +  ## If true, create a serviceMonitor for grafana
 +  ##
    serviceMonitor:
@@ -1143,7 +1144,7 @@
  
      # Additional VolumeMounts on the output StatefulSet definition.
      volumeMounts: []
-@@ -2768,6 +3569,11 @@
+@@ -2768,21 +3569,34 @@
        #         fileName: "objstore.yaml"
        # objectStorageConfigFile: /var/secrets/object-store.yaml
  
@@ -1154,11 +1155,19 @@
 +
      ## Containers allows injecting additional containers. This is meant to allow adding an authentication proxy to a Prometheus pod.
      ## if using proxy extraContainer update targetPort with proxy container port
-     containers: []
-@@ -2784,6 +3590,28 @@
-     #     protocol: TCP
-     #   resources: {}
- 
+-    containers: []
+-    # containers:
+-    # - name: oauth-proxy
+-    #   image: quay.io/oauth2-proxy/oauth2-proxy:v7.3.0
+-    #   args:
+-    #   - --upstream=http://127.0.0.1:9093
+-    #   - --http-address=0.0.0.0:8081
+-    #   - ...
+-    #   ports:
+-    #   - containerPort: 8081
+-    #     name: oauth-proxy
+-    #     protocol: TCP
+-    #   resources: {}
 +    containers: 
 +    - name: prometheus-proxy
 +      args:
@@ -1180,11 +1189,10 @@
 +      securityContext:
 +        runAsUser: 101
 +        runAsGroup: 101
-+
+ 
      ## InitContainers allows injecting additional initContainers. This is meant to allow doing some changes
      ## (permissions, dir tree) on mounted volumes before starting prometheus
-     initContainers: []
-@@ -3154,7 +3982,7 @@
+@@ -3154,7 +3968,7 @@
      ## Image of ThanosRuler
      ##
      image:
