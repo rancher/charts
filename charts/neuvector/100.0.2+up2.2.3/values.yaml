@@ -1,0 +1,361 @@
+# Default values for neuvector.
+# This is a YAML-formatted file.
+# Declare variables to be passed into the templates.
+
+openshift: false
+
+registry: docker.io
+oem:
+psp: false
+rbac: true
+serviceAccount: neuvector
+
+controller:
+  # If false, controller will not be installed
+  enabled: true
+  annotations: {}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  image:
+    repository: rancher/mirrored-neuvector-controller
+    tag: 5.0.3
+    hash:
+  replicas: 3
+  disruptionbudget: 0
+  schedulerName:
+  priorityClassName:
+  env: []
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app
+              operator: In
+              values:
+              - neuvector-controller-pod
+          topologyKey: "kubernetes.io/hostname"
+  tolerations: []
+  nodeSelector: {}
+    # key1: value1
+    # key2: value2
+  apisvc:
+    type:
+    annotations: {}
+    # OpenShift Route configuration
+    # Controller supports HTTPS only, so edge termination not supported
+    route:
+      enabled: false
+      termination: passthrough
+      host:
+      tls:
+        #certificate: |
+        #  -----BEGIN CERTIFICATE-----
+        #  -----END CERTIFICATE-----
+        #caCertificate: |
+        #  -----BEGIN CERTIFICATE-----
+        #  -----END CERTIFICATE-----
+        #destinationCACertificate: |
+        #  -----BEGIN CERTIFICATE-----
+        #  -----END CERTIFICATE-----
+        #key: |
+        #  -----BEGIN PRIVATE KEY-----
+        #  -----END PRIVATE KEY-----
+  ranchersso:
+    enabled: true
+  pvc:
+    enabled: false
+    accessModes:
+      - ReadWriteMany
+    storageClass:
+    capacity:
+  azureFileShare:
+    enabled: false
+    secretName:
+    shareName:
+  certificate:
+    secret:
+    keyFile: tls.key
+    pemFile: tls.pem
+  federation:
+    mastersvc:
+      type:
+      # Federation Master Ingress
+      ingress:
+        enabled: false
+        host:  # MUST be set, if ingress is enabled
+        ingressClassName: ""
+        path: "/"  # or this could be "/api", but might need "rewrite-target" annotation
+        annotations:
+          nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+          # ingress.kubernetes.io/rewrite-target: /
+        tls: false
+        secretName:
+      annotations: {}
+      # OpenShift Route configuration
+      # Controller supports HTTPS only, so edge termination not supported
+      route:
+        enabled: false
+        termination: passthrough
+        host:
+        tls:
+          #certificate: |
+          #  -----BEGIN CERTIFICATE-----
+          #  -----END CERTIFICATE-----
+          #caCertificate: |
+          #  -----BEGIN CERTIFICATE-----
+          #  -----END CERTIFICATE-----
+          #destinationCACertificate: |
+          #  -----BEGIN CERTIFICATE-----
+          #  -----END CERTIFICATE-----
+          #key: |
+          #  -----BEGIN PRIVATE KEY-----
+          #  -----END PRIVATE KEY-----
+    managedsvc:
+      type:
+      # Federation Managed Ingress
+      ingress:
+        enabled: false
+        host:  # MUST be set, if ingress is enabled
+        ingressClassName: ""
+        path: "/"  # or this could be "/api", but might need "rewrite-target" annotation
+        annotations:
+          nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+          # ingress.kubernetes.io/rewrite-target: /
+        tls: false
+        secretName:
+      annotations: {}
+      # OpenShift Route configuration
+      # Controller supports HTTPS only, so edge termination not supported
+      route:
+        enabled: false
+        termination: passthrough
+        host:
+        tls:
+          #certificate: |
+          #  -----BEGIN CERTIFICATE-----
+          #  -----END CERTIFICATE-----
+          #caCertificate: |
+          #  -----BEGIN CERTIFICATE-----
+          #  -----END CERTIFICATE-----
+          #destinationCACertificate: |
+          #  -----BEGIN CERTIFICATE-----
+          #  -----END CERTIFICATE-----
+          #key: |
+          #  -----BEGIN PRIVATE KEY-----
+          #  -----END PRIVATE KEY-----
+  ingress:
+    enabled: false
+    host:  # MUST be set, if ingress is enabled
+    ingressClassName: ""
+    path: "/"  # or this could be "/api", but might need "rewrite-target" annotation
+    annotations:
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+      # ingress.kubernetes.io/rewrite-target: /
+    tls: false
+    secretName:
+  resources: {}
+    # limits:
+    #   cpu: 400m
+    #   memory: 2792Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 2280Mi
+  configmap:
+    enabled: false
+    data:
+      # eulainitcfg.yaml: |
+      #  ...
+      # ldapinitcfg.yaml: |
+      #  ...
+      # oidcinitcfg.yaml: |
+      # ...
+      # samlinitcfg.yaml: |
+      # ...
+      # sysinitcfg.yaml: |
+      # ...
+      # userinitcfg.yaml: |
+      # ...
+  secret:
+    # NOTE: files defined here have preferrence over the ones defined in the configmap section
+    enabled: false
+    data: {}
+      # eulainitcfg.yaml:
+      #   license_key: 0Bca63Iy2FiXGqjk...
+      #   ...
+      # ldapinitcfg.yaml:
+      #   directory: OpenLDAP
+      #   ...
+      # oidcinitcfg.yaml:
+      #   Issuer: https://...
+      #   ...
+      # samlinitcfg.yaml:
+      #   ...
+      # sysinitcfg.yaml:
+      #   ...
+      # userinitcfg.yaml:
+      #   ...
+
+enforcer:
+  # If false, enforcer will not be installed
+  enabled: true
+  image:
+    repository: rancher/mirrored-neuvector-enforcer
+    tag: 5.0.3
+    hash:
+  priorityClassName:
+  tolerations:
+    - effect: NoSchedule
+      key: node-role.kubernetes.io/master
+  resources: {}
+    # limits:
+    #   cpu: 400m
+    #   memory: 2792Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 2280Mi
+
+manager:
+  # If false, manager will not be installed
+  enabled: true
+  image:
+    repository: rancher/mirrored-neuvector-manager
+    tag: 5.0.3
+    hash:
+  priorityClassName:
+  env:
+    ssl: true
+  svc:
+    type: NodePort
+    loadBalancerIP:
+    annotations: {}
+      # azure
+      # service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+      # service.beta.kubernetes.io/azure-load-balancer-internal-subnet: "apps-subnet"
+  # OpenShift Route configuration
+  # Make sure manager env ssl is false for edge termination
+  route:
+    enabled: true
+    termination: passthrough
+    host:
+    tls:
+      #certificate: | 
+      #  -----BEGIN CERTIFICATE-----
+      #  -----END CERTIFICATE-----
+      #caCertificate: | 
+      #  -----BEGIN CERTIFICATE-----
+      #  -----END CERTIFICATE-----
+      #destinationCACertificate: | 
+      #  -----BEGIN CERTIFICATE-----
+      #  -----END CERTIFICATE-----
+      #key: | 
+      #  -----BEGIN PRIVATE KEY-----
+      #  -----END PRIVATE KEY-----
+  certificate:
+    secret:
+    keyFile: tls.key
+    pemFile: tls.pem
+  ingress:
+    enabled: false
+    host:  # MUST be set, if ingress is enabled
+    ingressClassName: ""
+    path: "/"
+    annotations:
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+      # kubernetes.io/ingress.class: my-nginx
+      # nginx.ingress.kubernetes.io/whitelist-source-range: "1.1.1.1"
+      # nginx.ingress.kubernetes.io/rewrite-target: /
+      # nginx.ingress.kubernetes.io/enable-rewrite-log: "true"
+      # only for end-to-end tls conf - ingress-nginx accepts backend self-signed cert
+    tls: false
+    secretName:  # my-tls-secret
+  resources: {}
+    # limits:
+    #   cpu: 400m
+    #   memory: 2792Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 2280Mi
+  affinity: {}
+  tolerations: []
+  nodeSelector: {}
+    # key1: value1
+    # key2: value2
+  runAsUser:  # MUST be set for Rancher hardened cluster
+cve:
+  updater:
+    # If false, cve updater will not be installed
+    enabled: true
+    secure: false
+    image:
+      repository: rancher/mirrored-neuvector-updater
+      tag: latest
+      hash:
+    schedule: "0 0 * * *"
+    priorityClassName:
+    runAsUser:  # MUST be set for Rancher hardened cluster
+  scanner:
+    enabled: true
+    replicas: 3
+    dockerPath: ""
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+    image:
+      repository: rancher/mirrored-neuvector-scanner
+      tag: latest
+      hash:
+    priorityClassName:
+    resources: {}
+      # limits:
+      #   cpu: 400m
+      #   memory: 2792Mi
+      # requests:
+      #   cpu: 100m
+      #   memory: 2280Mi
+    affinity: {}
+    tolerations: []
+    nodeSelector: {}
+      # key1: value1
+      # key2: value2
+    runAsUser:  # MUST be set for Rancher hardened cluster
+docker:
+  path: /var/run/docker.sock
+
+resources: {}
+  # limits:
+  #   cpu: 400m
+  #   memory: 2792Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 2280Mi
+
+k3s:
+  enabled: false
+  runtimePath: /run/k3s/containerd/containerd.sock
+
+bottlerocket:
+  enabled: false
+  runtimePath: /run/dockershim.sock
+
+containerd:
+  enabled: false
+  path: /var/run/containerd/containerd.sock
+
+crio:
+  enabled: false
+  path: /var/run/crio/crio.sock
+
+admissionwebhook:
+  type: ClusterIP
+
+crdwebhook:
+  enabled: true
+  type: ClusterIP
