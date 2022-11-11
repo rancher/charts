@@ -1,0 +1,49 @@
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: system-upgrade-controller
+spec:
+  allowPrivilegeEscalation: true
+  allowedCapabilities:
+    - CAP_SYS_BOOT
+  hostNetwork: true
+  hostPID: true
+  hostIPC: true
+  privileged: true
+  runAsUser:
+    rule: RunAsAny
+  seLinux:
+    rule: RunAsAny
+  supplementalGroups:
+    rule: RunAsAny
+  fsGroup:
+    rule: RunAsAny
+  volumes:
+    - "*"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: system-upgrade-controller-psp
+rules:
+  - apiGroups:
+      - policy
+    resourceNames:
+      - system-upgrade-controller
+    resources:
+      - podsecuritypolicies
+    verbs:
+      - use
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name:  system-upgrade-controller-psp
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system-upgrade-controller-psp
+subjects:
+  - kind: Group
+    apiGroup: rbac.authorization.k8s.io
+    name: system:serviceaccounts:cattle-system

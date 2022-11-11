@@ -1,0 +1,17 @@
+--- charts-original/templates/namespace-post-upgrade.yaml
++++ charts/templates/namespace-post-upgrade.yaml
+@@ -26,11 +26,11 @@
+       {{- .Values.postUpgrade.labelNamespace.image.pullSecrets | toYaml | nindent 12 }}
+       {{- end }}
+       serviceAccount: gatekeeper-update-namespace-label-post-upgrade
+-      nodeSelector:
+-        kubernetes.io/os: linux
++      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
++      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+       containers:
+         - name: kubectl-label
+-          image: "{{ .Values.postUpgrade.labelNamespace.image.repository }}:{{ .Values.postUpgrade.labelNamespace.image.tag }}"
++          image: '{{ template "system_default_registry" . }}{{ .Values.postUpgrade.labelNamespace.image.repository }}:{{ .Values.postUpgrade.labelNamespace.image.tag }}'
+           imagePullPolicy: {{ .Values.postUpgrade.labelNamespace.image.pullPolicy }}
+           args:
+             - label

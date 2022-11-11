@@ -23,13 +23,17 @@
    labels:
    {{- include "sriov-network-operator.labels" . | nindent 4 }}
  spec:
-@@ -18,19 +33,19 @@
+@@ -18,23 +33,19 @@
        labels:
          name: sriov-network-operator
      spec:
 -      {{- with .Values.operator.nodeSelector }}
 -      nodeSelector:
 -      {{- toYaml . | nindent 8 }}
+-      {{- end }}
+-      {{- with .Values.operator.affinity }}
+-      affinity:
+-        {{- toYaml . | nindent 8}}
 -      {{- end }}
 -      {{- with .Values.operator.tolerations }}
 -      tolerations:
@@ -52,7 +56,7 @@
            command:
              - sriov-network-operator
            imagePullPolicy: IfNotPresent
-@@ -44,19 +59,19 @@
+@@ -48,19 +59,19 @@
                  fieldRef:
                    fieldPath: metadata.namespace
              - name: SRIOV_CNI_IMAGE
@@ -78,7 +82,7 @@
              - name: RESOURCE_PREFIX
                value: {{ .Values.operator.resourcePrefix }}
              - name: ENABLE_ADMISSION_CONTROLLER
-@@ -75,3 +90,9 @@
+@@ -79,3 +90,9 @@
                value: {{ .Values.operator.cniBinPath }}
              - name: CLUSTER_TYPE
                value: {{ .Values.operator.clusterType }}

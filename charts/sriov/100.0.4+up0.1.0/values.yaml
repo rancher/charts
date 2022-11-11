@@ -1,0 +1,64 @@
+operator:
+  tolerations:
+    - key: "node-role.kubernetes.io/control-plane"
+      operator: "Exists"
+      effect: "NoSchedule"
+    - effect: NoExecute
+      key: node-role.kubernetes.io/etcd
+      operator: Exists
+  nodeSelector: {}
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+            - key: "node-role.kubernetes.io/master"
+              operator: In
+              values: [ "" ]
+          - matchExpressions:
+              - key: "node-role.kubernetes.io/control-plane"
+                operator: In
+                values: [ "" ]
+  nameOverride: ""
+  fullnameOverride: ""
+  resourcePrefix: "rancher.io"
+  enableAdmissionController: false
+  cniBinPath: "/opt/cni/bin"
+  clusterType: "kubernetes"
+
+# Image URIs for sriov-network-operator components
+images:
+  operator:
+    image: rancher/hardened-sriov-network-operator
+    tag: v1.2.0-build20220816
+  sriovConfigDaemon:
+    image: rancher/hardened-sriov-network-config-daemon
+    tag: v1.2.0-build20220816
+  sriovCni:
+    image: rancher/hardened-sriov-cni
+    tag: v2.6.3-build20220816
+  ibSriovCni: 
+    image: rancher/hardened-ib-sriov-cni
+    tag: v1.0.2-build20220419
+  sriovDevicePlugin: 
+    image: rancher/hardened-sriov-network-device-plugin
+    tag: v3.5.1-build20220816
+  resourcesInjector: 
+    image: rancher/hardened-sriov-network-resources-injector
+    tag: v1.5-build20220816
+  webhook:
+    image: rancher/hardened-sriov-network-webhook
+    tag: v1.2.0-build20220816
+
+# cert_manager enables integration with cert-manager to generate
+# certificates for the operator webhooks. Otherwise the chart will
+# generate ad-hoc certificates with no automated renewal at expiration,
+# not recommended for production clusters.
+cert_manager: false
+
+global:
+  cattle:
+    systemDefaultRegistry: ""
+  rbac:
+    userRoles:
+      aggregateToDefaultRoles: false
