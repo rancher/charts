@@ -4,43 +4,27 @@
 global:
   cattle:
     systemDefaultRegistry: ""
-    windowsCluster:
-      # Enable this to allow Longhorn to run on the Rancher deployed Windows cluster
-      enabled: false
-      # Tolerate Linux node taint
-      tolerations:
-      - key: "cattle.io/os"
-        value: "linux"
-        effect: "NoSchedule"
-        operator: "Equal"
-      # Select Linux nodes
-      nodeSelector:
-        kubernetes.io/os: "linux"
-      # Recognize toleration and node selector for Longhorn run-time created components
-      defaultSetting:
-        taintToleration: cattle.io/os=linux:NoSchedule
-        systemManagedComponentsNodeSelector: kubernetes.io/os:linux
 
 image:
   longhorn:
     engine:
       repository: longhornio/longhorn-engine
-      tag: v1.2.6
+      tag: v1.2.4
     manager:
       repository: longhornio/longhorn-manager
-      tag: v1.2.6
+      tag: v1.2.4
     ui:
       repository: longhornio/longhorn-ui
-      tag: v1.2.6
+      tag: v1.2.4
     instanceManager:
       repository: longhornio/longhorn-instance-manager
-      tag: v1_20220303_patch2
+      tag: v1_20220303
     shareManager:
       repository: longhornio/longhorn-share-manager
-      tag: v1_20211020_patch2
+      tag: v1_20211020
     backingImageManager:
       repository: longhornio/backing-image-manager
-      tag: v2_20221027
+      tag: v2_20210820
   csi:
     attacher:
       repository: longhornio/csi-attacher
@@ -72,7 +56,6 @@ persistence:
   defaultFsType: ext4
   defaultClassReplicaCount: 3
   reclaimPolicy: Delete
-  migratable: false
   recurringJobSelector:
     enable: false
     jobList: []
@@ -105,7 +88,6 @@ defaultSettings:
   defaultReplicaCount: ~
   defaultLonghornStaticStorageClass: ~
   backupstorePollInterval: ~
-  failedBackupTTL: ~
   taintToleration: ~
   systemManagedComponentsNodeSelector: ~
   priorityClass: ~
@@ -179,6 +161,19 @@ longhornUI:
   #  label-key1: "label-value1"
   #  label-key2: "label-value2"
 
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #  cpu: 100m
+  #  memory: 128Mi
+  # requests:
+  #  cpu: 100m
+  #  memory: 128Mi
+  #
+
 ingress:
   ## Set to true to enable ingress record generation
   enabled: false
@@ -231,7 +226,3 @@ namespaceOverride: ""
 
 # Annotations to add to the Longhorn Manager DaemonSet Pods. Optional.
 annotations: {}
-
-serviceAccount:
-  # Annotations to add to the service account
-  annotations: {}
