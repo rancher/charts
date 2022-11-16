@@ -28,10 +28,12 @@ spec:
       labels:
         quantile: '0.99'
         verb: read
-      record: cluster_quantile:apiserver_request{{ if (semverCompare ">=1.23.0-0" $kubeTargetVersion) }}_slo{{ end }}_duration_seconds:histogram_quantile
-    - expr: histogram_quantile(0.99, sum by (cluster, le, resource) (rate(apiserver_request{{ if (semverCompare ">=1.23.0-0" $kubeTargetVersion) }}_slo{{ end }}_duration_seconds_bucket{job="apiserver",verb=~"POST|PUT|PATCH|DELETE",subresource!~"proxy|attach|log|exec|portforward"}[5m]))) > 0
+        cluster_id: {{.Values.global.cattle.clusterId}}
+      record: cluster_quantile:apiserver_request_duration_seconds:histogram_quantile
+    - expr: histogram_quantile(0.99, sum by (cluster, le, resource) (rate(apiserver_request_duration_seconds_bucket{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[5m]))) > 0
       labels:
         quantile: '0.99'
         verb: write
+        cluster_id: {{.Values.global.cattle.clusterId}}
       record: cluster_quantile:apiserver_request{{ if (semverCompare ">=1.23.0-0" $kubeTargetVersion) }}_slo{{ end }}_duration_seconds:histogram_quantile
 {{- end }}
