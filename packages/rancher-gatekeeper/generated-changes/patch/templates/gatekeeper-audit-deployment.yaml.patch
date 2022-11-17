@@ -22,22 +22,22 @@
          livenessProbe:
            httpGet:
              path: /healthz
-@@ -123,9 +119,11 @@
+@@ -123,18 +119,21 @@
        dnsPolicy: {{ .Values.audit.dnsPolicy }}
        hostNetwork: {{ .Values.audit.hostNetwork }}
        imagePullSecrets:
 -        {{- toYaml .Values.image.pullSecrets | nindent 8 }}
 -      nodeSelector:
 -        {{- toYaml .Values.audit.nodeSelector | nindent 8 }}
+-      {{- if .Values.audit.priorityClassName }}
 +        {{- toYaml .Values.images.pullSecrets | nindent 8 }}
 +      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
 +{{- if .Values.audit.nodeSelector }}
 +{{ toYaml .Values.audit.nodeSelector | indent 8 }}
 +{{- end }}
-       {{- if .Values.audit.priorityClassName }}
        priorityClassName:  {{ .Values.audit.priorityClassName }}
        {{- end }}
-@@ -133,8 +131,10 @@
+       securityContext:
          {{- toYaml .Values.audit.podSecurityContext | nindent 8 }}
        serviceAccountName: gatekeeper-admin
        terminationGracePeriodSeconds: 60
