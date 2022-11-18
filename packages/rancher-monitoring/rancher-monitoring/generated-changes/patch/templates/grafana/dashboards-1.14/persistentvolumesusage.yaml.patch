@@ -9,7 +9,7 @@
    name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" $) "persistentvolumesusage" | trunc 63 | trimSuffix "-" }}
    annotations:
  {{ toYaml .Values.grafana.sidecar.dashboards.annotations | indent 4 }}
-@@ -92,14 +92,14 @@
+@@ -93,14 +93,14 @@
                          "steppedLine": false,
                          "targets": [
                              {
@@ -26,7 +26,7 @@
                                  "format": "time_series",
                                  "intervalFactor": 1,
                                  "legendFormat": "Free Space",
-@@ -207,7 +207,7 @@
+@@ -212,7 +212,7 @@
                          "tableColumn": "",
                          "targets": [
                              {
@@ -35,7 +35,7 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "",
-@@ -289,14 +289,14 @@
+@@ -295,14 +295,14 @@
                          "steppedLine": false,
                          "targets": [
                              {
@@ -52,7 +52,7 @@
                                  "format": "time_series",
                                  "intervalFactor": 1,
                                  "legendFormat": " Free inodes",
-@@ -404,7 +404,7 @@
+@@ -414,7 +414,7 @@
                          "tableColumn": "",
                          "targets": [
                              {
@@ -61,7 +61,27 @@
                                  "format": "time_series",
                                  "intervalFactor": 2,
                                  "legendFormat": "",
-@@ -500,7 +500,7 @@
+@@ -456,8 +456,8 @@
+             "list": [
+                 {
+                     "current": {
+-                        "text": "default",
+-                        "value": "default"
++                        "text": "Prometheus",
++                        "value": "Prometheus"
+                     },
+                     "hide": 0,
+                     "label": "Data Source",
+@@ -484,7 +484,7 @@
+                     "options": [
+ 
+                     ],
+-                    "query": "label_values(kubelet_volume_stats_capacity_bytes{job=\"kubelet\", metrics_path=\"/metrics\"}, cluster)",
++                    "query": "label_values(kubelet_volume_stats_capacity_bytes{job=\"{{ include "exporter.kubelet.jobName" . }}\", metrics_path=\"/metrics\"}, cluster)",
+                     "refresh": 2,
+                     "regex": "",
+                     "sort": 1,
+@@ -510,7 +510,7 @@
                      "options": [
  
                      ],
@@ -70,7 +90,7 @@
                      "refresh": 2,
                      "regex": "",
                      "sort": 1,
-@@ -526,7 +526,7 @@
+@@ -536,7 +536,7 @@
                      "options": [
  
                      ],

@@ -1,0 +1,40 @@
+--- charts-original/templates/thanos-ruler/ruler.yaml
++++ charts/templates/thanos-ruler/ruler.yaml
+@@ -14,13 +14,13 @@
+ spec:
+ {{- if .Values.thanosRuler.thanosRulerSpec.image }}
+   {{- if and .Values.thanosRuler.thanosRulerSpec.image.tag .Values.thanosRuler.thanosRulerSpec.image.sha }}
+-  image: "{{ .Values.thanosRuler.thanosRulerSpec.image.repository }}:{{ .Values.thanosRuler.thanosRulerSpec.image.tag }}@sha256:{{ .Values.thanosRuler.thanosRulerSpec.image.sha }}"
++  image: "{{ template "system_default_registry" . }}{{ .Values.thanosRuler.thanosRulerSpec.image.repository }}:{{ .Values.thanosRuler.thanosRulerSpec.image.tag }}@sha256:{{ .Values.thanosRuler.thanosRulerSpec.image.sha }}"
+   {{- else if .Values.thanosRuler.thanosRulerSpec.image.sha }}
+-  image: "{{ .Values.thanosRuler.thanosRulerSpec.image.repository }}@sha256:{{ .Values.thanosRuler.thanosRulerSpec.image.sha }}"
++  image: "{{ template "system_default_registry" . }}{{ .Values.thanosRuler.thanosRulerSpec.image.repository }}@sha256:{{ .Values.thanosRuler.thanosRulerSpec.image.sha }}"
+   {{- else if .Values.thanosRuler.thanosRulerSpec.image.tag }}
+-  image: "{{ .Values.thanosRuler.thanosRulerSpec.image.repository }}:{{ .Values.thanosRuler.thanosRulerSpec.image.tag }}"
++  image: "{{ template "system_default_registry" . }}{{ .Values.thanosRuler.thanosRulerSpec.image.repository }}:{{ .Values.thanosRuler.thanosRulerSpec.image.tag }}"
+   {{- else }}
+-  image: "{{ .Values.thanosRuler.thanosRulerSpec.image.repository }}"
++  image: "{{ template "system_default_registry" . }}{{ .Values.thanosRuler.thanosRulerSpec.image.repository }}"
+   {{- end }}
+   {{- if .Values.thanosRuler.thanosRulerSpec.image.sha }}
+   sha: {{ .Values.thanosRuler.thanosRulerSpec.image.sha }}
+@@ -36,8 +36,8 @@
+ {{- else }}
+   externalPrefix: http://{{ template "kube-prometheus-stack.fullname" . }}-thanosRuler.{{ template "kube-prometheus-stack.namespace" . }}:{{ .Values.thanosRuler.service.port }}
+ {{- end }}
++  nodeSelector: {{ include "linux-node-selector" . | nindent 4 }}
+ {{- if .Values.thanosRuler.thanosRulerSpec.nodeSelector }}
+-  nodeSelector:
+ {{ toYaml .Values.thanosRuler.thanosRulerSpec.nodeSelector | indent 4 }}
+ {{- end }}
+   paused: {{ .Values.thanosRuler.thanosRulerSpec.paused }}
+@@ -133,8 +133,8 @@
+               - {key: app.kubernetes.io/name, operator: In, values: [thanos-ruler]}
+               - {key: thanos-ruler, operator: In, values: [{{ template "kube-prometheus-stack.fullname" . }}-thanos-ruler]}
+ {{- end }}
++  tolerations: {{ include "linux-node-tolerations" . | nindent 4 }}
+ {{- if .Values.thanosRuler.thanosRulerSpec.tolerations }}
+-  tolerations:
+ {{ toYaml .Values.thanosRuler.thanosRulerSpec.tolerations | indent 4 }}
+ {{- end }}
+ {{- if .Values.thanosRuler.thanosRulerSpec.topologySpreadConstraints }}

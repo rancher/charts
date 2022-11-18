@@ -1,7 +1,7 @@
 --- charts-original/templates/prometheus/rules-1.14/kubernetes-storage.yaml
 +++ charts/templates/prometheus/rules-1.14/kubernetes-storage.yaml
-@@ -31,13 +31,12 @@
-         runbook_url: {{ .Values.defaultRules.runbookUrl }}alert-name-kubepersistentvolumefillingup
+@@ -35,13 +35,12 @@
+         runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubepersistentvolumefillingup
          summary: PersistentVolume is filling up.
        expr: |-
 -        (
@@ -16,10 +16,18 @@
          and
 -        kubelet_volume_stats_used_bytes{job="kubelet", namespace=~"{{ $targetNamespace }}", metrics_path="/metrics"} > 0
 +        kubelet_volume_stats_used_bytes{job="{{ include "exporter.kubelet.jobName" . }}", namespace=~"{{ $targetNamespace }}", metrics_path="/metrics"} > 0
+         unless on(namespace, persistentvolumeclaim)
+         kube_persistentvolumeclaim_access_mode{ access_mode="ReadOnlyMany"} == 1
+         unless on(namespace, persistentvolumeclaim)
+@@ -49,6 +48,7 @@
        for: 1m
        labels:
          severity: critical
-@@ -51,14 +50,14 @@
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -64,14 +64,14 @@
          summary: PersistentVolume is filling up.
        expr: |-
          (
@@ -35,6 +43,73 @@
          and
 -        predict_linear(kubelet_volume_stats_available_bytes{job="kubelet", namespace=~"{{ $targetNamespace }}", metrics_path="/metrics"}[6h], 4 * 24 * 3600) < 0
 +        predict_linear(kubelet_volume_stats_available_bytes{job="{{ include "exporter.kubelet.jobName" . }}", namespace=~"{{ $targetNamespace }}", metrics_path="/metrics"}[6h], 4 * 24 * 3600) < 0
+         unless on(namespace, persistentvolumeclaim)
+         kube_persistentvolumeclaim_access_mode{ access_mode="ReadOnlyMany"} == 1
+         unless on(namespace, persistentvolumeclaim)
+@@ -79,6 +79,7 @@
        for: 1h
        labels:
          severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -94,12 +95,12 @@
+         summary: PersistentVolumeInodes are filling up.
+       expr: |-
+         (
+-          kubelet_volume_stats_inodes_free{job="kubelet", namespace=~"{{ $targetNamespace }}", metrics_path="/metrics"}
++          kubelet_volume_stats_inodes_free{job="{{ include "exporter.kubelet.jobName" . }}", namespace=~"{{ $targetNamespace }}", metrics_path="/metrics"}
+             /
+-          kubelet_volume_stats_inodes{job="kubelet", namespace=~"{{ $targetNamespace }}", metrics_path="/metrics"}
++          kubelet_volume_stats_inodes{job="{{ include "exporter.kubelet.jobName" . }}", namespace=~"{{ $targetNamespace }}", metrics_path="/metrics"}
+         ) < 0.03
+         and
+-        kubelet_volume_stats_inodes_used{job="kubelet", namespace=~"{{ $targetNamespace }}", metrics_path="/metrics"} > 0
++        kubelet_volume_stats_inodes_used{job="{{ include "exporter.kubelet.jobName" . }}", namespace=~"{{ $targetNamespace }}", metrics_path="/metrics"} > 0
+         unless on(namespace, persistentvolumeclaim)
+         kube_persistentvolumeclaim_access_mode{ access_mode="ReadOnlyMany"} == 1
+         unless on(namespace, persistentvolumeclaim)
+@@ -107,6 +108,7 @@
+       for: 1m
+       labels:
+         severity: critical
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -122,14 +124,14 @@
+         summary: PersistentVolumeInodes are filling up.
+       expr: |-
+         (
+-          kubelet_volume_stats_inodes_free{job="kubelet", namespace=~"{{ $targetNamespace }}", metrics_path="/metrics"}
++          kubelet_volume_stats_inodes_free{job="{{ include "exporter.kubelet.jobName" . }}", namespace=~"{{ $targetNamespace }}", metrics_path="/metrics"}
+             /
+-          kubelet_volume_stats_inodes{job="kubelet", namespace=~"{{ $targetNamespace }}", metrics_path="/metrics"}
++          kubelet_volume_stats_inodes{job="{{ include "exporter.kubelet.jobName" . }}", namespace=~"{{ $targetNamespace }}", metrics_path="/metrics"}
+         ) < 0.15
+         and
+-        kubelet_volume_stats_inodes_used{job="kubelet", namespace=~"{{ $targetNamespace }}", metrics_path="/metrics"} > 0
++        kubelet_volume_stats_inodes_used{job="{{ include "exporter.kubelet.jobName" . }}", namespace=~"{{ $targetNamespace }}", metrics_path="/metrics"} > 0
+         and
+-        predict_linear(kubelet_volume_stats_inodes_free{job="kubelet", namespace=~"{{ $targetNamespace }}", metrics_path="/metrics"}[6h], 4 * 24 * 3600) < 0
++        predict_linear(kubelet_volume_stats_inodes_free{job="{{ include "exporter.kubelet.jobName" . }}", namespace=~"{{ $targetNamespace }}", metrics_path="/metrics"}[6h], 4 * 24 * 3600) < 0
+         unless on(namespace, persistentvolumeclaim)
+         kube_persistentvolumeclaim_access_mode{ access_mode="ReadOnlyMany"} == 1
+         unless on(namespace, persistentvolumeclaim)
+@@ -137,6 +139,7 @@
+       for: 1h
+       labels:
+         severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -154,6 +157,7 @@
+       for: 5m
+       labels:
+         severity: critical
++        luster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}

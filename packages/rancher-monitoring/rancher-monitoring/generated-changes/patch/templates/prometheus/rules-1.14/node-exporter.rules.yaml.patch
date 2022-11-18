@@ -1,0 +1,78 @@
+--- charts-original/templates/prometheus/rules-1.14/node-exporter.rules.yaml
++++ charts/templates/prometheus/rules-1.14/node-exporter.rules.yaml
+@@ -28,11 +28,15 @@
+         count without (cpu, mode) (
+           node_cpu_seconds_total{job="node-exporter",mode="idle"}
+         )
++      labels:
++        cluster_id: {{.Values.global.cattle.clusterId}}
+       record: instance:node_num_cpu:sum
+     - expr: |-
+         1 - avg without (cpu) (
+           sum without (mode) (rate(node_cpu_seconds_total{job="node-exporter", mode=~"idle|iowait|steal"}[5m]))
+         )
++      labels:
++        cluster_id: {{.Values.global.cattle.clusterId}}
+       record: instance:node_cpu_utilisation:rate5m
+     - expr: |-
+         (
+@@ -40,6 +44,8 @@
+         /
+           instance:node_num_cpu:sum{job="node-exporter"}
+         )
++      labels:
++        cluster_id: {{.Values.global.cattle.clusterId}}
+       record: instance:node_load1_per_cpu:ratio
+     - expr: |-
+         1 - (
+@@ -59,31 +65,47 @@
+         /
+           node_memory_MemTotal_bytes{job="node-exporter"}
+         )
++      labels:
++        cluster_id: {{.Values.global.cattle.clusterId}}
+       record: instance:node_memory_utilisation:ratio
+     - expr: rate(node_vmstat_pgmajfault{job="node-exporter"}[5m])
++      labels:
++        cluster_id: {{.Values.global.cattle.clusterId}}
+       record: instance:node_vmstat_pgmajfault:rate5m
+-    - expr: rate(node_disk_io_time_seconds_total{job="node-exporter", device=~"(/dev/)?(mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+)"}[5m])
++    - expr: rate(node_disk_io_time_seconds_total{job="node-exporter", device=~"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+"}[5m])
++      labels:
++        cluster_id: {{.Values.global.cattle.clusterId}}
+       record: instance_device:node_disk_io_time_seconds:rate5m
+-    - expr: rate(node_disk_io_time_weighted_seconds_total{job="node-exporter", device=~"(/dev/)?(mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+)"}[5m])
++    - expr: rate(node_disk_io_time_weighted_seconds_total{job="node-exporter", device=~"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+"}[5m])
++      labels:
++        cluster_id: {{.Values.global.cattle.clusterId}}
+       record: instance_device:node_disk_io_time_weighted_seconds:rate5m
+     - expr: |-
+         sum without (device) (
+           rate(node_network_receive_bytes_total{job="node-exporter", device!="lo"}[5m])
+         )
++      labels:
++        cluster_id: {{.Values.global.cattle.clusterId}}
+       record: instance:node_network_receive_bytes_excluding_lo:rate5m
+     - expr: |-
+         sum without (device) (
+           rate(node_network_transmit_bytes_total{job="node-exporter", device!="lo"}[5m])
+         )
++      labels:
++        cluster_id: {{.Values.global.cattle.clusterId}}
+       record: instance:node_network_transmit_bytes_excluding_lo:rate5m
+     - expr: |-
+         sum without (device) (
+           rate(node_network_receive_drop_total{job="node-exporter", device!="lo"}[5m])
+         )
++      labels:
++        cluster_id: {{.Values.global.cattle.clusterId}}
+       record: instance:node_network_receive_drop_excluding_lo:rate5m
+     - expr: |-
+         sum without (device) (
+           rate(node_network_transmit_drop_total{job="node-exporter", device!="lo"}[5m])
+         )
++      labels:
++        cluster_id: {{.Values.global.cattle.clusterId}}
+       record: instance:node_network_transmit_drop_excluding_lo:rate5m
+ {{- end }}
+\ No newline at end of file
