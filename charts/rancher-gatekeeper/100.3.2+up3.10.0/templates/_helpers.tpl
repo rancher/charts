@@ -68,7 +68,7 @@ Output post install webhook probe container entry
 */}}
 {{- define "gatekeeper.postInstallWebhookProbeContainer" -}}
 - name: webhook-probe-post
-  image: "{{ template "system_default_registry" . }}{{ .Values.postInstall.probeWebhook.image.repository }}:{{ .Values.postInstall.probeWebhook.image.tag }}"
+  image: "{{ .Values.postInstall.probeWebhook.image.repository }}:{{ .Values.postInstall.probeWebhook.image.tag }}"
   imagePullPolicy: {{ .Values.postInstall.probeWebhook.image.pullPolicy }}
   args:
     - "curl"
