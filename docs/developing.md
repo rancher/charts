@@ -189,7 +189,7 @@ If a chart version that you want to make changes to has already been released (i
 
 In addition, if your repository is configured to use upstream validation (e.g. check if `validation.url` and `validation.branch` is specified in the root `configuration.yaml`), you will also need to add this modified chart's name and version to the `release.yaml` or else you will fail CI. If you run `make validate` locally, it will automatically generate this file for you.
 
-For more information on how to do this or why this is required, please see [`docs/validation.md`](docs/validation.md).
+For more information on how to do this or why this is required, please see [`docs/validation.md`](validation.md).
 
 Otherwise, you are ready to make a PR!
 
