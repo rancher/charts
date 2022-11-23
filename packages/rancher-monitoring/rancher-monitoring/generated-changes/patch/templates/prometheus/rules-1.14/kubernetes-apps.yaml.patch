@@ -1,80 +1,6 @@
---- charts-original/templates/prometheus/rules-1.14/etcd.yaml
-+++ charts/templates/prometheus/rules-1.14/etcd.yaml
-@@ -4,7 +4,8 @@
- https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack/hack
- */ -}}
- {{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion .Values.kubeTargetVersionOverride }}
--{{- if and (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.defaultRules.create .Values.kubeEtcd.enabled .Values.defaultRules.rules.etcd }}
-+{{- if and (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.defaultRules.create .Values.defaultRules.rules.etcd }}
-+{{- if (include "exporter.kubeEtcd.enabled" .)}}
- apiVersion: monitoring.coreos.com/v1
- kind: PrometheusRule
- metadata:
-@@ -44,6 +45,7 @@
-       for: 10m
-       labels:
-         severity: critical
-+        cluster_id: {{.Values.global.cattle.clusterId}}
- {{- if .Values.defaultRules.additionalRuleLabels }}
- {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
- {{- end }}
-@@ -60,6 +62,7 @@
-       for: 3m
-       labels:
-         severity: critical
-+        cluster_id: {{.Values.global.cattle.clusterId}}
- {{- if .Values.defaultRules.additionalRuleLabels }}
- {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
- {{- end }}
-@@ -76,6 +79,7 @@
-       for: 1m
-       labels:
-         severity: critical
-+        cluster_id: {{.Values.global.cattle.clusterId}}
- {{- if .Values.defaultRules.additionalRuleLabels }}
- {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
- {{- end }}
-@@ -92,6 +96,7 @@
-       for: 5m
-       labels:
-         severity: warning
-+        cluster_id: {{.Values.global.cattle.clusterId}}
- {{- if .Values.defaultRules.additionalRuleLabels }}
- {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
- {{- end }}
-@@ -112,6 +117,7 @@
-       for: 10m
-       labels:
-         severity: warning
-+        cluster_id: {{.Values.global.cattle.clusterId}}
- {{- if .Values.defaultRules.additionalRuleLabels }}
- {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
- {{- end }}
-@@ -132,6 +138,7 @@
-       for: 5m
-       labels:
-         severity: critical
-+        cluster_id: {{.Values.global.cattle.clusterId}}
- {{- if .Values.defaultRules.additionalRuleLabels }}
- {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
- {{- end }}
-@@ -150,6 +157,7 @@
-       for: 10m
-       labels:
-         severity: critical
-+        cluster_id: {{.Values.global.cattle.clusterId}}
- {{- if .Values.defaultRules.additionalRuleLabels }}
- {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
- {{- end }}
-@@ -168,6 +176,7 @@
-       for: 10m
-       labels:
-         severity: warning
-+        cluster_id: {{.Values.global.cattle.clusterId}}
- {{- if .Values.defaultRules.additionalRuleLabels }}
- {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
- {{- end }}
-@@ -184,6 +193,7 @@
+--- charts-original/templates/prometheus/rules-1.14/kubernetes-apps.yaml
++++ charts/templates/prometheus/rules-1.14/kubernetes-apps.yaml
+@@ -38,6 +38,7 @@
        for: 15m
        labels:
          severity: warning
@@ -82,7 +8,71 @@
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
-@@ -202,6 +212,7 @@
+@@ -62,6 +63,7 @@
+       for: 15m
+       labels:
+         severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -82,6 +84,7 @@
+       for: 15m
+       labels:
+         severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -108,6 +111,7 @@
+       for: 15m
+       labels:
+         severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -134,6 +138,7 @@
+       for: 15m
+       labels:
+         severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -154,6 +159,7 @@
+       for: 15m
+       labels:
+         severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -188,6 +194,7 @@
+       for: 15m
+       labels:
+         severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -228,6 +235,7 @@
+       for: 15m
+       labels:
+         severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -245,6 +253,7 @@
+       for: 1h
+       labels:
+         severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
+ {{- end }}
+@@ -265,6 +274,7 @@
        for: 10m
        labels:
          severity: warning
@@ -90,47 +80,43 @@
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
-@@ -220,6 +231,7 @@
-       for: 10m
-       labels:
-         severity: critical
-+        cluster_id: {{.Values.global.cattle.clusterId}}
- {{- if .Values.defaultRules.additionalRuleLabels }}
- {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
- {{- end }}
-@@ -238,6 +250,7 @@
-       for: 10m
+@@ -282,6 +292,7 @@
+       for: 15m
        labels:
          severity: warning
 +        cluster_id: {{.Values.global.cattle.clusterId}}
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
-@@ -254,6 +267,7 @@
-       for: 10m
-       labels:
-         severity: critical
-+        cluster_id: {{.Values.global.cattle.clusterId}}
- {{- if .Values.defaultRules.additionalRuleLabels }}
- {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
- {{- end }}
-@@ -270,6 +284,7 @@
-       for: 10m
+@@ -301,6 +312,7 @@
+         kube_job_status_active{job="kube-state-metrics", namespace=~"{{ $targetNamespace }}"} > 0) > 43200
        labels:
          severity: warning
 +        cluster_id: {{.Values.global.cattle.clusterId}}
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
-@@ -287,8 +302,10 @@
-       for: 10m
+@@ -318,6 +330,7 @@
+       for: 15m
        labels:
          severity: warning
 +        cluster_id: {{.Values.global.cattle.clusterId}}
  {{- if .Values.defaultRules.additionalRuleLabels }}
  {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
+@@ -348,6 +361,7 @@
+       for: 15m
+       labels:
+         severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
-+{{- end }}
+@@ -368,6 +382,7 @@
+       for: 15m
+       labels:
+         severity: warning
++        cluster_id: {{.Values.global.cattle.clusterId}}
+ {{- if .Values.defaultRules.additionalRuleLabels }}
+ {{ toYaml .Values.defaultRules.additionalRuleLabels | indent 8 }}
  {{- end }}
-\ No newline at end of file
