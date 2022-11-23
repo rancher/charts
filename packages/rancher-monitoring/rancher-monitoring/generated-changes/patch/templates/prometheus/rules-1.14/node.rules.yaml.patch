@@ -1,0 +1,35 @@
+--- charts-original/templates/prometheus/rules-1.14/node.rules.yaml
++++ charts/templates/prometheus/rules-1.14/node.rules.yaml
+@@ -29,6 +29,8 @@
+           max by (cluster, node, namespace, pod) (
+             label_replace(kube_pod_info{job="kube-state-metrics",node!=""}, "pod", "$1", "pod", "(.*)")
+         ))
++      labels:
++        cluster_id: {{.Values.global.cattle.clusterId}}
+       record: 'node_namespace_pod:kube_pod_info:'
+     - expr: |-
+         count by (cluster, node) (sum by (node, cpu) (
+@@ -36,6 +38,8 @@
+         * on (namespace, pod) group_left(node)
+           topk by(namespace, pod) (1, node_namespace_pod:kube_pod_info:)
+         ))
++      labels:
++        cluster_id: {{.Values.global.cattle.clusterId}}
+       record: node:node_num_cpu:sum
+     - expr: |-
+         sum(
+@@ -47,9 +51,13 @@
+             node_memory_Slab_bytes{job="node-exporter"}
+           )
+         ) by (cluster)
++      labels:
++        cluster_id: {{.Values.global.cattle.clusterId}}
+       record: :node_memory_MemAvailable_bytes:sum
+     - expr: |-
+         sum(rate(node_cpu_seconds_total{job="node-exporter",mode!="idle",mode!="iowait",mode!="steal"}[5m])) /
+         count(sum(node_cpu_seconds_total{job="node-exporter"}) by (cluster, instance, cpu))
++      labels:
++        cluster_id: {{.Values.global.cattle.clusterId}}
+       record: cluster:node_cpu:ratio_rate5m
+ {{- end }}
+\ No newline at end of file
