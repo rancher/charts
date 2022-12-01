@@ -1,0 +1,35 @@
+--- charts-original/templates/deployment.yaml
++++ charts/templates/deployment.yaml
+@@ -45,7 +45,7 @@
+         - name: {{ .Chart.Name }}
+           securityContext:
+             {{- toYaml .Values.securityContext | nindent 12 }}
+-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default (printf "v%s" .Chart.AppVersion) }}"
++          image: "{{ template "registry-url" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+           imagePullPolicy: {{ .Values.image.pullPolicy }}
+           args:
+             - dex
+@@ -116,10 +116,8 @@
+       {{- with .Values.volumes }}
+         {{- toYaml . | nindent 8 }}
+       {{- end }}
+-      {{- with .Values.nodeSelector }}
+       nodeSelector:
+-        {{- toYaml . | nindent 8 }}
+-      {{- end }}
++        {{- include "linux-node-selector" . | nindent 8 }}
+       {{- with .Values.affinity }}
+       affinity:
+         {{- toYaml . | nindent 8 }}
+@@ -128,7 +126,8 @@
+       topologySpreadConstraints:
+         {{- toYaml . | nindent 8 }}
+       {{- end }}
+-      {{- with .Values.tolerations }}
+       tolerations:
+-        {{- toYaml . | nindent 8 }}
+-      {{- end }}
++        {{- include "linux-node-tolerations" . | nindent 8 }}
++        {{- with .Values.tolerations }}
++        {{ toYaml . | indent 8 }}
++        {{- end }}
