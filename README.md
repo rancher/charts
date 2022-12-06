@@ -55,7 +55,7 @@ Currently, this is unavoidable. There is an expectation that users should look a
 
 We are still looking for a better way to mitigate this kind of risk.
 
-- For Rancher version annotations, why we don't we need to add the lower bound all the time?
+- For Rancher version annotations, why don't we need to add the lower bound all the time?
 
 Each Rancher minor version has its dedicated chart release branch (e.g. `release-v2.5`, `release-v2.6`, etc.), so a chart designed for Rancher `2.6.x` will never be available or show up in Rancher `2.5.x`; therefore, we do not need to worry about setting a lower bound of `> 2.5.99-0` on all charts.
 
