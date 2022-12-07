@@ -19,10 +19,10 @@ spec:
     bufferStorageVolume: {{- toYaml . | nindent 6 }}
     {{- end }}
     {{- end }}
-    {{- if or .Values.global.psp.enabled .Values.global.seLinux.enabled }}
+    {{- if or (and .Values.global.psp.enabled (.Capabilities.APIVersions.Has "policy/v1beta1/PodSecurityPolicy")) .Values.global.seLinux.enabled }}
     security:
     {{- end }}
-    {{- if .Values.global.psp.enabled }}
+    {{- if and .Values.global.psp.enabled (.Capabilities.APIVersions.Has "policy/v1beta1/PodSecurityPolicy") }}
       podSecurityPolicyCreate: true
       roleBasedAccessControlCreate: true
     {{- end }}
@@ -73,7 +73,7 @@ spec:
     scaling:
       replicas: {{ .Values.fluentd.replicas }}
     {{- end }}
-    {{- if .Values.global.psp.enabled }}
+    {{- if and .Values.global.psp.enabled (.Capabilities.APIVersions.Has "policy/v1beta1/PodSecurityPolicy") }}
     security:
       podSecurityPolicyCreate: true
       roleBasedAccessControlCreate: true
