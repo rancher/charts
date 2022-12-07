@@ -1,17 +1,6 @@
 --- charts-original/templates/namespace-post-install.yaml
 +++ charts/templates/namespace-post-install.yaml
-@@ -28,8 +28,8 @@
-       {{- .Values.postInstall.labelNamespace.image.pullSecrets | toYaml | nindent 12 }}
-       {{- end }}
-       serviceAccount: gatekeeper-update-namespace-label
--      nodeSelector:
--        kubernetes.io/os: linux
-+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
-+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
-       {{- if .Values.postInstall.probeWebhook.enabled }}
-       volumes:
-       {{- include "gatekeeper.postInstallWebhookProbeVolume" . | nindent 8 }}
-@@ -38,7 +38,7 @@
+@@ -40,7 +40,7 @@
        {{- end }}
        containers:
          - name: kubectl-label
@@ -20,3 +9,18 @@
            imagePullPolicy: {{ .Values.postInstall.labelNamespace.image.pullPolicy }}
            args:
              - label
+@@ -63,12 +63,10 @@
+             {{- end }}
+             {{- toYaml .Values.postInstall.securityContext | nindent 12 }}
+       {{- with .Values.postInstall }}
+-      nodeSelector:
+-        {{- toYaml .nodeSelector | nindent 8 }}
++      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
++      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+       affinity:
+         {{- toYaml .affinity | nindent 8 }}
+-      tolerations:
+-        {{- toYaml .tolerations | nindent 8 }}
+       {{- end }}
+ ---
+ apiVersion: v1
