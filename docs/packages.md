@@ -70,7 +70,7 @@ packages/
         # Files that were overlaid onto upstream verbatim. Follows the same directory structure as the chart
       patch/
         # Files that were patches from upstream. Follows the same directory structure as the chart and contains Unified Unix Diffs
-    templates/ 
+    templates/
       # Contains any templates. Currently only used by CRDOptions
 ```
 
