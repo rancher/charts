@@ -1,6 +1,6 @@
 --- charts-original/templates/statefulset.yaml
 +++ charts/templates/statefulset.yaml
-@@ -96,7 +96,7 @@
+@@ -101,7 +101,7 @@
  {{- end }}
        containers:
          - name: {{ .Chart.Name }}
@@ -9,7 +9,7 @@
            imagePullPolicy: {{ .Values.image.pullPolicy }}
  
            command: [ "/bin/sh",
-@@ -155,19 +155,18 @@
+@@ -181,19 +181,18 @@
              {{- end}}
            resources:
  {{ toYaml .Values.resources | indent 12 }}
@@ -31,6 +31,6 @@
 +        {{- with .Values.tolerations }}
 +        {{ toYaml . | indent 8 }}
 +        {{- end }}
-       volumes:
-         - name: minio-user
-           secret:
+     {{- if and (gt $replicas 1) (ge .Capabilities.KubeVersion.Major "1") (ge .Capabilities.KubeVersion.Minor "19") }}
+     {{- with .Values.topologySpreadConstraints }}
+       topologySpreadConstraints:
