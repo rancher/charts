@@ -31,5 +31,5 @@
 -        image: "{{ .Values.mcImage.repository }}:{{ .Values.mcImage.tag }}"
 +        image: "{{ default .Values.mcImage.registry (include "registry-url" .) }}{{ .Values.mcImage.repository }}:{{ .Values.mcImage.tag }}"
          imagePullPolicy: {{ .Values.mcImage.pullPolicy }}
-         command: ["/bin/sh", "/config/custom-command"]
-         env:
+         {{- if .Values.customCommandJob.exitCommand }}
+         command: ["/bin/sh", "-c"]

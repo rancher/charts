@@ -1,6 +1,6 @@
 --- charts-original/templates/server.yaml
 +++ charts/templates/server.yaml
-@@ -256,10 +256,17 @@
+@@ -256,8 +256,15 @@
          app.kubernetes.io/version: {{ default .Chart.AppVersion .Values.image.epinio.tag }}
        name: epinio-server
      spec:
@@ -10,20 +10,27 @@
 +        {{- include "linux-node-selector" . | nindent 8 }}
        serviceAccountName: epinio-server
        volumes:
-       - name: tmp-volume
-         emptyDir: {}
 +      - name: asset-volume
 +        secret:
 +          secretName: epinio-assets
-       containers:
-         - command: ["/epinio", "server"]
-           args: ["--port", "8030"]
-@@ -302,6 +309,8 @@
+       - name: tmp-volume
+         emptyDir: {}
+       - name: image-export-volume
+@@ -312,6 +319,8 @@
+           ports:
+             - containerPort: 8030
            volumeMounts:
-           - name: tmp-volume
-             mountPath: /tmp
 +          - name: asset-volume
 +            mountPath: /assets
-           readinessProbe:
-             httpGet:
-               path: /ready
+           - name: tmp-volume
+             mountPath: /tmp
+           - name: image-export-volume
+@@ -336,7 +345,7 @@
+ kind: PersistentVolumeClaim
+ metadata:
+   name: image-export-pvc
+-  namespace: epinio
++  namespace: {{ .Release.Namespace }}
+ spec:
+   accessModes:
+     - ReadWriteOnce

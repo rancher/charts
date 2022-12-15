@@ -24,12 +24,12 @@
  {{- if .Values.makePolicyJob.securityContext.enabled }}
        securityContext:
          runAsUser: {{ .Values.makePolicyJob.securityContext.runAsUser }}
-@@ -67,7 +66,7 @@
-         {{ end }}
+@@ -73,7 +72,7 @@
+ {{- end }}
        containers:
        - name: minio-mc
 -        image: "{{ .Values.mcImage.repository }}:{{ .Values.mcImage.tag }}"
 +        image: "{{ default .Values.mcImage.registry (include "registry-url" .) }}{{ .Values.mcImage.repository }}:{{ .Values.mcImage.tag }}"
          imagePullPolicy: {{ .Values.mcImage.pullPolicy }}
-         command: ["/bin/sh", "/config/add-policy"]
-         env:
+         {{- if .Values.makePolicyJob.exitCommand }}
+         command: ["/bin/sh", "-c"]
