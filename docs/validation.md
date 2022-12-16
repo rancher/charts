@@ -6,9 +6,12 @@ Specifically, the workflow used by `make validate` does the following:
 1. Ensure Git is clean; if not, fail.
 2. Run `make charts`; if Git is no longer clean, fail and leave behind the assets.
 3. **Only if `validate.url` and `validate.branch` are provided in the `configuration.yaml`**, pull in the specified Git repository, standardize the repository, and check each asset:
-   - For any assets that exist in upstream, check if it is modified or does not exist in local. If so, copy it over, unzip it, and fail.
-   - For any assets that exist in local but not in upstream, check if it corresponds to an entry in the `release.yaml`; if not, fail.
+   - For any assets that exist in upstream, check if it is modified or does not exist in local. If so, copy it over, unzip it, update `release.yaml` to add the changed chart versions, and fail.
+   - For any assets that exist in local but not in upstream, check if it corresponds to an entry in the `release.yaml`; if not, update `release.yaml` to add the changed chart versions and fail.
 4. Run `make unzip`; if Git is no longer clean, fail.
+
+It is recommended to let `make validate` do the necessary changes in `release.yaml`
+for CI to pass after making changes, rather than doing them manually.
 
 ### What is the release.yaml?
 
