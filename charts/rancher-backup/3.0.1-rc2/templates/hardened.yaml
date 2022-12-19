@@ -52,11 +52,13 @@ rules:
   - apiGroups: [""]
     resources: ["serviceaccounts"]
     verbs: ["get", "patch"]
+{{- if .Capabilities.APIVersions.Has "policy/v1beta1/PodSecurityPolicy"}}
   - apiGroups: ["policy"]
     resources: ["podsecuritypolicies"]
     verbs:     ["use"]
     resourceNames:
       - {{ include "backupRestore.fullname" . }}-patch-sa
+{{- end}}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -75,6 +77,7 @@ subjects:
     name: {{ include "backupRestore.fullname" . }}-patch-sa
     namespace: {{ .Release.Namespace }}
 ---
+{{- if .Capabilities.APIVersions.Has "policy/v1beta1/PodSecurityPolicy"}}
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
@@ -105,6 +108,7 @@ spec:
   readOnlyRootFilesystem: false
   volumes:
     - 'secret'
+{{- end}}
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
