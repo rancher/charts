@@ -11,10 +11,12 @@ spec:
       labels:
         app: rancher-webhook
     spec:
+      {{- if .Values.capi.enabled }}
       volumes:
       - name: tls
         secret:
           secretName: rancher-webhook-tls
+      {{- end }}
       {{- if .Values.global.hostNetwork }}
       hostNetwork: true
       {{- end }}
@@ -46,9 +48,11 @@ spec:
           containerPort: 9443
         - name: capi-https
           containerPort: 8777
+        {{- if .Values.capi.enabled }}
         volumeMounts:
         - name: tls
           mountPath: /tmp/k8s-webhook-server/serving-certs
+        {{- end }}
       serviceAccountName: rancher-webhook
       {{- if .Values.priorityClassName }}
       priorityClassName: "{{.Values.priorityClassName}}"
