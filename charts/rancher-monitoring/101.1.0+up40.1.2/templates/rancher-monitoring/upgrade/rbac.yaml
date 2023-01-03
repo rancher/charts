@@ -52,11 +52,13 @@ metadata:
     "helm.sh/hook-delete-policy": before-hook-creation, hook-succeeded, hook-failed
     "helm.sh/hook-weight": "1"
 rules:
+{{- if .Capabilities.APIVersions.Has "policy/v1beta1/PodSecurityPolicies" }}
 - apiGroups: ['policy']
   resources: ['podsecuritypolicies']
   verbs:     ['use']
   resourceNames:
   - {{ template "kube-prometheus-stack.fullname" . }}-upgrade
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -89,6 +91,7 @@ metadata:
     "helm.sh/hook-delete-policy": before-hook-creation, hook-succeeded, hook-failed
     "helm.sh/hook-weight": "1"
 ---
+{{- if .Capabilities.APIVersions.Has "policy/v1beta1/PodSecurityPolicies" }}
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
@@ -124,4 +127,5 @@ spec:
   volumes:
     - 'configMap'
     - 'secret'
+{{- end }}
 {{- end }}
