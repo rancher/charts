@@ -26,17 +26,24 @@
  
  affinity: {}
  
-@@ -60,6 +65,9 @@
-     # Labels to query http service
-     labels: {}
- 
-+# These "rbac" settings match the upstream defaults. For only using psp in the overlay files, which
-+# include the default Logging CRs created, see the "global.psp" setting. To enable psp for the entire
-+# chart, enable both "rbac.psp" and "global.psp" (this may require further changes to the chart).
+@@ -63,7 +68,6 @@
  rbac:
    enabled: true
    psp:
-@@ -102,3 +110,139 @@
+-    enabled: true
+     annotations:
+       seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'docker/default,runtime/default'
+       seccomp.security.alpha.kubernetes.io/defaultProfileName: 'runtime/default'
+@@ -75,7 +79,7 @@
+ 
+ 
+ ## SecurityContext holds pod-level security attributes and common container settings.
+-## This defaults to non root user with uid 1000 and gid 2000.	*v1.PodSecurityContext	false
++## This defaults to non-root user with uid 1000 and gid 2000.	*v1.PodSecurityContext	false
+ ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+ ##
+ podSecurityContext: {}
+@@ -102,3 +106,135 @@
  
  serviceAccount:
    annotations: {}
@@ -63,15 +70,11 @@
 +    # set the value below to "false".
 +    # windows:
 +    #   enabled: true
++    psp:
++      enabled: false
 +
 +  # Change the "dockerRootDirectory" if the default Docker directory has changed.
 +  dockerRootDirectory: ""
-+
-+  # This psp setting differs from the upstream "rbac.psp" by only enabling psp settings for the
-+  # overlay files, which include the Logging CRs created, whereas the upstream "rbac.psp" affects the
-+  # logging operator.
-+  psp:
-+    enabled: true
 +
 +  rkeWindowsPathPrefix: "c:\\"
 +
