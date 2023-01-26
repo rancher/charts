@@ -35,6 +35,20 @@ spec:
 {{- if .Values.kubelet.serviceMonitor.metricRelabelings }}
     metricRelabelings:
 {{ tpl (toYaml .Values.kubelet.serviceMonitor.metricRelabelings | indent 4) . }}
+    {{ if .Values.global.cattle.clusterId }}
+    - action: replace
+      sourceLabels: [__address__]
+      targetLabel: cluster_id
+      replacement: {{ .Values.global.cattle.clusterId }}
+    {{- end }}
+{{ else }}
+    {{ if .Values.global.cattle.clusterId }}
+    metricRelabelings:
+    - action: replace
+      sourceLabels: [__address__]
+      targetLabel: cluster_id
+      replacement: {{ .Values.global.cattle.clusterId }}
+    {{- end }}
 {{- end }}
 {{- if .Values.kubelet.serviceMonitor.relabelings }}
     relabelings:

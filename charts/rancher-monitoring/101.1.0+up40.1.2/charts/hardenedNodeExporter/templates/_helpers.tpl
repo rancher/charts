@@ -103,6 +103,14 @@ app: {{ template "pushprox.serviceMonitor.name" . }}
 {{- if $.Values.proxy.enabled }}
 {{- $_ := set . "proxyUrl" $proxyURL }}
 {{- end }}
+{{- if $.Values.global.cattle.clusterId }}
+{{- $clusterIdRelabel := dict }}
+{{- $_ := set $clusterIdRelabel "action" "replace" }}
+{{- $_ := set $clusterIdRelabel "sourceLabels" "[__address__]" }}
+{{- $_ := set $clusterIdRelabel "targetLabel" "cluster_id" }}
+{{- $_ := set $clusterIdRelabel "replacement" "{{ .Values.global.cattle.clusterId }}" }}
+{{- $_ := set . "metricsRelabelings" (list ($clusterIdRelabel))}}
+{{- end }}
 {{- if $useHTTPS -}}
 {{- if (hasKey . "params") }}
 {{- $_ := set (get . "params") "_scheme" (list "https") }}
