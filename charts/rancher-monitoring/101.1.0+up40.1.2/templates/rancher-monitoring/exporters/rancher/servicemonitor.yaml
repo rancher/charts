@@ -15,6 +15,12 @@ spec:
       insecureSkipVerify: true
       serverName: rancher
   jobLabel: rancher
+  {{ if .Values.global.cattle.clusterId }}
+  metricRelabelings:
+  - sourceLabels: [__address__]
+    targetLabel: cluster_id
+    replacement: {{ .Values.global.cattle.clusterId }}
+  {{- end }}
 {{- if .Values.rancherMonitoring.namespaceSelector }}
   namespaceSelector: {{ .Values.rancherMonitoring.namespaceSelector | toYaml | nindent 4 }}
 {{- end }}

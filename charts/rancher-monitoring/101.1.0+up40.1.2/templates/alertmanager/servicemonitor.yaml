@@ -37,6 +37,18 @@ spec:
 {{- if .Values.alertmanager.serviceMonitor.metricRelabelings }}
     metricRelabelings:
 {{ tpl (toYaml .Values.alertmanager.serviceMonitor.metricRelabelings | indent 6) . }}
+    {{ if .Values.global.cattle.clusterId }}
+      - sourceLabels: [__address__]
+        targetLabel: cluster_id
+        replacement: {{ .Values.global.cattle.clusterId }}
+    {{- end }}
+{{ else }}
+    {{ if .Values.global.cattle.clusterId }}
+    metricRelabelings:
+      - sourceLabels: [__address__]
+        targetLabel: cluster_id
+        replacement: {{ .Values.global.cattle.clusterId }}
+    {{- end }}
 {{- end }}
 {{- if .Values.alertmanager.serviceMonitor.relabelings }}
     relabelings:

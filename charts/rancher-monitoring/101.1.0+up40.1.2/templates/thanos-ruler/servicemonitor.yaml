@@ -37,6 +37,16 @@ spec:
 {{- if .Values.thanosRuler.serviceMonitor.metricRelabelings }}
     metricRelabelings:
 {{ tpl (toYaml .Values.thanosRuler.serviceMonitor.metricRelabelings | indent 6) . }}
+      {{ if .Values.global.cattle.clusterId }}
+      - sourceLabels: [__address__]
+        targetLabel: cluster_id
+        replacement: {{ .Values.global.cattle.clusterId }}
+      {{- end }}
+      {{ else }}
+    metricRelabelings:
+      - sourceLabels: [__address__]
+        targetLabel: cluster_id
+        replacement: {{ .Values.global.cattle.clusterId }}
 {{- end }}
 {{- if .Values.thanosRuler.serviceMonitor.relabelings }}
     relabelings:

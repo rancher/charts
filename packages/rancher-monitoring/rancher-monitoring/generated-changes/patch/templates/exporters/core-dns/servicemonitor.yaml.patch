@@ -9,3 +9,22 @@
    labels:
      app: {{ template "kube-prometheus-stack.name" . }}-coredns
    {{- with .Values.coreDns.serviceMonitor.additionalLabels }}
+@@ -31,6 +31,18 @@
+ {{- if .Values.coreDns.serviceMonitor.metricRelabelings }}
+     metricRelabelings:
+ {{ tpl (toYaml .Values.coreDns.serviceMonitor.metricRelabelings | indent 4) . }}
++    {{ if .Values.global.cattle.clusterId }}
++    - sourceLabels: [__address__]
++      targetLabel: cluster_id
++      replacement: {{ .Values.global.cattle.clusterId }}
++    {{- end }}
++{{ else }}
++    {{ if .Values.global.cattle.clusterId }}
++    metricRelabelings:
++    - sourceLabels: [__address__]
++      targetLabel: cluster_id
++      replacement: {{ .Values.global.cattle.clusterId }}
++    {{- end }}
+ {{- end }}
+ {{- if .Values.coreDns.serviceMonitor.relabelings }}
+     relabelings:
