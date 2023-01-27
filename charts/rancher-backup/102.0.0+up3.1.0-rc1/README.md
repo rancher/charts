@@ -48,6 +48,13 @@ The following table lists the configurable parameters of the rancher-backup char
 | tolerations | https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration | [] |
 | affinity | https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity | {} |
 | serviceAccount.annotations | Annotations to apply to created service account | {} |
+| global.cattle.psp.enabled | Enable or disable PSPs in the chart | false |
+
+-----
+
+### PSPs
+
+We have added a configuration to the chart `values.yaml` which allows you to enable or disable PSPs to align with the PSP deprecation in Kubernetes `v1.25` and above.
 
 -----
 
