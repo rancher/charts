@@ -45,22 +45,15 @@ spec:
       {{- end}}
       insecureSkipVerify: {{ .Values.kubeEtcd.serviceMonitor.insecureSkipVerify }}
     {{- end }}
-{{- if .Values.kubeEtcd.serviceMonitor.metricRelabelings }}
-    metricRelabelings:
-{{ tpl (toYaml .Values.kubeEtcd.serviceMonitor.metricRelabelings | indent 4) . }}
+  - metricRelabelings:
+    {{- if .Values.kubeEtcd.serviceMonitor.metricRelabelings }}
+    {{ tpl (toYaml .Values.kubeEtcd.serviceMonitor.metricRelabelings | indent 4) . }}
+    {{- end }}
     {{ if .Values.global.cattle.clusterId }}
     - sourceLabels: [__address__]
       targetLabel: cluster_id
       replacement: {{ .Values.global.cattle.clusterId }}
     {{- end }}
-{{ else }}
-    {{ if .Values.global.cattle.clusterId }}
-    metricRelabelings:
-    - sourceLabels: [__address__]
-      targetLabel: cluster_id
-      replacement: {{ .Values.global.cattle.clusterId }}
-    {{- end }}
-{{- end }}
 {{- if .Values.kubeEtcd.serviceMonitor.relabelings }}
     relabelings:
 {{ tpl (toYaml .Values.kubeEtcd.serviceMonitor.relabelings | indent 4) . }}
