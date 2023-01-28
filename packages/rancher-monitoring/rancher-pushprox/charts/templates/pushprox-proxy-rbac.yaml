@@ -6,13 +6,13 @@ metadata:
   name: {{ template "pushProxy.proxy.name" . }}
   labels: {{ include "pushProxy.proxy.labels" . | nindent 4 }}
 rules:
-{{- if .Capabilities.APIVersions.Has "policy/v1beta1/PodSecurityPolicies" }}
+{{- if .Values.global.cattle.psp.enabled }}
 - apiGroups: ['policy']
   resources: ['podsecuritypolicies']
   verbs:     ['use']
   resourceNames:
   - {{ template "pushProxy.proxy.name" . }}
-  {{- end }}
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -35,7 +35,7 @@ metadata:
   namespace: {{ include "pushprox.namespace" . }}
   labels: {{ include "pushProxy.proxy.labels" . | nindent 4 }}
 ---
-{{- if .Capabilities.APIVersions.Has "policy/v1beta1/PodSecurityPolicies" }}
+{{- if .Values.global.cattle.psp.enabled }}
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
