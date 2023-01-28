@@ -12,10 +12,12 @@ rules:
 - apiGroups: ['authorization.k8s.io']
   resources: ['subjectaccessreviews']
   verbs: ['create']
+{{- if .Values.global.cattle.psp.enabled }}
 - apiGroups: ['policy']
   resources: ['podsecuritypolicies']
   verbs:     ['use']
   resourceNames: ['{{ template "windowsExporter.name" . }}']
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -42,6 +44,7 @@ metadata:
 imagePullSecrets: {{ toYaml .Values.clients.imagePullSecrets | nindent 2 }}
 {{- end }}
 ---
+{{- if .Values.global.cattle.psp.enabled }}
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
@@ -75,4 +78,4 @@ spec:
   - pathPrefix: \\.\pipe\rancher_wins
   - pathPrefix: \\.\pipe\rancher_wins_proxy
   - pathPrefix: c:/etc/windows-exporter
-{{- end }}{{- end }}
+{{- end }}{{- end }}{{- end }}
