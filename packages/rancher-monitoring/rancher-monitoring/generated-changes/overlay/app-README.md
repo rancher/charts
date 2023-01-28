@@ -14,6 +14,24 @@ The chart installs the following components:
 
 For more information, review the Helm README of this chart.
 
+## Upgrading to Kubernetes v1.25+
+
+Starting in Kubernetes v1.25, [Pod Security Policies](https://kubernetes.io/docs/concepts/security/pod-security-policy/) have been removed from the Kubernetes API.
+
+As a result, **before upgrading to Kubernetes v1.25** (or on a fresh install in a Kubernetes v1.25+ cluster), users are expected to perform an in-place upgrade of this chart with `global.cattle.psp.enabled` set to `false` if it has been previously set to `true`.
+​
+> **Note:**
+> In this chart release, any previous field that was associated with any PSP resources have been removed in favor of a single global field: `global.cattle.psp.enabled`.
+
+> **Note:**
+> If you upgrade your cluster to Kubernetes v1.25+ before removing PSPs via a `helm upgrade` (even if you manually clean up resources), **it will leave the Helm release in a broken state within the cluster such that further Helm operations will not work (`helm uninstall`, `helm upgrade`, etc.).**
+>
+> If your charts get stuck in this state, please consult the Rancher docs on how to clean up your Helm release secrets.
+
+Upon setting `global.cattle.psp.enabled` to false, the chart will remove any PSP resources deployed on its behalf from the cluster. This is the default setting for this chart.
+​
+As a replacement for PSPs, [Pod Security Admission](https://kubernetes.io/docs/concepts/security/pod-security-admission/) should be used. Please consult the Rancher docs for more details on how to configure your chart release namespaces to work with the new Pod Security Admission and apply Pod Security Standards.
+
 ## Upgrading from 100.0.0+up16.6.0 to 100.1.0+up19.0.3
 
 ### Noticeable changes:
@@ -26,4 +44,3 @@ Kube-state-metrics
 
 ### Known issues:
 - Occasionally, the upgrade fails with errors related to the webhook `prometheusrulemutate.monitoring.coreos.com`. This is a known issue in the upstream, and the workaround is to trigger the upgrade one more time. [32416](https://github.com/rancher/rancher/issues/32416#issuecomment-828881726)
-
