@@ -1,6 +1,12 @@
 --- charts-original/templates/podsecuritypolicy.yaml
 +++ charts/templates/podsecuritypolicy.yaml
-@@ -6,13 +6,9 @@
+@@ -1,18 +1,13 @@
+-{{- if .Values.rbac.pspEnabled }}
+-{{- if .Capabilities.APIVersions.Has "policy/v1beta1/PodSecurityPolicy" }}
++{{- if .Values.global.cattle.psp.enabled }}
+ apiVersion: policy/v1beta1
+ kind: PodSecurityPolicy
+ metadata:
    name: {{ template "grafana.fullname" . }}
    labels:
      {{- include "grafana.labels" . | nindent 4 }}
@@ -17,3 +23,9 @@
  spec:
    privileged: false
    allowPrivilegeEscalation: false
+@@ -47,5 +42,4 @@
+       - min: 1
+         max: 65535
+   readOnlyRootFilesystem: false
+-{{- end }}
+ {{- end }}
