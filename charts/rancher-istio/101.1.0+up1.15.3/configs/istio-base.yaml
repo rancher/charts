@@ -19,6 +19,12 @@ spec:
     - enabled: {{ .Values.egressGateways.enabled }}
       name: istio-egressgateway
       k8s:
+      {{- if .Values.egressGateways.hpaSpec }}
+        hpaSpec: {{ toYaml .Values.egressGateways.hpaSpec | nindent 12 }}
+      {{- end }}
+      {{- if .Values.egressGateways.podDisruptionBudget }}
+        podDisruptionBudget: {{ toYaml .Values.egressGateways.podDisruptionBudget | nindent 12 }}
+      {{- end }}
         nodeSelector: {{ include "linux-node-selector" . | nindent 12 }}
 {{- if .Values.nodeSelector }}
 {{- toYaml .Values.nodeSelector | nindent 12 }}
@@ -31,6 +37,12 @@ spec:
     - enabled: {{ .Values.ingressGateways.enabled }}
       name: istio-ingressgateway
       k8s:
+      {{- if .Values.ingressGateways.hpaSpec }}
+        hpaSpec: {{ toYaml .Values.ingressGateways.hpaSpec | nindent 12 }}
+      {{- end }}
+      {{- if .Values.ingressGateways.podDisruptionBudget }}
+        podDisruptionBudget: {{ toYaml .Values.ingressGateways.podDisruptionBudget | nindent 12 }}
+      {{- end }}
         nodeSelector: {{ include "linux-node-selector" . | nindent 12 }}
 {{- if .Values.nodeSelector }}
 {{- toYaml .Values.nodeSelector | nindent 12 }}
@@ -64,6 +76,12 @@ spec:
     pilot:
       enabled: {{ .Values.pilot.enabled }}
       k8s:
+      {{- if .Values.pilot.hpaSpec }}
+        hpaSpec: {{ toYaml .Values.pilot.hpaSpec | nindent 12 }}
+      {{- end }}
+      {{- if .Values.pilot.podDisruptionBudget }}
+        podDisruptionBudget: {{ toYaml .Values.pilot.podDisruptionBudget | nindent 12 }}
+      {{- end }}
         nodeSelector: {{ include "linux-node-selector" . | nindent 12 }}
 {{- if .Values.nodeSelector }}
 {{- toYaml .Values.nodeSelector | nindent 12 }}
