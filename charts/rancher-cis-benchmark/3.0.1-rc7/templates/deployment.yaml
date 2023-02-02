@@ -41,6 +41,10 @@ spec:
           value: '{{ .Values.global.cattle.clusterName }}'
         - name: CIS_OPERATOR_DEBUG
           value: '{{ .Values.image.cisoperator.debug }}'
+        {{- if .Values.securityScanJob.overrideTolerations }}
+        - name: SECURITY_SCAN_JOB_TOLERATIONS
+          value: '{{ .Values.securityScanJob.tolerations | toJson  }}'
+        {{- end }}
         resources:
           {{- toYaml .Values.resources | nindent 12 }}
       nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
