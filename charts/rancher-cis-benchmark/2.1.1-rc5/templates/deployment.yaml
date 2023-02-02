@@ -39,6 +39,10 @@ spec:
           value: {{ .Values.alerts.enabled | default "false" | quote }}
         - name: CLUSTER_NAME
           value: '{{ .Values.global.cattle.clusterName }}'
+        {{- if .Values.securityScanJob.overrideTolerations }}
+        - name: SECURITY_SCAN_JOB_TOLERATIONS
+          value: '{{ .Values.securityScanJob.tolerations | toJson  }}'
+        {{- end }}
         resources:
           {{- toYaml .Values.resources | nindent 12 }}
       nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
