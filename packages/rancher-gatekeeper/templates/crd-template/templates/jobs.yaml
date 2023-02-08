@@ -40,6 +40,12 @@ spec:
             - name: crd-manifest
               readOnly: true
               mountPath: /etc/config
+          securityContext:
+            {{- if .Values.enableRuntimeDefaultSeccompProfile }}
+            seccompProfile:
+              type: RuntimeDefault
+            {{- end }}
+            {{- toYaml .Values.securityContext | nindent 12 }}
       restartPolicy: OnFailure
       volumes:
       - name: crd-manifest
@@ -88,6 +94,12 @@ spec:
             - name: crd-manifest
               readOnly: true
               mountPath: /etc/config
+          securityContext:
+            {{- if .Values.enableRuntimeDefaultSeccompProfile }}
+            seccompProfile:
+              type: RuntimeDefault
+            {{- end }}
+            {{- toYaml .Values.securityContext | nindent 12 }}
       containers:
         - name: delete-crds
           image: {{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
@@ -101,6 +113,12 @@ spec:
             - name: crd-manifest
               readOnly: true
               mountPath: /etc/config
+          securityContext:
+            {{- if .Values.enableRuntimeDefaultSeccompProfile }}
+            seccompProfile:
+              type: RuntimeDefault
+            {{- end }}
+            {{- toYaml .Values.securityContext | nindent 12 }}
       restartPolicy: OnFailure
       volumes:
       - name: crd-manifest
