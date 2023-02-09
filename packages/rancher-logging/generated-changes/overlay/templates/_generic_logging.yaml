@@ -73,10 +73,15 @@ spec:
     scaling:
       replicas: {{ .Values.fluentd.replicas }}
     {{- end }}
-    {{- if .Values.global.cattle.psp.enabled }}
     security:
+      podSecurityContext:
+        runAsUser: 100
+    {{- if .Values.global.cattle.psp.enabled }}
       podSecurityPolicyCreate: true
       roleBasedAccessControlCreate: true
+    {{- end }}
+    {{- with .Values.fluentd.env }}
+    envVars: {{- toYaml . | nindent 6 }}
     {{- end }}
     {{- with (default .Values.tolerations .Values.fluentd.tolerations) }}
     tolerations: {{- toYaml . | nindent 6 }}
