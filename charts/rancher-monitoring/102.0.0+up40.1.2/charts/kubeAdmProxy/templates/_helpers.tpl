@@ -109,7 +109,7 @@ app: {{ template "pushprox.serviceMonitor.name" . }}
 {{- $_ := set $clusterIdRelabel "sourceLabels" (list "__address__") }}
 {{- $_ := set $clusterIdRelabel "targetLabel" "cluster_id" }}
 {{- $_ := set $clusterIdRelabel "replacement" $.Values.global.cattle.clusterId }}
-{{- $_ := set . "metricsRelabelings" (list ($clusterIdRelabel))}}
+{{- $_ := set . "metricRelabelings" (list ($clusterIdRelabel))}}
 {{- end }}
 {{- if $useHTTPS -}}
 {{- if (hasKey . "params") }}
