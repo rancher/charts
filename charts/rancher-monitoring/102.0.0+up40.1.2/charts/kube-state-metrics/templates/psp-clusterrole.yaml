@@ -8,16 +8,12 @@ metadata:
 rules:
 {{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion .Values.kubeTargetVersionOverride }}
 {{- if semverCompare "> 1.15.0-0" $kubeTargetVersion }}
-{{- if .Capabilities.APIVersions.Has "policy/v1beta1/PodSecurityPolicies" }}
 - apiGroups: ['policy']
-{{- end }}
 {{- else }}
 - apiGroups: ['extensions']
 {{- end }}
-{{- if .Capabilities.APIVersions.Has "policy/v1beta1/PodSecurityPolicies" }}
   resources: ['podsecuritypolicies']
   verbs:     ['use']
   resourceNames:
   - {{ template "kube-state-metrics.fullname" . }}
-{{- end }}
 {{- end }}
