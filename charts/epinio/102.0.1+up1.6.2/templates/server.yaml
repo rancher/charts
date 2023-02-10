@@ -292,10 +292,16 @@ spec:
               value: "{{ .Values.global.tlsIssuer }}"
             - name: TRACE_LEVEL
               value: "{{ .Values.server.traceLevel }}"
+            - name: CHART_VERSION
+              value: "{{ .Chart.Version }}"
             {{- $imageSkopeo := .Values.image.skopeo -}}
             {{- if $imageSkopeo }}
             - name: APP_IMAGE_EXPORTER
               value: "{{ default $imageSkopeo.registry (include "registry-url" .) }}{{ $imageSkopeo.repository}}:{{ $imageSkopeo.tag }}"
+            {{- end }}
+            {{- if .Values.server.disableTracking }}
+            - name: DISABLE_TRACKING
+              value: "true"
             {{- end }}
             {{- if or .Values.s3.certificateSecret .Values.minio.enabled }}
             - name: S3_CERTIFICATE_SECRET

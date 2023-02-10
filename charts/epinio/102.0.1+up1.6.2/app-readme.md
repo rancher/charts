@@ -7,14 +7,6 @@ __Attention__:
   - Requires `cert-manager` as dependency.
   - Requires `helm-controller` as dependency.
 
-__Warning__:
-
-  - The bugfix https://github.com/epinio/epinio/pull/1836 for `app export` has
-    failed to make it into the Marketplace integration due to issues with
-    mirroring the `skopeo/stable` image for Rancher. The functionality from
-    before the fix is still available, however it will error at the end, when
-    trying to export the image.
-
 ## Upgrading to Kubernetes v1.25+
 
 Starting in Kubernetes v1.25, [Pod Security Policies](https://kubernetes.io/docs/concepts/security/pod-security-policy/)
