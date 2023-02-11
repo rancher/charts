@@ -1,23 +1,9 @@
 --- charts-original/templates/psp-clusterrole.yaml
 +++ charts/templates/psp-clusterrole.yaml
-@@ -1,15 +1,17 @@
+@@ -1,5 +1,5 @@
  {{- if .Values.rbac.create }}
 -{{- if .Values.rbac.pspEnabled }}
 +{{- if .Values.global.cattle.psp.enabled }}
  kind: ClusterRole
  apiVersion: rbac.authorization.k8s.io/v1
  metadata:
-   name: psp-{{ template "prometheus-node-exporter.fullname" . }}
-   labels: {{ include "prometheus-node-exporter.labels" . | indent 4 }}
- rules:
-+{{- if .Capabilities.APIVersions.Has "policy/v1beta1/PodSecurityPolicies" }}
- - apiGroups: ['extensions']
-   resources: ['podsecuritypolicies']
-   verbs:     ['use']
-   resourceNames:
-   - {{ template "prometheus-node-exporter.fullname" . }}
-+{{- end }}
- {{- end }}
--{{- end }}
-+{{- end }}
-\ No newline at end of file
