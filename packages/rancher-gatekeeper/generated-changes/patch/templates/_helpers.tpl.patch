@@ -37,3 +37,14 @@
    imagePullPolicy: {{ .Values.postInstall.probeWebhook.image.pullPolicy }}
    args:
      - "curl"
+@@ -68,6 +91,10 @@
+   resources:
+   {{- toYaml .Values.postInstall.resources | nindent 4 }}
+   securityContext:
++  {{- if .Values.enableRuntimeDefaultSeccompProfile }}
++    seccompProfile:
++      type: RuntimeDefault
++  {{- end }}
+   {{- toYaml .Values.postInstall.securityContext | nindent 4 }}
+   volumeMounts:
+   - mountPath: /certs
