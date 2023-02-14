@@ -5,12 +5,13 @@
 global:
   cattle:
     systemDefaultRegistry: ""
+    psp:
+      enabled: false # PSP enablement should default to false
 
 openshift: false
 
 registry: docker.io
 oem:
-psp: false
 rbac: true
 serviceAccount: neuvector
 
@@ -25,7 +26,7 @@ controller:
       maxUnavailable: 0
   image:
     repository: rancher/mirrored-neuvector-controller
-    tag: 5.1.0
+    tag: 5.1.1
     hash:
   replicas: 3
   disruptionbudget: 0
@@ -89,6 +90,12 @@ controller:
     secret:
     keyFile: tls.key
     pemFile: tls.pem
+  internal: # this is used for internal communication. Please use the SAME CA for all the components ( controller, scanner, and enforcer ) The cert needs to have a CN of "NeuVector"
+    certificate:
+      secret:
+      keyFile: cert.key
+      pemFile: cert.pem
+      caFile: ca.cert # must be the same CA for all internal.
   federation:
     mastersvc:
       type:
@@ -213,7 +220,7 @@ enforcer:
   enabled: true
   image:
     repository: rancher/mirrored-neuvector-enforcer
-    tag: 5.1.0
+    tag: 5.1.1
     hash:
   updateStrategy:
     type: RollingUpdate
@@ -232,13 +239,19 @@ enforcer:
     # requests:
     #   cpu: 100m
     #   memory: 2280Mi
-
+  internal: # this is used for internal communication. Please use the SAME CA for all the components ( controller, scanner, and enforcer ) The cert needs to have a CN of "NeuVector"
+    certificate:
+      secret:
+      keyFile: cert.key
+      pemFile: cert.pem
+      caFile: ca.cert # must be the same CA for all internal.
+      
 manager:
   # If false, manager will not be installed
   enabled: true
   image:
     repository: rancher/mirrored-neuvector-manager
-    tag: 5.1.0
+    tag: 5.1.1
     hash:
   priorityClassName:
   env:
@@ -302,6 +315,7 @@ manager:
     # key1: value1
     # key2: value2
   runAsUser:  # MUST be set for Rancher hardened cluster
+  
 cve:
   updater:
     # If false, cve updater will not be installed
@@ -348,6 +362,13 @@ cve:
       # key1: value1
       # key2: value2
     runAsUser:  # MUST be set for Rancher hardened cluster
+    internal: # this is used for internal communication. Please use the SAME CA for all the components ( controller, scanner, and enforcer ) The cert needs to have a CN of "NeuVector"
+      certificate:
+        secret:
+        keyFile: cert.key
+        pemFile: cert.pem
+        caFile: ca.cert # must be the same CA for all internal.
+
 docker:
   path: /var/run/docker.sock
 

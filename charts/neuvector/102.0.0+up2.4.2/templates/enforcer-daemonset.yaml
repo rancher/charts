@@ -89,6 +89,20 @@ spec:
             - mountPath: /lib/modules
               name: modules-vol
               readOnly: true
+          {{- if .Values.enforcer.internal.certificate.secret }}
+            - mountPath: /etc/neuvector/certs/internal/cert.key
+              subPath: {{ .Values.enforcer.internal.certificate.keyFile }}
+              name: internal-cert
+              readOnly: true
+            - mountPath: /etc/neuvector/certs/internal/cert.pem
+              subPath: {{ .Values.enforcer.internal.certificate.pemFile }}
+              name: internal-cert
+              readOnly: true
+            - mountPath: /etc/neuvector/certs/internal/ca.cert
+              subPath: {{ .Values.enforcer.internal.certificate.caFile }}
+              name: internal-cert
+              readOnly: true
+          {{- end }}
       terminationGracePeriodSeconds: 1200
       restartPolicy: Always
       volumes:
@@ -114,4 +128,9 @@ spec:
         - name: modules-vol
           hostPath:
             path: /lib/modules
+      {{- if .Values.enforcer.internal.certificate.secret }}
+        - name: internal-cert
+          secret:
+            secretName: {{ .Values.enforcer.internal.certificate.secret }}
+      {{- end }}
 {{- end }}
