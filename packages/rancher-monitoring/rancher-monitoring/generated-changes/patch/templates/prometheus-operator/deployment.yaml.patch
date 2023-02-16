@@ -12,6 +12,26 @@
            {{- end }}
            imagePullPolicy: "{{ .Values.prometheusOperator.image.pullPolicy }}"
            args:
+@@ -70,15 +70,15 @@
+             {{- end }}
+             - --localhost=127.0.0.1
+             {{- if .Values.prometheusOperator.prometheusDefaultBaseImage }}
+-            - --prometheus-default-base-image={{ .Values.prometheusOperator.prometheusDefaultBaseImage }}
++            - --prometheus-default-base-image={{ template "system_default_registry" . }}{{ .Values.prometheusOperator.prometheusDefaultBaseImage }}
+             {{- end }}
+             {{- if .Values.prometheusOperator.alertmanagerDefaultBaseImage }}
+-            - --alertmanager-default-base-image={{ .Values.prometheusOperator.alertmanagerDefaultBaseImage }}
++            - --alertmanager-default-base-image={{ template "system_default_registry" . }}{{ .Values.prometheusOperator.alertmanagerDefaultBaseImage }}
+             {{- end }}
+             {{- if .Values.prometheusOperator.prometheusConfigReloader.image.sha }}
+-            - --prometheus-config-reloader={{ .Values.prometheusOperator.prometheusConfigReloader.image.repository }}:{{ .Values.prometheusOperator.prometheusConfigReloader.image.tag }}@sha256:{{ .Values.prometheusOperator.prometheusConfigReloader.image.sha }}
++            - --prometheus-config-reloader={{ template "system_default_registry" . }}{{ .Values.prometheusOperator.prometheusConfigReloader.image.repository }}:{{ .Values.prometheusOperator.prometheusConfigReloader.image.tag }}@sha256:{{ .Values.prometheusOperator.prometheusConfigReloader.image.sha }}
+             {{- else }}
+-            - --prometheus-config-reloader={{ .Values.prometheusOperator.prometheusConfigReloader.image.repository }}:{{ .Values.prometheusOperator.prometheusConfigReloader.image.tag }}
++            - --prometheus-config-reloader={{ template "system_default_registry" . }}{{ .Values.prometheusOperator.prometheusConfigReloader.image.repository }}:{{ .Values.prometheusOperator.prometheusConfigReloader.image.tag }}
+             {{- end }}
+             - --config-reloader-cpu-request={{ .Values.prometheusOperator.prometheusConfigReloader.resources.requests.cpu }}
+             - --config-reloader-cpu-limit={{ .Values.prometheusOperator.prometheusConfigReloader.resources.limits.cpu }}
 @@ -94,9 +94,9 @@
              - --prometheus-instance-namespaces={{ .Values.prometheusOperator.prometheusInstanceNamespaces | join "," }}
              {{- end }}
