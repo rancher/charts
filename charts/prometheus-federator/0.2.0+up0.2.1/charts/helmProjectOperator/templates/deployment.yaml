@@ -100,12 +100,15 @@ spec:
 {{- if .Values.resources }}
           resources: {{ toYaml .Values.resources | nindent 12 }}
 {{- end }}
+{{- if .Values.containerSecurityContext }}
+          securityContext: {{ toYaml .Values.containerSecurityContext | nindent 12 }}
+{{- end }}
           volumeMounts:
           - name: config
             mountPath: "/etc/helmprojectoperator/config"
       serviceAccountName: {{ template "helm-project-operator.name" . }}
 {{- if .Values.securityContext }}
-      securityContext: {{ toYaml .Values.securityContext | indent 8 }}
+      securityContext: {{ toYaml .Values.securityContext | nindent 8 }}
 {{- end }}
       nodeSelector: {{ include "linux-node-selector" . | nindent 8 }} 
 {{- if .Values.nodeSelector }}

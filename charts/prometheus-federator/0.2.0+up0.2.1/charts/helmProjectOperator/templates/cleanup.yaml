@@ -16,13 +16,13 @@ spec:
         app: {{ template "helm-project-operator.name" . }}
     spec:
       serviceAccountName: {{ template "helm-project-operator.name" . }}
-      securityContext:
-        runAsNonRoot: false
-        runAsUser: 0
+{{- if .Values.cleanup.securityContext }}
+      securityContext: {{ toYaml .Values.cleanup.securityContext | nindent 8 }}
+{{- end }}
       initContainers:
         - name: add-cleanup-annotations
           image: {{ template "system_default_registry" . }}{{ .Values.cleanup.image.repository }}:{{ .Values.cleanup.image.tag }}
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: "{{ .Values.image.pullPolicy }}"
           command:
           - /bin/sh
           - -c
@@ -42,6 +42,12 @@ spec:
                 kubectl label projecthelmcharts -n ${namespace} ${projectHelmChart} helm.cattle.io/helm-project-operator-cleanup=true --overwrite;
               done;
             done;
+{{- if .Values.cleanup.resources }}
+          resources: {{ toYaml .Values.cleanup.resources | nindent 12 }}
+{{- end }}
+{{- if .Values.cleanup.containerSecurityContext }}
+          securityContext: {{ toYaml .Values.cleanup.containerSecurityContext | nindent 12 }}
+{{- end }}
       containers:
         - name: ensure-subresources-deleted
           image: {{ template "system_default_registry" . }}{{ .Values.cleanup.image.repository }}:{{ .Values.cleanup.image.tag }}
@@ -59,6 +65,12 @@ spec:
               sleep 3;
             done;
             echo "Successfully deleted all HelmCharts and HelmReleases in ${SYSTEM_NAMESPACE}!";
+{{- if .Values.cleanup.resources }}
+          resources: {{ toYaml .Values.cleanup.resources | nindent 12 }}
+{{- end }}
+{{- if .Values.cleanup.containerSecurityContext }}
+          securityContext: {{ toYaml .Values.cleanup.containerSecurityContext | nindent 12 }}
+{{- end }}
       restartPolicy: OnFailure
       nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
       {{- if .Values.cleanup.nodeSelector }}

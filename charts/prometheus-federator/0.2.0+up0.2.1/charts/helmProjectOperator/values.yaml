@@ -7,6 +7,8 @@
 global:
   cattle:
     clusterId: ""
+    psp:
+      enabled: false
     projectLabel: field.cattle.io/projectId
     systemDefaultRegistry: ""
     systemProjectId: ""
@@ -22,7 +24,6 @@ global:
       ## Aggregate default user ClusterRoles into default k8s ClusterRoles
       aggregateToDefaultRoles: true
 
-    pspEnabled: true
     pspAnnotations: {}
       ## Specify pod annotations
       ## Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/#apparmor
@@ -127,7 +128,7 @@ namespaceOverride: ""
 
 image:
   repository: rancher/helm-project-operator
-  tag: v0.0.1
+  tag: v0.1.0
   pullPolicy: IfNotPresent
 
 helmController:
@@ -167,9 +168,19 @@ resources: {}
   #   memory: 100Mi
   #   cpu: 100m
 
-securityContext: {}
+containerSecurityContext: {}
   # allowPrivilegeEscalation: false
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # privileged: false
   # readOnlyRootFilesystem: true
+
+securityContext: {}
+  # runAsGroup: 1000
+  # runAsUser: 1000
+  # supplementalGroups:
+  # - 1000
 
 debug: false
 debugLevel: 0
@@ -177,8 +188,39 @@ debugLevel: 0
 cleanup:
   image:
     repository: rancher/shell
-    tag: v0.1.18
+    tag: v0.1.19-rc8
+    pullPolicy: IfNotPresent
 
+  ## Define which Nodes the Pods are scheduled on.
+  ## ref: https://kubernetes.io/docs/user-guide/node-selection/
+  ##
   nodeSelector: {}
 
+  ## Tolerations for use with node taints
+  ## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  ##
   tolerations: []
+  # - key: "key"
+  #   operator: "Equal"
+  #   value: "value"
+  #   effect: "NoSchedule"
+
+  containerSecurityContext: {}
+    # allowPrivilegeEscalation: false
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # privileged: false
+    # readOnlyRootFilesystem: true
+
+  securityContext:
+    runAsNonRoot: false
+    runAsUser: 0
+
+  resources: {}
+    # limits:
+    #   memory: 500Mi
+    #   cpu: 1000m
+    # requests:
+    #   memory: 100Mi
+    #   cpu: 100m

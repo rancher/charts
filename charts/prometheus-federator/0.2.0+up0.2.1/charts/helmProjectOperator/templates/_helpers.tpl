@@ -52,7 +52,7 @@ Allow the release namespace to be overridden for multi-namespace deployments in 
 {{- end }}
 
 {{/* Generate basic labels */}}
-{{- define "helm-project-operator.labels" }}
+{{- define "helm-project-operator.labels" -}}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/version: "{{ replace "+" "_" .Chart.Version }}"
@@ -63,4 +63,4 @@ heritage: {{ $.Release.Service | quote }}
 {{- if .Values.commonLabels}}
 {{ toYaml .Values.commonLabels }}
 {{- end }}
-{{- end }}
+{{- end -}}

@@ -44,11 +44,13 @@ rules:
   resources:
   - serviceaccounts
   verbs: ['get', 'patch']
+{{- if .Values.global.cattle.psp.enabled }}
 - apiGroups: ['policy']
   resources: ['podsecuritypolicies']
   verbs:     ['use']
   resourceNames:
   - {{ template "project-prometheus-stack.fullname" . }}-patch-sa
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -73,6 +75,7 @@ metadata:
   labels:
     app: {{ template "project-prometheus-stack.fullname" . }}-patch-sa
 ---
+{{- if .Values.global.cattle.psp.enabled }}
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
@@ -102,6 +105,7 @@ spec:
   readOnlyRootFilesystem: false
   volumes:
     - 'secret'
+{{- end }}
 {{- range $_, $ns := $namespaces }}
 ---
 apiVersion: networking.k8s.io/v1

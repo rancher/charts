@@ -38,7 +38,7 @@ All Helm Project Operators have three different classifications of namespaces th
 
 ### Helm Resources (HelmChart, HelmRelease)
 
-On deploying a ProjectHelmChart, the Prometheus Federator will automatically create and manage two child custom resources that manage the underlying Helm resources in turn:
+On deploying a ProjectHelmChart, the Helm Project Operator will automatically create and manage two child custom resources that manage the underlying Helm resources in turn:
 - A HelmChart CR (managed via an embedded [k3s-io/helm-contoller](https://github.com/k3s-io/helm-controller) in the operator): this custom resource automatically creates a Job in the same namespace that triggers a `helm install`, `helm upgrade`, or `helm uninstall` depending on the change applied to the HelmChart CR; this CR is automatically updated on changes to the ProjectHelmChart (e.g. modifying the values.yaml) or changes to the underlying Project definition (e.g. adding or removing namespaces from a project). 
 > **Important Note: If a ProjectHelmChart is not deploying or updating the underlying Project Monitoring Stack for some reason, the Job created by this resource in the Operator / System namespace should be the first place you check to see if there's something wrong with the Helm operation; however, this is generally only accessible by a Cluster Admin.**
 - A HelmRelease CR (managed via an embedded [rancher/helm-locker](https://github.com/rancher/helm-locker) in the operator): this custom resource automatically locks a deployed Helm release in place and automatically overwrites updates to underlying resources unless the change happens via a Helm operation (`helm install`, `helm upgrade`, or `helm uninstall` performed by the HelmChart CR).
@@ -48,7 +48,7 @@ Both of these resources are created for all Helm charts in the Operator / System
 
 ### RBAC
 
-As described in the section on namespaces above, Prometheus Federator expects that Project Owners, Project Members, and other users in the cluster with Project-level permissions (e.g. permissions in a certain set of namespaces identified by a single label selector) have minimal permissions in any namespaces except the Project Registration Namespace (which is imported into the project by default) and those that already comprise their projects. Therefore, in order to allow Project Owners to assign specific chart permissions to other users in their Project namespaces, the Helm Project Operator will automatically watch the following bindings:
+As described in the section on namespaces above, Helm Project Operator expects that Project Owners, Project Members, and other users in the cluster with Project-level permissions (e.g. permissions in a certain set of namespaces identified by a single label selector) have minimal permissions in any namespaces except the Project Registration Namespace (which is imported into the project by default) and those that already comprise their projects. Therefore, in order to allow Project Owners to assign specific chart permissions to other users in their Project namespaces, the Helm Project Operator will automatically watch the following bindings:
 - ClusterRoleBindings
 - RoleBindings in the Project Release Namespace
 
