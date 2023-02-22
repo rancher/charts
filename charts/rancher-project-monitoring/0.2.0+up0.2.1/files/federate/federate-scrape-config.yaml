@@ -1,0 +1,13 @@
+- job_name: 'federate'
+  scrape_interval: {{ .Values.federate.interval }}
+  honor_labels: true
+  metrics_path: '/federate'
+
+  params:
+    'match[]':
+      - '{namespace=~"{{ include "project-prometheus-stack.projectNamespaceList" . | replace "," "|" }}", job=~"kube-state-metrics|kubelet|k3s-server"}'
+      - '{namespace=~"{{ include "project-prometheus-stack.projectNamespaceList" . | replace "," "|" }}", job=""}'
+
+  static_configs:
+    - targets: {{ .Values.federate.targets | toYaml | nindent 6 }}
+
