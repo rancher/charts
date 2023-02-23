@@ -7,7 +7,9 @@
     'match[]':
       - '{namespace=~"{{ include "project-prometheus-stack.projectNamespaceList" . | replace "," "|" }}", job=~"kube-state-metrics|kubelet|k3s-server"}'
       - '{namespace=~"{{ include "project-prometheus-stack.projectNamespaceList" . | replace "," "|" }}", job=""}'
+    {{- range .Values.federate.additionalMatches }}
+      - '{namespace=~"{{ include "project-prometheus-stack.projectNamespaceList" $ | replace "," "|" }}", {{.}}}'
+    {{- end }}
 
   static_configs:
     - targets: {{ .Values.federate.targets | toYaml | nindent 6 }}
-
