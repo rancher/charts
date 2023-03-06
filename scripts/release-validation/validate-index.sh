@@ -30,7 +30,6 @@ for url in $(echo $urls | xargs); do
   fi
   if [[ -f ${url} ]]; then
     echo "found ${url}"
-    continue
   else
     echo "MISSING ${url}"
     break
