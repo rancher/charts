@@ -1,6 +1,6 @@
 --- charts-original/templates/gatekeeper-audit-deployment.yaml
 +++ charts/templates/gatekeeper-audit-deployment.yaml
-@@ -40,11 +40,7 @@
+@@ -42,11 +42,7 @@
          {{- toYaml .Values.audit.affinity | nindent 8 }}
        automountServiceAccountToken: true
        containers:
@@ -13,16 +13,16 @@
          args:
          - --audit-interval={{ .Values.auditInterval }}
          - --log-level={{ .Values.logLevel }}
-@@ -72,7 +68,7 @@
-           valueFrom:
-             fieldRef:
-               fieldPath: metadata.name
+@@ -87,7 +83,7 @@
+               fieldPath: metadata.namespace
+         - name: CONTAINER_NAME
+           value: manager
 -        imagePullPolicy: '{{ .Values.image.pullPolicy }}'
 +        imagePullPolicy: '{{ .Values.images.pullPolicy }}'
          livenessProbe:
            httpGet:
              path: /healthz
-@@ -99,16 +95,20 @@
+@@ -123,9 +119,11 @@
        dnsPolicy: {{ .Values.audit.dnsPolicy }}
        hostNetwork: {{ .Values.audit.hostNetwork }}
        imagePullSecrets:
@@ -37,6 +37,8 @@
        {{- if .Values.audit.priorityClassName }}
        priorityClassName:  {{ .Values.audit.priorityClassName }}
        {{- end }}
+@@ -133,8 +131,10 @@
+         {{- toYaml .Values.audit.podSecurityContext | nindent 8 }}
        serviceAccountName: gatekeeper-admin
        terminationGracePeriodSeconds: 60
 -      tolerations:
@@ -46,5 +48,5 @@
 +{{ toYaml .Values.audit.tolerations | indent 8 }}
 +{{- end }}
        volumes:
-       {{- if .Values.audit.writeToRAMDisk }}
-       - emptyDir:
+       - name: cert
+         secret:
