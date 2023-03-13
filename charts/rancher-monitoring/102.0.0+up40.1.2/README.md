@@ -469,7 +469,7 @@ The following table shows values exposed by Rancher Monitoring's additions to th
 | `namespaceOverride` | Override the deployment namespace | `"cattle-monitoring-system"` |
 | `global.rbac.userRoles.create` | Create default user ClusterRoles to allow users to interact with Prometheus CRs, ConfigMaps, and Secrets | `true` |
 | `global.rbac.userRoles.aggregateToDefaultRoles` | Aggregate default user ClusterRoles into default k8s ClusterRoles | `true` |
-| `prometheus-adapter.enabled` | Whether to install [prometheus-adapter](https://github.com/helm/charts/tree/master/stable/prometheus-adapter) within the cluster | `true` |
+| `prometheus-adapter.enabled` | Whether to install [prometheus-adapter](https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus-adapter) within the cluster | `true` |
 | `prometheus-adapter.prometheus.url` | A URL pointing to the Prometheus deployment within your cluster. The default value is set based on the assumption that you plan to deploy the default Prometheus instance from this chart where `.Values.namespaceOverride=cattle-monitoring-system` and `.Values.nameOverride=rancher-monitoring` | `http://rancher-monitoring-prometheus.cattle-monitoring-system.svc` |
 | `prometheus-adapter.prometheus.port` | The port on the Prometheus deployment that Prometheus Adapter can make requests to | `9090` |
 | `prometheus.prometheusSpec.ignoreNamespaceSelectors` | Ignore NamespaceSelector settings from the PodMonitor and ServiceMonitor configs. If true, PodMonitors and ServiceMonitors can only discover Pods and Services within the namespace they are deployed into | `false` |
