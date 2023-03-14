@@ -490,7 +490,6 @@ The following values are enabled for different distributions via [rancher-pushpr
 | `kubeAdmProxy.enabled` | Create a PushProx installation for monitoring kube-proxy metrics in kubeAdm clusters | `false` |
 | `kubeAdmEtcd.enabled` | Create a PushProx installation for monitoring etcd metrics in kubeAdm clusters | `false` |
 
-
 ### Multiple releases
 
 The same chart can be used to run multiple Prometheus instances in the same cluster if required. To achieve this, it is necessary to run only one instance of prometheus-operator and a pair of alertmanager pods for an HA configuration, while all other components need to be disabled. To disable a dependency during installation, set `kubeStateMetrics.enabled`, `nodeExporter.enabled` and `grafana.enabled` to `false`.
