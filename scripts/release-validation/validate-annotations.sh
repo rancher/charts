@@ -34,7 +34,7 @@ for asset in $(find $ASSETS_DIR -mindepth 2 -maxdepth 2 -name "*.tgz" | sort | x
   chartname=$(echo ${chart#"$ROOT_DIR/"} | cut -d'/' -f2)
   chartversion=$(basename ${chart})
   exists_in_25=$(yq e ".entries.*.[] | select(.name == \"${chartname}\" and .version == \"${chartversion}\")" <(git show ${UPSTREAM_REMOTE}/${OLD_UPSTREAM_BRANCH}:${INDEX_PATH}))
-  echo $exists_in_25
+
   if [[ -n ${exists_in_25} ]]; then
     echo "Skipping checking annotation on forward-ported chart ${chart}"
     continue
