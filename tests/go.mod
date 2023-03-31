@@ -3,12 +3,12 @@ module github.com/rancher/charts/tests
 go 1.19
 
 require (
-	github.com/rancher/hull v0.0.0-20230329190516-51af9be6b929
-	github.com/rancher/wrangler v1.1.1
-	github.com/stretchr/testify v1.8.2
-	k8s.io/api v0.26.2
-	k8s.io/apimachinery v0.26.2
-	k8s.io/kubernetes v1.26.2
+	github.com/rancher/hull v0.0.0-20230424152137-627ef5347afd
+	github.com/rancher/wrangler v1.0.0
+	github.com/stretchr/testify v1.8.1
+	k8s.io/api v0.26.0
+	k8s.io/apimachinery v0.26.0
+	k8s.io/kubernetes v1.26.3
 )
 
 require (
@@ -95,7 +95,7 @@ require (
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
-	github.com/rancher/lasso v0.0.0-20221227210133-6ea88ca2fbcc // indirect
+	github.com/rancher/lasso v0.0.0-20220303220127-8cf5555ec03c // indirect
 	github.com/rubenv/sql-migrate v1.2.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
@@ -130,7 +130,7 @@ require (
 	k8s.io/client-go v0.26.0 // indirect
 	k8s.io/component-base v0.26.0 // indirect
 	k8s.io/klog/v2 v2.80.1 // indirect
-	k8s.io/kube-aggregator v0.25.4 // indirect
+	k8s.io/kube-aggregator v0.24.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20221012153701-172d655c2280 // indirect
 	k8s.io/kubectl v0.26.0 // indirect
 	k8s.io/utils v0.0.0-20221107191617-1a15be271d1d // indirect
