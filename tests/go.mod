@@ -3,7 +3,7 @@ module github.com/rancher/charts/tests
 go 1.19
 
 require (
-	github.com/rancher/hull v0.0.0-20230329190516-51af9be6b929
+	github.com/rancher/hull v0.0.0-20230424152137-627ef5347afd
 	github.com/rancher/wrangler v1.1.1
 	github.com/stretchr/testify v1.8.2
 	k8s.io/api v0.26.2
