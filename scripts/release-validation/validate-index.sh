@@ -28,7 +28,7 @@ for url in $(echo $urls | xargs); do
     echo "skipping ${url}"
     continue
   fi
-  if [[ -f ${url} ]]; then
+  if [[ -f ${ROOT_DIR}/${url} ]]; then
     echo "found ${url}"
   else
     echo "MISSING ${url}"
