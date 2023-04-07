@@ -18,12 +18,12 @@
    {{- end }}
    version: {{ .Values.prometheus.prometheusSpec.image.tag }}
    {{- if .Values.prometheus.prometheusSpec.image.sha }}
-@@ -64,11 +64,13 @@
+@@ -67,11 +67,13 @@
    externalUrl: "{{ tpl .Values.prometheus.prometheusSpec.externalUrl . }}"
  {{- else if and .Values.prometheus.ingress.enabled .Values.prometheus.ingress.hosts }}
    externalUrl: "http://{{ tpl (index .Values.prometheus.ingress.hosts 0) . }}{{ .Values.prometheus.prometheusSpec.routePrefix }}"
 +{{- else if not (or (kindIs "invalid" .Values.global.cattle.url) (kindIs "invalid" .Values.global.cattle.clusterId)) }}
-+  externalUrl: "{{ .Values.global.cattle.url }}/k8s/clusters/{{ .Values.global.cattle.clusterId }}/api/v1/namespaces/{{ .Values.namespaceOverride }}/services/http:{{ template "kube-prometheus-stack.fullname" . }}-prometheus:{{ .Values.prometheus.service.port }}/proxy"
++  externalUrl: "{{ .Values.global.cattle.url }}/k8s/clusters/{{ .Values.global.cattle.clusterId }}/api/v1/namespaces/{{ template "kube-prometheus-stack.namespace" . }}/services/http:{{ template "kube-prometheus-stack.fullname" . }}-prometheus:{{ .Values.prometheus.service.port }}/proxy"
  {{- else }}
    externalUrl: http://{{ template "kube-prometheus-stack.fullname" . }}-prometheus.{{ template "kube-prometheus-stack.namespace" . }}:{{ .Values.prometheus.service.port }}
  {{- end }}
@@ -33,7 +33,7 @@
  {{ toYaml .Values.prometheus.prometheusSpec.nodeSelector | indent 4 }}
  {{- end }}
    paused: {{ .Values.prometheus.prometheusSpec.paused }}
-@@ -244,8 +246,8 @@
+@@ -252,8 +254,8 @@
                - {key: prometheus, operator: In, values: [{{ template "kube-prometheus-stack.fullname" . }}-prometheus]}
  {{- end }}
  {{- end }}
@@ -43,7 +43,7 @@
  {{ toYaml .Values.prometheus.prometheusSpec.tolerations | indent 4 }}
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.topologySpreadConstraints }}
-@@ -284,7 +286,7 @@
+@@ -300,7 +302,7 @@
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.containers }}
    containers:
@@ -52,16 +52,10 @@
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.initContainers }}
    initContainers:
-@@ -300,6 +302,7 @@
- {{- if .Values.prometheus.prometheusSpec.disableCompaction }}
-   disableCompaction: {{ .Values.prometheus.prometheusSpec.disableCompaction }}
+@@ -383,4 +385,4 @@
+ {{- if .Values.prometheus.prometheusSpec.minReadySeconds }}
+   minReadySeconds: {{ .Values.prometheus.prometheusSpec.minReadySeconds }}
  {{- end }}
-+{{- if .Values.prometheus.prometheusSpec.portName }}
-   portName: {{ .Values.prometheus.prometheusSpec.portName }}
- {{- end }}
- {{- if .Values.prometheus.prometheusSpec.volumes }}
-@@ -356,3 +359,4 @@
- {{- if .Values.prometheus.prometheusSpec.allowOverlappingBlocks }}
-   allowOverlappingBlocks: {{ .Values.prometheus.prometheusSpec.allowOverlappingBlocks }}
- {{- end }}
+-{{- end }}
 +{{- end }}
+\ No newline at end of file

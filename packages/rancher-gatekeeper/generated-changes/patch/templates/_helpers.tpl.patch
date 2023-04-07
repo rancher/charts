@@ -12,7 +12,7 @@
 +{{- end -}}
 +{{- end -}}
 +
-+{{/*
+ {{/*
 +Windows cluster will add default taint for linux nodes,
 +add below linux tolerations to workloads could be scheduled to those linux nodes
 +*/}}
@@ -27,7 +27,7 @@
 +kubernetes.io/os: linux
 +{{- end -}}
 +
- {{/*
++{{/*
  Output post install webhook probe container entry
  */}}
  {{- define "gatekeeper.postInstallWebhookProbeContainer" -}}
@@ -36,4 +36,15 @@
 +  image: "{{ template "system_default_registry" . }}{{ .Values.postInstall.probeWebhook.image.repository }}:{{ .Values.postInstall.probeWebhook.image.tag }}"
    imagePullPolicy: {{ .Values.postInstall.probeWebhook.image.pullPolicy }}
    args:
-     - "--retry"
+     - "curl"
+@@ -68,6 +91,10 @@
+   resources:
+   {{- toYaml .Values.postInstall.resources | nindent 4 }}
+   securityContext:
++  {{- if .Values.enableRuntimeDefaultSeccompProfile }}
++    seccompProfile:
++      type: RuntimeDefault
++  {{- end }}
+   {{- toYaml .Values.postInstall.securityContext | nindent 4 }}
+   volumeMounts:
+   - mountPath: /certs

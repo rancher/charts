@@ -1,37 +1,39 @@
 --- charts-original/values.yaml
 +++ charts/values.yaml
-@@ -2,15 +2,17 @@
+@@ -2,15 +2,18 @@
  # This is a YAML-formatted file.
  # Declare variables to be passed into the templates.
  
 +global:
 +  cattle:
 +    systemDefaultRegistry: ""
++    psp:
++      enabled: false # PSP enablement should default to false
 +
  openshift: false
  
  registry: docker.io
--tag: 5.0.4
+-tag: 5.1.1
  oem:
 -imagePullSecrets:
- psp: false
+-psp: false
  rbac: true
 -serviceAccount: default
 +serviceAccount: neuvector
  
  controller:
    # If false, controller will not be installed
-@@ -22,7 +24,8 @@
+@@ -22,7 +25,8 @@
        maxSurge: 1
        maxUnavailable: 0
    image:
 -    repository: neuvector/controller
 +    repository: rancher/mirrored-neuvector-controller
-+    tag: 5.0.4
++    tag: 5.1.1
      hash:
    replicas: 3
    disruptionbudget: 0
-@@ -68,7 +71,7 @@
+@@ -70,7 +74,7 @@
          #  -----BEGIN PRIVATE KEY-----
          #  -----END PRIVATE KEY-----
    ranchersso:
@@ -39,28 +41,28 @@
 +    enabled: true
    pvc:
      enabled: false
-     accessModes:
-@@ -206,7 +209,8 @@
+     existingClaim: false
+@@ -215,7 +219,8 @@
    # If false, enforcer will not be installed
    enabled: true
    image:
 -    repository: neuvector/enforcer
 +    repository: rancher/mirrored-neuvector-enforcer
-+    tag: 5.0.4
++    tag: 5.1.1
      hash:
-   priorityClassName:
-   tolerations:
-@@ -224,7 +228,8 @@
+   updateStrategy:
+     type: RollingUpdate
+@@ -245,7 +250,8 @@
    # If false, manager will not be installed
    enabled: true
    image:
 -    repository: neuvector/manager
 +    repository: rancher/mirrored-neuvector-manager
-+    tag: 5.0.4
++    tag: 5.1.1
      hash:
    priorityClassName:
    env:
-@@ -292,7 +297,7 @@
+@@ -316,7 +322,7 @@
      enabled: true
      secure: false
      image:
@@ -69,7 +71,7 @@
        tag: latest
        hash:
      schedule: "0 0 * * *"
-@@ -308,7 +313,7 @@
+@@ -337,7 +343,7 @@
          maxSurge: 1
          maxUnavailable: 0
      image:

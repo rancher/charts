@@ -14,6 +14,12 @@ Since this repository uses [`rancher/charts-build-scripts`](https://github.com/r
 2. Running `make charts` to automatically generate assets used to serve a Helm repository (`charts/`, `assets/`, and `index.yaml`) based on the contents of `packages/`.
 3. [CI] Running `make validate` to ensure that all generated assets are up-to-date and ready to be merged.
 
+
+#### Adding Net-New dependencies to dev-2.7
+A new build artifact was introduced in v2.7.0 of Rancher, titled `rancher-image-origins.txt`, which denotes the source code repository (github repository) of each image used in Charts and System-Charts.
+When adding new dependencies to dev-2.7, a PR must first be raised and merged in the Rancher repository with the required changes to the `pkg/image/origins.go` file. This ensures that the artifact is up-to-date
+with the latest images, and will prevent build failures within Rancher when attempting to generate the artifact. Changes to this file are **not** required when updating versions of existing dependencies.
+
 #### Versioning Charts
 
 In this repository, all packages specify the `version` field in the `package.yaml`.
@@ -55,7 +61,7 @@ Currently, this is unavoidable. There is an expectation that users should look a
 
 We are still looking for a better way to mitigate this kind of risk.
 
-- For Rancher version annotations, why we don't we need to add the lower bound all the time?
+- For Rancher version annotations, why don't we need to add the lower bound all the time?
 
 Each Rancher minor version has its dedicated chart release branch (e.g. `release-v2.5`, `release-v2.6`, etc.), so a chart designed for Rancher `2.6.x` will never be available or show up in Rancher `2.5.x`; therefore, we do not need to worry about setting a lower bound of `> 2.5.99-0` on all charts.
 

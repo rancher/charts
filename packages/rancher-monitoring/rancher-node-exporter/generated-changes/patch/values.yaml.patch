@@ -1,26 +1,52 @@
 --- charts-original/values.yaml
 +++ charts/values.yaml
-@@ -1,8 +1,13 @@
+@@ -1,10 +1,17 @@
  # Default values for prometheus-node-exporter.
  # This is a YAML-formatted file.
  # Declare variables to be passed into your templates.
 +
 +global:
 +  cattle:
++    psp:
++      enabled: false
 +    systemDefaultRegistry: ""
 +
  image:
 -  repository: quay.io/prometheus/node-exporter
 +  repository: rancher/mirrored-prometheus-node-exporter
-   tag: v1.2.2
+   # Overrides the image tag whose default is {{ printf "v%s" .Chart.AppVersion }}
+-  tag: ""
++  tag: v1.3.1
    pullPolicy: IfNotPresent
+   sha: ""
  
-@@ -135,6 +140,8 @@
+@@ -13,8 +20,8 @@
+ 
+ service:
+   type: ClusterIP
+-  port: 9100
+-  targetPort: 9100
++  port: 9796
++  targetPort: 9796
+   nodePort:
+   portName: metrics
+   listenOnAllInterfaces: true
+@@ -95,9 +102,6 @@
+   ## If true, create & use RBAC resources
+   ##
+   create: true
+-  ## If true, create & use Pod Security Policy resources
+-  ## https://kubernetes.io/docs/concepts/policy/pod-security-policy/
+-  pspEnabled: true
+   pspAnnotations: {}
+ 
+ # for deployments that have node_exporter deployed outside of the cluster, list
+@@ -163,6 +167,8 @@
+ 
  tolerations:
    - effect: NoSchedule
-     operator: Exists
-+  - effect: NoExecute
 +    operator: Exists
++  - effect: NoExecute
+     operator: Exists
  
  ## Assign a PriorityClassName to pods if set
- # priorityClassName: ""

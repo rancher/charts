@@ -1,0 +1,70 @@
+--- charts-original/templates/post-job.yaml
++++ charts/templates/post-job.yaml
+@@ -30,18 +30,17 @@
+     spec:
+       restartPolicy: OnFailure
+       {{- include "minio.imagePullSecrets" . | nindent 6 }}
+-      {{- if .Values.nodeSelector }}
+       nodeSelector:
+-        {{- toYaml .Values.postJob.nodeSelector | nindent 8 }}
+-      {{- end }}
++        {{- include "linux-node-selector" . | nindent 8 }}
+       {{- with .Values.postJob.affinity }}
+       affinity:
+         {{- toYaml . | nindent 8 }}
+       {{- end }}
+-      {{- with .Values.postJob.tolerations }}
+       tolerations:
++        {{- include "linux-node-tolerations" . | nindent 8 }}
++        {{- with .Values.postJob.tolerations }}
+         {{- toYaml . | nindent 8 }}
+-      {{- end }}
++        {{- end }}
+       {{- if .Values.postJob.securityContext.enabled }}
+       securityContext:
+         runAsUser: {{ .Values.postJob.securityContext.runAsUser }}
+@@ -76,7 +75,7 @@
+       containers:
+         {{- if .Values.buckets }}
+         - name: minio-make-bucket
+-          image: "{{ .Values.mcImage.repository }}:{{ .Values.mcImage.tag }}"
++          image: "{{ default .Values.mcImage.registry (include "registry-url" .) }}{{ .Values.mcImage.repository }}:{{ .Values.mcImage.tag }}"
+           {{- if .Values.makeBucketJob.securityContext.enabled }}
+           securityContext:
+             runAsUser: {{ .Values.makeBucketJob.securityContext.runAsUser }}
+@@ -107,7 +106,7 @@
+         {{- end }}
+         {{- if .Values.users }}
+         - name: minio-make-user
+-          image: "{{ .Values.mcImage.repository }}:{{ .Values.mcImage.tag }}"
++          image: "{{ default .Values.mcImage.registry (include "registry-url" .) }}{{ .Values.mcImage.repository }}:{{ .Values.mcImage.tag }}"
+           {{- if .Values.makeUserJob.securityContext.enabled }}
+           securityContext:
+             runAsUser: {{ .Values.makeUserJob.securityContext.runAsUser }}
+@@ -138,7 +137,7 @@
+         {{- end }}
+         {{- if .Values.policies }}
+         - name: minio-make-policy
+-          image: "{{ .Values.mcImage.repository }}:{{ .Values.mcImage.tag }}"
++          image: "{{ default .Values.mcImage.registry (include "registry-url" .) }}{{ .Values.mcImage.repository }}:{{ .Values.mcImage.tag }}"
+           {{- if .Values.makePolicyJob.securityContext.enabled }}
+           securityContext:
+             runAsUser: {{ .Values.makePolicyJob.securityContext.runAsUser }}
+@@ -169,7 +168,7 @@
+         {{- end }}
+         {{- if .Values.customCommands }}
+         - name: minio-custom-command
+-          image: "{{ .Values.mcImage.repository }}:{{ .Values.mcImage.tag }}"
++          image: "{{ default .Values.mcImage.registry (include "registry-url" .) }}{{ .Values.mcImage.repository }}:{{ .Values.mcImage.tag }}"
+           {{- if .Values.customCommandJob.securityContext.enabled }}
+           securityContext:
+             runAsUser: {{ .Values.customCommandJob.securityContext.runAsUser }}
+@@ -200,7 +199,7 @@
+         {{- end }}
+         {{- if .Values.svcaccts }}
+         - name: minio-make-svcacct
+-          image: "{{ .Values.mcImage.repository }}:{{ .Values.mcImage.tag }}"
++          image: "{{ default .Values.mcImage.registry (include "registry-url" .) }}{{ .Values.mcImage.repository }}:{{ .Values.mcImage.tag }}"
+           {{- if .Values.makeServiceAccountJob.securityContext.enabled }}
+           securityContext:
+             runAsUser: {{ .Values.makeServiceAccountJob.securityContext.runAsUser }}

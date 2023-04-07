@@ -14,8 +14,29 @@
 +  namespace: {{ .Values.kubelet.namespace }}
    labels:
      app: {{ template "kube-prometheus-stack.name" . }}-kubelet
- {{- include "kube-prometheus-stack.labels" . | indent 4 }}
-@@ -85,7 +88,7 @@
+   {{- with .Values.kubelet.serviceMonitor.additionalLabels }}
+@@ -32,6 +35,20 @@
+ {{- if .Values.kubelet.serviceMonitor.metricRelabelings }}
+     metricRelabelings:
+ {{ tpl (toYaml .Values.kubelet.serviceMonitor.metricRelabelings | indent 4) . }}
++    {{ if .Values.global.cattle.clusterId }}
++    - action: replace
++      sourceLabels: [__address__]
++      targetLabel: cluster_id
++      replacement: {{ .Values.global.cattle.clusterId }}
++    {{- end }}
++{{ else }}
++    {{ if .Values.global.cattle.clusterId }}
++    metricRelabelings:
++    - action: replace
++      sourceLabels: [__address__]
++      targetLabel: cluster_id
++      replacement: {{ .Values.global.cattle.clusterId }}
++    {{- end }}
+ {{- end }}
+ {{- if .Values.kubelet.serviceMonitor.relabelings }}
+     relabelings:
+@@ -94,7 +111,7 @@
  {{- if .Values.kubelet.serviceMonitor.resource }}
    - port: https-metrics
      scheme: https
@@ -24,7 +45,7 @@
      {{- if .Values.kubelet.serviceMonitor.interval }}
      interval: {{ .Values.kubelet.serviceMonitor.interval }}
      {{- end }}
-@@ -143,7 +146,7 @@
+@@ -183,7 +200,7 @@
  {{- end }}
  {{- if .Values.kubelet.serviceMonitor.resource }}
    - port: http-metrics

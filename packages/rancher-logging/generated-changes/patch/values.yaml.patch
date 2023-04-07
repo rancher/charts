@@ -6,10 +6,10 @@
  image:
 -  repository: ghcr.io/banzaicloud/logging-operator
 +  repository: rancher/mirrored-banzaicloud-logging-operator
-   tag: 3.17.7
+   tag: 3.17.10
    pullPolicy: IfNotPresent
  
-@@ -38,9 +38,14 @@
+@@ -42,9 +42,14 @@
    #   cpu: 100m
    #   memory: 128Mi
  
@@ -26,17 +26,24 @@
  
  affinity: {}
  
-@@ -56,6 +61,9 @@
-     # Labels to query http service
-     labels: {}
- 
-+# These "rbac" settings match the upstream defaults. For only using psp in the overlay files, which
-+# include the default Logging CRs created, see the "global.psp" setting. To enable psp for the entire
-+# chart, enable both "rbac.psp" and "global.psp" (this may require further changes to the chart).
+@@ -63,7 +68,6 @@
  rbac:
    enabled: true
    psp:
-@@ -98,3 +106,139 @@
+-    enabled: true
+     annotations:
+       seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'docker/default,runtime/default'
+       seccomp.security.alpha.kubernetes.io/defaultProfileName: 'runtime/default'
+@@ -75,7 +79,7 @@
+ 
+ 
+ ## SecurityContext holds pod-level security attributes and common container settings.
+-## This defaults to non root user with uid 1000 and gid 2000.	*v1.PodSecurityContext	false
++## This defaults to non-root user with uid 1000 and gid 2000.	*v1.PodSecurityContext	false
+ ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+ ##
+ podSecurityContext: {}
+@@ -102,3 +106,135 @@
  
  serviceAccount:
    annotations: {}
@@ -63,15 +70,11 @@
 +    # set the value below to "false".
 +    # windows:
 +    #   enabled: true
++    psp:
++      enabled: false
 +
 +  # Change the "dockerRootDirectory" if the default Docker directory has changed.
 +  dockerRootDirectory: ""
-+
-+  # This psp setting differs from the upstream "rbac.psp" by only enabling psp settings for the
-+  # overlay files, which include the Logging CRs created, whereas the upstream "rbac.psp" affects the
-+  # logging operator.
-+  psp:
-+    enabled: true
 +
 +  rkeWindowsPathPrefix: "c:\\"
 +
@@ -84,14 +87,14 @@
 +    tag: v0.4.0
 +  fluentbit:
 +    repository: rancher/mirrored-fluent-fluent-bit
-+    tag: 1.9.3
++    tag: 1.9.5
 +  nodeagent_fluentbit:
 +    os: "windows"
 +    repository: rancher/fluent-bit
 +    tag: 1.8.9
 +  fluentbit_debug:
 +    repository: rancher/mirrored-fluent-fluent-bit
-+    tag: 1.9.3-debug
++    tag: 1.9.5-debug
 +  fluentd:
 +    repository: rancher/mirrored-banzaicloud-fluentd
 +    tag: v1.14.6-alpine-5
@@ -146,6 +149,7 @@
 +  nodeSelector: {}
 +  resources: {}
 +  tolerations: {}
++  env: []
 +fluentbit:
 +  inputTail:
 +    Buffer_Chunk_Size: ""
@@ -175,4 +179,3 @@
 +# this object will be merged with every logging CR created by this chart. Any fields that collide with fields from the
 +# settings above will be overridden. Any fields that collide with fields set in the files in `templates/loggings` will
 +# be ignored.
-+loggingOverlay: {}

@@ -1,0 +1,22 @@
+---
+# Default namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: workspace
+  annotations:
+    linkerd.io/inject: enabled
+  labels:
+    # Instruct kubed to copy image pull secrets over.
+    kubed-sync: "registry-creds"
+    app.kubernetes.io/component: "epinio-namespace"
+
+---
+apiVersion: v1
+kind: ServiceAccount
+automountServiceAccountToken: true
+metadata:
+  name: workspace
+  namespace: workspace
+imagePullSecrets:
+- name: registry-creds

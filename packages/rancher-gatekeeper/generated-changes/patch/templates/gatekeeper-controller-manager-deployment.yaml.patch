@@ -14,7 +14,7 @@
          args:
          - --port={{ .Values.controllerManager.port }}
          - --health-addr=:{{ .Values.controllerManager.healthPort }}
-@@ -98,7 +95,6 @@
+@@ -101,7 +98,6 @@
                fieldPath: metadata.namespace
          - name: CONTAINER_NAME
            value: manager
@@ -22,7 +22,7 @@
          livenessProbe:
            httpGet:
              path: /healthz
-@@ -133,9 +129,11 @@
+@@ -138,9 +134,11 @@
        dnsPolicy: {{ .Values.controllerManager.dnsPolicy }}
        hostNetwork: {{ .Values.controllerManager.hostNetwork }}
        imagePullSecrets:
@@ -37,7 +37,7 @@
        {{- if .Values.controllerManager.priorityClassName }}
        priorityClassName:  {{ .Values.controllerManager.priorityClassName }}
        {{- end }}
-@@ -143,8 +141,10 @@
+@@ -148,8 +146,10 @@
          {{- toYaml .Values.controllerManager.podSecurityContext | nindent 8 }}
        serviceAccountName: gatekeeper-admin
        terminationGracePeriodSeconds: 60
@@ -47,6 +47,6 @@
 +{{- if .Values.controllerManager.tolerations }}
 +{{ toYaml .Values.controllerManager.tolerations | indent 8 }}
 +{{- end }}
+       topologySpreadConstraints:
+         {{- toYaml .Values.controllerManager.topologySpreadConstraints | nindent 8 }}
        volumes:
-       - name: cert
-         secret:

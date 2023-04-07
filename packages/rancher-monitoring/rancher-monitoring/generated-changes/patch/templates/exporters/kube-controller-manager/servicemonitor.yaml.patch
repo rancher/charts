@@ -8,4 +8,23 @@
 +  namespace: "kube-system"
    labels:
      app: {{ template "kube-prometheus-stack.name" . }}-kube-controller-manager
- {{ include "kube-prometheus-stack.labels" . | indent 4 }}
+   {{- with .Values.kubeControllerManager.serviceMonitor.additionalLabels }}
+@@ -42,6 +42,18 @@
+ {{- if .Values.kubeControllerManager.serviceMonitor.metricRelabelings }}
+     metricRelabelings:
+ {{ tpl (toYaml .Values.kubeControllerManager.serviceMonitor.metricRelabelings | indent 4) . }}
++    {{ if .Values.global.cattle.clusterId }}
++    - sourceLabels: [__address__]
++      targetLabel: cluster_id
++      replacement: {{ .Values.global.cattle.clusterId }}
++    {{- end }}
++{{ else }}
++    {{ if .Values.global.cattle.clusterId }}
++    metricRelabelings:
++    - sourceLabels: [__address__]
++      targetLabel: cluster_id
++      replacement: {{ .Values.global.cattle.clusterId }}
++    {{- end }}
+ {{- end }}
+ {{- if .Values.kubeControllerManager.serviceMonitor.relabelings }}
+     relabelings:
