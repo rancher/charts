@@ -1,6 +1,6 @@
 --- charts-original/templates/upgrade-crds-hook.yaml
 +++ charts/templates/upgrade-crds-hook.yaml
-@@ -87,18 +87,14 @@
+@@ -87,26 +87,14 @@
      spec:
        serviceAccountName: gatekeeper-admin-upgrade-crds
        restartPolicy: Never
@@ -12,10 +12,18 @@
        {{- end }}
        containers:
        - name: crds-upgrade
--        {{- if not .Values.image.release }}
--        image: '{{ .Values.image.crdRepository }}'
+-        {{- if .Values.preInstall.crdRepository.image.repository }}
+-          {{- if not .Values.preInstall.crdRepository.image.tag }}
+-        image: '{{ .Values.preInstall.crdRepository.image.repository }}'
+-          {{- else }}
+-        image: '{{ .Values.preInstall.crdRepository.image.repository }}:{{ .Values.preInstall.crdRepository.image.tag }}'
+-          {{- end }}
 -        {{- else }}
+-          {{- if not .Values.image.release }}
+-        image: '{{ .Values.image.crdRepository }}'
+-          {{- else }}
 -        image: '{{ .Values.image.crdRepository }}:{{ .Values.image.release }}'
+-          {{- end }}
 -        {{- end }}
 -        imagePullPolicy: '{{ .Values.image.pullPolicy }}'
 +        image: '{{ template "system_default_registry" . }}{{ .Values.images.gatekeepercrd.repository }}:{{ .Values.images.gatekeepercrd.tag }}'
@@ -23,7 +31,7 @@
          args:
          - apply
          - -f
-@@ -112,11 +108,9 @@
+@@ -120,11 +108,9 @@
            {{- end }}
            {{- toYaml .Values.crds.securityContext | nindent 10 }}
        {{- with .Values.crds }}
