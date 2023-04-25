@@ -17,7 +17,7 @@ questions:
     label: Longhorn Manager Image Repository
     group: "Longhorn Images Settings"
   - variable: image.longhorn.manager.tag
-    default: v1.3.2
+    default: v1.3.3
     description: "Specify Longhorn Manager Image Tag"
     type: string
     label: Longhorn Manager Image Tag
@@ -29,7 +29,7 @@ questions:
     label: Longhorn Engine Image Repository
     group: "Longhorn Images Settings"
   - variable: image.longhorn.engine.tag
-    default: v1.3.2
+    default: v1.3.3
     description: "Specify Longhorn Engine Image Tag"
     type: string
     label: Longhorn Engine Image Tag
@@ -41,7 +41,7 @@ questions:
     label: Longhorn UI Image Repository
     group: "Longhorn Images Settings"
   - variable: image.longhorn.ui.tag
-    default: v1.3.2
+    default: v1.3.3
     description: "Specify Longhorn UI Image Tag"
     type: string
     label: Longhorn UI Image Tag
@@ -53,7 +53,7 @@ questions:
     label: Longhorn Instance Manager Image Repository
     group: "Longhorn Images Settings"
   - variable: image.longhorn.instanceManager.tag
-    default: v1_20221003
+    default: v1_20230407
     description: "Specify Longhorn Instance Manager Image Tag"
     type: string
     label: Longhorn Instance Manager Image Tag
@@ -65,7 +65,7 @@ questions:
     label: Longhorn Share Manager Image Repository
     group: "Longhorn Images Settings"
   - variable: image.longhorn.shareManager.tag
-    default: v1_20221003
+    default: v1_20230320
     description: "Specify Longhorn Share Manager Image Tag"
     type: string
     label: Longhorn Share Manager Image Tag
@@ -77,7 +77,7 @@ questions:
     label: Longhorn Backing Image Manager Image Repository
     group: "Longhorn Images Settings"
   - variable: image.longhorn.backingImageManager.tag
-    default: v3_20221003
+    default: v3_20230320
     description: "Specify Longhorn Backing Image Manager Image Tag"
     type: string
     label: Longhorn Backing Image Manager Image Tag
@@ -141,6 +141,18 @@ questions:
     description: "Specify CSI Driver Snapshotter image tag. Leave blank to autodetect."
     type: string
     label: Longhorn CSI Driver Snapshotter Image Tag
+    group: "Longhorn CSI Driver Images"
+  - variable: image.csi.livenessProbe.repository
+    default: longhornio/livenessprobe
+    description: "Specify CSI liveness probe image repository. Leave blank to autodetect."
+    type: string
+    label: Longhorn CSI Liveness Probe Image Repository
+    group: "Longhorn CSI Liveness Probe Images"
+  - variable: image.csi.livenessProbe.tag
+    default: v2.8.0
+    description: "Specify CSI liveness probe image tag. Leave blank to autodetect."
+    type: string
+    label: Longhorn CSI Liveness Probe Image Tag
     group: "Longhorn CSI Driver Images"
 - variable: privateRegistry.registryUrl
   label: Private registry URL
@@ -388,6 +400,19 @@ If this setting is enabled, Longhorn will **not** block `kubectl drain` action o
     group: "Longhorn Default Settings"
     type: boolean
     default: "false"
+  - variable: defaultSettings.nodeDrainPolicy
+    label: Node Drain Policy
+    description: "Define the policy to use when a node with the last healthy replica of a volume is drained.
+- **block-if-contains-last-replica** Longhorn will block the drain when the node contains the last healthy replica of a volume.
+- **allow-if-replica-is-stopped** Longhorn will allow the drain when the node contains the last healthy replica of a volume but the replica is stopped. WARNING: possible data loss if the node is removed after draining. Select this option if you want to drain the node and do in-place upgrade/maintenance.
+- **always-allow** Longhorn will allow the drain even though the node contains the last healthy replica of a volume. WARNING: possible data loss if the node is removed after draining. Also possible data corruption if the last replica was running during the draining."
+    group: "Longhorn Default Settings"
+    type: enum
+    options:
+      - "block-if-contains-last-replica"
+      - "allow-if-replica-is-stopped"
+      - "always-allow"
+    default: "block-if-contains-last-replica"
   - variable: defaultSettings.mkfsExt4Parameters
     label: Custom mkfs.ext4 parameters
     description: "Allows setting additional filesystem creation parameters for ext4. For older host kernels it might be necessary to disable the optional ext4 metadata_csum feature by specifying `-O ^64bit,^metadata_csum`."
