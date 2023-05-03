@@ -7,7 +7,7 @@ remove:
 forward-port:
 	./scripts/forward-port
 
-TARGETS := prepare patch clean clean-cache charts list index unzip zip standardize validate template
+TARGETS := prepare patch clean clean-cache charts list index unzip zip standardize validate template regsync
 
 $(TARGETS):
 	@./scripts/pull-scripts
