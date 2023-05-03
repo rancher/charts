@@ -1,0 +1,35 @@
+## First run make file target from 0.4.4
+## Commit that make file 
+## Should be triggerable. 
+
+name: Generate-Regsync-Config
+
+on:
+  push:
+    branches:
+      - release-v2.7
+      - github_action # remove this
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: github_action
+
+      - name: Generate Regsync
+        run: |
+          export CHARTS_BUILD_SCRIPT_VERSION=v0.4.1 
+          make pull-scripts
+          make regsync
+      
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v4
+        with:
+          token: ${{secrets.PUSH_TO_FORKS_SUBMIT_PRS}}
+          push-to-fork: rancherbot/charts
+          title: 'Update regsync config images file'
+          branch-suffix: timestamp
+
