@@ -48,6 +48,19 @@ spec:
           containerPort: 9443
         - name: capi-https
           containerPort: 8777
+        startupProbe:
+          httpGet:
+            path: "/healthz"
+            port: "https"
+            scheme: "HTTPS"
+          failureThreshold: 60
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: "/healthz"
+            port: "https"
+            scheme: "HTTPS"
+          periodSeconds: 5
         {{- if .Values.capi.enabled }}
         volumeMounts:
         - name: tls
