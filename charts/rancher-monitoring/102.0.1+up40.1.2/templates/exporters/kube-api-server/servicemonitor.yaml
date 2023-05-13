@@ -21,22 +21,20 @@ spec:
     {{- end }}
     port: https
     scheme: https
-{{- if .Values.kubeApiServer.serviceMonitor.metricRelabelings }}
-    metricRelabelings:
+  - metricRelabelings:
+    {{- if .Values.kubeApiServer.serviceMonitor.metricRelabelings }}
 {{ tpl (toYaml .Values.kubeApiServer.serviceMonitor.metricRelabelings | indent 6) . }}
+    {{- end }}
     {{ if .Values.global.cattle.clusterId }}
       - sourceLabels: [__address__]
         targetLabel: cluster_id
         replacement: {{ .Values.global.cattle.clusterId }}
     {{- end }}
-{{ else }}
-    {{ if .Values.global.cattle.clusterId }}
-    metricRelabelings:
+    {{ if .Values.global.cattle.clusterName}}
       - sourceLabels: [__address__]
-        targetLabel: cluster_id
-        replacement: {{ .Values.global.cattle.clusterId }}
+        targetLabel: cluster_name
+        replacement: {{ .Values.global.cattle.clusterName }}
     {{- end }}
-{{- end }}
 {{- if .Values.kubeApiServer.serviceMonitor.relabelings }}
     relabelings:
 {{ tpl (toYaml .Values.kubeApiServer.serviceMonitor.relabelings | indent 6) . }}

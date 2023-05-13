@@ -32,24 +32,20 @@ spec:
       insecureSkipVerify: true
     bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
     honorLabels: true
-{{- if .Values.kubelet.serviceMonitor.metricRelabelings }}
-    metricRelabelings:
-{{ tpl (toYaml .Values.kubelet.serviceMonitor.metricRelabelings | indent 4) . }}
-    {{ if .Values.global.cattle.clusterId }}
-    - action: replace
-      sourceLabels: [__address__]
-      targetLabel: cluster_id
-      replacement: {{ .Values.global.cattle.clusterId }}
+  - metricRelabelings:
+    {{- if .Values.kubelet.serviceMonitor.metricRelabelings }}
+    {{ tpl (toYaml .Values.kubelet.serviceMonitor.metricRelabelings | indent 4) . }}
     {{- end }}
-{{ else }}
     {{ if .Values.global.cattle.clusterId }}
-    metricRelabelings:
-    - action: replace
-      sourceLabels: [__address__]
-      targetLabel: cluster_id
-      replacement: {{ .Values.global.cattle.clusterId }}
+      - sourceLabels: [__address__]
+        targetLabel: cluster_id
+        replacement: {{ .Values.global.cattle.clusterId }}
     {{- end }}
-{{- end }}
+    {{ if .Values.global.cattle.clusterName}}
+      - sourceLabels: [__address__]
+        targetLabel: cluster_name
+        replacement: {{ .Values.global.cattle.clusterName }}
+    {{- end }}
 {{- if .Values.kubelet.serviceMonitor.relabelings }}
     relabelings:
 {{ tpl (toYaml .Values.kubelet.serviceMonitor.relabelings | indent 4) . }}

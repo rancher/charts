@@ -103,14 +103,22 @@ app: {{ template "pushprox.serviceMonitor.name" . }}
 {{- if $.Values.proxy.enabled }}
 {{- $_ := set . "proxyUrl" $proxyURL }}
 {{- end }}
-{{- if $.Values.global.cattle.clusterId }}
 {{- $clusterIdRelabel := dict }}
+{{- if $.Values.global.cattle.clusterId }}
 {{- $_ := set $clusterIdRelabel "action" "replace" }}
 {{- $_ := set $clusterIdRelabel "sourceLabels" (list "__address__") }}
 {{- $_ := set $clusterIdRelabel "targetLabel" "cluster_id" }}
 {{- $_ := set $clusterIdRelabel "replacement" $.Values.global.cattle.clusterId }}
-{{- $_ := set . "metricRelabelings" (list ($clusterIdRelabel))}}
 {{- end }}
+{{- $clusterNameRelabel := dict }}
+{{- if $.Values.global.cattle.clusterName }}
+{{- $_ := set $clusterNameRelabel "action" "replace" }}
+{{- $_ := set $clusterNameRelabel "sourceLabels" (list "__address__") }}
+{{- $_ := set $clusterNameRelabel "targetLabel" "cluster_name" }}
+{{- $_ := set $clusterNameRelabel "replacement" $.Values.global.cattle.clusterName }}
+{{- end }}
+{{- $metricRelabelings := append (list ($clusterNameRelabel)) ($clusterIdRelabel) }}
+{{- $_ := set . "metricRelabelings" ($metricRelabelings)}}
 {{- if $useHTTPS -}}
 {{- if (hasKey . "params") }}
 {{- $_ := set (get . "params") "_scheme" (list "https") }}
