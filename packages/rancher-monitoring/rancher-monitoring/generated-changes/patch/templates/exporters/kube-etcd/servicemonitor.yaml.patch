@@ -1,6 +1,6 @@
 --- charts-original/templates/exporters/kube-etcd/servicemonitor.yaml
 +++ charts/templates/exporters/kube-etcd/servicemonitor.yaml
-@@ -45,10 +45,15 @@
+@@ -45,10 +45,20 @@
        {{- end}}
        insecureSkipVerify: {{ .Values.kubeEtcd.serviceMonitor.insecureSkipVerify }}
      {{- end }}
@@ -13,9 +13,14 @@
 +    {{ tpl (toYaml .Values.kubeEtcd.serviceMonitor.metricRelabelings | indent 4) . }}
 +    {{- end }}
 +    {{ if .Values.global.cattle.clusterId }}
-+    - sourceLabels: [__address__]
-+      targetLabel: cluster_id
-+      replacement: {{ .Values.global.cattle.clusterId }}
++      - sourceLabels: [__address__]
++        targetLabel: cluster_id
++        replacement: {{ .Values.global.cattle.clusterId }}
++    {{- end }}
++    {{ if .Values.global.cattle.clusterName}}
++      - sourceLabels: [__address__]
++        targetLabel: cluster_name
++        replacement: {{ .Values.global.cattle.clusterName }}
 +    {{- end }}
  {{- if .Values.kubeEtcd.serviceMonitor.relabelings }}
      relabelings:

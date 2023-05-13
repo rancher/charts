@@ -28,22 +28,20 @@ spec:
     proxyUrl: {{ .Values.ingressNginx.serviceMonitor.proxyUrl}}
     {{- end }}
     bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
-{{- if .Values.ingressNginx.serviceMonitor.metricRelabelings }}
     metricRelabelings:
-{{ tpl (toYaml .Values.ingressNginx.serviceMonitor.metricRelabelings | indent 4) . }}
-    {{ if .Values.global.cattle.clusterId }}
-    - sourceLabels: [__address__]
-      targetLabel: cluster_id
-      replacement: {{ .Values.global.cattle.clusterId }}
+    {{- if .Values.ingressNginx.serviceMonitor.metricRelabelings }}
+    {{ tpl (toYaml .Values.ingressNginx.serviceMonitor.metricRelabelings | indent 4) . }}
     {{- end }}
-{{ else }}
     {{ if .Values.global.cattle.clusterId }}
-    metricRelabelings:
-    - sourceLabels: [__address__]
-      targetLabel: cluster_id
-      replacement: {{ .Values.global.cattle.clusterId }}
+      - sourceLabels: [__address__]
+        targetLabel: cluster_id
+        replacement: {{ .Values.global.cattle.clusterId }}
     {{- end }}
-{{- end }}
+    {{ if .Values.global.cattle.clusterName}}
+      - sourceLabels: [__address__]
+        targetLabel: cluster_name
+        replacement: {{ .Values.global.cattle.clusterName }}
+    {{- end }}
 {{- if .Values.ingressNginx.serviceMonitor.relabelings }}
     relabelings:
 {{ toYaml .Values.ingressNginx.serviceMonitor.relabelings | indent 4 }}
