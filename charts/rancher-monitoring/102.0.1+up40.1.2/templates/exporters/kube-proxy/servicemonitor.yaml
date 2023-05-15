@@ -33,22 +33,20 @@ spec:
     tlsConfig:
       caFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
     {{- end}}
-{{- if .Values.kubeProxy.serviceMonitor.metricRelabelings }}
-    metricRelabelings:
-{{ tpl (toYaml .Values.kubeProxy.serviceMonitor.metricRelabelings | indent 4) . }}
-    {{ if .Values.global.cattle.clusterId }}
-    - sourceLabels: [__address__]
-      targetLabel: cluster_id
-      replacement: {{ .Values.global.cattle.clusterId }}
+  - metricRelabelings:
+    {{- if .Values.kubeProxy.serviceMonitor.metricRelabelings }}
+    {{ tpl (toYaml .Values.kubeProxy.serviceMonitor.metricRelabelings | indent 4) . }}
     {{- end }}
-{{ else }}
     {{ if .Values.global.cattle.clusterId }}
-    metricRelabelings:
-    - sourceLabels: [__address__]
-      targetLabel: cluster_id
-      replacement: {{ .Values.global.cattle.clusterId }}
+      - sourceLabels: [__address__]
+        targetLabel: cluster_id
+        replacement: {{ .Values.global.cattle.clusterId }}
     {{- end }}
-{{- end }}
+    {{ if .Values.global.cattle.clusterName}}
+      - sourceLabels: [__address__]
+        targetLabel: cluster_name
+        replacement: {{ .Values.global.cattle.clusterName }}
+    {{- end }}
 {{- if .Values.kubeProxy.serviceMonitor.relabelings }}
     relabelings:
 {{ tpl (toYaml .Values.kubeProxy.serviceMonitor.relabelings | indent 4) . }}

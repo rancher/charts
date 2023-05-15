@@ -30,21 +30,19 @@ spec:
     tlsConfig:
     {{- toYaml .Values.serviceMonitor.tlsConfig | nindent 6 }}
     {{- end }}
+    metricRelabelings:
     {{- if .Values.serviceMonitor.metricRelabelings }}
-    metricRelabelings:
     {{- toYaml .Values.serviceMonitor.metricRelabelings | nindent 6 }}
+    {{- end }}
     {{ if .Values.global.cattle.clusterId }}
     - sourceLabels: [__address__]
       targetLabel: cluster_id
       replacement: {{ .Values.global.cattle.clusterId }}
     {{- end }}
-    {{ else }}
-    {{ if .Values.global.cattle.clusterId }}
-    metricRelabelings:
+    {{ if .Values.global.cattle.clusterName }}
     - sourceLabels: [__address__]
-      targetLabel: cluster_id
-      replacement: {{ .Values.global.cattle.clusterId }}
-    {{- end }}
+      targetLabel: cluster_name
+      replacement: {{ .Values.global.cattle.clusterName }}
     {{- end }}
     {{- if .Values.serviceMonitor.relabelings }}
     relabelings:

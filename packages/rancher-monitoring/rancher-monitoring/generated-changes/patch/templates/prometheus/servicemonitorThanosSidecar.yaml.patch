@@ -1,21 +1,26 @@
 --- charts-original/templates/prometheus/servicemonitorThanosSidecar.yaml
 +++ charts/templates/prometheus/servicemonitorThanosSidecar.yaml
-@@ -33,6 +33,18 @@
- {{- if .Values.prometheus.thanosServiceMonitor.metricRelabelings }}
+@@ -30,10 +30,20 @@
+     bearerTokenFile: {{ .Values.prometheus.thanosServiceMonitor.bearerTokenFile }}
+     {{- end }}
+     path: "/metrics"
+-{{- if .Values.prometheus.thanosServiceMonitor.metricRelabelings }}
      metricRelabelings:
- {{ tpl (toYaml .Values.prometheus.thanosServiceMonitor.metricRelabelings | indent 6) . }}
+-{{ tpl (toYaml .Values.prometheus.thanosServiceMonitor.metricRelabelings | indent 6) . }}
+-{{- end }}
++    {{- if .Values.prometheus.thanosServiceMonitor.metricRelabelings}}
++    {{ tpl (toYaml .Values.prometheus.thanosServiceMonitor.metricRelabelings | indent 6) . }}
++    {{- end }}
 +    {{ if .Values.global.cattle.clusterId }}
 +      - sourceLabels: [__address__]
 +        targetLabel: cluster_id
 +        replacement: {{ .Values.global.cattle.clusterId }}
 +    {{- end }}
-+{{ else }}
-+      {{ if .Values.global.cattle.clusterId }}
-+      metricRelabelings:
++    {{ if .Values.global.cattle.clusterName}}
 +      - sourceLabels: [__address__]
-+        targetLabel: cluster_id
-+        replacement: {{ .Values.global.cattle.clusterId }}
-+      {{- end }}
- {{- end }}
++        targetLabel: cluster_name
++        replacement: {{ .Values.global.cattle.clusterName }}
++    {{- end }}
  {{- if .Values.prometheus.thanosServiceMonitor.relabelings }}
      relabelings:
+ {{ toYaml .Values.prometheus.thanosServiceMonitor.relabelings | indent 6 }}

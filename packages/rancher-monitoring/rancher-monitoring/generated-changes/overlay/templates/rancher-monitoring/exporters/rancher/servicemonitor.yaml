@@ -14,11 +14,16 @@ spec:
       caFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
       insecureSkipVerify: true
       serverName: rancher
-    {{ if .Values.global.cattle.clusterId }}
     metricRelabelings:
-    - sourceLabels: [__address__]
-      targetLabel: cluster_id
-      replacement: {{ .Values.global.cattle.clusterId }}
+    {{ if .Values.global.cattle.clusterId }}
+      - sourceLabels: [__address__]
+        targetLabel: cluster_id
+        replacement: {{ .Values.global.cattle.clusterId }}
+    {{- end }}
+    {{ if .Values.global.cattle.clusterName}}
+      - sourceLabels: [__address__]
+        targetLabel: cluster_name
+        replacement: {{ .Values.global.cattle.clusterName }}
     {{- end }}
   jobLabel: rancher
 {{- if .Values.rancherMonitoring.namespaceSelector }}

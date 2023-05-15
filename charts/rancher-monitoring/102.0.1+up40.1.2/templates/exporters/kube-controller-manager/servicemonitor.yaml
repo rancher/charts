@@ -39,22 +39,20 @@ spec:
       serverName: {{ .Values.kubeControllerManager.serviceMonitor.serverName }}
       {{- end }}
     {{- end }}
-{{- if .Values.kubeControllerManager.serviceMonitor.metricRelabelings }}
     metricRelabelings:
-{{ tpl (toYaml .Values.kubeControllerManager.serviceMonitor.metricRelabelings | indent 4) . }}
-    {{ if .Values.global.cattle.clusterId }}
-    - sourceLabels: [__address__]
-      targetLabel: cluster_id
-      replacement: {{ .Values.global.cattle.clusterId }}
+    {{- if.Values.kubeControllerManager.serviceMonitor.metricRelabelings }}
+    {{ tpl (toYaml .Values.kubeControllerManager.serviceMonitor.metricRelabelings | indent 4) . }}
     {{- end }}
-{{ else }}
     {{ if .Values.global.cattle.clusterId }}
-    metricRelabelings:
-    - sourceLabels: [__address__]
-      targetLabel: cluster_id
-      replacement: {{ .Values.global.cattle.clusterId }}
+      - sourceLabels: [__address__]
+        targetLabel: cluster_id
+        replacement: {{ .Values.global.cattle.clusterId }}
     {{- end }}
-{{- end }}
+    {{ if .Values.global.cattle.clusterName}}
+      - sourceLabels: [__address__]
+        targetLabel: cluster_name
+        replacement: {{ .Values.global.cattle.clusterName }}
+    {{- end }}
 {{- if .Values.kubeControllerManager.serviceMonitor.relabelings }}
     relabelings:
 {{ tpl (toYaml .Values.kubeControllerManager.serviceMonitor.relabelings | indent 4) . }}
