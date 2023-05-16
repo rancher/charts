@@ -118,3 +118,4 @@ var AllContainerImagesShouldHaveSystemDefaultRegistryPrefix = test.Checks{
 		}
 	}),
 }
+
