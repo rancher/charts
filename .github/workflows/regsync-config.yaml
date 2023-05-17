@@ -1,0 +1,38 @@
+# Generate-Regsync-Config action will checkout release-v2.7 branch, run make regsync target and
+# creates a pull request from rancherbot/charts or rancher/charts release-v2.7 branch with any image additions
+# to regsync config file. This action is triggered whenever something is pushed into release-v2.7 branch.
+
+name: Generate-Regsync-Config
+
+on:
+  push:
+    branches:
+      - dev-v2.7
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: dev-v2.7
+
+      # Need to remove export version once rancher/charts gets the latest version 
+      # of charts-build-script binary.
+      - name: Generate Regsync
+        run: |
+          export CHARTS_BUILD_SCRIPT_VERSION=v0.4.2 
+          make pull-scripts
+          make regsync
+      
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v4
+        with:
+          add-paths: |
+            regsync.yaml
+          token: ${{secrets.PUSH_TO_FORKS_SUBMIT_PRS}}
+          push-to-fork: rancherbot/charts
+          title: 'Update regsync config images file'
+          branch-suffix: timestamp
+
