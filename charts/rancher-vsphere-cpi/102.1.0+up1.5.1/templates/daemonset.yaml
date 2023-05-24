@@ -1,0 +1,104 @@
+{{- template "applyVersionOverrides" . -}}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ .Chart.Name }}-cloud-controller-manager
+  labels:
+    component: {{ .Chart.Name }}-cloud-controller-manager
+    tier: control-plane
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    scheduler.alpha.kubernetes.io/critical-pod: ""
+spec:
+  selector:
+    matchLabels:
+      name: {{ .Chart.Name }}-cloud-controller-manager
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        name: {{ .Chart.Name }}-cloud-controller-manager
+        component: {{ .Chart.Name }}-cloud-controller-manager
+        tier: control-plane
+    spec:
+      {{- if .Values.cloudControllerManager.nodeSelector }}
+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
+      {{- with .Values.cloudControllerManager.nodeSelector }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- else }}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              # RKE node selector label
+              - key: node-role.kubernetes.io/controlplane
+                operator: In
+                values:
+                - "true"
+              - key: kubernetes.io/os
+                operator: NotIn
+                values:
+                - "windows"
+            - matchExpressions:
+              # RKE2 node selector label
+              - key: node-role.kubernetes.io/control-plane
+                operator: In
+                values:
+                - "true"
+              - key: kubernetes.io/os
+                operator: NotIn
+                values:
+                - "windows"
+      {{- end }}
+      {{- if .Values.cloudControllerManager.tolerations }}
+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+      {{- with .Values.cloudControllerManager.tolerations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- else }}
+      tolerations:
+        - key: node.cloudprovider.kubernetes.io/uninitialized
+          value: "true"
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+          operator: Exists
+        - key: node.kubernetes.io/not-ready
+          effect: NoSchedule
+          operator: Exists
+        # Rancher specific change: These tolerations are added to account for RKE1 and RKE2 taints
+        - key: node-role.kubernetes.io/controlplane
+          effect: NoSchedule
+          value: "true"
+        - key: node-role.kubernetes.io/control-plane
+          effect: NoSchedule
+          operator: Exists
+        - key: node-role.kubernetes.io/etcd
+          effect: NoExecute
+          operator: Exists
+      {{- end }}
+      securityContext:
+        runAsUser: 1001
+      serviceAccountName: {{ .Chart.Name }}-cloud-controller-manager
+      containers:
+        - name: {{ .Chart.Name }}-cloud-controller-manager
+          image: {{ template "system_default_registry" . }}{{ .Values.cloudControllerManager.repository }}:{{ .Values.cloudControllerManager.tag }}
+          args:
+            - --cloud-provider=vsphere
+            - --v=2
+            - --cloud-config=/etc/cloud/vsphere.yaml
+          volumeMounts:
+            - mountPath: /etc/cloud
+              name: vsphere-config-volume
+              readOnly: true
+          resources:
+            requests:
+              cpu: 200m
+      hostNetwork: true
+      volumes:
+      - name: vsphere-config-volume
+        configMap:
+          name: vsphere-cloud-config
