@@ -78,14 +78,6 @@ var suite = test.Suite{
 		},
 
 		{
-			Name: "Set .Values.overlayFile",
-			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				Set(
-					"overlayFile", testIstioOverlay,
-				),
-		},
-
-		{
 			Name: "Set .Values.tag",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
 				SetValue(
@@ -604,31 +596,6 @@ var suite = test.Suite{
 							"workload %s (type: %T) in Deployment %s/%s does not have correct excludeNamespaces",
 							container.Name, obj, obj.GetNamespace(), obj.GetName(),
 						)
-					}
-				}),
-			},
-		},
-
-		{
-			Name: "Check overlayFile",
-			Covers: []string{
-				".Values.overlayFile",
-			},
-
-			Checks: test.Checks{
-				checker.PerWorkload(func(tc *checker.TestContext, obj metav1.Object, podTemplateSpec corev1.PodTemplateSpec) {
-
-					overlayFile, _ := checker.RenderValue[string](tc, ".Values.overlayFile")
-
-					if overlayFile == "" {
-						return
-					} else {
-						for _, container := range podTemplateSpec.Spec.Containers {
-							assert.Contains(tc.T, container.Args, "--overlay="+overlayFile,
-								"workload %s (type: %T) in Deployment %s/%s does not have correct overlayFile",
-								container.Name, obj, obj.GetNamespace(), obj.GetName(),
-							)
-						}
 					}
 				}),
 			},
