@@ -1,0 +1,41 @@
+{{- with .Values.monitoring.exporter.serviceMonitor }}
+{{- if and $.Values.monitoring.enabled .enabled -}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: neuvector-prometheus-exporter
+  namespace: {{ $.Release.Namespace }}
+  {{- with .annotations }}
+  annotations:
+    {{ toYaml . | nindent 4 }}
+  {{- end }}
+  labels:
+    chart: {{ template "neuvector.chart" $ }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+{{- if .labels }}
+    {{- toYaml .labels | nindent 4}}
+{{- end }}
+spec:
+  selector:
+    matchLabels:
+      app: neuvector-prometheus-exporter
+  namespaceSelector:
+    matchNames:
+      - {{ $.Release.Namespace }}
+  endpoints:
+    - port: metrics
+      {{- if .interval }}
+      interval: {{ .interval }}
+      {{- end }}
+      path: "/metrics"
+      {{- if .metricRelabelings }}
+      metricRelabelings:
+        {{- toYaml .metricRelabelings | nindent 6 }}
+      {{- end }}
+      {{- if .relabelings }}
+      relabelings:
+        {{- toYaml .relabelings | nindent 6 }}
+      {{- end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,30 @@
+{{- with .Values.monitoring.exporter.svc }}
+{{- if and $.Values.monitoring.exporter.enabled .enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: neuvector-prometheus-exporter
+  namespace: {{ $.Release.Namespace }}
+  {{- with .annotations }}
+  annotations:
+    {{ toYaml . | nindent 4 }}
+  {{- end }}
+  labels:
+    chart: {{ template "neuvector.chart" $ }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    app: neuvector-prometheus-exporter
+spec:
+  type: {{ .type }}
+  {{- if and .loadBalancerIP (eq .type "LoadBalancer") }}
+  loadBalancerIP: {{ .loadBalancerIP }}
+  {{- end }}
+  ports:
+    - port: 8068
+      name: metrics
+      targetPort: 8068
+      protocol: TCP
+  selector:
+    app: neuvector-prometheus-exporter-pod
+{{- end }}
+{{- end }}

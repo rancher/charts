@@ -1,4 +1,4 @@
-### Run-Time Protection Without Compromise
+# Run-Time Protection Without Compromise
 
 NeuVector delivers a complete run-time security solution with container process/file system protection and vulnerability scanning combined with the only true Layer 7 container firewall. Protect sensitive data with a complete container security platform.
 
@@ -11,11 +11,11 @@ NeuVector integrates tightly with Rancher and Kubernetes to extend the built-in 
 + Advanced network controls including DLP detection, service mesh integration, connection blocking and packet captures
 + Run-time vulnerability scanning and CIS benchmarks
 
-Additional Notes:
-+ Previous deployments from Rancher, such as from our Partners chart repository or the primary NeuVector Helm chart, must be completely removed in order to update to the new integrated feature chart. See https://github.com/rancher/rancher/issues/37447.
-+ Configure correct container runtime and runtime path under container runtime. Enable only one runtime.
-+ For deploying on hardened RKE2 and K3s clusters, enable PSP and set user id from other configuration for Manager, Scanner and Updater deployments. User id can be any number other than 0.
-+ For deploying on hardened RKE cluster, enable PSP from security settings.
+## Additional Notes
+
++ Previous deployments from Rancher, such as from our Partners chart repository or the primary NeuVector Helm chart, must be completely removed in order to update to the new integrated feature chart. See <https://github.com/rancher/rancher/issues/37447>.
++ Configure correct container runtime under `systemSettings.containerRuntime`. Enable only one runtime.
++ For deploying on CIS hardened RKE2 and K3s clusters running Kubernetes 1.24 and below, enable PSP and set `runAsUser` id for for Manager, Scanner and Updater deployments. User id can be any number other than 0.
 
 ## Upgrading to Kubernetes v1.25+
 

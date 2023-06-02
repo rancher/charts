@@ -1,6 +1,94 @@
 --- charts-original/templates/controller-deployment.yaml
 +++ charts/templates/controller-deployment.yaml
-@@ -71,19 +71,7 @@
+@@ -12,15 +12,20 @@
+     chart: {{ template "neuvector.chart" . }}
+     release: {{ .Release.Name }}
+     heritage: {{ .Release.Service }}
+-{{- with .Values.controller.annotations }}
+   annotations:
++    checksum/init-secret: {{ include (print $.Template.BasePath "/init-secret.yaml") . | sha256sum }}
++    checksum/init-configmap: {{ include (print $.Template.BasePath "/init-configmap.yaml") . | sha256sum }}
++{{- with .Values.controller.annotations }}    
+ {{ toYaml . | indent 4 }}
+ {{- end }}
+ spec:
+   replicas: {{ .Values.controller.replicas }}
+   minReadySeconds: 60
+   strategy:
+-{{ toYaml .Values.controller.strategy | indent 4 }}
++    type: RollingUpdate
++    rollingUpdate:
++      maxSurge: 1
++      maxUnavailable: 0
+   selector:
+     matchLabels:
+       app: neuvector-controller-pod
+\ No newline at end of file
+@@ -32,65 +37,52 @@
+         {{- with .Values.controller.podLabels }}
+         {{- toYaml . | nindent 8 }}
+         {{- end }}
+-      {{- if or .Values.controller.secret.enabled .Values.controller.configmap.enabled .Values.controller.podAnnotations }}
++      {{- with .Values.controller.podAnnotations }}
+       annotations:
+-        {{- if .Values.controller.secret.enabled }}
+-        checksum/init-secret: {{ include (print $.Template.BasePath "/init-secret.yaml") . | sha256sum }}
+-        {{- end }}
+-        {{- if .Values.controller.configmap.enabled }}
+-        checksum/init-configmap: {{ include (print $.Template.BasePath "/init-configmap.yaml") . | sha256sum }}
+-        {{- end }}
+-        {{- if .Values.controller.podAnnotations }}
+-        {{- toYaml .Values.controller.podAnnotations | nindent 8 }}
+-        {{- end }}
++      {{- toYaml . | nindent 8 }}
+       {{- end }}
+     spec:
+-      {{- if .Values.controller.affinity }}
+-      affinity:
+-{{ toYaml .Values.controller.affinity | indent 8 }}
+-      {{- end }}
+-      {{- if .Values.controller.tolerations }}
+       tolerations:
++{{- if .Values.controller.tolerateControlPlane }}
++{{- include "neuvector.ctlplaneTolerations" . | nindent 8 }}
++{{- end }}
++{{- if .Values.controller.tolerations }}
+ {{ toYaml .Values.controller.tolerations | indent 8 }}
+-      {{- end }}
+-      {{- if .Values.controller.nodeSelector }}
++{{- end }}
++      affinity:
++        podAntiAffinity:
++          preferredDuringSchedulingIgnoredDuringExecution:
++          - weight: 100
++            podAffinityTerm:
++              labelSelector:
++                matchExpressions:
++                - key: app
++                  operator: In
++                  values:
++                  - neuvector-controller-pod
++              topologyKey: "kubernetes.io/hostname"      
+       nodeSelector:
++{{- if .Values.controller.tolerateControlPlane }}
++        node-role.kubernetes.io/control-plane: 'true'
++{{- end }}
++{{- if .Values.controller.nodeSelector }}
+ {{ toYaml .Values.controller.nodeSelector | indent 8 }}
+       {{- end }}
+-      {{- if .Values.controller.schedulerName }}
+-      schedulerName: {{ .Values.controller.schedulerName }}
+-      {{- end }}
+-      {{- if .Values.imagePullSecrets }}
++      {{- if .Values.systemSettings.imagePullSecret.enabled }}
+       imagePullSecrets:
+-        - name: {{ .Values.imagePullSecrets }}
++        - name: neuvector-image-pull-secret
+       {{- end }}
+-      {{- if .Values.controller.priorityClassName }}
+-      priorityClassName: {{ .Values.controller.priorityClassName }}
+-      {{- end }}
+       serviceAccountName: {{ .Values.serviceAccount }}
        serviceAccount: {{ .Values.serviceAccount }}
        containers:
          - name: neuvector-controller-pod
@@ -18,6 +106,123 @@
 -          {{- end }}
 -          {{- end }}
 +          image: {{ template "system_default_registry" . }}{{ .Values.controller.image.repository }}:{{ .Values.controller.image.tag }}
++          imagePullPolicy: {{ .Values.controller.image.pullPolicy | default "Always" }}
            securityContext:
              privileged: true
            resources:
+           {{- if .Values.controller.resources }}
+ {{ toYaml .Values.controller.resources | indent 12 }}
+-          {{- else }}
+-{{ toYaml .Values.resources | indent 12 }}
+           {{- end }}
+           readinessProbe:
+             exec:
+\ No newline at end of file
+@@ -110,16 +102,24 @@
+               valueFrom:
+                 fieldRef:
+                   fieldPath: status.podIP
+-          {{- if .Values.controller.ranchersso.enabled }}
++          {{- if .Values.rancherSSO.enabled }}
+             - name: RANCHER_SSO
+               value: "1"
+             - name: RANCHER_EP
+-              value: "{{ .Values.global.cattle.url }}"
++              value: {{ .Values.global.cattle.url | quote }}
++          {{- if not .Values.systemSettings.createLocalAdmin }}
++            - name: NO_DEFAULT_ADMIN
++              value: "1"
+           {{- end }}
++          {{- end }}
+           {{- if or .Values.controller.pvc.enabled .Values.controller.azureFileShare.enabled }}
+             - name: CTRL_PERSIST_CONFIG
+               value: "1"
+           {{- end }}
++          {{- if .Values.platformInfo }}
++            - name: NV_PLATFORM_INFO
++              value: "platform={{ .Values.platformInfo }}"
++          {{- end }}
+           {{- with .Values.controller.env }}
+ {{- toYaml . | nindent 12 }}
+           {{- end }}
+\ No newline at end of file
+@@ -127,17 +127,7 @@
+             - mountPath: /var/neuvector
+               name: nv-share
+               readOnly: false
+-          {{- if .Values.containerd.enabled }}
+-            - mountPath: /var/run/containerd/containerd.sock
+-          {{- else if .Values.k3s.enabled }}
+-            - mountPath: /var/run/containerd/containerd.sock
+-          {{- else if .Values.bottlerocket.enabled }}
+-            - mountPath: /var/run/containerd/containerd.sock
+-          {{- else if .Values.crio.enabled }}
+-            - mountPath: /var/run/crio/crio.sock
+-          {{- else }}
+-            - mountPath: /var/run/docker.sock
+-          {{- end }}
++            - mountPath: {{ include "neuvector.criVolumeMount" . }}
+               name: runtime-sock
+               readOnly: true
+             - mountPath: /host/proc
+\ No newline at end of file
+@@ -159,7 +149,7 @@
+               name: cert
+               readOnly: true
+           {{- end }}
+-          {{- if .Values.internal.certmanager.enabled }}
++          {{- if .Values.controller.internal.certificate.secret }}
+             - mountPath: /etc/neuvector/certs/internal/cert.key
+               subPath: {{ .Values.controller.internal.certificate.keyFile }}
+               name: internal-cert
+\ No newline at end of file
+@@ -191,17 +181,7 @@
+         {{- end }}
+         - name: runtime-sock
+           hostPath:
+-          {{- if .Values.containerd.enabled }}
+-            path: {{ .Values.containerd.path }}
+-          {{- else if .Values.crio.enabled }}
+-            path: {{ .Values.crio.path }}
+-          {{- else if .Values.k3s.enabled }}
+-            path: {{ .Values.k3s.runtimePath }}
+-          {{- else if .Values.bottlerocket.enabled }}
+-            path: {{ .Values.bottlerocket.runtimePath }}
+-          {{- else }}
+-            path: {{ .Values.docker.path }}
+-          {{- end }}
++            path: {{ include "neuvector.criVolume" . }}
+         - name: proc-vol
+           hostPath:
+             path: /proc
+\ No newline at end of file
+@@ -222,26 +202,9 @@
+           secret:
+             secretName: {{ .Values.controller.certificate.secret }}
+       {{- end }}
+-      {{- if .Values.internal.certmanager.enabled }}
++      {{- if .Values.controller.internal.certificate.secret }}
+         - name: internal-cert
+           secret:
+             secretName: {{ .Values.controller.internal.certificate.secret }}
+       {{- end }}
+-{{- if gt (int .Values.controller.disruptionbudget) 0 }}
+----
+-{{- if (semverCompare ">=1.21-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+-apiVersion: policy/v1
+-{{- else }}
+-apiVersion: policy/v1beta1
+-{{- end }}
+-kind: PodDisruptionBudget
+-metadata:
+-  name: neuvector-controller-pdb
+-  namespace: {{ .Release.Namespace }}
+-spec:
+-  minAvailable: {{ .Values.controller.disruptionbudget }}
+-  selector:
+-    matchLabels:
+-      app: neuvector-controller-pod
+-{{- end }}
+-{{- end }}
++{{- end }}
+\ No newline at end of file

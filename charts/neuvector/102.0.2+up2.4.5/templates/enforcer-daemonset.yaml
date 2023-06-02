@@ -13,7 +13,8 @@ metadata:
     heritage: {{ .Release.Service }}
     release: {{ .Release.Name }}
 spec:
-  updateStrategy: {{- toYaml .Values.enforcer.updateStrategy | nindent 4 }}
+  updateStrategy:
+    type: RollingUpdate
   selector:
     matchLabels:
       app: neuvector-enforcer-pod
@@ -30,30 +31,29 @@ spec:
       {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
-    {{- if .Values.imagePullSecrets }}
+    {{- if .Values.systemSettings.imagePullSecret.enabled }}
       imagePullSecrets:
-        - name: {{ .Values.imagePullSecrets }}
+        - name: neuvector-image-pull-secret
     {{- end }}
-    {{- if .Values.enforcer.tolerations }}
       tolerations:
+{{- if .Values.enforcer.tolerateControlPlane }}
+{{- include "neuvector.ctlplaneTolerations" . | nindent 8 }}
+{{- end }}
+{{- if .Values.enforcer.tolerations }}
 {{ toYaml .Values.enforcer.tolerations | indent 8 }}
-    {{- end }}
+{{- end }}
       hostPID: true
-    {{- if .Values.enforcer.priorityClassName }}
-      priorityClassName: {{ .Values.enforcer.priorityClassName }}
-    {{- end }}
       serviceAccountName: {{ .Values.serviceAccount }}
       serviceAccount: {{ .Values.serviceAccount }}
       containers:
         - name: neuvector-enforcer-pod
           image: {{ template "system_default_registry" . }}{{ .Values.enforcer.image.repository }}:{{ .Values.enforcer.image.tag }}
+          imagePullPolicy: {{ .Values.enforcer.image.pullPolicy | default "Always" }}
           securityContext:
             privileged: true
           resources:
           {{- if .Values.enforcer.resources }}
 {{ toYaml .Values.enforcer.resources | indent 12 }}
-          {{- else }}
-{{ toYaml .Values.resources | indent 12 }}
           {{- end }}
           env:
             - name: CLUSTER_JOIN_ADDR
@@ -66,21 +66,12 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-          {{- with .Values.enforcer.env }}
-{{- toYaml . | nindent 12 }}
+          {{- if .Values.platformInfo }}
+            - name: NV_PLATFORM_INFO
+              value: "platform={{ .Values.platformInfo }}"
           {{- end }}
           volumeMounts:
-          {{- if .Values.containerd.enabled }}
-            - mountPath: /var/run/containerd/containerd.sock
-          {{- else if .Values.k3s.enabled }}
-            - mountPath: /var/run/containerd/containerd.sock
-          {{- else if .Values.bottlerocket.enabled }}
-            - mountPath: /var/run/containerd/containerd.sock
-          {{- else if .Values.crio.enabled }}
-            - mountPath: /var/run/crio/crio.sock
-          {{- else }}
-            - mountPath: /var/run/docker.sock
-          {{- end }}
+            - mountPath: {{ include "neuvector.criVolumeMount" . }}
               name: runtime-sock
               readOnly: true
             - mountPath: /host/proc
@@ -92,7 +83,7 @@ spec:
             - mountPath: /lib/modules
               name: modules-vol
               readOnly: true
-          {{- if .Values.internal.certmanager.enabled }}
+          {{- if .Values.enforcer.internal.certificate.secret }}
             - mountPath: /etc/neuvector/certs/internal/cert.key
               subPath: {{ .Values.enforcer.internal.certificate.keyFile }}
               name: internal-cert
@@ -111,17 +102,7 @@ spec:
       volumes:
         - name: runtime-sock
           hostPath:
-          {{- if .Values.containerd.enabled }}
-            path: {{ .Values.containerd.path }}
-          {{- else if .Values.crio.enabled }}
-            path: {{ .Values.crio.path }}
-          {{- else if .Values.k3s.enabled }}
-            path: {{ .Values.k3s.runtimePath }}
-          {{- else if .Values.bottlerocket.enabled }}
-            path: {{ .Values.bottlerocket.runtimePath }}
-          {{- else }}
-            path: {{ .Values.docker.path }}
-          {{- end }}
+            path: {{ include "neuvector.criVolume" . }}
         - name: proc-vol
           hostPath:
             path: /proc
@@ -131,7 +112,7 @@ spec:
         - name: modules-vol
           hostPath:
             path: /lib/modules
-      {{- if .Values.internal.certmanager.enabled }}
+      {{- if .Values.enforcer.internal.certificate.secret }}
         - name: internal-cert
           secret:
             secretName: {{ .Values.enforcer.internal.certificate.secret }}

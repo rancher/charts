@@ -4,60 +4,207 @@
 
 global:
   cattle:
-    systemDefaultRegistry: ""
     psp:
-      enabled: false # PSP enablement should default to false
+      enabled: false # PSP enablement should default to false for Kubernetes v1.25+
+    systemDefaultRegistry: 
+    url: # URL for Rancher Server
 
-openshift: false
-
-registry: docker.io
 oem:
+openshift: false
+# Optional. Uncomment below option only if running NeuVector in GKE.  This will enable GKE-specific CIS benchmarks.
+platformInfo: #Kubernetes:GKE
+rancherSSO:
+  enabled: true
 rbac: true
+registry:
 serviceAccount: neuvector
 
-internal: # enable when cert-manager is installed for the internal certificates
-  certmanager: 
+admissionwebhook:
+  type: ClusterIP
+
+crdwebhook:
+  enabled: true
+  type: ClusterIP
+
+customUserRoles:
+# Optional. Default NeuVector user roles of 'admin', 'reader', and 'ciops' exist by default.
+  enabled: false
+  createAsSecret:
+  # If false, will create custom user roles as a ConfigMap resource instead of a Secret 
+    enabled: false
+  roles:
+  - roleName: demo1
+    roleID: rt_scan
+  #  roleDescription: demo1 (optional)
+  #  read: true (optional)
+  #  write: true (optional)
+  - roleName: demo2
+    roleID: security_events
+  #  roleDescription: demo2 (optional)
+  #  read: true (optional)
+
+externalAuthProvider:
+# Optional. Use external provider for NeuVector authentication
+  enabled: false
+  provider: # Option is one of: 'ldap', 'oidc', or 'saml'
+  config: |
+
+
+internal:
+  certmanager:
     enabled: false
     secretname: neuvector-internal
 
+localPasswordProfile:
+  enabled: false
+  # Optional settings to create a password policy for local user accounts. A default policy will be created if 'localUsers' is set to 'enabled'.
+  # All 'localPasswordProfile' fields are optional
+  createAsSecret:
+  # If false, will create password profile as a ConfigMap resource instead of a Secret 
+    enabled: false
+  expireAfter:     # (in days) Defaults to 0
+  expireEnabled:   # Defaults to 'false'
+  historyCount:    # Defaults to '0'
+  historyEnabled:  # Defaults to 'false'
+  lockoutAttempts: # Defaults to 0
+  lockoutDuration: # (in minutes) Defaults to 0
+  lockoutEnabled:  # Defaults to 'false'
+  minLength:       # Defaults to '6'
+  minLowercase:    # Defaults to '0'
+  minNumeric:      # Defaults to '0'
+  minSpecialChar:  # Defaults to '0'
+  minUppercase:    # Defaults to '0'
+
+localUsers:
+  enabled: false
+  users:
+  - username:
+    password:
+    role:
+    #email: (optional)
+    #locale: en (optional)
+    #roleDomains: (optional)
+    #  admin:
+    #    - admin1
+    #    - admin2
+    #  reader:
+    #    - reader1
+    #    - reader2
+
+monitoring:
+  enabled: false
+  exporter:
+    enabled: true
+    image:
+      repository: neuvector/prometheus-exporter
+      tag: latest
+      pullPolicy:
+    credentials:
+      # This is a local read-only user account
+      Fullname: monitoring
+      Password: Pr0m3th3u$
+    apiSvc: neuvector-svc-controller-api:10443
+    svc:
+      enabled: true
+      type: ClusterIP
+      loadBalancerIP: ''
+    grafanaDashboard:
+      enabled: true
+      scrapeEnforcerMetrics: false # Enforcer metrics scraping is disabled by default for performance reasons. 
+      namespace:
+      labels: {}
+    serviceMonitor:
+      enabled: true
+      # labels for the ServiceMonitor
+      labels: {}
+      # annotations for the ServiceMonitor
+      annotations: {}
+      # Scrape interval. If not set, the Prometheus default scrape interval is used.
+      interval: ""
+      # MetricRelabelConfigs to apply to samples after scraping, but before ingestion.
+      # ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#relabelconfig
+      metricRelabelings: []
+      # RelabelConfigs to apply to samples before scraping
+      # ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#relabelconfig
+      relabelings: []
+
+systemSettings:
+  createAsSecret:
+  # If false, will create system settings as a ConfigMap resource instead of a Secret 
+    enabled: false
+  autoScan:         # Defaults to 'false'. Enables auto-scanning of discovered assets
+  clusterName:      # Defaults to 'cluster.local'
+  containerRuntime: # Options are 'bottlerocket', 'containerd', 'crio', 'docker', 'k3s', or 'rke2'
+  createLocalAdmin: # Create default local 'admin' account
+    create: true
+    password:       # Password is minimum of: 8 characters, 1 uppercase, 1 lowercase, 1 number, and 1 special character
+  newServiceMode:   # Defaults to 'Discover'. Options are: 'Discover', 'Monitor', or 'Protect'
+  noTelemetryReport: false # Sends anonymous NeuVector telemetry data
+  unusedGroupAging: # Defaults to '24'. Interval, in hours, that empty container groups will be purged
+  # Zero-drift automatically allows only processes which originate from the parent process that is in the original container image, and does not allow file updates or new files to be installed
+  zeroDrift:        # Defaults to 'zero-drift'. Options are 'basic' or 'zero-drift'
+  imagePullSecret:
+  # Enable to create/use image registry secret for image pulls
+    enabled: false
+    registry: 
+    username: 
+    password: 
+    email:
+  notificationWebhooks:
+  # Optional settings for sending notifications via webhook (can create more than one)
+    enabled: false
+    webhooks:
+      - name:
+        url:
+        type:   # Valid options are: 'JSON', 'Key-Value Pairs', 'MS Teams', or 'Slack' 
+        enable: # Defaults to 'true'
+  registryProxy:
+  # Optional settings for proxy information used to connect to external container registries
+    http:
+      enabled: false
+      httpProxy:
+        url:
+        username: # Optional. Reccomend to enable 'createAsSecret' option if populating these values
+        password: # Optional
+    https:
+      enabled: false
+      httpsProxy:
+        url:
+        username: # Optional. Reccomend to enable 'createAsSecret' option if populating these values
+        password: # Optional    
+  scannerAutoscale:
+    customize: false
+  # Scanner autoscaling details can be found at: https://open-docs.neuvector.com/scanning/scanners#auto-scaling-of-scanner-pods
+    maxPods: 3
+    minPods: 1
+    scalingStrategy: delayed  # Defaults to 'delayed'. Options are: 'delayed' and 'immediate'    
+  syslog:
+  # Optional settings for forwarding events to Syslog server
+    enabled: false
+    categories: [ audit, event, security-event ] # Any syslog category is optional
+    jsonOutput: # 'true' or 'false'
+    logLevel:   # Defaults to 'Info'. Options are: 'Alert', 'Critical', 'Error', 'Info', 'Warning', 'Notice', or 'Debug'
+    protocol:   # Options are: 'tcp' or 'udp'
+    serverIP:   # IPv4 address or FQDN
+    serverPort: # Defaults to '514'
+
 controller:
-  # If false, controller will not be installed
   enabled: true
+  tolerateControlPlane: false
   annotations: {}
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
   image:
     repository: rancher/mirrored-neuvector-controller
-    tag: 5.1.3
+    tag: 5.1.2
     hash:
-  replicas: 3
-  disruptionbudget: 0
-  schedulerName:
-  priorityClassName:
+    pullPolicy:    
+  replicas: 1
   podLabels: {}
   podAnnotations: {}
   env: []
-  affinity:
-    podAntiAffinity:
-      preferredDuringSchedulingIgnoredDuringExecution:
-      - weight: 100
-        podAffinityTerm:
-          labelSelector:
-            matchExpressions:
-            - key: app
-              operator: In
-              values:
-              - neuvector-controller-pod
-          topologyKey: "kubernetes.io/hostname"
   tolerations: []
   nodeSelector: {}
-    # key1: value1
-    # key2: value2
   apisvc:
-    type:
+    type: ClusterIP
     annotations: {}
     # OpenShift Route configuration
     # Controller supports HTTPS only, so edge termination not supported
@@ -78,29 +225,28 @@ controller:
         #key: |
         #  -----BEGIN PRIVATE KEY-----
         #  -----END PRIVATE KEY-----
-  ranchersso:
-    enabled: true
-  pvc:
+  pvc: # NeuVector PVC *requires* ReadWriteMany (RWX). Capacity is 1Gi
     enabled: false
     existingClaim: false
-    accessModes:
-      - ReadWriteMany
-    storageClass:
-    capacity:
+    storageClass: 
+
   azureFileShare:
     enabled: false
     secretName:
     shareName:
+
   certificate:
     secret:
     keyFile: tls.key
     pemFile: tls.pem
+
   internal: # this is used for internal communication. Please use the SAME CA for all the components ( controller, scanner, and enforcer ) The cert needs to have a CN of "NeuVector"
     certificate:
-      secret: neuvector-internal
-      keyFile: tls.key
-      pemFile: tls.crt
-      caFile: ca.crt # must be the same CA for all internal.
+      secret:
+      keyFile: cert.key
+      pemFile: cert.pem
+      caFile: ca.cert # must be the same CA for all internal.
+
   federation:
     mastersvc:
       type:
@@ -135,6 +281,7 @@ controller:
           #key: |
           #  -----BEGIN PRIVATE KEY-----
           #  -----END PRIVATE KEY-----
+
     managedsvc:
       type:
       # Federation Managed Ingress
@@ -168,6 +315,7 @@ controller:
           #key: |
           #  -----BEGIN PRIVATE KEY-----
           #  -----END PRIVATE KEY-----
+
   ingress:
     enabled: false
     host:  # MUST be set, if ingress is enabled
@@ -179,94 +327,37 @@ controller:
     tls: false
     secretName:
   resources: {}
-    # limits:
-    #   cpu: 400m
-    #   memory: 2792Mi
-    # requests:
-    #   cpu: 100m
-    #   memory: 2280Mi
-  configmap:
-    enabled: false
-    data:
-      # passwordprofileinitcfg.yaml: |
-      #  ...
-      # roleinitcfg.yaml: |
-      #  ...
-      # ldapinitcfg.yaml: |
-      #  ...
-      # oidcinitcfg.yaml: |
-      # ...
-      # samlinitcfg.yaml: |
-      # ...
-      # sysinitcfg.yaml: |
-      # ...
-      # userinitcfg.yaml: |
-      # ...
-  secret:
-    # NOTE: files defined here have preferrence over the ones defined in the configmap section
-    enabled: false
-    data: {}
-      # passwordprofileinitcfg.yaml: |
-      #  ...
-      # roleinitcfg.yaml: |
-      #  ...
-      # ldapinitcfg.yaml:
-      #   directory: OpenLDAP
-      #   ...
-      # oidcinitcfg.yaml:
-      #   Issuer: https://...
-      #   ...
-      # samlinitcfg.yaml:
-      #   ...
-      # sysinitcfg.yaml:
-      #   ...
-      # userinitcfg.yaml:
-      #   ...
 
 enforcer:
-  # If false, enforcer will not be installed
   enabled: true
+  tolerateControlPlane: false
   image:
     repository: rancher/mirrored-neuvector-enforcer
-    tag: 5.1.3
+    tag: 5.1.2
     hash:
-  updateStrategy:
-    type: RollingUpdate
-  priorityClassName:
+    pullPolicy:    
   podLabels: {}
   podAnnotations: {}
-  env: []
-  tolerations:
-    - effect: NoSchedule
-      key: node-role.kubernetes.io/master
-    - effect: NoSchedule
-      key: node-role.kubernetes.io/control-plane
+  tolerations: []
   resources: {}
-    # limits:
-    #   cpu: 400m
-    #   memory: 2792Mi
-    # requests:
-    #   cpu: 100m
-    #   memory: 2280Mi
   internal: # this is used for internal communication. Please use the SAME CA for all the components ( controller, scanner, and enforcer ) The cert needs to have a CN of "NeuVector"
     certificate:
-      secret: neuvector-internal
-      keyFile: tls.key
-      pemFile: tls.crt
-      caFile: ca.crt # must be the same CA for all internal.
+      secret:
+      keyFile: cert.key
+      pemFile: cert.pem
+      caFile: ca.cert # must be the same CA for all internal.
       
 manager:
-  # If false, manager will not be installed
   enabled: true
   image:
     repository: rancher/mirrored-neuvector-manager
-    tag: 5.1.3
+    tag: 5.1.2
     hash:
-  priorityClassName:
+    pullPolicy:
   env:
     ssl: true
   svc:
-    type: NodePort # should be set to - ClusterIP
+    type: ClusterIP
     loadBalancerIP:
     annotations: {}
       # azure
@@ -310,24 +401,16 @@ manager:
     tls: false
     secretName:  # my-tls-secret
   resources: {}
-    # limits:
-    #   cpu: 400m
-    #   memory: 2792Mi
-    # requests:
-    #   cpu: 100m
-    #   memory: 2280Mi
   affinity: {}
   podLabels: {}
   podAnnotations: {}
   tolerations: []
   nodeSelector: {}
-    # key1: value1
-    # key2: value2
-  runAsUser:  # MUST be set for Rancher hardened cluster
+  # node-role.kubernetes.io/control-plane: 'true'
+  runAsUser:  # MUST be set for CIS 1.6 hardened Rancher clusters
   
 cve:
   updater:
-    # If false, cve updater will not be installed
     enabled: true
     secure: false
     image:
@@ -335,80 +418,29 @@ cve:
       tag: latest
       hash:
     schedule: "0 0 * * *"
-    priorityClassName:
     podLabels: {}
     podAnnotations: {}
     nodeSelector: {}
-      # key1: value1
-      # key2: value2
-    runAsUser:  # MUST be set for Rancher hardened cluster
+    # node-role.kubernetes.io/control-plane: 'true'
+    runAsUser:  # MUST be set for CIS 1.6 hardened Rancher clusters
   scanner:
     enabled: true
-    replicas: 3
     dockerPath: ""
-    strategy:
-      type: RollingUpdate
-      rollingUpdate:
-        maxSurge: 1
-        maxUnavailable: 0
     image:
       repository: rancher/mirrored-neuvector-scanner
       tag: latest
       hash:
-    priorityClassName:
     resources: {}
-      # limits:
-      #   cpu: 400m
-      #   memory: 2792Mi
-      # requests:
-      #   cpu: 100m
-      #   memory: 2280Mi
     affinity: {}
     podLabels: {}
     podAnnotations: {}
-    env: []
     tolerations: []
     nodeSelector: {}
-      # key1: value1
-      # key2: value2
-    runAsUser:  # MUST be set for Rancher hardened cluster
+    # node-role.kubernetes.io/control-plane: 'true'
+    runAsUser:  # MUST be set for CIS 1.6 hardened Rancher clusters
     internal: # this is used for internal communication. Please use the SAME CA for all the components ( controller, scanner, and enforcer ) The cert needs to have a CN of "NeuVector"
       certificate:
-        secret: neuvector-internal
-        keyFile: tls.key
-        pemFile: tls.crt
-        caFile: ca.crt # must be the same CA for all internal.
-
-docker:
-  path: /var/run/docker.sock
-
-resources: {}
-  # limits:
-  #   cpu: 400m
-  #   memory: 2792Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 2280Mi
-
-k3s:
-  enabled: false
-  runtimePath: /run/k3s/containerd/containerd.sock
-
-bottlerocket:
-  enabled: false
-  runtimePath: /run/dockershim.sock
-
-containerd:
-  enabled: false
-  path: /var/run/containerd/containerd.sock
-
-crio:
-  enabled: false
-  path: /var/run/crio/crio.sock
-
-admissionwebhook:
-  type: ClusterIP
-
-crdwebhook:
-  enabled: true
-  type: ClusterIP
+        secret:
+        keyFile: cert.key
+        pemFile: cert.pem
+        caFile: ca.cert # must be the same CA for all internal.

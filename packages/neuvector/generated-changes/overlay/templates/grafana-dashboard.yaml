@@ -1,0 +1,17 @@
+{{- with .Values.monitoring.exporter.grafanaDashboard }}
+{{- if and $.Values.monitoring.enabled .enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nv-grafana-dashboard
+  namespace: {{ .namespace | default $.Release.Namespace }}
+  labels:
+    grafana_dashboard: "1"
+{{- if .labels }}
+    {{- toYaml .labels | nindent 4}}
+{{- end }}
+data:
+  nv_dashboard.json: |
+{{ $.Files.Get "dashboard/nv_dashboard.json" | indent 4 }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,50 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.exporter.enabled }}
+{{ with .Values.monitoring.exporter }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neuvector-prometheus-exporter-pod
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" $ }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neuvector-prometheus-exporter-pod
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8068"
+        prometheus.io/scrape: "true"
+        checksum/secret: {{ include (print $.Template.BasePath "/prom-exporter-secret.yaml") $ | sha256sum }}
+      labels:
+        app: neuvector-prometheus-exporter-pod
+        release: {{ $.Release.Name }}
+    spec:
+    {{- if $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        - name: {{ $.Values.imagePullSecrets }}
+    {{- end }}
+      containers:
+        - name: neuvector-prometheus-exporter-pod
+          image: {{ template "system_default_registry" $ }}{{ .image.repository }}:{{ .image.tag }}
+          imagePullPolicy: {{ .image.pullPolicy | default "Always" }}
+          env:
+            - name: CTRL_API_SERVICE
+              value: {{ .apiSvc }}
+            - name: EXPORTER_PORT
+              value: "8068"
+            {{- if .grafanaDashboard.scrapeEnforcerMetrics }}
+            - name: ENFORCER_STATS
+              value: "1"
+            {{- end }}
+          envFrom:
+            - secretRef:
+                name: neuvector-prometheus-exporter-pod-secret
+      restartPolicy: Always
+{{- end }}
+{{- end }}

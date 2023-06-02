@@ -1,0 +1,20 @@
+{{- if ge (int .Values.controller.replicas) 3 }}
+{{- if (semverCompare ">=1.21-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: policy/v1
+{{- else }}
+apiVersion: policy/v1beta1
+{{- end }}
+kind: PodDisruptionBudget
+metadata:
+  name: neuvector-controller-pdb
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: neuvector-controller-pod
+{{- end }}
