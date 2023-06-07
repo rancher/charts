@@ -1,0 +1,471 @@
+questions:
+# Container Runtime Settings
+  - variable: systemSettings.containerRuntime
+    type: enum
+    label: Container Runtime Selection
+    required: true
+    default: ""
+    description: "Select container runtime of this cluster"
+    options:
+      - "bottlerocket"
+      - "containerd"
+      - "crio"
+      - "docker"
+      - "k3s"
+      - "rke2"
+    group: "Container Runtime Selection"
+
+# System Settings
+  - variable: controller.image.tag
+    type: string
+    label: Controller Image Tag
+    default: 5.1.3
+    description: Image tag for Controller Deployment. In most cases, this can be left at the default value.
+    group: "System Settings"
+
+  - variable: enforcer.image.tag
+    type: string
+    label: Enforcer Image Tag
+    default: 5.1.3
+    description: Image tag for Enforcer Daemonset. In most cases, this can be left at the default value.
+    group: "System Settings"
+
+  - variable: manager.image.tag
+    type: string
+    label: Manager Image Tag
+    default: 5.1.3
+    description: Image tag for Manager Deployment. In most cases, this can be left at the default value.
+    group: "System Settings"
+
+  - variable: systemSettings.noTelemetryReport
+    type: boolean
+    label: Disable Anonymous Collection of Neuvector Telemetry Data (number of Nodes, Groups, & Rules)
+    default: false
+    group: "System Settings"
+
+  - variable: systemSettings.createLocalAdmin.create
+    type: boolean
+    label: Create Default Local Admin Account
+    default: true
+    group: "System Settings"
+    show_subquestion_if: true
+    subquestions:
+      - variable: systemSettings.createLocalAdmin.password
+        type: password
+        label: NeuVector Local Admin Password
+        required: true
+        default: ""
+        description: "**REQUIRED IF ENABLING ADMIN ACCOUNT**
+                      Password must be a minimum of 8 characters: 1 uppercase, 1 lowercase, 1 number, and 1 special character."
+
+  - variable: imagePullSecret.enabled
+    type: boolean
+    label: Create Secret for Private Registry Credentials
+    required: true
+    default: false
+    group: "System Settings"
+    show_subquestion_if: true
+    subquestions:
+      - variable: imagePullSecret.registry
+        type: string
+        label: Image Registry URL
+        default: ""
+        description: "Image Registry URL"
+
+      - variable: imagePullSecret.username
+        type: string
+        label: Image Registry Username
+        default: ""
+        description: "Image Registry Username"
+
+      - variable: imagePullSecret.password
+        type: password
+        label: Image Registry Password
+        default: ""
+        description: "Image Registry Password"
+
+      - variable: imagePullSecret.email
+        type: string
+        label: Image Registry E-Mail
+        default: ""
+        description: "Image Registry E-Mail"
+
+  - variable: controller.pvc.enabled
+    type: boolean
+    label: Enable 1GB PVC for Policy & Configuration Backups. The CSI Must Support ReadWriteMany (RWX) Access Type.
+    default: false
+    group: "System Settings"
+    show_subquestion_if: true
+    subquestions:
+      - variable: controller.pvc.storageClass
+        type: storageclass
+        label: Storage Class Name
+        default: ""
+        description: Select StorageClass to use. Leaving blank will default to cluster's default StorageClass.
+
+  - variable: systemSettings.zeroDrift
+    type: enum
+    default: zero-drift
+    label: New Service Mode
+    description: "Enable (zero-drift) or disable (basic) automated protection that prevents processes and file system drift for new groups."
+    options:
+      - "basic"
+      - "zero-drift"
+    group: "System Settings"
+
+# Scanning Settings
+  - variable: systemSettings.autoScan
+    type: boolean
+    label: Enable Automatic Scanning of Discovered Containers & Nodes
+    default: false
+    group: "Scanner Settings"
+
+  - variable: systemSettings.scannerAutoscale.customize
+    type: boolean
+    label: Customize Scanner Pod Replica Autoscaling
+    default: false
+    group: "Scanner Settings"
+    show_subquestion_if: true
+    subquestions:
+      - variable: systemSettings.scannerAutoscale.minPods
+        type: int
+        label: Scanner Pod Minimum Replica Count
+        default: 1
+
+      - variable: systemSettings.scannerAutoscale.maxPods
+        type: int
+        label: Scanner Pod Maximum Replica Count
+        default: 3
+
+      - variable: systemSettings.scannerAutoscale.scalingStrategy
+        type: enum
+        label: Scanner Pod Autoscaling Strategy
+        default: delayed
+        description: "DELAYED STRATEGY: When lead controller continuously sees 'task count > 0 for > 90 seconds, a new scanner pod is started if maxPods is not reached yet.
+                      IMMEDIATE STRATEGY: Every time when lead controller sees 'task count' > 0, a new scanner pod is started if maxPods is not reached yet.
+                      SCALE DOWN BEHAVIOR: For both strategies, when lead controller continuously sees 'task count' is 0 for > 180 seconds, it scales down one scanner pod if minPods is not reached yet."
+        options:
+          - "delayed"
+          - "immediate"
+
+  - variable: platformInfo
+    default: ""
+    type: enum
+    label: Select Custom Platform Option
+    description: "For GKE clusters only. This option will enable GKE-specific CIS benchmark scans."
+    options:
+      - " "
+      - "Kubernetes:GKE"
+    group: "Scanner Settings"
+
+# Pod Scheduling
+  - variable: controller.replicas
+    type: int
+    label: Controller Pod Replicas
+    default: 3
+    description: "Controller Pod replica count. Odd-numbered quantity required for Raft consensus."
+    group: "Pod Scheduling"
+
+  - variable: controller.tolerateControlPlane
+    type: boolean
+    label: Schedule Controller Pods to ONLY Kubernetes Control Plane Nodes
+    default: false
+    description: "Overrides default scheduling behavior of Controller Deployment. Enabling this setting will schedule Controller Pods on Control Plane nodes. This setting will not apply to Managed Kubernetes Providers (i.e. EKS, AKS, GKE)."
+    group: "Pod Scheduling"
+
+  - variable: enforcer.tolerateControlPlane
+    type: boolean
+    label: Schedule Enforcer Pods to BOTH Worker & Control Plane Nodes 
+    default: false
+    description: "Overrides default scheduling behavior of Enforcer Daemonset. Enabling this setting will schedule Enforcer Pods on both Worker & Control Plane nodes. This setting will not apply to Managed Kubernetes Providers (i.e. EKS, AKS, GKE)."
+    group: "Pod Scheduling"
+
+# Monitoring
+  - variable: monitoring.enabled
+    type: boolean
+    label: Enable NeuVector Prometheus Service Monitoring & Grafana Dashboard
+    default: false
+    description: "Existing Prometheus & Grafana installation is required. Installs NeuVector Prometheus Exporter, Prometheus Service Monitor, & Grafana Dashboard."
+    group: "Monitoring"
+    show_subquestion_if: true
+    subquestions:
+      - variable: monitoring.exporter.grafanaDashboard.scrapeEnforcerMetrics
+        type: boolean
+        label: Scrape NeuVector Enforcer Pod Statistics
+        default: false
+        description: "Collects metrics of Enforcer Pod Replicas. For performance reasons, this is disabled by default."
+
+      - variable: monitoring.exporter.grafanaDashboard.namespace
+        type: string
+        label: Namespace for Grafana Dashboard
+        default: ""
+        description: "Namespace for NeuVector Grafana Dashboard ConfigMap.  If you've installed Rancher Monitoring chart, set this to 'cattle-dashboards'"
+
+      - variable: monitoring.exporter.credentials.Fullname
+        type: string
+        label: Metrics Account Username
+        default: "monitoring"
+        description: "Username for Read-Only NeuVector Metrics Scraping Account. Defaults to 'monitoring'."
+
+      - variable: monitoring.exporter.credentials.Password
+        type: password
+        label: Metrics Account Password
+        default: "Pr0m3th3u$"
+        description: "Password for Read-Only NeuVector Metrics Scraping Account. Defaults to 'Pr0m3th3u$'."
+
+# Container Registry Proxy
+  - variable: systemSettings.registryProxy.http.enabled
+    type: boolean
+    label: Enable & Configure HTTP Proxy Settings for Connecting to External Container Registries
+    default: false
+    group: "Container Registry Proxy"
+    show_subquestion_if: true
+    subquestions:
+      - variable: systemSettings.registryProxy.http.httpProxy.url
+        type: string
+        label: HTTP URL
+        required: true
+        default: ""
+        description: "URL for HTTP proxy"
+
+      - variable: systemSettings.registryProxy.http.httpProxy.username
+        type: string
+        label: Username
+        default: ""
+        description: "Username for proxy authentication (optional)"
+
+      - variable: systemSettings.registryProxy.http.httpProxy.password
+        type: password
+        label: Password
+        default: ""
+        description: "Password for proxy authentication (optional)"
+
+  - variable: systemSettings.registryProxy.https.enabled
+    type: boolean
+    label: Enable & Configure HTTPS Proxy Settings for Connecting to External Container Registries
+    default: false
+    group: "Container Registry Proxy"
+    show_subquestion_if: true
+    subquestions:
+      - variable: systemSettings.registryProxy.https.httpsProxy.url
+        type: string
+        label: HTTPS URL
+        required: true
+        default: ""
+        description: "URL for HTTPS proxy"
+
+      - variable: systemSettings.registryProxy.https.httpsProxy.username
+        type: string
+        label: Username
+        default: ""
+        description: "Username for proxy authentication (optional)"
+
+      - variable: systemSettings.registryProxy.https.httpsProxy.password
+        type: password
+        label: Password
+        default: ""
+        description: "Password for proxy authentication (optional)"
+
+# Syslog Configuration
+  - variable: systemSettings.syslog.enabled
+    type: boolean
+    label: Enable and Configure Syslog Server Settings
+    default: false
+    group: "Syslog Settings"
+    show_subquestion_if: true
+    subquestions:
+      - variable: systemSettings.syslog.jsonOutput
+        type: boolean
+        label: Ouput Logs With JSON Format
+        default: false
+
+      - variable: systemSettings.syslog.serverIP
+        type: string
+        label: Syslog Server IP or FQDN
+        required: true
+        default: ""
+        description: "IP or FQDN of Syslog server"
+
+      - variable: systemSettings.syslog.protocol
+        type: enum
+        label: Syslog Protocol
+        required: true
+        default: "udp"
+        description: "Specify Syslog protocol"
+        options:
+          - "tcp"
+          - "udp"
+
+      - variable: systemSettings.syslog.logLevel
+        type: enum
+        label: Syslog Alert Level
+        required: true
+        default: "Info"
+        description: "Specify Syslog alert level"
+        options:
+          - "Alert"
+          - "Critical"
+          - "Debug"
+          - "Error"
+          - "Info"
+          - "Notice"
+          - "Warning"
+
+# Cluster Federation Configuration
+  - variable: controller.federation.mastersvc.type
+    type: enum
+    label: Fed Master Service Type
+    default: "ClusterIP"
+    description: "Multi-cluster master cluster service type. If specified, the deployment will be used to manage other clusters"
+    options:
+      - "NodePort"
+      - "ClusterIP"
+      - "LoadBalancer"
+    group: "Cluster Federation Configuration"
+
+  - variable: controller.federation.mastersvc.ingress.enabled
+    type: boolean
+    label: Create Ingress for Federation Master Service
+    default: false
+    group: "Cluster Federation Configuration"
+    show_subquestion_if: true
+    subquestions:
+      - variable: controller.federation.mastersvc.ingress.tls
+        type: boolean
+        label: Controller Federation Master Service Ingress TLS Status
+        default: false
+        description: "If true, TLS is enabled for controller federation master ingress service"
+
+      - variable: controller.federation.mastersvc.ingress.host
+        type: string
+        label: Controller Federation Master Service Ingress Host
+        required: true
+        default: ""
+        description: "Ingress Request Host (i.e. 'neuvector.example.com')"
+
+      - variable: controller.federation.mastersvc.ingress.path
+        type: string
+        label: Controller Federation Master Service Ingress Path
+        default: "/"
+        description: "Set ingress path"
+
+      - variable: controller.federation.mastersvc.ingress.ingressClassName
+        type: string
+        label: Controller Federation Master Service Ingress IngressClassName
+        default: ""
+        description: "To be used instead of the ingress.class annotation if an IngressClass is provisioned"
+
+      - variable: controller.federation.mastersvc.ingress.secretName
+        type: string
+        label: Controller Federation Master Service Ingress SecretName
+        default: ""
+        description: "Name of the secret to be used for TLS-encryption"
+
+      - variable: controller.federation.mastersvc.ingress.annotations
+        type: annotations
+        label: Controller Federation Master Service Ingress Annotations
+        description: "Annotations for Federation Master Ingress Rule. Use a new line for each annotation."
+
+  - variable: controller.federation.managedsvc.type
+    type: enum
+    label: Fed Managed Service Type
+    default: "ClusterIP"
+    description: "Multi-cluster managed cluster service type. If specified, the deployment will be managed by the master clsuter."
+    options:
+      - "NodePort"
+      - "ClusterIP"
+      - "LoadBalancer"
+    group: "Cluster Federation Configuration"
+
+  - variable: contoller.federation.managedsvc.ingress.enabled
+    type: boolean
+    label: Create Ingress for Federation Managed Service
+    default: false
+    group: "Cluster Federation Configuration"
+    show_subquestion_if: true
+    subquestions:
+      - variable: controller.federation.managedsvc.ingress.tls
+        type: boolean
+        label: Controller Federation Managed Service Ingress TLS Status
+        default: false
+        description: "If true, TLS is enabled for controller federation managed ingress service"
+
+      - variable: controller.federation.managedsvc.ingress.host
+        type: string
+        label: Controller Federation Managed Service Ingress Host
+        required: true
+        default: ""
+        description: "Ingress Request Host (i.e. 'neuvector.example.com')"
+
+      - variable: controller.federation.managedsvc.ingress.path
+        type: string
+        label: Controller Federation Managed Service Ingress Path
+        default: "/"
+        description: "Set ingress path"
+
+      - variable: controller.federation.managedsvc.ingress.ingressClassName
+        type: string
+        label: Controller Federation Managed Service Ingress IngressClassName
+        default: ""
+        description: "To be used instead of the ingress.class annotation if an IngressClass is provisioned."
+
+      - variable: controller.federation.managedsvc.ingress.secretName
+        type: string
+        label: Controller Federation Managed Service Ingress SecretName
+        default: ""
+        description: Name of the secret to be used for TLS-encryption
+
+      - variable: controller.federation.managedsvc.ingress.annotations
+        type: annotations
+        label: Controller Federation Managed Service Ingress Annotations
+        description: "Annotations for Federation Managed Ingress Rule. Use a new line for each annotation."
+
+# External Authentication Providers
+  - variable: externalAuthProvider.enabled
+    type: boolean
+    label: Enable and Configure NeuVector to Use External Authentication Provider
+    default: false
+    group: "External Authentication"
+    show_subquestion_if: true
+    subquestions:
+      - variable: externalAuthProvider.provider
+        type: enum
+        label: Choose External Authentication Provider
+        default: ""
+        description: Select your external authentication provider
+        options:
+          - "ldap"
+          - "oidc"
+          - "saml"
+
+      - variable: externalAuthProvider.config
+        type: multiline
+        label: Paste YAML Configuration File
+        description: Paste configuration file for the selected auth provider.  See NeuVector docs site (https://open-docs.neuvector.com) for examples.
+
+# Pod Security Policy Configuration
+  - variable: global.cattle.psp.enabled
+    type: boolean
+    label: Enable Pod Security Policy
+    default: false
+    description: "Flag to enable or disable Pod Security Policies for NeuVector. If the cluster is running Kubernetes 1.25+ this value must be kept as 'false'."
+    group: "Pod Security Policy Settings"
+    show_subquestion_if: true
+    subquestions:
+      - variable: manager.runAsUser
+        type: int
+        label: Manager runAsUser ID
+        default: ""
+        description: "Specify the runAsUser ID"
+
+      - variable: cve.scanner.runAsUser
+        type: int
+        label: Scanner runAsUser ID
+        default: ""
+        description: "Specify the runAsUser ID"
+
+      - variable: cve.updater.runAsUser
+        type: int
+        label: Updater runAsUser ID
+        default: ""
+        description: "Specify the runAsUser ID"
