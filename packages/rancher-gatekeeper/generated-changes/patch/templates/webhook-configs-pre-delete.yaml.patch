@@ -9,14 +9,29 @@
            imagePullPolicy: {{ .Values.preUninstall.deleteWebhookConfigurations.image.pullPolicy }}
            args:
              - delete
-@@ -54,12 +54,10 @@
+@@ -46,7 +46,7 @@
+             - mutatingwebhookconfiguration/{{ .Values.mutatingWebhookName }}
+             {{- end }}
+           resources:
+-            {{- toYaml .Values.preUninstall.resources | nindent 10 }}
++            {{- toYaml .Values.preUninstall.resources | nindent 12 }}
+           securityContext:
+             {{- if .Values.enableRuntimeDefaultSeccompProfile }}
+             seccompProfile:
+@@ -54,12 +54,16 @@
              {{- end }}
              {{- toYaml .Values.preUninstall.securityContext | nindent 10 }}
        {{- with .Values.preUninstall }}
 -      nodeSelector:
 -        {{- toYaml .nodeSelector | nindent 8 }}
 +      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
++{{- if .nodeSelector }}
++{{ toYaml .nodeSelector | indent 8 }}
++{{- end }}
 +      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
++{{- if .tolerations }}
++{{ toYaml .tolerations | indent 8 }}
++{{- end }}
        affinity:
          {{- toYaml .affinity | nindent 8 }}
 -      tolerations:
