@@ -1,0 +1,45 @@
+--- charts-original/templates/_helpers.tpl
++++ charts/templates/_helpers.tpl
+@@ -75,8 +75,8 @@
+ {{- $defaulttag := printf "v%s" .Chart.Version }}
+ {{- $tag := default $defaulttag .Values.imageTag }}
+ {{- $name := default "s3gw/s3gw" .Values.imageName }}
+-{{- $registry := default "quay.io" .Values.imageRegistry }}
+-{{- printf "%s/%s:%s" $registry $name $tag }}
++{{- $registry := include "registry-url" . }}
++{{- printf "%s%s:%s" $registry $name $tag }}
+ {{- end }}
+ 
+ {{- define "s3gw-ui.image" -}}
+@@ -110,3 +110,31 @@
+ {{- $key := default (randAlphaNum 32) .Values.secretKey }}
+ {{- printf "%s" $key }}
+ {{- end }}
++
++{{/*
++Windows cluster will add default taint for linux nodes, add below linux tolerations to
++workloads could be scheduled to those linux nodes
++*/}}
++{{- define "linux-node-tolerations" -}}
++- key: "cattle.io/os"
++  value: "linux"
++  effect: "NoSchedule"
++  operator: "Equal"
++{{- end -}}
++
++{{- define "linux-node-selector" -}}
++{{- if semverCompare "<1.14-0" .Capabilities.KubeVersion.GitVersion -}}
++beta.kubernetes.io/os: linux
++{{- else -}}
++kubernetes.io/os: linux
++{{- end -}}
++{{- end -}}
++
++{{/*
++URL prefix for container images to be compatible with Rancher
++*/}}
++{{- define "registry-url" -}}
++{{- if .Values.global.cattle.systemDefaultRegistry -}}
++{{ trimSuffix "/" .Values.global.cattle.systemDefaultRegistry }}/
++{{- end -}}
++{{- end -}}
