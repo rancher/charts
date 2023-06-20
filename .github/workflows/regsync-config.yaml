@@ -25,7 +25,20 @@ jobs:
           export CHARTS_BUILD_SCRIPT_VERSION=v0.4.2 
           make pull-scripts
           make regsync
-      
+
+      - name: Install Regsync
+        run: |
+          curl -o regsync https://github.com/regclient/regclient/releases/download/v0.4.8/regsync-linux-amd64
+          chmod +x regsync-linux-amd64
+
+      - name: Sync Charts
+        run: |
+          ./regsync check --config regsync.yaml
+        env:
+          REGISTRY_ENDPOINT: ${{ secrets.REGISTRY_ENDPOINT }}
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v4
         with:
