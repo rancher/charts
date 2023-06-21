@@ -73,17 +73,17 @@ Version helpers for the image tag
 */}}
 {{- define "s3gw.image" -}}
 {{- $defaulttag := printf "v%s" .Chart.Version }}
-{{- $tag := default $defaulttag .Values.imageTag }}
-{{- $name := default "s3gw/s3gw" .Values.imageName }}
+{{- $tag := default $defaulttag .Values.image.tag }}
+{{- $name := default "s3gw/s3gw" .Values.image.repository }}
 {{- $registry := include "registry-url" . }}
 {{- printf "%s%s:%s" $registry $name $tag }}
 {{- end }}
 
 {{- define "s3gw-ui.image" -}}
-{{- $tag := default (printf "v%s" .Chart.Version) .Values.ui.imageTag }}
-{{- $name := default "s3gw/s3gw-ui" .Values.ui.imageName }}
-{{- $registry := default "quay.io" .Values.imageRegistry }}
-{{- printf "%s/%s:%s" $registry $name $tag }}
+{{- $tag := default (printf "v%s" .Chart.Version) .Values.ui.image.tag }}
+{{- $name := default "s3gw/s3gw-ui" .Values.ui.image.repository }}
+{{- $registry := include "registry-url" . }}
+{{- printf "%s%s:%s" $registry $name $tag }}
 {{- end }}
 
 {{/*
@@ -93,7 +93,7 @@ Image Pull Secret
 {{- $un := .Values.imageCredentials.username }}
 {{- $pw := .Values.imageCredentials.password }}
 {{- $em := .Values.imageCredentials.email }}
-{{- $rg := .Values.imageRegistry }}
+{{- $rg := include "registry-url" . }}
 {{- $au := (printf "%s:%s" $un $pw | b64enc) }}
 {{- printf "{\"auths\":{\"%s\":{\"username\":\"%s\",\"password\":\"%s\",\"email\":\"%s\",\"auth\":\"%s\"}}}" $rg $un $pw $em $au | b64enc}}
 {{- end }}
