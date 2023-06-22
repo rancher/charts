@@ -35,15 +35,17 @@
 -  image: "{{ .Values.postInstall.probeWebhook.image.repository }}:{{ .Values.postInstall.probeWebhook.image.tag }}"
 +  image: "{{ template "system_default_registry" . }}{{ .Values.postInstall.probeWebhook.image.repository }}:{{ .Values.postInstall.probeWebhook.image.tag }}"
    imagePullPolicy: {{ .Values.postInstall.probeWebhook.image.pullPolicy }}
-   args:
+   command:
      - "curl"
-@@ -68,6 +91,10 @@
+@@ -69,10 +92,10 @@
    resources:
    {{- toYaml .Values.postInstall.resources | nindent 4 }}
    securityContext:
+-    {{- if .Values.enableRuntimeDefaultSeccompProfile }}
 +  {{- if .Values.enableRuntimeDefaultSeccompProfile }}
-+    seccompProfile:
-+      type: RuntimeDefault
+     seccompProfile:
+       type: RuntimeDefault
+-    {{- end }}
 +  {{- end }}
    {{- toYaml .Values.postInstall.securityContext | nindent 4 }}
    volumeMounts:

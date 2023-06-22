@@ -9,22 +9,27 @@
    labels:
      app: {{ template "kube-prometheus-stack.name" . }}-coredns
    {{- with .Values.coreDns.serviceMonitor.additionalLabels }}
-@@ -31,6 +31,18 @@
- {{- if .Values.coreDns.serviceMonitor.metricRelabelings }}
+@@ -28,10 +28,20 @@
+     proxyUrl: {{ .Values.coreDns.serviceMonitor.proxyUrl}}
+     {{- end }}
+     bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+-{{- if .Values.coreDns.serviceMonitor.metricRelabelings }}
      metricRelabelings:
- {{ tpl (toYaml .Values.coreDns.serviceMonitor.metricRelabelings | indent 4) . }}
+-{{ tpl (toYaml .Values.coreDns.serviceMonitor.metricRelabelings | indent 4) . }}
+-{{- end }}
++    {{- if .Values.coreDns.serviceMonitor.metricRelabelings }}
++    {{ tpl (toYaml .Values.coreDns.serviceMonitor.metricRelabelings | indent 4) . }}
++    {{- end }}
 +    {{ if .Values.global.cattle.clusterId }}
 +    - sourceLabels: [__address__]
 +      targetLabel: cluster_id
 +      replacement: {{ .Values.global.cattle.clusterId }}
 +    {{- end }}
-+{{ else }}
-+    {{ if .Values.global.cattle.clusterId }}
-+    metricRelabelings:
++    {{ if .Values.global.cattle.clusterName }}
 +    - sourceLabels: [__address__]
-+      targetLabel: cluster_id
-+      replacement: {{ .Values.global.cattle.clusterId }}
++      targetLabel: cluster_name
++      replacement: {{ .Values.global.cattle.clusterName }}
 +    {{- end }}
- {{- end }}
  {{- if .Values.coreDns.serviceMonitor.relabelings }}
      relabelings:
+ {{ tpl (toYaml .Values.coreDns.serviceMonitor.relabelings | indent 4) . }}
