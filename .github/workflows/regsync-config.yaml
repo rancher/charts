@@ -5,22 +5,19 @@
 name: Generate-Regsync-Config
 
 on:
-  push:
-    branches:
-      - "eio-regsync-testing"
-  # Commented out for testing in the eio-regsync-testing branch
-  # pull_request_review:
-    # types: [submitted, edited]
+  pull_request_review:
+    types: [submitted, edited]
 
 jobs:
   build:
-   # if: github.event.review.state == 'approved' && github.event.pull_request.base.ref == 'release-v2.7'
+    if: github.event.review.state == 'approved' && github.event.pull_request.base.ref == 'release-v2.7'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
       # Need to remove export version once rancher/charts gets the latest version 
       # of charts-build-script binary.
+      
       - name: Generate Regsync
         run: |
           export CHARTS_BUILD_SCRIPT_VERSION=v0.4.2 
@@ -35,7 +32,7 @@ jobs:
       - name: Sync Charts
         run: |
           head regsync.yaml
-          time ./regsync check --config regsync.yaml
+          time ./regsync once --config regsync.yaml
         env:
           REGISTRY_ENDPOINT: ${{ secrets.REGISTRY_ENDPOINT }}
           REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
