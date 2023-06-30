@@ -1,0 +1,68 @@
+{{- if .Values.global.cattle.psp.enabled }}
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: {{ template "helm-project-operator.name" . }}-psp
+  namespace: {{ template "helm-project-operator.namespace" . }}
+  labels: {{ include "helm-project-operator.labels" . | nindent 4 }}
+    app: {{ template "helm-project-operator.name" . }}
+{{- if .Values.global.rbac.pspAnnotations }}
+  annotations: {{ toYaml .Values.global.rbac.pspAnnotations | nindent 4 }}
+{{- end }}
+spec:
+  privileged: false
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    # Permits the container to run with root privileges as well.
+    rule: 'RunAsAny'
+  seLinux:
+    # This policy assumes the nodes are using AppArmor rather than SELinux.
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'MustRunAs'
+    ranges:
+      # Forbid adding the root group.
+      - min: 0
+        max: 65535
+  fsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      # Forbid adding the root group.
+      - min: 0
+        max: 65535
+  readOnlyRootFilesystem: false
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ template "helm-project-operator.name" . }}-psp
+  labels: {{ include "helm-project-operator.labels" . | nindent 4 }}
+    app: {{ template "helm-project-operator.name" . }}
+rules:
+{{- if semverCompare "> 1.15.0-0" .Capabilities.KubeVersion.GitVersion }}
+- apiGroups: ['policy']
+{{- else }}
+- apiGroups: ['extensions']
+{{- end }}
+  resources: ['podsecuritypolicies']
+  verbs:     ['use']
+  resourceNames:
+  - {{ template "helm-project-operator.name" . }}-psp
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ template "helm-project-operator.name" . }}-psp
+  labels: {{ include "helm-project-operator.labels" . | nindent 4 }}
+    app: {{ template "helm-project-operator.name" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ template "helm-project-operator.name" . }}-psp
+subjects:
+  - kind: ServiceAccount
+    name: {{ template "helm-project-operator.name" . }}
+    namespace: {{ template "helm-project-operator.namespace" . }}
+{{- end }}
