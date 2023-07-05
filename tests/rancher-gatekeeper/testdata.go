@@ -3,6 +3,7 @@ package rancher_gatekeeper
 import (
 	adminReg "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -88,6 +89,15 @@ var testValidatingWebhookObjectSelector = &v1.LabelSelector{
 			Key:      "test",
 			Operator: v1.LabelSelectorOpIn,
 			Values:   []string{"test"},
+		},
+	},
+}
+
+var testvalidatingObjectSelector = adminReg.ValidatingWebhook{
+	ObjectSelector: &v1.LabelSelector{
+		MatchLabels: map[string]string{
+			"test/label1": "labelVal1",
+			"test/label2": "labelVal2",
 		},
 	},
 }
@@ -267,5 +277,13 @@ var testWebhookCustomRules = []adminReg.RuleWithOperations{
 			APIVersions: []string{"v1"},
 			Resources:   []string{"k8s"},
 		},
+	},
+}
+var testIngress = networkingv1.Ingress{
+	TypeMeta: v1.TypeMeta{
+		Kind: "Ingress",
+	},
+	ObjectMeta: v1.ObjectMeta{
+		Name: "test-ingress",
 	},
 }

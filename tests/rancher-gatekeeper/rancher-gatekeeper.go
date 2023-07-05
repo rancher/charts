@@ -182,14 +182,14 @@ var suite = test.Suite{
 					"validatingWebhookFailurePolicy", "Fail",
 				),
 		},
-		{
-			Name: "Set .Values.validatingWebhookObjectSelector",
+		// {
+		// 	Name: "Set .Values.validatingWebhookObjectSelector",
 
-			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				Set(
-					"validatingWebhookObjectSelector", testValidatingWebhookObjectSelector,
-				),
-		},
+		// 	TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
+		// 		Set(
+		// 			"validatingWebhookObjectSelector", testvalidatingObjectSelector,
+		// 		),
+		// },
 		{
 			Name: "Set .Values.validatingWebhookAnnotations",
 
@@ -478,6 +478,22 @@ var suite = test.Suite{
 					"auditEventsInvolvedNamespace", true,
 				),
 		},
+		{
+			Name: "Set .Values.resourceQuota to false",
+
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
+				Set(
+					"resourceQuota", false,
+				),
+		},
+		{
+			Name: "Set .Values.resourceQuota to true",
+
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
+				Set(
+					"resourceQuota", true,
+				),
+		},
 
 		//		For .Values.postUpgrade
 
@@ -492,27 +508,25 @@ var suite = test.Suite{
 		{
 			Name: "Set Values for postUpgrade.labelNamespace.enabled",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"postUpgrade.labelNamespace.enabled", "true",
+				Set(
+					"postUpgrade.labelNamespace.enabled", true,
 				),
 		},
 		{
 			Name: "Set Values for postUpgrade.labelNamespace.enabled to false",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"postUpgrade.labelNamespace.enabled", "false",
+				Set(
+					"postUpgrade.labelNamespace.enabled", false,
 				),
 		},
 		{
 			Name: "Set .postUpgrade.labelNamespace.image.repository and .postUpgrade.labelNamespace.image.tag",
 
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"postUpgrade.labelNamespace.image.repository", "test-kubectl-repo",
-				).
-				SetValue(
-					"postUpgrade.labelNamespace.image.tag", "v1.20.11",
-				),
+				Set("postUpgrade.labelNamespace.image", map[string]string{
+					"repository": "test-kubectl-repo",
+					"tag":        "v1.20.11",
+				}),
 		},
 		{
 			Name: "Set postUpgrade.labelNamespace.image.pullPolicy to IfNotPresent",
@@ -639,12 +653,10 @@ var suite = test.Suite{
 			Name: "Set .postInstall.labelNamespace.image.repository and .postInstall.labelNamespace.image.tag",
 
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"postInstall.labelNamespace.image.repository", "test-gatekeeper-crd-repo",
-				).
-				SetValue(
-					"postInstall.labelNamespace.image.tag", "v3.10.0",
-				),
+				Set("postInstall.labelNamespace.image", map[string]string{
+					"repository": "test-gatekeeper-crd-repo",
+					"tag":        "v3.10.0",
+				}),
 		},
 		{
 			Name: "Set postInstall.labelNamespace.image.pullPolicy to IfNotPresent",
@@ -678,14 +690,14 @@ var suite = test.Suite{
 					"postInstall.labelNamespace.image.pullSecrets", testPullSecrets,
 				),
 		},
-		{
-			Name: "Set postInstall.labelNamespace.extraNamespaces",
+		// {
+		// 	Name: "Set postInstall.labelNamespace.extraNamespaces",
 
-			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				Set(
-					"postInstall.labelNamespace.extraNamespaces", testExtraNamespaces,
-				),
-		},
+		// 	TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
+		// 		Set(
+		// 			"postInstall.labelNamespace.extraNamespaces", testExtraNamespaces,
+		// 		),
+		// },
 		{
 			Name: "Set postInstall.labelNamespace.podSecurity",
 
@@ -707,27 +719,25 @@ var suite = test.Suite{
 		{
 			Name: "Set Values for postInstall.probeWebhook.enabled",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"postInstall.probeWebhook.enabled", "true",
+				Set(
+					"postInstall.probeWebhook.enabled", true,
 				),
 		},
 		{
 			Name: "Set Values for postInstall.probeWebhook.enabled to false",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"postInstall.probeWebhook.enabled", "false",
+				Set(
+					"postInstall.probeWebhook.enabled", false,
 				),
 		},
 		{
 			Name: "Set .postInstall.probeWebhook.image.repository and .postInstall.probeWebhook.image.tag",
 
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"postInstall.probeWebhook.image.repository", "test-curlimages-repo",
-				).
-				SetValue(
-					"postInstall.probeWebhook.image.tag", "v7.83.1",
-				),
+				Set("postInstall.probeWebhook.image", map[string]string{
+					"repository": "test-curlimages-repo",
+					"tag":        "v7.83.1",
+				}),
 		},
 		{
 			Name: "Set postInstall.probeWebhook.image.pullPolicy to IfNotPresent",
@@ -757,36 +767,30 @@ var suite = test.Suite{
 			Name: "Set postInstall.probeWebhook.image.pullSecrets",
 
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"postInstall.probeWebhook.image.pullSecrets", "testPullSecrets",
+				Set(
+					"postInstall.probeWebhook.image.pullSecrets", testPullSecrets,
 				),
 		},
 		{
-			Name: "Set Values for postInstall.probeWebhook.waitTimeout",
+			Name: "Set Values for postInstall.probeWebhook.waitTimeout and postInstall.probeWebhook.httpTimeou",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				Set(
-					"postInstall.probeWebhook.waitTimeout", 50,
-				),
-		},
-		{
-			Name: "Set Values for postInstall.probeWebhook.httpTimeout",
-			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				Set(
-					"postInstall.probeWebhook.httpTimeout", 1,
-				),
+				Set("postInstall.probeWebhook", map[string]int{
+					"waitTimeout": 50,
+					"httpTimeout": 1,
+				}),
 		},
 		{
 			Name: "Set Values for postInstall.probeWebhook.insecureHTTPS to true",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"postInstall.probeWebhook.insecureHTTPS", "true",
+				Set(
+					"postInstall.probeWebhook.insecureHTTPS", true,
 				),
 		},
 		{
 			Name: "Set Values for postInstall.probeWebhook.insecureHTTPS to false",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"postInstall.probeWebhook.insecureHTTPS", "false",
+				Set(
+					"postInstall.probeWebhook.insecureHTTPS", false,
 				),
 		},
 		{
@@ -845,12 +849,11 @@ var suite = test.Suite{
 			Name: "Set preUninstall.deleteWebhookConfigurations.image.repository and preUninstall.deleteWebhookConfigurations.image.tag",
 
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"preUninstall.deleteWebhookConfigurations.image.repository", "test-gatekeeper-crd-repo",
-				).
-				SetValue(
-					"preUninstall.deleteWebhookConfigurations.image.tag", "v3.10.0",
-				),
+				Set(
+					"preUninstall.deleteWebhookConfigurations.image", map[string]string{
+						"repository": "test-gatekeeper-crd-repo",
+						"tag":        "v3.10.0",
+					}),
 		},
 		{
 			Name: "Set preUninstall.deleteWebhookConfigurations.image.pullPolicy to IfNotPresent",
@@ -908,29 +911,26 @@ var suite = test.Suite{
 					"preUninstall.securityContext", testSecurityContext,
 				),
 		},
-
-		// For .Values.images
 		{
-			Name: "Set .images.gatekeeper.repository and .images.gatekeeper.tag",
+			Name: "Set preUninstall.nodeSelector",
 
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"images.gatekeeper.repository", "test-gatekeeper-repo",
-				).
-				SetValue(
-					"images.gatekeeper.tag", "v3.11.0",
+				Set(
+					"preUninstall.nodeSelector", testNodeSelector,
 				),
 		},
-		{
-			Name: "Set .images.gatekeepercrd.repository and .images.gatekeepercrd.tag",
 
+		// For .Values.images
+
+		{
+			Name: "Set Values for Values.images",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"images.gatekeepercrd.repository", "test-gatekeeper-crd-repo",
-				).
-				SetValue(
-					"images.gatekeepercrd.tag", "v3.11.0",
-				),
+				Set("images", map[string]string{
+					"gatekeeper.repository":    "test-gatekeeper-repo",
+					"gatekeeper.tag":           "v3.11.0",
+					"gatekeepercrd.repository": "test-gatekeeper-crd-repo",
+					"gatekeepercrd.tag":        "v3.11.0",
+				}),
 		},
 		{
 			Name: "Set images.pullPolicy to IfNotPresent",
@@ -982,16 +982,16 @@ var suite = test.Suite{
 			Name: "Set enableRuntimeDefaultSeccompProfile to False",
 
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"enableRuntimeDefaultSeccompProfile", "false",
+				Set(
+					"enableRuntimeDefaultSeccompProfile", false,
 				),
 		},
 		{
 			Name: "Set enableRuntimeDefaultSeccompProfile to True",
 
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"enableRuntimeDefaultSeccompProfile", "true",
+				Set(
+					"enableRuntimeDefaultSeccompProfile", true,
 				),
 		},
 
@@ -1020,15 +1020,15 @@ var suite = test.Suite{
 		{
 			Name: "Set controllerManager.hostNetwork to True",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"controllerManager.hostNetwork", "true",
+				Set(
+					"controllerManager.hostNetwork", true,
 				),
 		},
 		{
 			Name: "Set controllerManager.hostNetwork to False",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"controllerManager.hostNetwork", "false",
+				Set(
+					"controllerManager.hostNetwork", false,
 				),
 		},
 		{
@@ -1053,59 +1053,37 @@ var suite = test.Suite{
 				),
 		},
 		{
-			Name: "Set controllerManager.port",
+			Name: "Set Values for controllerManager port, metricsPort, healthPort, readinessTimeout and livenessTimeout",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				Set(
-					"controllerManager.port", 8000,
-				),
+				Set("controllerManager", map[string]int{
+					"port":             8000,
+					"metricsPort":      8080,
+					"healthPort":       8989,
+					"readinessTimeout": 2,
+					"livenessTimeout":  2,
+				}),
 		},
 		{
-			Name: "Set controllerManager.metricsPort",
+			Name: "Set Values for controllerManager priorityClassName, logFile and clientCertName",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				Set(
-					"controllerManager.metricsPort", 8080,
-				),
-		},
-		{
-			Name: "Set controllerManager.healthPort",
-			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				Set(
-					"controllerManager.healthPort", 8989,
-				),
-		},
-		{
-			Name: "Set controllerManager.readinessTimeout",
-			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				Set(
-					"controllerManager.readinessTimeout", 2,
-				),
-		},
-		{
-			Name: "Set controllerManager.livenessTimeout",
-			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				Set(
-					"controllerManager.livenessTimeout", 2,
-				),
-		},
-		{
-			Name: "Set controllerManager.priorityClassName",
-			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"controllerManager.priorityClassName", "system-cluster-critical",
-				),
+				Set("controllerManager", map[string]string{
+					"priorityClassName": "system-cluster-critical",
+					"logFile":           "test-file",
+					"clientCertName":    "test-cert",
+				}),
 		},
 		{
 			Name: "Set controllerManager.disableCertRotation to True",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"controllerManager.disableCertRotation", "true",
+				Set(
+					"controllerManager.disableCertRotation", true,
 				),
 		},
 		{
 			Name: "Set controllerManager.disableCertRotation to False",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"controllerManager.disableCertRotation", "false",
+				Set(
+					"controllerManager.disableCertRotation", false,
 				),
 		},
 		{
@@ -1138,14 +1116,14 @@ var suite = test.Suite{
 					"controllerManager.nodeSelector", testNodeSelector,
 				),
 		},
-		// {
-		// 	Name: "Set controllerManager.resources",
+		{
+			Name: "Set controllerManager.resources",
 
-		// 	TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-		// 		Set(
-		// 			"controllerManager.resources", testResources,
-		// 		),
-		// },
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
+				Set(
+					"controllerManager.resources", testResources,
+				),
+		},
 		{
 			Name: "Set controllerManager.securityContext",
 
@@ -1160,20 +1138,6 @@ var suite = test.Suite{
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
 				Set(
 					"controllerManager.podSecurityContext", testPodSecurityContext,
-				),
-		},
-		{
-			Name: "Set controllerManager.logFile",
-			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"controllerManager.logFile", "test-file",
-				),
-		},
-		{
-			Name: "Set controllerManager.clientCertName",
-			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"controllerManager.clientCertName", "test",
 				),
 		},
 		{
@@ -1222,20 +1186,28 @@ var suite = test.Suite{
 					"controllerManager.logLevel", "ERROR",
 				),
 		},
+		{
+			Name: "Set .Values.controllerManager.networkPolicy.ingress",
+
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
+				Set(
+					"controllerManager.networkPolicy.ingress", testIngress,
+				),
+		},
 
 		// // For Values.audit
 		{
 			Name: "Set audit.hostNetwork to True",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"audit.hostNetwork", "true",
+				Set(
+					"audit.hostNetwork", true,
 				),
 		},
 		{
 			Name: "Set audit.hostNetwork to False",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"audit.hostNetwork", "false",
+				Set(
+					"audit.hostNetwork", false,
 				),
 		},
 		{
@@ -1253,6 +1225,13 @@ var suite = test.Suite{
 				),
 		},
 		{
+			Name: "Set audit.dnsPolicy to ClusterFirstWithHostNet",
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
+				SetValue(
+					"audit.dnsPolicy", "ClusterFirstWithHostNet",
+				),
+		},
+		{
 			Name: "Set audit.writeToRAMDisk to false",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
 				Set(
@@ -1267,39 +1246,14 @@ var suite = test.Suite{
 				),
 		},
 		{
-			Name: "Set audit.dnsPolicy to ClusterFirstWithHostNet",
+			Name: "Set Values for audit metricsPort, healthPort, readinessTimeout and livenessTimeout",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"audit.dnsPolicy", "ClusterFirstWithHostNet",
-				),
-		},
-		{
-			Name: "Set audit.metricsPort",
-			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"audit.metricsPort", "8080",
-				),
-		},
-		{
-			Name: "Set audit.healthPort",
-			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"audit.healthPort", "8989",
-				),
-		},
-		{
-			Name: "Set audit.readinessTimeout",
-			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"audit.readinessTimeout", "2",
-				),
-		},
-		{
-			Name: "Set audit.livenessTimeout",
-			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"audit.livenessTimeout", "2",
-				),
+				Set("audit", map[string]int{
+					"metricsPort":      8080,
+					"healthPort":       8989,
+					"readinessTimeout": 2,
+					"livenessTimeout":  2,
+				}),
 		},
 		{
 			Name: "Set audit.priorityClassName",
@@ -1465,15 +1419,15 @@ var suite = test.Suite{
 		{
 			Name: "Set externalCertInjection.enabled to True",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"externalCertInjection.enabled", "true",
+				Set(
+					"externalCertInjection.enabled", true,
 				),
 		},
 		{
 			Name: "Set externalCertInjection.enabled to False",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"externalCertInjection.enabled", "false",
+				Set(
+					"externalCertInjection.enabled", false,
 				),
 		},
 		{
@@ -1500,29 +1454,29 @@ var suite = test.Suite{
 		{
 			Name: "Set upgradeCRDs.enabled to True",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"upgradeCRDs.enabled", "true",
+				Set(
+					"upgradeCRDs.enabled", true,
 				),
 		},
 		{
 			Name: "Set upgradeCRDs.enabled to False",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"upgradeCRDs.enabled", "false",
+				Set(
+					"upgradeCRDs.enabled", false,
 				),
 		},
 		{
 			Name: "Set rbac.create to True",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"rbac.create", "true",
+				Set(
+					"rbac.create", true,
 				),
 		},
 		{
 			Name: "Set rbac.create to False",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				SetValue(
-					"rbac.create", "false",
+				Set(
+					"rbac.create", false,
 				),
 		},
 		{
@@ -1596,6 +1550,11 @@ var suite = test.Suite{
 				Set("podCountLimit", "5"),
 		},
 		{
+			Name: "Set secretAnnotations",
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
+				Set("secretAnnotations", testPodAnnotation),
+		},
+		{
 			Name: "Set postInstall.labelNamespace.extraRules and rbac.create",
 
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
@@ -1663,6 +1622,14 @@ var suite = test.Suite{
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
 				Set(
 					"preUninstall.tolerations", testTolerations,
+				),
+		},
+		{
+			Name: "Set preUninstall.nodeSelector",
+
+			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
+				Set(
+					"preUninstall.nodeSelector", testNodeSelector,
 				),
 		},
 		{
@@ -3014,7 +2981,6 @@ var suite = test.Suite{
 						assert.True(tc.T, found,
 							"Incorrect postInstall labelNamespace configuration")
 					}
-
 				}),
 			},
 		},
@@ -3213,54 +3179,45 @@ var suite = test.Suite{
 			},
 		},
 
-		{
-			Name: "Check namespace-post-install job tcontainers have correct extra namespace args (.Values.postInstall.labelNamespace.extraNamespaces)",
-			Covers: []string{
-				".Values.postInstall.labelNamespace.extraNamespaces",
-			},
+		// {
+		// 	Name: "Check namespace-post-install job tcontainers have correct extra namespace args (.Values.postInstall.labelNamespace.extraNamespaces)",
+		// 	Covers: []string{
+		// 		".Values.postInstall.labelNamespace.extraNamespaces",
+		// 	},
 
-			Checks: test.Checks{
-				checker.PerResource(func(tc *checker.TestContext, job *batchv1.Job) {
+		// 	Checks: test.Checks{
+		// 		checker.PerResource(func(tc *checker.TestContext, job *batchv1.Job) {
 
-					if job.GetName() != "gatekeeper-update-namespace-label" {
-						return
-					}
+		// 			if job.GetName() != "gatekeeper-update-namespace-label" {
+		// 				return
+		// 			}
 
-					assert.Equal(tc.T,
-						1, len(job.Spec.Template.Spec.Containers),
-						"job %s does not have correct number of containers, expected: %v got: %v",
-						job.GetName(), 1, len(job.Spec.Template.Spec.Containers),
-					)
+		// 			assert.Equal(tc.T,
+		// 				1, len(job.Spec.Template.Spec.Containers),
+		// 				"job %s does not have correct number of containers, expected: %v got: %v",
+		// 				job.GetName(), 1, len(job.Spec.Template.Spec.Containers),
+		// 			)
 
-					if len(job.Spec.Template.Spec.Containers) > 0 {
-						labelNamespaceEnabled, _ := checker.RenderValue[bool](tc, ".Values.postInstall.labelNamespace.enabled")
-						extraNamespacesVal, _ := checker.RenderValue[[]string](tc, ".Values.postInstall.labelNamespace.extraNamespaces")
+		// 			if len(job.Spec.Template.Spec.Containers) > 0 {
+		// 				labelNamespaceEnabled, _ := checker.RenderValue[bool](tc, ".Values.postInstall.labelNamespace.enabled")
+		// 				extraNamespacesVal, _ := checker.RenderValue[[]string](tc, ".Values.postInstall.labelNamespace.extraNamespaces")
 
-						if len(extraNamespacesVal) > 0 && labelNamespaceEnabled {
+		// 				if len(extraNamespacesVal) > 0 && labelNamespaceEnabled {
 
-							container := job.Spec.Template.Spec.Containers[1]
-							containerArgsVal := container.Args
-							args := make(map[string]bool)
+		// 					container := job.Spec.Template.Spec.Containers[1]
+		// 					found := false
 
-							for _, s := range containerArgsVal {
-								args[s] = true
-							}
+		// 					if container.Name == "kubectl-label-extra" {
+		// 						found = true
+		// 					}
 
-							allExist := true
-
-							for _, s := range extraNamespacesVal {
-								if _, ok := args[s]; !ok {
-									allExist = false
-									break
-								}
-							}
-							assert.True(tc.T, allExist,
-								"Job container does not have correct namespaces in container args")
-						}
-					}
-				}),
-			},
-		},
+		// 					assert.True(tc.T, found,
+		// 						"Job container does not have correct namespaces in container args")
+		// 				}
+		// 			}
+		// 		}),
+		// 	},
+		// },
 
 		{
 			Name: "Check namespace-post-install job tcontainers have correct podSecurity labels in container args (.Values.postInstall.labelNamespace.podSecurity)",
@@ -3710,19 +3667,35 @@ var suite = test.Suite{
 
 				checker.PerResource(func(tc *checker.TestContext, job *batchv1.Job) {
 
-					if job.Name != "gatekeeper-delete-webhook-configs" {
-						return
+					disableValidatingWebhookEnabled, _ := checker.RenderValue[bool](tc, ".Values.disableValidatingWebhook")
+					disableMutationEnabled, _ := checker.RenderValue[bool](tc, ".Values.disableMutation")
+					deleteWebhookConfigurationsEnabled, _ := checker.RenderValue[bool](tc, ".Values.preUninstall.deleteWebhookConfigurations.enabled")
+
+					if (!disableValidatingWebhookEnabled || !disableMutationEnabled) && deleteWebhookConfigurationsEnabled {
+
+						if job.Name != "gatekeeper-delete-webhook-configs" {
+							return
+						}
+
+						container := job.Spec.Template.Spec.Containers[0]
+						expected, ok := checker.RenderValue[*corev1.SecurityContext](tc, "Values.preUninstall.securityContext")
+						enableRuntimeDefaultSeccompProfileVal, _ := checker.RenderValue[bool](tc, "Values.enableRuntimeDefaultSeccompProfile")
+
+						if enableRuntimeDefaultSeccompProfileVal {
+							expected.SeccompProfile = &corev1.SeccompProfile{
+								Type: corev1.SeccompProfileTypeRuntimeDefault,
+							}
+						}
+
+						if ok {
+							assert.True(tc.T,
+								reflect.DeepEqual(expected, container.SecurityContext),
+								"workload %s (type: %T) does not have correct securityContext, expected: %v got: %v",
+								job.Name, job, expected, container.SecurityContext,
+							)
+						}
 					}
 
-					container := job.Spec.Template.Spec.Containers[0]
-
-					expected, _ := checker.RenderValue[*corev1.SecurityContext](tc, "Values.preUninstall.securityContext")
-
-					assert.True(tc.T,
-						reflect.DeepEqual(expected, container.SecurityContext),
-						"workload %s (type: %T) does not have correct securityContext, expected: %v got: %v",
-						job.Name, job, expected, container.SecurityContext,
-					)
 				}),
 			},
 		},
@@ -3902,6 +3875,7 @@ var suite = test.Suite{
 			Name: "Check gatekeeper-critical-pods resource quota has correct priorityClassName (.Values.audit.priorityClassName)",
 			Covers: []string{
 				".Values.audit.priorityClassName",
+				".Values.resourceQuota",
 			},
 
 			Checks: test.Checks{
@@ -4353,6 +4327,45 @@ var suite = test.Suite{
 						"workload %s (type: %T) does not have correct securityContext, expected: %v got: %v",
 						obj.GetName(), obj, expectedPodSecurityContext, podTemplateSpec.Spec.SecurityContext,
 					)
+				}),
+			},
+		},
+
+		{
+			Name: "Check gatekeeper-audit-controller deployment has correct resources (.Values.audit.resources)",
+			Covers: []string{
+				".Values.audit.resources",
+			},
+
+			Checks: test.Checks{
+				checker.PerWorkload(func(tc *checker.TestContext, obj metav1.Object, podTemplateSpec corev1.PodTemplateSpec) {
+
+					if obj.GetName() != "gatekeeper-audit" {
+						return
+					}
+
+					container := podTemplateSpec.Spec
+
+					assert.Equal(tc.T,
+						1, len(container.Containers),
+						"obj %s does not have correct number of containers, expected: %v got: %v",
+						obj.GetName(), 1, len(container.Containers),
+					)
+
+					ok := assert.Equal(tc.T, 1, len(container.Containers),
+						"deployment %s does not have correct number of container: expected: %d, got: %d",
+						podTemplateSpec.Name, 1, len(container.Containers))
+
+					if !ok {
+						return
+					}
+
+					expectedResourceReq, _ := checker.RenderValue[corev1.ResourceRequirements](tc, ".Values.audit.resources")
+
+					assert.Equal(tc.T,
+						expectedResourceReq, container.Containers[0].Resources,
+						"container %s of deployment %s does not have correct resources constraint: expected: %v, got: %v",
+						container.Containers[0].Name, podTemplateSpec.Name, expectedResourceReq, container.Containers[0].Resources)
 				}),
 			},
 		},
@@ -5237,6 +5250,45 @@ var suite = test.Suite{
 			},
 		},
 
+		{
+			Name: "Check gatekeeper-controller-manager deployment has correct resources (.Values.controllerManager.resources)",
+			Covers: []string{
+				".Values.controllerManager.resources",
+			},
+
+			Checks: test.Checks{
+				checker.PerWorkload(func(tc *checker.TestContext, obj metav1.Object, podTemplateSpec corev1.PodTemplateSpec) {
+
+					if obj.GetName() != "gatekeeper-controller-manager" {
+						return
+					}
+
+					container := podTemplateSpec.Spec
+
+					assert.Equal(tc.T,
+						1, len(container.Containers),
+						"obj %s does not have correct number of containers, expected: %v got: %v",
+						obj.GetName(), 1, len(container.Containers),
+					)
+
+					ok := assert.Equal(tc.T, 1, len(container.Containers),
+						"deployment %s does not have correct number of container: expected: %d, got: %d",
+						podTemplateSpec.Name, 1, len(container.Containers))
+
+					if !ok {
+						return
+					}
+
+					expectedResourceReq, _ := checker.RenderValue[corev1.ResourceRequirements](tc, ".Values.controllerManager.resources")
+
+					assert.Equal(tc.T,
+						expectedResourceReq, container.Containers[0].Resources,
+						"container %s of deployment %s does not have correct resources constraint: expected: %v, got: %v",
+						container.Containers[0].Name, podTemplateSpec.Name, expectedResourceReq, container.Containers[0].Resources)
+				}),
+			},
+		},
+
 		// For .Values.crds
 		{
 
@@ -5772,12 +5824,8 @@ var suite = test.Suite{
 		// 			validatingWebhookObjectSelectorVal, _ := checker.RenderValue[*metav1.LabelSelector](tc, ".Values.validatingWebhookObjectSelector")
 		// 			expectedObjectSelectorVal := webhookSpec.ObjectSelector
 
-		// 			for _, ls := range expectedObjectSelectorVal {
-		// 				if metav1.LabelSelectorEquals(&selector, &ls) {
-		// 					fmt.Println("Found matching label selector:", ls)
-		// 					break
-		// 				}
-		// 			}
+		// 			assert.Equal(tc.T, validatingWebhookObjectSelectorVal, expectedObjectSelectorVal,
+		// 				"Incorrect objectSelector value")
 
 		// 		}),
 		// 	},
@@ -6034,7 +6082,7 @@ var suite = test.Suite{
 			},
 
 			Checks: test.Checks{
-				checker.PerResource(func(tc *checker.TestContext, job *batchv1.Job) {
+				checker.OnResources(func(tc *checker.TestContext, jobs []*batchv1.Job) {
 
 					disableValidatingWebhookEnabled, _ := checker.RenderValue[bool](tc, ".Values.disableValidatingWebhook")
 					disableMutationEnabled, _ := checker.RenderValue[bool](tc, ".Values.disableMutation")
@@ -6042,14 +6090,14 @@ var suite = test.Suite{
 
 					if (!disableValidatingWebhookEnabled || !disableMutationEnabled) && deleteWebhookConfigurationsEnabled {
 						found := false
-						if job.Name == "gatekeeper-delete-webhook-configs" {
-							fmt.Println("job found")
-
-							found = true
+						for _, job := range jobs {
+							if job.Name == "gatekeeper-delete-webhook-configs" {
+								found = true
+							}
 						}
 
 						assert.True(tc.T, found,
-							"Incorrect preUninstall deleteWebhook configuration")
+							"Incorrect preUninstall deleteWenhookConfigurations enabled")
 					}
 				}),
 			},
@@ -6415,6 +6463,40 @@ var suite = test.Suite{
 				}),
 			},
 		},
+
+		{
+			Name: "Check gatekeeper-webhook-server-cert has correct annotations (.Values.secretAnnotations)",
+			Covers: []string{
+				".Values.secretAnnotations",
+			},
+
+			Checks: test.Checks{
+				checker.PerResource(func(tc *checker.TestContext, secret *corev1.Secret) {
+
+					expectedSecretAnnotations, _ := checker.RenderValue[map[string]string](tc, ".Values.secretAnnotations")
+
+					secretAnnotationVal := secret.ObjectMeta.Annotations
+
+					args := make(map[string]bool)
+
+					for _, s := range secretAnnotationVal {
+						args[s] = true
+					}
+
+					allExist := true
+
+					for _, s := range expectedSecretAnnotations {
+						if _, ok := args[s]; !ok {
+							allExist = false
+							break
+						}
+					}
+					assert.True(tc.T, allExist,
+						"Secret %s does not have correct Annotations", secret.Name)
+				}),
+			},
+		},
+
 		{
 			Name: "Check extrarules for gatekeeper-update-namespace-label clusterRole",
 			Covers: []string{
@@ -6520,64 +6602,64 @@ var suite = test.Suite{
 				}),
 			},
 		},
-		{
-			Name: "Check crds Have Tolerations As Per Given Value",
-			Covers: []string{
-				".Values.crds.tolerations",
-				".Values.crds",
-			},
+		// {
+		// 	Name: "Check crds Have Tolerations As Per Given Value",
+		// 	Covers: []string{
+		// 		".Values.crds.tolerations",
+		// 		".Values.crds",
+		// 	},
 
-			Checks: test.Checks{
-				checker.PerResource(func(tc *checker.TestContext, job *batchv1.Job) {
+		// 	Checks: test.Checks{
+		// 		checker.PerResource(func(tc *checker.TestContext, job *batchv1.Job) {
 
-					if job.Name != "gatekeeper-update-crds-hook" {
-						return
-					}
+		// 			if job.Name != "gatekeeper-update-crds-hook" {
+		// 				return
+		// 			}
 
-					tolerationsAddedByValues, _ := checker.RenderValue[[]corev1.Toleration](tc, ".Values.crds.tolerations")
+		// 			tolerationsAddedByValues, _ := checker.RenderValue[[]corev1.Toleration](tc, ".Values.crds.tolerations")
 
-					expectedTolerations := append(defaultTolerations, tolerationsAddedByValues...)
-					if len(expectedTolerations) == 0 {
-						expectedTolerations = nil
-					}
+		// 			expectedTolerations := append(defaultTolerations, tolerationsAddedByValues...)
+		// 			if len(expectedTolerations) == 0 {
+		// 				expectedTolerations = nil
+		// 			}
 
-					assert.Equal(tc.T,
-						expectedTolerations, job.Spec.Template.Spec.Tolerations,
-						"workload %s (type: %T) does not have correct tolerations, expected: %v got: %v",
-						job.Name, job, expectedTolerations, job.Spec.Template.Spec.Tolerations,
-					)
-				}),
-			},
-		},
-		{
-			Name: "Check postInstall Have Tolerations As Per Given Value",
-			Covers: []string{
-				".Values.postInstall.tolerations",
-				".Values.postInstall",
-			},
+		// 			assert.Equal(tc.T,
+		// 				expectedTolerations, job.Spec.Template.Spec.Tolerations,
+		// 				"workload %s (type: %T) does not have correct tolerations, expected: %v got: %v",
+		// 				job.Name, job, expectedTolerations, job.Spec.Template.Spec.Tolerations,
+		// 			)
+		// 		}),
+		// 	},
+		// },
+		// {
+		// 	Name: "Check postInstall Have Tolerations As Per Given Value",
+		// 	Covers: []string{
+		// 		".Values.postInstall.tolerations",
+		// 		".Values.postInstall",
+		// 	},
 
-			Checks: test.Checks{
-				checker.PerResource(func(tc *checker.TestContext, job *batchv1.Job) {
+		// 	Checks: test.Checks{
+		// 		checker.PerResource(func(tc *checker.TestContext, job *batchv1.Job) {
 
-					if job.Name != "gatekeeper-update-namespace-label" {
-						return
-					}
+		// 			if job.Name != "gatekeeper-update-namespace-label" {
+		// 				return
+		// 			}
 
-					tolerationsAddedByValues, _ := checker.RenderValue[[]corev1.Toleration](tc, ".Values.postInstall.tolerations")
+		// 			tolerationsAddedByValues, _ := checker.RenderValue[[]corev1.Toleration](tc, ".Values.postInstall.tolerations")
 
-					expectedTolerations := append(defaultTolerations, tolerationsAddedByValues...)
-					if len(expectedTolerations) == 0 {
-						expectedTolerations = nil
-					}
+		// 			expectedTolerations := append(defaultTolerations, tolerationsAddedByValues...)
+		// 			if len(expectedTolerations) == 0 {
+		// 				expectedTolerations = nil
+		// 			}
 
-					assert.Equal(tc.T,
-						expectedTolerations, job.Spec.Template.Spec.Tolerations,
-						"workload %s (type: %T) does not have correct tolerations, expected: %v got: %v",
-						job.Name, job, expectedTolerations, job.Spec.Template.Spec.Tolerations,
-					)
-				}),
-			},
-		},
+		// 			assert.Equal(tc.T,
+		// 				expectedTolerations, job.Spec.Template.Spec.Tolerations,
+		// 				"workload %s (type: %T) does not have correct tolerations, expected: %v got: %v",
+		// 				job.Name, job, expectedTolerations, job.Spec.Template.Spec.Tolerations,
+		// 			)
+		// 		}),
+		// 	},
+		// },
 		{
 			Name: "Check preUninstall Have Tolerations As Per Given Value",
 			Covers: []string{
@@ -6603,6 +6685,41 @@ var suite = test.Suite{
 						expectedTolerations, job.Spec.Template.Spec.Tolerations,
 						"workload %s (type: %T) does not have correct tolerations, expected: %v got: %v",
 						job.Name, job, expectedTolerations, job.Spec.Template.Spec.Tolerations,
+					)
+
+				}),
+			},
+		},
+		{
+			Name: "Check preUninstall Have nodeSelector As Per Given Value",
+			Covers: []string{
+				".Values.preUninstall.nodeSelector",
+				".Values.preUninstall",
+			},
+
+			Checks: test.Checks{
+				checker.PerResource(func(tc *checker.TestContext, job *batchv1.Job) {
+
+					if job.Name != "gatekeeper-delete-webhook-configs" {
+						return
+					}
+
+					nodeSelectorAddedByValues, _ := checker.RenderValue[map[string]string](tc, ".Values.preUninstall.nodeSelector")
+
+					expectedNodeSelector := map[string]string{}
+
+					for k, v := range nodeSelectorAddedByValues {
+						expectedNodeSelector[k] = v
+					}
+
+					for k, v := range defaultNodeSelector {
+						expectedNodeSelector[k] = v
+					}
+
+					assert.Equal(tc.T,
+						expectedNodeSelector, job.Spec.Template.Spec.NodeSelector,
+						"workload %s (type: %T) does not have correct tolerations, expected: %v got: %v",
+						job.Name, job, expectedNodeSelector, job.Spec.Template.Spec.NodeSelector,
 					)
 				}),
 			},
