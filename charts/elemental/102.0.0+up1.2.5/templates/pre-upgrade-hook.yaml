@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Release.Name }}-helm-hook
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Release.Name }}-helm-hook
+  annotations:
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cattle-globalrole-admin
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: system:serviceaccount:{{ .Release.Namespace }}:{{ .Release.Name }}-helm-hook
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-helm-hook
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  template:
+    metadata:
+      name: {{ .Release.Name }}-helm-hook
+    spec:
+      serviceAccountName: {{ .Release.Name }}-helm-hook
+      containers:
+      - name: crd-keep-policy
+        image: rancher/kubectl:v1.24.13
+        command:
+          - "kubectl"
+          - "annotate"
+          - "crds"
+          - "--selector=release-name={{ .Release.Name }}"
+          - "--namespace={{ .Release.Namespace }}"
+          - "helm.sh/resource-policy=keep"
+          - "--overwrite=true"
+      - name: crd-release-name
+        image: rancher/kubectl:v1.24.13
+        command:
+          - "kubectl"
+          - "annotate"
+          - "crds"
+          - "--selector=release-name={{ .Release.Name }}"
+          - "--namespace={{ .Release.Namespace }}"
+          - "meta.helm.sh/release-name={{ .Release.Name }}-crds"
+          - "--overwrite=true"
+      restartPolicy: Never
+  backoffLimit: 2
