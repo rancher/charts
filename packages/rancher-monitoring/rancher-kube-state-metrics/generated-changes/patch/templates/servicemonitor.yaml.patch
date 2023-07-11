@@ -1,6 +1,36 @@
 --- charts-original/templates/servicemonitor.yaml
 +++ charts/templates/servicemonitor.yaml
-@@ -32,9 +32,19 @@
+@@ -9,13 +9,26 @@
+   {{- with .Values.prometheus.monitor.additionalLabels }}
+     {{- toYaml . | nindent 4 }}
+   {{- end }}
++  {{- with .Values.prometheus.monitor.annotations }}
++  annotations:
++    {{- toYaml . | nindent 4 }}
++  {{- end }}
+ spec:
+   jobLabel: {{ default "app.kubernetes.io/name" .Values.prometheus.monitor.jobLabel }}
++  {{- with .Values.prometheus.monitor.targetLabels }}
++  targetLabels:
++    {{- toYaml . | trim | nindent 4 }}
++  {{- end }}
++  {{- with .Values.prometheus.monitor.podTargetLabels }}
++  podTargetLabels:
++    {{- toYaml . | trim | nindent 4 }}
++  {{- end }}
++  {{- include "servicemonitor.scrapeLimits" .Values.prometheus.monitor | indent 2 }}
+   selector:
+     matchLabels:
+-    {{- if .Values.prometheus.monitor.selectorOverride -}}
+-      {{ toYaml .Values.prometheus.monitor.selectorOverride | nindent 6 }}
+-    {{ else }}
++    {{- with .Values.prometheus.monitor.selectorOverride }}
++      {{- toYaml . | nindent 6 }}
++    {{- else }}
+       {{- include "kube-state-metrics.selectorLabels" . | indent 6 }}
+     {{- end }}
+   endpoints:
+@@ -32,9 +45,19 @@
      {{- if .Values.prometheus.monitor.honorLabels }}
        honorLabels: true
      {{- end }}
@@ -21,7 +51,21 @@
      {{- end }}
      {{- if .Values.prometheus.monitor.relabelings }}
        relabelings:
-@@ -61,10 +71,6 @@
+@@ -47,6 +70,13 @@
+       tlsConfig:
+         {{- toYaml .Values.prometheus.monitor.tlsConfig | nindent 8 }}
+     {{- end }}
++    {{- if .Values.prometheus.monitor.bearerTokenFile }}
++      bearerTokenFile: {{ .Values.prometheus.monitor.bearerTokenFile }}
++    {{- end }}
++    {{- with .Values.prometheus.monitor.bearerTokenSecret }}
++      bearerTokenSecret:
++        {{- toYaml . | nindent 8 }}
++    {{- end }}
+   {{- if .Values.selfMonitor.enabled }}
+     - port: metrics
+     {{- if .Values.prometheus.monitor.interval }}
+@@ -61,10 +91,6 @@
      {{- if .Values.prometheus.monitor.honorLabels }}
        honorLabels: true
      {{- end }}
@@ -32,3 +76,16 @@
      {{- if .Values.prometheus.monitor.relabelings }}
        relabelings:
          {{- toYaml .Values.prometheus.monitor.relabelings | nindent 8 }}
+@@ -76,5 +102,12 @@
+       tlsConfig:
+         {{- toYaml .Values.prometheus.monitor.tlsConfig | nindent 8 }}
+     {{- end }}
++    {{- if .Values.prometheus.monitor.bearerTokenFile }}
++      bearerTokenFile: {{ .Values.prometheus.monitor.bearerTokenFile }}
++    {{- end }}
++    {{- with .Values.prometheus.monitor.bearerTokenSecret }}
++      bearerTokenSecret:
++        {{- toYaml . | nindent 8 }}
++    {{- end }}
+   {{- end }}
+ {{- end }}
