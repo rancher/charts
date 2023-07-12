@@ -12,7 +12,7 @@ url: # A URL pointing to an UpstreamConfiguration
 subdirectory: # Optional field for a specific subdirectory for all upstreams. 
               # Example:- 
               #           url: {github repo}
-              #           subdirectory: charts/helm # This means the helm chart is located in this directory in the GitHub repo and this must be pulled as an upstream chart.
+              #           subdirectory: charts/helm # This means the helm chart is located in this directory in the GitHub repo and this directory must be pulled as an upstream chart.
 commit: # Optional field for a specific commit if your URL point to a GitHub Repository
 doNotRelease: # Optional field to specify that this chart should not produce any generated changes on running `make charts`.
 additionalCharts:
