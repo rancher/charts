@@ -9,8 +9,11 @@ version: # The version of the generated chart. This value will override the upst
 packageVersion: 1 # The value range is from 1 to 99. Mutually exclusive with version
 workingDir: # The directory within your package that will contain your working copy of the chart (e.g. charts)
 url: # A URL pointing to an UpstreamConfiguration
-subdirectory: # Optional field for a specific subdirectory for all upstreams
-commit: # Optional field for a specific commit if your URL point to a Github Repository
+subdirectory: # Optional field for a specific subdirectory for all upstreams. 
+              # Example:- 
+              #           url: {github repo}
+              #           subdirectory: charts/helm # This means the helm chart is located in this directory in the GitHub repo and this directory must be pulled as an upstream chart.
+commit: # Optional field for a specific commit if your URL point to a GitHub Repository
 doNotRelease: # Optional field to specify that this chart should not produce any generated changes on running `make charts`.
 additionalCharts:
 # These contain other charts that you would like to package alongside this chart
