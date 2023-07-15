@@ -1,0 +1,174 @@
+{{- if .Values.cve.adapter.enabled -}}
+{{- if (semverCompare ">=1.9-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: apps/v1
+{{- else }}
+apiVersion: extensions/v1beta1
+{{- end }}
+kind: Deployment
+metadata:
+  name: neuvector-registry-adapter-pod
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neuvector-registry-adapter-pod
+  template:
+    metadata:
+      labels:
+        app: neuvector-registry-adapter-pod
+        release: {{ .Release.Name }}
+        {{- with .Values.cve.adapter.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.cve.adapter.podAnnotations }}
+      annotations:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- if .Values.cve.adapter.affinity }}
+      affinity:
+{{ toYaml .Values.cve.adapter.affinity | indent 8 }}
+      {{- end }}
+      {{- if .Values.cve.adapter.tolerations }}
+      tolerations:
+{{ toYaml .Values.cve.adapter.tolerations | indent 8 }}
+      {{- end }}
+      {{- if .Values.cve.adapter.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.cve.adapter.nodeSelector | indent 8 }}
+      {{- end }}
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecrets }}
+      {{- end }}
+      {{- if .Values.cve.adapter.priorityClassName }}
+      priorityClassName: {{ .Values.cve.adapter.priorityClassName }}
+      {{- end }}
+      {{- if .Values.leastPrivilege }}
+      serviceAccountName: basic
+      serviceAccount: basic
+      {{- else }}
+      serviceAccountName: {{ .Values.serviceAccount }}
+      serviceAccount: {{ .Values.serviceAccount }}
+      {{- end }}
+      {{- if .Values.cve.adapter.runAsUser }}
+      securityContext:
+        runAsUser: {{ .Values.cve.adapter.runAsUser }}
+      {{- end }}
+      containers:
+        - name: neuvector-registry-adapter-pod
+          {{- if eq .Values.registry "registry.neuvector.com" }}
+          {{- if .Values.oem }}
+          image: "{{ .Values.registry }}/{{ .Values.oem }}/registry-adapter:{{ .Values.cve.adapter.image.tag }}"
+          {{- else }}
+          image: "{{ .Values.registry }}/registry-adapter:{{ .Values.cve.adapter.image.tag }}"
+          {{- end }}
+          {{- else }}
+          {{- if .Values.cve.adapter.image.hash }}
+          image: "{{ .Values.registry }}/{{ .Values.cve.adapter.image.repository }}@{{ .Values.cve.adapter.image.hash }}"
+          {{- else }}
+          image: "{{ .Values.registry }}/{{ .Values.cve.adapter.image.repository }}:{{ .Values.cve.adapter.image.tag }}"
+          {{- end }}
+          {{- end }}
+          env:
+            - name: CLUSTER_JOIN_ADDR
+              value: neuvector-svc-controller.{{ .Release.Namespace }}
+            - name: HARBOR_SERVER_PROTO
+              value: {{ .Values.cve.adapter.harbor.protocol }}
+            {{- if .Values.cve.adapter.harbor.secretName }}
+            - name: HARBOR_BASIC_AUTH_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.cve.adapter.harbor.secretName }}
+                  key: username
+            - name: HARBOR_BASIC_AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.cve.adapter.harbor.secretName }}
+                  key: password
+            {{- end }}
+            {{- with .Values.cve.adapter.env }}
+{{- toYaml . | nindent 14 }}
+            {{- end }}
+          volumeMounts:
+          {{- if .Values.cve.adapter.certificate.secret }}
+            - mountPath: /etc/neuvector/certs/ssl-cert.key
+              subPath: {{ .Values.cve.adapter.certificate.keyFile }}
+              name: cert
+              readOnly: true
+            - mountPath: /etc/neuvector/certs/ssl-cert.pem
+              subPath: {{ .Values.cve.adapter.certificate.pemFile }}
+              name: cert
+              readOnly: true
+          {{- end }}
+          resources:
+          {{- if .Values.cve.adapter.resources }}
+{{ toYaml .Values.cve.adapter.resources | indent 12 }}
+          {{- else }}
+{{ toYaml .Values.resources | indent 12 }}
+          {{- end }}
+          {{- if .Values.internal.certmanager.enabled }}
+          volumeMounts:
+            - mountPath: /etc/neuvector/certs/internal/cert.key
+              subPath: {{ .Values.cve.adapter.internal.certificate.keyFile }}
+              name: internal-cert
+              readOnly: true
+            - mountPath: /etc/neuvector/certs/internal/cert.pem
+              subPath: {{ .Values.cve.adapter.internal.certificate.pemFile }}
+              name: internal-cert
+              readOnly: true
+            - mountPath: /etc/neuvector/certs/internal/ca.cert
+              subPath: {{ .Values.cve.adapter.internal.certificate.caFile }}
+              name: internal-cert
+              readOnly: true
+          {{- end }}
+      restartPolicy: Always
+      volumes:
+      {{- if .Values.cve.adapter.certificate.secret }}
+        - name: cert
+          secret:
+            secretName: {{ .Values.cve.adapter.certificate.secret }}
+      {{- end }}
+      {{- if .Values.internal.certmanager.enabled }}
+        - name: internal-cert
+          secret:
+            secretName: {{ .Values.cve.adapter.internal.certificate.secret }}
+      {{- end }}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: neuvector-service-registry-adapter
+  namespace: {{ .Release.Namespace }}
+{{- with .Values.cve.adapter.svc.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: {{ .Values.cve.adapter.svc.type }}
+{{- if and .Values.cve.adapter.svc.loadBalancerIP (eq .Values.cve.adapter.svc.type "LoadBalancer") }}
+  loadBalancerIP: {{ .Values.cve.adapter.svc.loadBalancerIP }}
+{{- end }}
+  ports:
+    - name: registry-adapter
+{{- if (eq .Values.cve.adapter.harbor.protocol "https") }}
+      port: 9443
+{{- else }}
+      port: 8090
+{{- end }}
+      protocol: TCP
+  selector:
+    app: neuvector-registry-adapter-pod
+
+{{- end }}
