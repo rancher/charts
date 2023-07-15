@@ -1,0 +1,46 @@
+{{- if .Values.awsbilling.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neuvector-csp-pod
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+{{- with .Values.awsbilling.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+  selector:
+    matchLabels:
+      app: neuvector-csp-pod
+  template:
+    metadata:
+      labels:
+        app: neuvector-csp-pod
+        release: {{ .Release.Name }}
+    spec:
+      {{- if .Values.awsbilling.imagePullSecrets }}
+      imagePullSecrets:
+        - name: {{ .Values.awsbilling.imagePullSecrets }}
+      {{- end }}
+      containers:
+      - env:
+        - name: ADAPTER_NAMESPACE
+          value: {{ .Release.Namespace }}
+        - name: USAGE_CRD_PLURAL
+          value: "cspadapterusagerecords"
+        - name: USAGE_RESOURCE
+          value: "neuvector-usage"
+        - name: USAGE_API_VERSION
+          value: "v1"
+        - name: USAGE_API_GROUP
+          value: "susecloud.net"
+        image: "{{ .Values.registry }}/{{ .Values.awsbilling.image.repository }}:{{ .Values.awsbilling.image.tag }}"
+        name: neuvector-csp-pod
+        imagePullPolicy: "{{ .Values.awsbilling.image.imagePullPoliicy }}"
+      serviceAccountName: {{ .Values.awsbilling.serviceAccount }}
+      serviceAccount: {{ .Values.awsbilling.serviceAccount }}
+{{- end }}
