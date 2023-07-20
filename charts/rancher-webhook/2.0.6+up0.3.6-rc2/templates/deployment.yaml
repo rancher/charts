@@ -36,6 +36,10 @@ spec:
           value: "{{.Values.capi.enabled}}"
         - name: ENABLE_MCM
           value: "{{.Values.mcm.enabled}}"
+        - name: CATTLE_PORT
+          value: {{.Values.port | default 9443 | quote}}
+        - name: CATTLE_CAPI_PORT
+          value: {{.Values.capi.port | default 8777 | quote}}
         - name: NAMESPACE
           valueFrom:
             fieldRef:
@@ -45,9 +49,9 @@ spec:
         imagePullPolicy: "{{ .Values.image.imagePullPolicy }}"
         ports:
         - name: https
-          containerPort: 9443
+          containerPort: {{ .Values.port | default 9443 }}
         - name: capi-https
-          containerPort: 8777
+          containerPort: {{ .Values.capi.port | default 8777}}
         startupProbe:
           httpGet:
             path: "/healthz"
@@ -66,7 +70,14 @@ spec:
         - name: tls
           mountPath: /tmp/k8s-webhook-server/serving-certs
         {{- end }}
+        {{- if .Values.capNetBindService }}
+        securityContext:
+          capabilities:
+            add:
+            - NET_BIND_SERVICE 
+        {{- end }}
       serviceAccountName: rancher-webhook
       {{- if .Values.priorityClassName }}
       priorityClassName: "{{.Values.priorityClassName}}"
       {{- end }}
+      
