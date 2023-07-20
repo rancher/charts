@@ -1,0 +1,47 @@
+{{- if .Values.awsbilling.enabled }}
+{{- $oc4 := and .Values.openshift (semverCompare ">=1.12-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) -}}
+{{- $oc3 := and .Values.openshift (not $oc4) (semverCompare ">=1.9-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) -}}
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: apiextensions.k8s.io/v1
+{{- else }}
+apiVersion: apiextensions.k8s.io/v1beta1
+{{- end }}
+kind: CustomResourceDefinition
+metadata:
+  name: cspadapterusagerecords.susecloud.net
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  group: susecloud.net
+  names:
+    kind: CspAdapterUsageRecord
+    listKind: CspAdapterUsageRecordList
+    plural: cspadapterusagerecords
+    singular: cspadapterusagerecord
+    shortNames:
+    - caur
+  scope: Cluster
+{{- if (semverCompare "<1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+  version: v1
+{{- end }}
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        properties:
+          base_product:
+            type: string
+          managed_node_count:
+            type: integer
+          reporting_time:
+            type: string
+        required:
+        - managed_node_count
+        - reporting_time
+        - base_product
+        type: object
+    served: true
+    storage: true
+{{- end }}
