@@ -1,6 +1,6 @@
-# Generate-Regsync-Config action will checkout release-v2.7 branch, run make regsync target and
-# creates a pull request from rancherbot/charts or rancher/charts release-v2.7 branch with any image additions
-# to regsync config file. This action is triggered whenever something is pushed into release-v2.7 branch.
+# Generate-Regsync-Config action will run for every PR into release-v2.7 branch only after an approval is given 
+# It will run make target to generate regsync file and add a commit to the PR updating the regsync file. 
+# It will then install and run regsync client and do the prime image mirroring.
 
 name: Generate-Regsync-Config
 
@@ -14,11 +14,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
-      - name: Generate Regsync Config
+
+      # Need to remove export version once rancher/charts gets the latest version 
+      # of charts-build-script binary.   
+      - name: Generate RegSync & Commit
         run: |
+          gh pr checkout ${{ github.event.pull_request.number }}
+          export CHARTS_BUILD_SCRIPT_VERSION=v0.4.2 
           make pull-scripts
           make regsync
+          git add regsync.yaml
+          git config --global user.name "Github Action RegSync"
+          git config --global user.email "github@action.com"
+          git commit -m "Updating regsync.yaml"
+          git push
+        env:
+          GH_TOKEN: ${{ github.token }}
    
       - name: Install Regsync
         run: |
