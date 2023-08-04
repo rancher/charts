@@ -38,7 +38,7 @@ To install istio with CNI enabled, e.g. when cluster has a default PSP set to "r
 See [this issue](https://github.com/rancher/rancher/issues/33291) for details.
 
 ## Installing istio with distroless-images.
-Istio `102.2.0+up1.17.2` uses distroless images for `istio-proxyv2`, `istio-install-cni` and `istio-pilot`. Distroless images don't have the common debugging tools like `bash`, `curl`, etc. If you wish to troubleshoot Istio, you can switch to regular images by updating `values.yaml` file. 
+Istio `102.2.0+up1.18.2` uses distroless images for `istio-proxyv2`, `istio-install-cni` and `istio-pilot`. Distroless images don't have the common debugging tools like `bash`, `curl`, etc. If you wish to troubleshoot Istio, you can switch to regular images by updating `values.yaml` file. 
 
 ## Deprecations
 
