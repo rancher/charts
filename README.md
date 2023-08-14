@@ -29,6 +29,8 @@ The versioning scheme roughly corresponds to the following rules (with exception
   - Anything less than `100`: Rancher 2.5
   - `100`: Rancher 2.6
   - `101`: Rancher 2.7
+  - `102`: Rancher 2.7
+  - `103`: Rancher 2.8
   - etc.
 - Minor Version: represents a release line of a given chart within a Rancher minor version.
 - Patch Version: represents a patch to a given release line of a chart within a Rancher minor version.
