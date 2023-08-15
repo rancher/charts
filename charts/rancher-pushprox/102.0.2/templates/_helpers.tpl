@@ -102,7 +102,7 @@ app: {{ template "pushprox.serviceMonitor.name" . }}
 {{- define "pushProxy.serviceMonitor.endpoints" -}}
 {{- $proxyURL := (include "pushProxy.proxyUrl" .) -}}
 {{- $useHTTPS := .Values.clients.https.enabled -}}
-{{- $setHTTPSScheme := .Values.clients.https.forceHTTPSScheme -}}
+{{- $forceHTTPSScheme := .Values.clients.https.forceHTTPSScheme -}}
 {{- $insecureSkipVerify := .Values.clients.https.insecureSkipVerify -}}
 {{- $useServiceAccountCredentials := .Values.clients.https.useServiceAccountCredentials -}}
 {{- $serviceAccountTokenName := (include "pushProxy.client.serviceAccountTokenName" . ) -}}
