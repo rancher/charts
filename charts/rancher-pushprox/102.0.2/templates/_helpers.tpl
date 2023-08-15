@@ -102,6 +102,7 @@ app: {{ template "pushprox.serviceMonitor.name" . }}
 {{- define "pushProxy.serviceMonitor.endpoints" -}}
 {{- $proxyURL := (include "pushProxy.proxyUrl" .) -}}
 {{- $useHTTPS := .Values.clients.https.enabled -}}
+{{- $setHTTPSScheme := .Values.clients.https.forceHTTPSScheme -}}
 {{- $insecureSkipVerify := .Values.clients.https.insecureSkipVerify -}}
 {{- $useServiceAccountCredentials := .Values.clients.https.useServiceAccountCredentials -}}
 {{- $serviceAccountTokenName := (include "pushProxy.client.serviceAccountTokenName" . ) -}}
@@ -130,8 +131,10 @@ app: {{ template "pushprox.serviceMonitor.name" . }}
 {{- if not (empty $metricRelabelings) }}
 {{- $_ := set . "metricRelabelings" ($metricRelabelings)}}
 {{- end }}
-{{- if $useHTTPS -}}
+{{- if $forceHTTPSScheme -}}
 {{- $_ := set . "scheme" "https" }}
+{{- end -}}
+{{- if $useHTTPS -}}
 {{- if (hasKey . "params") }}
 {{- $_ := set (get . "params") "_scheme" (list "https") }}
 {{- else }}
