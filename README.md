@@ -22,22 +22,31 @@ with the latest images, and will prevent build failures within Rancher when atte
 
 #### Versioning Charts
 
-In this repository, all packages specify the `version` field in the `package.yaml`.
+There are two kinds of charts that exist in this repository. One is upstream charts and another is local charts. For each type the versioning is different.
 
-The versioning scheme roughly corresponds to the following rules (with exceptions):
-- Major Version: represents the Rancher minor version these charts are being released to.
+##### Upstream Charts
+
+In this repository, all packages specify the `version` field in the `package.yaml`. The upstream charts follow this versioning X.Y.P[+upX.Y.Z] 
+X.Y.Z is the upstream chart's major.minor.patch.
+
+The X.Y.P versioning scheme roughly corresponds to the following rules (with exceptions):
+- **Major Version**: represents the Rancher minor version these charts are being released to.
   - Anything less than `100`: Rancher 2.5
   - `100`: Rancher 2.6
   - `101`: Rancher 2.7
   - `102`: Rancher 2.7
   - `103`: Rancher 2.8
   - etc.
-- Minor Version: represents a release line of a given chart within a Rancher minor version.
-- Patch Version: represents a patch to a given release line of a chart within a Rancher minor version.
+- **Minor Version**: represents a release line of a given chart within a Rancher minor version.
+- **Patch Version**: represents a patch to a given release line of a chart within a Rancher minor version.
 
 As a rule of thumb, you will only ever touch this version to **increment the patch version once per Rancher patch release**. Once it has been incremented, it should not be incremented again until the next Rancher patch release, even if the chart points to an upstream that has been modified.
 
 For more information on how package versioning works, please see [`docs/developing.md`](docs/developing.md).
+
+##### Local Charts
+
+- For local charts, we don't follow this versioning scheme. Only one semver, versioning scheme x.x.x is being followed that is the app 
 
 #### Rancher Version Annotations
 
