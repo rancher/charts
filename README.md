@@ -46,7 +46,7 @@ For more information on how package versioning works, please see [`docs/developi
 
 ##### Local Charts
 
-- For local charts, we don't follow this versioning scheme. Only one semver, versioning scheme x.x.x is being followed that is the app 
+- For local charts, we don't follow any complex versioning scheme. Only one semver, versioning scheme x.x.x is being followed.
 
 #### Rancher Version Annotations
 
