@@ -1,0 +1,126 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Chart.Name }}-create
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+  annotations:
+    "helm.sh/hook": post-install, post-upgrade, post-rollback
+    "helm.sh/hook-delete-policy": before-hook-creation, hook-succeeded
+spec:
+  template:
+    metadata:
+      name: {{ .Chart.Name }}-create
+      labels:
+        app: {{ .Chart.Name }}
+    spec:
+      serviceAccountName: {{ .Chart.Name }}-manager
+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
+{{- if .Values.nodeSelector }}
+{{ toYaml .Values.nodeSelector | indent 8 }}
+{{- end }}
+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+{{- if .Values.tolerations }}
+{{ toYaml .Values.tolerations | indent 8 }}
+{{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: create-crds
+          image: {{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: IfNotPresent
+          command:
+          - /bin/kubectl
+          - apply
+          - -f
+          - /etc/config/crd-manifest.yaml
+          volumeMounts:
+            - name: crd-manifest
+              readOnly: true
+              mountPath: /etc/config
+          securityContext:
+            {{- if .Values.enableRuntimeDefaultSeccompProfile }}
+            seccompProfile:
+              type: RuntimeDefault
+            {{- end }}
+            {{- toYaml .Values.securityContext | nindent 12 }}
+      restartPolicy: OnFailure
+      volumes:
+      - name: crd-manifest
+        configMap:
+          name: {{ .Chart.Name }}-manifest
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Chart.Name }}-delete
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  template:
+    metadata:
+      name: {{ .Chart.Name }}-delete
+      labels:
+        app: {{ .Chart.Name }}
+    spec:
+      serviceAccountName: {{ .Chart.Name }}-manager
+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
+{{- if .Values.nodeSelector }}
+{{ toYaml .Values.nodeSelector | indent 8 }}
+{{- end }}
+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+{{- if .Values.tolerations }}
+{{ toYaml .Values.tolerations | indent 8 }}
+{{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      initContainers:
+        - name: remove-finalizers
+          image: {{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: IfNotPresent
+          command:
+          - /bin/kubectl
+          - apply
+          - -f
+          - /etc/config/crd-manifest.yaml
+          volumeMounts:
+            - name: crd-manifest
+              readOnly: true
+              mountPath: /etc/config
+          securityContext:
+            {{- if .Values.enableRuntimeDefaultSeccompProfile }}
+            seccompProfile:
+              type: RuntimeDefault
+            {{- end }}
+            {{- toYaml .Values.securityContext | nindent 12 }}
+      containers:
+        - name: delete-crds
+          image: {{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: IfNotPresent
+          command:
+          - /bin/kubectl
+          - delete
+          - -f
+          - /etc/config/crd-manifest.yaml
+          volumeMounts:
+            - name: crd-manifest
+              readOnly: true
+              mountPath: /etc/config
+          securityContext:
+            {{- if .Values.enableRuntimeDefaultSeccompProfile }}
+            seccompProfile:
+              type: RuntimeDefault
+            {{- end }}
+            {{- toYaml .Values.securityContext | nindent 12 }}
+      restartPolicy: OnFailure
+      volumes:
+      - name: crd-manifest
+        configMap:
+          name: {{ .Chart.Name }}-manifest
