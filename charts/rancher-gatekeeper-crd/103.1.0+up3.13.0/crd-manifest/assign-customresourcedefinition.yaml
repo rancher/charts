@@ -5,21 +5,21 @@ metadata:
     controller-gen.kubebuilder.io/version: v0.10.0
   labels:
     gatekeeper.sh/system: "yes"
-  name: modifyset.mutations.gatekeeper.sh
+  name: assign.mutations.gatekeeper.sh
 spec:
   group: mutations.gatekeeper.sh
   names:
-    kind: ModifySet
-    listKind: ModifySetList
-    plural: modifyset
-    singular: modifyset
+    kind: Assign
+    listKind: AssignList
+    plural: assign
+    singular: assign
   preserveUnknownFields: false
   scope: Cluster
   versions:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: ModifySet allows the user to modify non-keyed lists, such as the list of arguments to a container.
+        description: Assign is the Schema for the assign API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -34,7 +34,7 @@ spec:
                 type: string
             type: object
           spec:
-            description: ModifySetSpec defines the desired state of ModifySet.
+            description: AssignSpec defines the desired state of Assign.
             properties:
               applyTo:
                 description: ApplyTo lists the specific groups, versions and kinds a mutation will be applied to. This is necessary because every mutation implies part of an object schema and object schemas are associated with specific GVKs.
@@ -56,7 +56,7 @@ spec:
                   type: object
                 type: array
               location:
-                description: 'Location describes the path to be mutated, for example: `spec.containers[name: main].args`.'
+                description: 'Location describes the path to be mutated, for example: `spec.containers[name: main]`.'
                 type: string
               match:
                 description: Match allows the user to limit which resources get mutated. Individual match criteria are AND-ed together. An undefined match criteria matches everything.
@@ -65,7 +65,7 @@ spec:
                     description: 'ExcludedNamespaces is a list of namespace names. If defined, a constraint only applies to resources not in a listed namespace. ExcludedNamespaces also supports a prefix or suffix based glob.  For example, `excludedNamespaces: [kube-*]` matches both `kube-system` and `kube-public`, and `excludedNamespaces: [*-system]` matches both `kube-system` and `gatekeeper-system`.'
                     items:
                       description: 'A string that supports globbing at its front or end. Ex: "kube-*" will match "kube-system" or "kube-public", "*-system" will match "kube-system" or "gatekeeper-system".  The asterisk is required for wildcard matching.'
-                      pattern: ^(\*|\*-)?[a-z0-9]([-a-z0-9]*[a-z0-9])?(\*|-\*)?$
+                      pattern: ^(\*|\*-)?[a-z0-9]([-:a-z0-9]*[a-z0-9])?(\*|-\*)?$
                       type: string
                     type: array
                   kinds:
@@ -115,7 +115,7 @@ spec:
                     type: object
                   name:
                     description: 'Name is the name of an object.  If defined, it will match against objects with the specified name.  Name also supports a prefix or suffix glob.  For example, `name: pod-*` would match both `pod-a` and `pod-b`, and `name: *-pod` would match both `a-pod` and `b-pod`.'
-                    pattern: ^(\*|\*-)?[a-z0-9]([-a-z0-9]*[a-z0-9])?(\*|-\*)?$
+                    pattern: ^(\*|\*-)?[a-z0-9]([-:a-z0-9]*[a-z0-9])?(\*|-\*)?$
                     type: string
                   namespaceSelector:
                     description: NamespaceSelector is a label selector against an object's containing namespace or the object itself, if the object is a namespace.
@@ -151,7 +151,7 @@ spec:
                     description: 'Namespaces is a list of namespace names. If defined, a constraint only applies to resources in a listed namespace.  Namespaces also supports a prefix or suffix based glob.  For example, `namespaces: [kube-*]` matches both `kube-system` and `kube-public`, and `namespaces: [*-system]` matches both `kube-system` and `gatekeeper-system`.'
                     items:
                       description: 'A string that supports globbing at its front or end. Ex: "kube-*" will match "kube-system" or "kube-public", "*-system" will match "kube-system" or "gatekeeper-system".  The asterisk is required for wildcard matching.'
-                      pattern: ^(\*|\*-)?[a-z0-9]([-a-z0-9]*[a-z0-9])?(\*|-\*)?$
+                      pattern: ^(\*|\*-)?[a-z0-9]([-:a-z0-9]*[a-z0-9])?(\*|-\*)?$
                       type: string
                     type: array
                   scope:
@@ -168,15 +168,46 @@ spec:
               parameters:
                 description: Parameters define the behavior of the mutator.
                 properties:
-                  operation:
-                    default: merge
-                    description: Operation describes whether values should be merged in ("merge"), or pruned ("prune"). Default value is "merge"
-                    enum:
-                    - merge
-                    - prune
-                    type: string
+                  assign:
+                    description: Assign.value holds the value to be assigned
+                    properties:
+                      externalData:
+                        description: ExternalData describes the external data provider to be used for mutation.
+                        properties:
+                          dataSource:
+                            default: ValueAtLocation
+                            description: DataSource specifies where to extract the data that will be sent to the external data provider as parameters.
+                            enum:
+                            - ValueAtLocation
+                            - Username
+                            type: string
+                          default:
+                            description: Default specifies the default value to use when the external data provider returns an error and the failure policy is set to "UseDefault".
+                            type: string
+                          failurePolicy:
+                            default: Fail
+                            description: FailurePolicy specifies the policy to apply when the external data provider returns an error.
+                            enum:
+                            - UseDefault
+                            - Ignore
+                            - Fail
+                            type: string
+                          provider:
+                            description: Provider is the name of the external data provider.
+                            type: string
+                        type: object
+                      fromMetadata:
+                        description: FromMetadata assigns a value from the specified metadata field.
+                        properties:
+                          field:
+                            description: Field specifies which metadata field provides the assigned value. Valid fields are `namespace` and `name`.
+                            type: string
+                        type: object
+                      value:
+                        description: Value is a constant value that will be assigned to `location`
+                        x-kubernetes-preserve-unknown-fields: true
+                    type: object
                   pathTests:
-                    description: PathTests are a series of existence tests that can be checked before a mutation is applied
                     items:
                       description: "PathTest allows the user to customize how the mutation works if parent paths are missing. It traverses the list in order. All sub paths are tested against the provided condition, if the test fails, the mutation is not applied. All `subPath` entries must be a prefix of `location`. Any glob characters will take on the same value as was used to expand the matching glob in `location`. \n Available Tests: * MustExist    - the path must exist or do not mutate * MustNotExist - the path must not exist or do not mutate."
                       properties:
@@ -190,14 +221,10 @@ spec:
                           type: string
                       type: object
                     type: array
-                  values:
-                    description: Values describes the values provided to the operation as `values.fromList`.
-                    type: object
-                    x-kubernetes-preserve-unknown-fields: true
                 type: object
             type: object
           status:
-            description: ModifySetStatus defines the observed state of ModifySet.
+            description: AssignStatus defines the observed state of Assign.
             properties:
               byPod:
                 items:
@@ -241,7 +268,7 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: ModifySet allows the user to modify non-keyed lists, such as the list of arguments to a container.
+        description: Assign is the Schema for the assign API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -252,7 +279,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: ModifySetSpec defines the desired state of ModifySet.
+            description: AssignSpec defines the desired state of Assign.
             properties:
               applyTo:
                 description: ApplyTo lists the specific groups, versions and kinds a mutation will be applied to. This is necessary because every mutation implies part of an object schema and object schemas are associated with specific GVKs.
@@ -274,7 +301,7 @@ spec:
                   type: object
                 type: array
               location:
-                description: 'Location describes the path to be mutated, for example: `spec.containers[name: main].args`.'
+                description: 'Location describes the path to be mutated, for example: `spec.containers[name: main]`.'
                 type: string
               match:
                 description: Match allows the user to limit which resources get mutated. Individual match criteria are AND-ed together. An undefined match criteria matches everything.
@@ -283,7 +310,7 @@ spec:
                     description: 'ExcludedNamespaces is a list of namespace names. If defined, a constraint only applies to resources not in a listed namespace. ExcludedNamespaces also supports a prefix or suffix based glob.  For example, `excludedNamespaces: [kube-*]` matches both `kube-system` and `kube-public`, and `excludedNamespaces: [*-system]` matches both `kube-system` and `gatekeeper-system`.'
                     items:
                       description: 'A string that supports globbing at its front or end. Ex: "kube-*" will match "kube-system" or "kube-public", "*-system" will match "kube-system" or "gatekeeper-system".  The asterisk is required for wildcard matching.'
-                      pattern: ^(\*|\*-)?[a-z0-9]([-a-z0-9]*[a-z0-9])?(\*|-\*)?$
+                      pattern: ^(\*|\*-)?[a-z0-9]([-:a-z0-9]*[a-z0-9])?(\*|-\*)?$
                       type: string
                     type: array
                   kinds:
@@ -333,7 +360,7 @@ spec:
                     type: object
                   name:
                     description: 'Name is the name of an object.  If defined, it will match against objects with the specified name.  Name also supports a prefix or suffix glob.  For example, `name: pod-*` would match both `pod-a` and `pod-b`, and `name: *-pod` would match both `a-pod` and `b-pod`.'
-                    pattern: ^(\*|\*-)?[a-z0-9]([-a-z0-9]*[a-z0-9])?(\*|-\*)?$
+                    pattern: ^(\*|\*-)?[a-z0-9]([-:a-z0-9]*[a-z0-9])?(\*|-\*)?$
                     type: string
                   namespaceSelector:
                     description: NamespaceSelector is a label selector against an object's containing namespace or the object itself, if the object is a namespace.
@@ -369,7 +396,7 @@ spec:
                     description: 'Namespaces is a list of namespace names. If defined, a constraint only applies to resources in a listed namespace.  Namespaces also supports a prefix or suffix based glob.  For example, `namespaces: [kube-*]` matches both `kube-system` and `kube-public`, and `namespaces: [*-system]` matches both `kube-system` and `gatekeeper-system`.'
                     items:
                       description: 'A string that supports globbing at its front or end. Ex: "kube-*" will match "kube-system" or "kube-public", "*-system" will match "kube-system" or "gatekeeper-system".  The asterisk is required for wildcard matching.'
-                      pattern: ^(\*|\*-)?[a-z0-9]([-a-z0-9]*[a-z0-9])?(\*|-\*)?$
+                      pattern: ^(\*|\*-)?[a-z0-9]([-:a-z0-9]*[a-z0-9])?(\*|-\*)?$
                       type: string
                     type: array
                   scope:
@@ -386,15 +413,46 @@ spec:
               parameters:
                 description: Parameters define the behavior of the mutator.
                 properties:
-                  operation:
-                    default: merge
-                    description: Operation describes whether values should be merged in ("merge"), or pruned ("prune"). Default value is "merge"
-                    enum:
-                    - merge
-                    - prune
-                    type: string
+                  assign:
+                    description: Assign.value holds the value to be assigned
+                    properties:
+                      externalData:
+                        description: ExternalData describes the external data provider to be used for mutation.
+                        properties:
+                          dataSource:
+                            default: ValueAtLocation
+                            description: DataSource specifies where to extract the data that will be sent to the external data provider as parameters.
+                            enum:
+                            - ValueAtLocation
+                            - Username
+                            type: string
+                          default:
+                            description: Default specifies the default value to use when the external data provider returns an error and the failure policy is set to "UseDefault".
+                            type: string
+                          failurePolicy:
+                            default: Fail
+                            description: FailurePolicy specifies the policy to apply when the external data provider returns an error.
+                            enum:
+                            - UseDefault
+                            - Ignore
+                            - Fail
+                            type: string
+                          provider:
+                            description: Provider is the name of the external data provider.
+                            type: string
+                        type: object
+                      fromMetadata:
+                        description: FromMetadata assigns a value from the specified metadata field.
+                        properties:
+                          field:
+                            description: Field specifies which metadata field provides the assigned value. Valid fields are `namespace` and `name`.
+                            type: string
+                        type: object
+                      value:
+                        description: Value is a constant value that will be assigned to `location`
+                        x-kubernetes-preserve-unknown-fields: true
+                    type: object
                   pathTests:
-                    description: PathTests are a series of existence tests that can be checked before a mutation is applied
                     items:
                       description: "PathTest allows the user to customize how the mutation works if parent paths are missing. It traverses the list in order. All sub paths are tested against the provided condition, if the test fails, the mutation is not applied. All `subPath` entries must be a prefix of `location`. Any glob characters will take on the same value as was used to expand the matching glob in `location`. \n Available Tests: * MustExist    - the path must exist or do not mutate * MustNotExist - the path must not exist or do not mutate."
                       properties:
@@ -408,14 +466,10 @@ spec:
                           type: string
                       type: object
                     type: array
-                  values:
-                    description: Values describes the values provided to the operation as `values.fromList`.
-                    type: object
-                    x-kubernetes-preserve-unknown-fields: true
                 type: object
             type: object
           status:
-            description: ModifySetStatus defines the observed state of ModifySet.
+            description: AssignStatus defines the observed state of Assign.
             properties:
               byPod:
                 items:
@@ -459,7 +513,7 @@ spec:
   - name: v1beta1
     schema:
       openAPIV3Schema:
-        description: ModifySet allows the user to modify non-keyed lists, such as the list of arguments to a container.
+        description: Assign is the Schema for the assign API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -470,7 +524,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: ModifySetSpec defines the desired state of ModifySet.
+            description: AssignSpec defines the desired state of Assign.
             properties:
               applyTo:
                 description: ApplyTo lists the specific groups, versions and kinds a mutation will be applied to. This is necessary because every mutation implies part of an object schema and object schemas are associated with specific GVKs.
@@ -492,7 +546,7 @@ spec:
                   type: object
                 type: array
               location:
-                description: 'Location describes the path to be mutated, for example: `spec.containers[name: main].args`.'
+                description: 'Location describes the path to be mutated, for example: `spec.containers[name: main]`.'
                 type: string
               match:
                 description: Match allows the user to limit which resources get mutated. Individual match criteria are AND-ed together. An undefined match criteria matches everything.
@@ -501,7 +555,7 @@ spec:
                     description: 'ExcludedNamespaces is a list of namespace names. If defined, a constraint only applies to resources not in a listed namespace. ExcludedNamespaces also supports a prefix or suffix based glob.  For example, `excludedNamespaces: [kube-*]` matches both `kube-system` and `kube-public`, and `excludedNamespaces: [*-system]` matches both `kube-system` and `gatekeeper-system`.'
                     items:
                       description: 'A string that supports globbing at its front or end. Ex: "kube-*" will match "kube-system" or "kube-public", "*-system" will match "kube-system" or "gatekeeper-system".  The asterisk is required for wildcard matching.'
-                      pattern: ^(\*|\*-)?[a-z0-9]([-a-z0-9]*[a-z0-9])?(\*|-\*)?$
+                      pattern: ^(\*|\*-)?[a-z0-9]([-:a-z0-9]*[a-z0-9])?(\*|-\*)?$
                       type: string
                     type: array
                   kinds:
@@ -551,7 +605,7 @@ spec:
                     type: object
                   name:
                     description: 'Name is the name of an object.  If defined, it will match against objects with the specified name.  Name also supports a prefix or suffix glob.  For example, `name: pod-*` would match both `pod-a` and `pod-b`, and `name: *-pod` would match both `a-pod` and `b-pod`.'
-                    pattern: ^(\*|\*-)?[a-z0-9]([-a-z0-9]*[a-z0-9])?(\*|-\*)?$
+                    pattern: ^(\*|\*-)?[a-z0-9]([-:a-z0-9]*[a-z0-9])?(\*|-\*)?$
                     type: string
                   namespaceSelector:
                     description: NamespaceSelector is a label selector against an object's containing namespace or the object itself, if the object is a namespace.
@@ -587,7 +641,7 @@ spec:
                     description: 'Namespaces is a list of namespace names. If defined, a constraint only applies to resources in a listed namespace.  Namespaces also supports a prefix or suffix based glob.  For example, `namespaces: [kube-*]` matches both `kube-system` and `kube-public`, and `namespaces: [*-system]` matches both `kube-system` and `gatekeeper-system`.'
                     items:
                       description: 'A string that supports globbing at its front or end. Ex: "kube-*" will match "kube-system" or "kube-public", "*-system" will match "kube-system" or "gatekeeper-system".  The asterisk is required for wildcard matching.'
-                      pattern: ^(\*|\*-)?[a-z0-9]([-a-z0-9]*[a-z0-9])?(\*|-\*)?$
+                      pattern: ^(\*|\*-)?[a-z0-9]([-:a-z0-9]*[a-z0-9])?(\*|-\*)?$
                       type: string
                     type: array
                   scope:
@@ -604,15 +658,46 @@ spec:
               parameters:
                 description: Parameters define the behavior of the mutator.
                 properties:
-                  operation:
-                    default: merge
-                    description: Operation describes whether values should be merged in ("merge"), or pruned ("prune"). Default value is "merge"
-                    enum:
-                    - merge
-                    - prune
-                    type: string
+                  assign:
+                    description: Assign.value holds the value to be assigned
+                    properties:
+                      externalData:
+                        description: ExternalData describes the external data provider to be used for mutation.
+                        properties:
+                          dataSource:
+                            default: ValueAtLocation
+                            description: DataSource specifies where to extract the data that will be sent to the external data provider as parameters.
+                            enum:
+                            - ValueAtLocation
+                            - Username
+                            type: string
+                          default:
+                            description: Default specifies the default value to use when the external data provider returns an error and the failure policy is set to "UseDefault".
+                            type: string
+                          failurePolicy:
+                            default: Fail
+                            description: FailurePolicy specifies the policy to apply when the external data provider returns an error.
+                            enum:
+                            - UseDefault
+                            - Ignore
+                            - Fail
+                            type: string
+                          provider:
+                            description: Provider is the name of the external data provider.
+                            type: string
+                        type: object
+                      fromMetadata:
+                        description: FromMetadata assigns a value from the specified metadata field.
+                        properties:
+                          field:
+                            description: Field specifies which metadata field provides the assigned value. Valid fields are `namespace` and `name`.
+                            type: string
+                        type: object
+                      value:
+                        description: Value is a constant value that will be assigned to `location`
+                        x-kubernetes-preserve-unknown-fields: true
+                    type: object
                   pathTests:
-                    description: PathTests are a series of existence tests that can be checked before a mutation is applied
                     items:
                       description: "PathTest allows the user to customize how the mutation works if parent paths are missing. It traverses the list in order. All sub paths are tested against the provided condition, if the test fails, the mutation is not applied. All `subPath` entries must be a prefix of `location`. Any glob characters will take on the same value as was used to expand the matching glob in `location`. \n Available Tests: * MustExist    - the path must exist or do not mutate * MustNotExist - the path must not exist or do not mutate."
                       properties:
@@ -626,14 +711,10 @@ spec:
                           type: string
                       type: object
                     type: array
-                  values:
-                    description: Values describes the values provided to the operation as `values.fromList`.
-                    type: object
-                    x-kubernetes-preserve-unknown-fields: true
                 type: object
             type: object
           status:
-            description: ModifySetStatus defines the observed state of ModifySet.
+            description: AssignStatus defines the observed state of Assign.
             properties:
               byPod:
                 items:

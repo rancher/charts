@@ -1,14 +1,15 @@
 --- charts-original/templates/upgrade-crds-hook.yaml
 +++ charts/templates/upgrade-crds-hook.yaml
-@@ -87,26 +87,14 @@
+@@ -87,7 +87,7 @@
      spec:
        serviceAccountName: gatekeeper-admin-upgrade-crds
        restartPolicy: Never
 -      {{- if .Values.image.pullSecrets }}
 +      {{- if .Values.images.pullSecrets }}
        imagePullSecrets:
--        {{- toYaml .Values.image.pullSecrets | nindent 8 }}
-+        {{- toYaml .Values.images.pullSecrets | nindent 8 }}
+         {{- toYaml .Values.image.pullSecrets | nindent 8 }}
+       {{- end }}
+@@ -96,20 +96,8 @@
        {{- end }}
        containers:
        - name: crds-upgrade
@@ -31,7 +32,7 @@
          args:
          - apply
          - -f
-@@ -120,11 +108,9 @@
+@@ -123,11 +111,9 @@
            {{- end }}
            {{- toYaml .Values.crds.securityContext | nindent 10 }}
        {{- with .Values.crds }}
