@@ -10,7 +10,7 @@ forward-port:
 check-release-yaml:
 	./scripts/check-release-yaml
 
-TARGETS := prepare patch clean clean-cache charts list index unzip zip standardize validate template regsync check-images
+TARGETS := prepare patch clean clean-cache charts list index unzip zip standardize validate template regsync check-images check-rc
 
 $(TARGETS):
 	@./scripts/pull-scripts
