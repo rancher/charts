@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}
+  namespace: cattle-csp-adapter-system
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name }}
+    spec:
+      containers:
+      - env:
+        - name: CATTLE_DEBUG
+          value: {{ .Values.debug | quote }}
+        - name: CATTLE_DEV_MODE
+          value: {{ .Values.devMode | quote }}
+        - name: K8S_OUTPUT_CONFIGMAP
+          value: '{{ template "csp-adapter.outputConfigMap"  }}'
+        - name: K8S_OUTPUT_NOTIFICATION
+          value: '{{ template "csp-adapter.outputNotification" }}'
+        - name: K8S_CACHE_SECRET
+          value: '{{ template "csp-adapter.cacheSecret"  }}'
+        - name: K8S_HOSTNAME_SETTING
+          value: '{{ template "csp-adapter.hostnameSetting"  }}'
+        - name: K8S_RANCHER_VERSION_SETTING
+          value: '{{ template "csp-adapter.versionSetting"  }}'
+        image: '{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}'
+        name: {{ .Chart.Name }}
+        imagePullPolicy: "{{ .Values.image.imagePullPolicy }}"
+{{- if .Values.additionalTrustedCAs }}
+        volumeMounts:
+          - mountPath: /etc/ssl/certs/rancher-cert.pem
+            name: tls-ca-volume
+            subPath: ca-additional.pem
+            readOnly: true
+{{- end }}
+      serviceAccountName: {{ .Chart.Name }}
+{{- if .Values.additionalTrustedCAs }}
+      volumes:
+        - name: tls-ca-volume
+          secret:
+            defaultMode: 0444
+            secretName: tls-ca-additional
+{{- end }}
