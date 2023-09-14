@@ -1,0 +1,32 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: 'smoke-{{ .Chart.Name }}-bucket-create'
+  namespace: '{{ .Release.Namespace }}'
+  annotations:
+    helm.sh/hook: test
+spec:
+  template:
+    spec:
+      containers:
+        - name: create-bucket
+          image: opensuse/tumbleweed:latest
+          command:
+            - /bin/sh
+            - -exc
+            - zypper -n install --no-recommends libs3-tools;
+
+              s3 -u -t 50 create testbucket;
+
+              s3 -u -t 50 list | grep testbucket
+          env:
+            - name: S3_ACCESS_KEY_ID
+              value: {{ .Values.accessKey | quote }}
+            - name: S3_SECRET_ACCESS_KEY
+              value: {{ .Values.secretKey | quote }}
+            - name: S3_HOSTNAME
+              value:
+                '{{ .Values.serviceName }}.{{ .Release.Namespace }}.{{ .Values.privateDomain }}'
+      restartPolicy: Never
+  backoffLimit: 3
