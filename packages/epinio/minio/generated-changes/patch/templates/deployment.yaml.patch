@@ -1,7 +1,7 @@
 --- charts-original/templates/deployment.yaml
 +++ charts/templates/deployment.yaml
-@@ -72,7 +72,7 @@
- {{- end }}
+@@ -67,7 +67,7 @@
+       {{- end }}
        containers:
          - name: {{ .Chart.Name }}
 -          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -9,28 +9,26 @@
            imagePullPolicy: {{ .Values.image.pullPolicy }}
            command:
              - "/bin/sh"
-@@ -170,19 +170,18 @@
-         {{- toYaml . | nindent 8 }}
+@@ -164,16 +164,17 @@
+             {{- toYaml . | nindent 8 }}
+           {{- end }}
          {{- end }}
-         {{- end }}
--{{- with .Values.nodeSelector }}
-       nodeSelector:
--{{ toYaml . | indent 8 }}
--{{- end }}
+-      {{- with .Values.nodeSelector }}
+-      nodeSelector: {{- toYaml . | nindent 8 }}
+-      {{- end }}
++      nodeSelector:
 +        {{- include "linux-node-selector" . | nindent 8 }}
- {{- include "minio.imagePullSecrets" . | indent 6 }}
- {{- with .Values.affinity }}
-       affinity:
- {{ toYaml . | indent 8 }}
- {{- end }}
--{{- with .Values.tolerations }}
-       tolerations:
--{{ toYaml . | indent 8 }}
--{{- end }}
+       {{- include "minio.imagePullSecrets" . | indent 6 }}
+       {{- with .Values.affinity }}
+       affinity: {{- toYaml . | nindent 8 }}
+       {{- end }}
+-      {{- with .Values.tolerations }}
+       tolerations: {{- toYaml . | nindent 8 }}
+-      {{- end }}
 +        {{- include "linux-node-tolerations" . | nindent 8 }}
 +        {{- with .Values.tolerations }}
 +        {{ toYaml . | indent 8 }}
 +        {{- end }}
        volumes:
          - name: export
-         {{- if .Values.persistence.enabled }}
+           {{- if .Values.persistence.enabled }}
