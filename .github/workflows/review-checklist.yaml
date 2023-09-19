@@ -1,0 +1,25 @@
+name: Require Checklist
+
+on:
+  pull_request_target:
+    branches:
+      - images-and-tags-checkbox
+
+jobs:
+  review-checklist:
+    name: Make validation comment on PR
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - name: Make validation comment
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## Validation steps
+              - [ ] Ensure any new images have repository and tag on the same level to ensure the rancher-images.txt is generated correctly for it for airgap scenarios.`,
+            })
