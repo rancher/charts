@@ -24,3 +24,6 @@
 
 ## Backporting considerations
 <!-- Does this change need to be backported to other versions? If so, which versions should it be backported to? -->
+
+## Validation steps
+- [] Ensure any new images have `repository` and `tag` on the same level to ensure the rancher-images.txt is generated correctly for it for airgap scenarios.

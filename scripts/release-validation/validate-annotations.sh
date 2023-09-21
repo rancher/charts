@@ -12,7 +12,7 @@ git fetch ${UPSTREAM_REMOTE}
 
 # may need to use parenthesis instead of double quotes in some systems for it to work as an array
 # requiredAnnotations="catalog.cattle.io/rancher-version catalog.cattle.io/kube-version catalog.cattle.io/permits-os"
-requiredAnnotations=(catalog.cattle.io/rancher-version catalog.cattle.io/kube-version catalog.cattle.io/permits-os)
+declare -a requiredAnnotations=(catalog.cattle.io/rancher-version catalog.cattle.io/kube-version catalog.cattle.io/permits-os)
 
 for asset in $(find $ASSETS_DIR -mindepth 2 -maxdepth 2 -name "*.tgz" | sort | xargs); do
   if printf '%s\n' "${exclude[@]}" | grep -F -x ${asset} 1>/dev/null; then
@@ -62,7 +62,7 @@ for asset in $(find $ASSETS_DIR -mindepth 2 -maxdepth 2 -name "*.tgz" | sort | x
     if [[ ${key} != "annotations" ]]; then
       continue
     fi
-    for requiredAnnotation in $requiredAnnotations; do
+    for requiredAnnotation in "${requiredAnnotations[@]}"; do
       if echo ${chartContent} | grep "catalog.cattle.io/hidden" 1>/dev/null; then
         echo "Skipping checking annotation on chart with hidden annotation ${chart}"
         break
