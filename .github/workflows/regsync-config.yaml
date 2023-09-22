@@ -13,6 +13,9 @@ jobs:
     if: github.event.review.state == 'approved' && github.event.pull_request.base.ref == 'release-v2.7'
     runs-on: ubuntu-latest
     steps:
+      - name: Test github.ref
+        run: echo ${{ github.ref }}
+
       - uses: actions/checkout@v3
 
       # Need to remove export version once rancher/charts gets the latest version 
@@ -22,7 +25,20 @@ jobs:
           export CHARTS_BUILD_SCRIPT_VERSION=v0.4.2 
           make pull-scripts
           make regsync
-   
+
+    - name: Commit files
+      run: |
+          git add regsync.yaml
+          git config --global user.name "Github Action RegSync"
+          git config --global user.email "github@action.com"
+          git commit -m "Updating regsync.yaml"
+
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ github.ref }}
+
       - name: Install Regsync
         run: |
           curl --silent --fail --location --output regsync https://github.com/regclient/regclient/releases/download/v0.5.1/regsync-linux-amd64
