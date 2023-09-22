@@ -8,6 +8,9 @@ on:
   pull_request_review:
     types: [submitted, edited]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     if: github.event.review.state == 'approved' && github.event.pull_request.base.ref == 'release-v2.7'
@@ -44,13 +47,31 @@ jobs:
           curl --silent --fail --location --output regsync https://github.com/regclient/regclient/releases/download/v0.5.1/regsync-linux-amd64
           chmod +x regsync
 
-      - name: Sync Images to Registry
-          # time ./regsync once --config regsync.yaml
+      - name: Commit files
         run: |
-          head regsync.yaml
-          ruby ./regsync-split.rb
-          time find regsync -type f -name regsync.yaml -print -exec time regsync once --config '{}' ';'
-        env:
-          REGISTRY_ENDPOINT: ${{ secrets.REGISTRY_ENDPOINT }}
-          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
-          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+            git add regsync.yaml
+            git config --global user.name "Github Action RegSync"
+            git config --global user.email "github@action.com"
+            git commit -m "Updating regsync.yaml"
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
+
+      # - name: Install Regsync
+      #   run: |
+      #     curl --silent --fail --location --output regsync https://github.com/regclient/regclient/releases/download/v0.5.1/regsync-linux-amd64
+      #     chmod +x regsync
+
+      # - name: Sync Images to Registry
+      #     # time ./regsync once --config regsync.yaml
+      #   run: |
+      #     head regsync.yaml
+      #     ruby ./regsync-split.rb
+      #     time find regsync -type f -name regsync.yaml -print -exec time regsync once --config '{}' ';'
+      #   env:
+      #     REGISTRY_ENDPOINT: ${{ secrets.REGISTRY_ENDPOINT }}
+      #     REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+      #     REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
