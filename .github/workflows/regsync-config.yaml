@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Test github.ref
-        run: echo ${{ github.ref }}
+        run: echo ${{ github.head_ref }}
 
       - uses: actions/checkout@v3
 
@@ -36,42 +36,4 @@ jobs:
             git config --global user.email "github@action.com"
             git commit -m "Updating regsync.yaml"
   
-      - name: Push changes
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
-
-      - name: Install Regsync
-        run: |
-          curl --silent --fail --location --output regsync https://github.com/regclient/regclient/releases/download/v0.5.1/regsync-linux-amd64
-          chmod +x regsync
-
-      - name: Commit files
-        run: |
-            git add regsync.yaml
-            git config --global user.name "Github Action RegSync"
-            git config --global user.email "github@action.com"
-            git commit -m "Updating regsync.yaml"
-
-      - name: Push changes
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
-
-      - name: Install Regsync
-        run: |
-          curl --silent --fail --location --output regsync https://github.com/regclient/regclient/releases/download/v0.5.1/regsync-linux-amd64
-          chmod +x regsync
-
-      - name: Sync Images to Registry
-          # time ./regsync once --config regsync.yaml
-        run: |
-          head regsync.yaml
-          ruby ./regsync-split.rb
-          time find regsync -type f -name regsync.yaml -print -exec time regsync once --config '{}' ';'
-        env:
-          REGISTRY_ENDPOINT: ${{ secrets.STAGING_REGISTRY_ENDPOINT }}
-          REGISTRY_USERNAME: ${{ secrets.STAGING_REGISTRY_USERNAME }}
-          REGISTRY_PASSWORD: ${{ secrets.STAGING_REGISTRY_PASSWORD }}
+      
