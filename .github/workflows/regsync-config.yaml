@@ -16,9 +16,6 @@ jobs:
     if: github.event.review.state == 'approved' && github.event.pull_request.base.ref == 'release-v2.7'
     runs-on: ubuntu-latest
     steps:
-      - name: Test github.ref
-        run: echo ${{ github.event.pull_request.head.ref }}
-
       - uses: actions/checkout@v3
 
       # Need to remove export version once rancher/charts gets the latest version 
@@ -35,5 +32,10 @@ jobs:
             git config --global user.name "Github Action RegSync"
             git config --global user.email "github@action.com"
             git commit -m "Updating regsync.yaml"
-  
+            
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.event.pull_request.head.ref }}
       
