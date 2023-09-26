@@ -1,0 +1,109 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "sriov-network-operator.fullname" . }}
+  labels:
+  {{- include "sriov-network-operator.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch", "patch", "update"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["*"]
+  - apiGroups: ["apps"]
+    resources: ["daemonsets"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["namespaces", "serviceaccounts"]
+    verbs: ["*"]
+  - apiGroups: ["k8s.cni.cncf.io"]
+    resources: ["network-attachment-definitions"]
+    verbs: ["*"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles", "clusterrolebindings"]
+    verbs: ["*"]
+  - apiGroups: ["admissionregistration.k8s.io"]
+    resources: ["mutatingwebhookconfigurations", "validatingwebhookconfigurations"]
+    verbs: ["*"]
+  - apiGroups: ["sriovnetwork.openshift.io"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["machineconfiguration.openshift.io"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["config.openshift.io"]
+    resources: ["infrastructures"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: sriov-network-config-daemon
+  labels:
+  {{- include "sriov-network-operator.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch", "patch", "update"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["*"]
+  - apiGroups: ["apps"]
+    resources: ["daemonsets"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["pods/eviction"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: sriov-admin
+  {{- if .Values.global.rbac.userRoles.aggregateToDefaultRoles }}
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+  {{- end }}
+rules:
+- apiGroups:
+  - sriovnetwork.openshift.io
+  resources:
+  - '*'
+  verbs:
+  - "get"
+  - "watch"
+  - "list"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: sriov-edit
+  {{- if .Values.global.rbac.userRoles.aggregateToDefaultRoles }}
+    rbac.authorization.k8s.io/aggregate-to-edit: "true"
+  {{- end }}
+rules:
+- apiGroups:
+  - sriovnetwork.openshift.io
+  resources:
+  - '*'
+  verbs:
+  - "get"
+  - "watch"
+  - "list"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: sriov-view
+  {{- if .Values.global.rbac.userRoles.aggregateToDefaultRoles }}
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
+  {{- end }}
+rules:
+- apiGroups:
+  - sriovnetwork.openshift.io
+  resources:
+  - '*'
+  verbs:
+  - "get"
+  - "watch"
+  - "list"
+
