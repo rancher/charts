@@ -28,8 +28,24 @@ jobs:
       - name: Run Hull tests
         run: cd tests && go test -v ./...
 
+  check-images:
+    name: Check Container Images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
       - name: Check container images 
         run: make check-images
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+  check-rc:
+    name: Check RC Images and Charts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Check RC images and charts
+        run: make check-rc
+        if: startsWith(github.ref, 'refs/heads/release-v')

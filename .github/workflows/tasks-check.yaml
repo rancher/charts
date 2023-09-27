@@ -1,0 +1,18 @@
+name: Tasks Check
+
+on:
+  pull_request_review:
+    types: 
+      - submitted
+      - approved
+
+jobs:
+  checkbox-check:
+    if: startsWith(github.event.pull_request.base.ref, 'dev-v') || startsWith(github.event.pull_request.base.ref, 'release-v')
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check checkboxes
+      uses: mheap/require-checklist-action@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        requireChecklist: true
