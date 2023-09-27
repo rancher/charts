@@ -1,0 +1,46 @@
+{{- if .Values.useCertManager }}
+---
+# Self-signed issuer
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: s3gw-self-signed-issuer
+  labels:
+{{ include "s3gw.labels" . | indent 4}}
+spec:
+  selfSigned: {}
+---
+# Private s3gw-ca issuer
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: s3gw-issuer
+  labels:
+{{ include "s3gw.labels" . | indent 4}}
+spec:
+  ca:
+    secretName: s3gw-ca-root
+---
+# Let's encrypt production issuer
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: s3gw-letsencrypt-issuer
+  labels:
+{{ include "s3gw.labels" . | indent 4}}
+spec:
+  acme:
+    email: {{ .Values.email }}
+    preferredChain: ""
+    privateKeySecretRef:
+      name: s3gw-letsencrypt
+    server: https://acme-v02.api.letsencrypt.org/directory
+    solvers:
+    - http01:
+        ingress:
+          ingressTemplate:
+            metadata:
+              annotations:
+                traefik.ingress.kubernetes.io/router.entrypoints: websecure
+                traefik.ingress.kubernetes.io/router.tls: "true"
+{{- end }}
