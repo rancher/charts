@@ -1,0 +1,43 @@
+name: Check Positive Reaction on PR Approval
+
+on:
+  pull_request_review:
+    types: [approved]
+
+jobs:
+  check-reaction:
+    name: Check for positive reaction on the comment after PR approval
+    # Run the job only if the head branch starts with 'fix-comment-check'
+    if: startsWith(github.event.pull_request.head.ref, 'fix-comment-check')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for positive reaction on bot's comment
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            // Get comments on the PR
+            const comments = await github.issues.listComments({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+
+            // Find the specific comment from github-actions[bot]
+            for (const comment of comments.data) {
+              if (comment.user.login === 'github-actions[bot]' && comment.body.includes("Validation steps [CI won't pass without confirming this]")) {
+                const reactions = await github.reactions.listForIssueComment({
+                  comment_id: comment.id,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo
+                });
+
+                // Check if there's a thumbs up reaction on the bot's comment
+                const thumbsUpReaction = reactions.data.some(reaction => reaction.content === '+1');
+                if (thumbsUpReaction) {
+                  console.log("Positive reaction detected on the validation comment!");
+                  // Here, you can add any further actions you wish to take when a positive reaction is detected
+                  break;
+                }
+              }
+            }
