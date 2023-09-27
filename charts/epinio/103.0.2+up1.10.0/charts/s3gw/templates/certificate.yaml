@@ -1,0 +1,38 @@
+{{- if .Values.useCertManager }}
+---
+# s3gw-ca root certificate
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: s3gw-ca-cert
+  namespace: {{ .Values.certManagerNamespace }}
+  labels:
+{{ include "s3gw.labels" . | indent 4}}
+spec:
+  commonName: s3gw-ca
+  isCA: true
+  issuerRef:
+    kind: ClusterIssuer
+    name: s3gw-self-signed-issuer
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  secretName: s3gw-ca-root
+---
+# s3gw internal service certificate (private domain)
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: s3gw-cluster-ip-cert
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "s3gw.labels" . | indent 4}}
+spec:
+  dnsNames:
+    - '{{ .Values.serviceName }}.{{ .Release.Namespace }}.{{ .Values.privateDomain }}'
+    - '*.{{ .Values.serviceName }}.{{ .Release.Namespace }}.{{ .Values.privateDomain }}'
+  issuerRef:
+    kind: ClusterIssuer
+    name: s3gw-issuer
+  secretName: s3gw-cluster-ip-tls
+{{- end }}
