@@ -1,0 +1,48 @@
+name: Check Positive Reaction on PR Approval
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  check-reaction:
+    name: Check for positive reaction on all bot's validation comments
+    if: startsWith(github.event.pull_request.base.ref, 'dev-v') || startsWith(github.event.pull_request.base.ref, 'release-v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for positive reaction on bot's comments
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            // Get comments on the PR
+            const comments = await github.issues.listComments({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+
+            let allCommentsPassed = true;
+
+            // Iterate over each comment
+            for (const comment of comments.data) {
+              if (comment.user.login === 'github-actions[bot]' && comment.body.startsWith("## Validation steps")) {
+                const reactions = await github.reactions.listForIssueComment({
+                  comment_id: comment.id,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo
+                });
+
+                // If the current bot's validation comment doesn't have a thumbs-up reaction, log the comment's creation datetime
+                if (!reactions.data.some(reaction => reaction.content === '+1')) {
+                  allCommentsPassed = false;
+                  console.error("Failed Check - Comment Created At:", comment.created_at);
+                }
+              }
+            }
+
+            if (!allCommentsPassed) {
+              core.setFailed("One or more validation comments by github-actions[bot] do not have the required thumbs-up reaction!");
+            } else {
+              console.log("All bot's validation comments have the required thumbs-up reaction.");
+            }
