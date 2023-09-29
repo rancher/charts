@@ -1,0 +1,50 @@
+name: Validation Check
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  check-reaction:
+    name: Check for positive reaction on bot's latest validation comment from PR author
+    if: startsWith(github.event.pull_request.base.ref, 'dev-v') || startsWith(github.event.pull_request.base.ref, 'release-v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for positive reaction on bot's latest validation comment
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            // Get comments on the PR
+            const comments = await github.issues.listComments({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+
+            // Sort comments based on their creation datetime in descending order
+            const sortedComments = comments.data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            // Find the latest validation comment by github-actions[bot]
+            const latestValidationComment = sortedComments.find(comment => comment.user.login === 'github-actions[bot]' && comment.body.startsWith("## Validation steps"));
+
+            if (latestValidationComment) {
+              const reactions = await github.reactions.listForIssueComment({
+                comment_id: latestValidationComment.id,
+                owner: context.repo.owner,
+                repo: context.repo.repo
+              });
+
+              // Check if the PR author gave a thumbs-up reaction on the bot's validation comment
+              const authorReaction = reactions.data.find(reaction => reaction.user.login === context.payload.pull_request.user.login && reaction.content === '+1');
+
+              if (authorReaction) {
+                console.log("The latest validation comment by github-actions[bot] has the required thumbs-up reaction from the PR author.");
+              } else {
+                const createdAt = new Date(latestValidationComment.created_at).toLocaleString('en-US', { timeZoneName: 'short' });
+                console.error("Failed Check - Comment Created At:", createdAt);
+                core.setFailed("The latest validation comment by github-actions[bot] does not have the required thumbs-up reaction from the PR author!");
+              }
+            } else {
+              console.warn("No validation comments by github-actions[bot] found.");
+            }
