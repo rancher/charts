@@ -16,9 +16,9 @@ end
 
 regsync["sync"].each do |sync|
   regsync.merge("sync" => [sync]).then do |regsync|
-    (pwd + "regsync" + sync["source"]).then do |dir|
+    (pwd + "split-regsync" + sync["source"]).then do |dir|
       dir.mkpath
-      (dir + "regsync.yaml").write(YAML.dump(regsync))
+      (dir + "split-regsync.yaml").write(YAML.dump(regsync))
     end
   end
 end
