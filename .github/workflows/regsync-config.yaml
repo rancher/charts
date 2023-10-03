@@ -21,6 +21,9 @@ jobs:
       - uses: actions/checkout@v3
         with:
           token: ${{ secrets.PUSH_TOKEN }} 
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2' # Not needed with a .ruby-version file
 
       # Need to remove export version once rancher/charts gets the latest version 
       # of charts-build-script binary.
@@ -41,4 +44,18 @@ jobs:
             git commit -m "Updating resync.yaml"
             git branch
             git push
-      
+
+      - name: Install Regsync
+        run: |
+          curl --silent --fail --location --output regsync https://github.com/regclient/regclient/releases/download/v0.5.1/regsync-linux-amd64
+          chmod +x regsync
+
+      - name: Sync Images to Registry
+        run: |
+          head regsync.yaml
+          ruby ./regsync-split.rb
+          time find regsync -type f -name regsync.yaml -print -exec time regsync check --config '{}' ';'
+        env:
+          REGISTRY_ENDPOINT: ${{ secrets.REGISTRY_ENDPOINT }}
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
