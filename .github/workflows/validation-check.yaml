@@ -6,7 +6,7 @@ on:
 
 jobs:
   check-reaction:
-    name: Check for positive reaction on bot's latest validation comment from PR author
+    name: Check for positive reaction on bot's latest validation comment
     if: startsWith(github.event.pull_request.base.ref, 'dev-v') || startsWith(github.event.pull_request.base.ref, 'release-v')
     runs-on: ubuntu-latest
     steps:
@@ -35,16 +35,15 @@ jobs:
                 repo: context.repo.repo
               });
 
-              // Check if the PR author gave a thumbs-up reaction on the bot's validation comment
-              const authorReaction = reactions.data.find(reaction => reaction.user.login === context.payload.pull_request.user.login && reaction.content === '+1');
+              // Check if there's a thumbs-up reaction on the bot's validation comment
+              const thumbsUpReaction = reactions.data.some(reaction => reaction.content === '+1');
 
-              if (authorReaction) {
-                console.log("The latest validation comment by github-actions[bot] has the required thumbs-up reaction from the PR author.");
+              if (thumbsUpReaction) {
+                console.log("The validation comment by github-actions[bot] has the required thumbs-up reaction.");
               } else {
-                const createdAt = new Date(latestValidationComment.created_at).toLocaleString('en-US', { timeZoneName: 'short' });
                 console.error("Failed Check - Comment Created At:", createdAt);
-                core.setFailed("The latest validation comment by github-actions[bot] does not have the required thumbs-up reaction from the PR author!");
+                core.setFailed("The latest validation comment by github-actions[bot] does not have the required thumbs-up reaction!");
               }
             } else {
-              console.warn("No validation comments by github-actions[bot] found.");
+              core.setFailed("No validation comments by github-actions[bot] found.");
             }
