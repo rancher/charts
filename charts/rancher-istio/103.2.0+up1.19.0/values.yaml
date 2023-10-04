@@ -1,0 +1,119 @@
+overlayFile: ""
+tag: 1.19.0
+##Setting forceInstall: true will remove the check for istio version < 1.6.x and will not analyze your install cluster prior to install
+forceInstall: false
+
+installer:
+  repository: rancher/istio-installer
+  tag: 1.19.0-rancher1
+  ##releaseMirror are configurations for istio upgrades.
+  ##Setting releaseMirror.enabled: true will cause istio to use bundled in images from rancher/istio-installer to perfom an upgrade - this is ideal
+  ##for airgap setups. Setting releaseMirror.enabled to false means istio will call externally to github to fetch the required assets.
+  releaseMirror:
+    enabled: false
+
+  ##Set the secondsSleep to run a sleep command `sleep <secondsSleep>s` to allow time to exec into istio-installer pod for debugging
+  debug:
+    secondsSleep: 0
+
+##Native support for dns added in 1.8
+dns:
+  enabled: false
+
+base:
+  enabled: true
+
+cni:
+  enabled: false
+  repository: rancher/mirrored-istio-install-cni
+  # If you wish to troubleshoot Istio, you can switch to regular images by uncommenting the following tag and deleting
+  # the distroless tag:
+  # tag: 1.19.0
+  tag: 1.19.0-distroless
+  logLevel: info
+  excludeNamespaces:
+    - istio-system
+    - kube-system
+
+egressGateways:
+  enabled: false
+  type: NodePort
+  hpaSpec: {}
+  podDisruptionBudget: {}
+
+ingressGateways:
+  enabled: true
+  type: NodePort
+  hpaSpec: {}
+  podDisruptionBudget: {}
+
+istiodRemote:
+  enabled: false
+
+pilot:
+  enabled: true
+  repository: rancher/mirrored-istio-pilot
+  # If you wish to troubleshoot Istio, you can switch to regular images by uncommenting the following tag and deleting
+  # the distroless tag:
+  # tag: 1.19.0
+  tag: 1.19.0-distroless
+  hpaSpec: {}
+  podDisruptionBudget: {}
+
+telemetry:
+  enabled: true
+  v2:
+    enabled: true
+
+global:
+  cattle:
+    systemDefaultRegistry: ""
+    psp:
+      enabled: false
+  proxy:
+    repository: rancher/mirrored-istio-proxyv2
+    # If you wish to troubleshoot Istio, you can switch to regular images by uncommenting the following tag and deleting
+    # the distroless tag:
+    # tag: 1.19.0
+    tag: 1.19.0-distroless
+  proxy_init:
+    repository: rancher/mirrored-istio-proxyv2
+    # If you wish to troubleshoot Istio, you can switch to regular images by uncommenting the following tag and deleting
+    # the distroless tag:
+    # tag: 1.19.0
+    tag: 1.19.0-distroless
+  defaultPodDisruptionBudget:
+    enabled: true
+
+# Kiali subchart from rancher-kiali-server
+kiali:
+  enabled: true
+  # If you wish to change the authentication you can check the options in the Kiali documentation https://kiali.io/docs/configuration/authentication/
+  auth:
+    strategy: token
+  server:
+    web_root: /
+  deployment:
+    ingress_enabled: false
+  external_services:
+    prometheus:
+      custom_metrics_url: "http://rancher-monitoring-prometheus.cattle-monitoring-system.svc:9090"
+      url: "http://rancher-monitoring-prometheus.cattle-monitoring-system.svc:9090"
+    tracing:
+      in_cluster_url: "http://tracing.istio-system.svc:16686/jaeger"
+      use_grpc: false
+    grafana:
+      in_cluster_url: "http://rancher-monitoring-grafana.cattle-monitoring-system.svc:80"
+      url: "http://rancher-monitoring-grafana.cattle-monitoring-system.svc:80"
+
+tracing:
+  enabled: false
+  contextPath: "/jaeger"
+
+## Node labels for pod assignment
+## Ref: https://kubernetes.io/docs/user-guide/node-selection/
+##
+nodeSelector: {}
+
+## List of node taints to tolerate (requires Kubernetes >= 1.6)
+tolerations: []
