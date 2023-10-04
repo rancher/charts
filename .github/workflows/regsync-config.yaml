@@ -5,23 +5,41 @@
 name: Generate-Regsync-Config
 
 on:
-  pull_request_review:
-    types: [submitted, edited]
-
-permissions:
-  contents: write
+  pull_request_target:
+    types:
+      - labeled
 
 jobs:
+  onLabelAndApproval:
+    if: github.event.label.name == 'regsync-ready' && startsWith(github.event.pull_request.base.ref, 'release-v')
+    runs-on: ubuntu-latest
+    outputs:
+      is_approved: ${{ steps.check-approval.outputs.approved }}
+    steps:
+      - name: Check if PR is approved
+        id: check-approval
+        run: |
+          IS_APPROVED=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews --jq '[.[] | select(.state == "APPROVED")] | length')
+          if [[ "$IS_APPROVED" -gt 0 ]]; then
+            echo "::set-output name=approved::true"
+          else
+            echo "::set-output name=approved::false"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build:
-    if: github.event.review.state == 'approved' && github.event.pull_request.base.ref == 'release-v2.7'
-    permissions:
-      pull-requests: write
+    needs: onLabelAndApproval
+    if: needs.onLabelAndApproval.outputs.is_approved == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout 
+        uses: actions/checkout@v3
         with:
           token: ${{ secrets.PUSH_TOKEN }} 
-      - uses: ruby/setup-ruby@v1
+
+      - name: Set-up Ruby 3.2
+        uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.2' # Not needed with a .ruby-version file
 
