@@ -1,15 +1,15 @@
 --- charts-original/templates/deployment.yaml
 +++ charts/templates/deployment.yaml
-@@ -42,7 +42,7 @@
+@@ -46,7 +46,7 @@
        {{- end}}
        containers:
        - name: {{ .Chart.Name }}
 -        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
 +        image: "{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}"
          imagePullPolicy: {{ .Values.image.pullPolicy }}
-         args:
-         - /adapter
-@@ -108,8 +108,10 @@
+         {{- with .Values.env }}
+         env:
+@@ -105,8 +105,10 @@
            name: volume-serving-cert
            readOnly: true
          {{- end }}
@@ -22,7 +22,7 @@
        affinity:
          {{- toYaml .Values.affinity | nindent 8 }}
        topologySpreadConstraints:
-@@ -119,8 +121,10 @@
+@@ -116,8 +118,10 @@
        securityContext:
          {{- toYaml .Values.podSecurityContext | nindent 8 }}
        {{- end }}
