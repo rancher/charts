@@ -1,32 +1,11 @@
 --- charts-original/templates/daemonset.yaml
 +++ charts/templates/daemonset.yaml
-@@ -35,7 +35,7 @@
-       {{- end }}
+@@ -42,7 +42,7 @@
        containers:
+         {{- $servicePort := ternary 8100 .Values.service.port .Values.kubeRBACProxy.enabled }}
          - name: node-exporter
 -          image: {{ include "prometheus-node-exporter.image" . }}
 +          image: {{ template "system_default_registry" . }}{{ include "prometheus-node-exporter.image" . }}
            imagePullPolicy: {{ .Values.image.pullPolicy }}
            args:
              - --path.procfs=/host/proc
-@@ -177,14 +177,14 @@
-       dnsConfig:
- {{ toYaml . | indent 8 }}
- {{- end }}
-+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
- {{- if .Values.nodeSelector }}
--      nodeSelector:
--{{ toYaml .Values.nodeSelector | indent 8 }}
-+{{- toYaml .Values.nodeSelector | nindent 8 }}
- {{- end }}
--    {{- with .Values.tolerations }}
--      tolerations:
--{{ toYaml . | indent 8 }}
--    {{- end }}
-+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
-+{{- if .Values.tolerations }}
-+{{- toYaml .Values.tolerations | nindent 8 }}
-+{{- end }}
-       volumes:
-         - name: proc
-           hostPath:
