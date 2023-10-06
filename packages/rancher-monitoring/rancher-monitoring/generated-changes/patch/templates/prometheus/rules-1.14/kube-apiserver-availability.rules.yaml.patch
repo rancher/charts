@@ -1,26 +1,6 @@
 --- charts-original/templates/prometheus/rules-1.14/kube-apiserver-availability.rules.yaml
 +++ charts/templates/prometheus/rules-1.14/kube-apiserver-availability.rules.yaml
-@@ -35,36 +35,36 @@
-       labels:
-         verb: write
-       record: code:apiserver_request_total:increase30d
--    - expr: sum by (cluster, verb, scope) (increase(apiserver_request_slo_duration_seconds_count[1h]))
--      record: cluster_verb_scope:apiserver_request_slo_duration_seconds_count:increase1h
--    - expr: sum by (cluster, verb, scope) (avg_over_time(cluster_verb_scope:apiserver_request_slo_duration_seconds_count:increase1h[30d]) * 24 * 30)
--      record: cluster_verb_scope:apiserver_request_slo_duration_seconds_count:increase30d
--    - expr: sum by (cluster, verb, scope, le) (increase(apiserver_request_slo_duration_seconds_bucket[1h]))
--      record: cluster_verb_scope_le:apiserver_request_slo_duration_seconds_bucket:increase1h
--    - expr: sum by (cluster, verb, scope, le) (avg_over_time(cluster_verb_scope_le:apiserver_request_slo_duration_seconds_bucket:increase1h[30d]) * 24 * 30)
--      record: cluster_verb_scope_le:apiserver_request_slo_duration_seconds_bucket:increase30d
-+    - expr: sum by (cluster, verb, scope) (increase(apiserver_request{{ if (semverCompare ">=1.23.0-0" $kubeTargetVersion) }}_slo{{ end }}_duration_seconds_count[1h]))
-+      record: cluster_verb_scope:apiserver_request{{ if (semverCompare ">=1.23.0-0" $kubeTargetVersion) }}_slo{{ end }}_duration_seconds_count:increase1h
-+    - expr: sum by (cluster, verb, scope) (avg_over_time(cluster_verb_scope:apiserver_request{{ if (semverCompare ">=1.23.0-0" $kubeTargetVersion) }}_slo{{ end }}_duration_seconds_count:increase1h[30d]) * 24 * 30)
-+      record: cluster_verb_scope:apiserver_request{{ if (semverCompare ">=1.23.0-0" $kubeTargetVersion) }}_slo{{ end }}_duration_seconds_count:increase30d
-+    - expr: sum by (cluster, verb, scope, le) (increase(apiserver_request{{ if (semverCompare ">=1.23.0-0" $kubeTargetVersion) }}_slo{{ end }}_duration_seconds_bucket[1h]))
-+      record: cluster_verb_scope_le:apiserver_request{{ if (semverCompare ">=1.23.0-0" $kubeTargetVersion) }}_slo{{ end }}_duration_seconds_bucket:increase1h
-+    - expr: sum by (cluster, verb, scope, le) (avg_over_time(cluster_verb_scope_le:apiserver_request{{ if (semverCompare ">=1.23.0-0" $kubeTargetVersion) }}_slo{{ end }}_duration_seconds_bucket:increase1h[30d]) * 24 * 30)
-+      record: cluster_verb_scope_le:apiserver_request{{ if (semverCompare ">=1.23.0-0" $kubeTargetVersion) }}_slo{{ end }}_duration_seconds_bucket:increase30d
-     - expr: |-
+@@ -73,24 +73,24 @@
          1 - (
            (
              # write too slow
@@ -51,7 +31,7 @@
              )
            ) +
            # errors
-@@ -77,19 +77,19 @@
+@@ -106,19 +106,19 @@
        record: apiserver_request:availability30d
      - expr: |-
          1 - (
@@ -75,7 +55,7 @@
            )
            +
            # errors
-@@ -104,9 +104,9 @@
+@@ -136,9 +136,9 @@
          1 - (
            (
              # too slow

@@ -1,24 +1,6 @@
 --- charts-original/templates/prometheus/prometheus.yaml
 +++ charts/templates/prometheus/prometheus.yaml
-@@ -33,13 +33,13 @@
- {{- end }}
- {{- if .Values.prometheus.prometheusSpec.image }}
-   {{- if and .Values.prometheus.prometheusSpec.image.tag .Values.prometheus.prometheusSpec.image.sha }}
--  image: "{{ .Values.prometheus.prometheusSpec.image.repository }}:{{ .Values.prometheus.prometheusSpec.image.tag }}@sha256:{{ .Values.prometheus.prometheusSpec.image.sha }}"
-+  image: "{{ template "system_default_registry" . }}{{ .Values.prometheus.prometheusSpec.image.repository }}:{{ .Values.prometheus.prometheusSpec.image.tag }}@sha256:{{ .Values.prometheus.prometheusSpec.image.sha }}"
-   {{- else if .Values.prometheus.prometheusSpec.image.sha }}
--  image: "{{ .Values.prometheus.prometheusSpec.image.repository }}@sha256:{{ .Values.prometheus.prometheusSpec.image.sha }}"
-+  image: "{{ template "system_default_registry" . }}{{ .Values.prometheus.prometheusSpec.image.repository }}@sha256:{{ .Values.prometheus.prometheusSpec.image.sha }}"
-   {{- else if .Values.prometheus.prometheusSpec.image.tag }}
--  image: "{{ .Values.prometheus.prometheusSpec.image.repository }}:{{ .Values.prometheus.prometheusSpec.image.tag }}"
-+  image: "{{ template "system_default_registry" . }}{{ .Values.prometheus.prometheusSpec.image.repository }}:{{ .Values.prometheus.prometheusSpec.image.tag }}"
-   {{- else }}
--  image: "{{ .Values.prometheus.prometheusSpec.image.repository }}"
-+  image: "{{ template "system_default_registry" . }}{{ .Values.prometheus.prometheusSpec.image.repository }}"
-   {{- end }}
-   version: {{ .Values.prometheus.prometheusSpec.image.tag }}
-   {{- if .Values.prometheus.prometheusSpec.image.sha }}
-@@ -67,11 +67,13 @@
+@@ -69,11 +69,13 @@
    externalUrl: "{{ tpl .Values.prometheus.prometheusSpec.externalUrl . }}"
  {{- else if and .Values.prometheus.ingress.enabled .Values.prometheus.ingress.hosts }}
    externalUrl: "http://{{ tpl (index .Values.prometheus.ingress.hosts 0) . }}{{ .Values.prometheus.prometheusSpec.routePrefix }}"
@@ -33,8 +15,8 @@
  {{ toYaml .Values.prometheus.prometheusSpec.nodeSelector | indent 4 }}
  {{- end }}
    paused: {{ .Values.prometheus.prometheusSpec.paused }}
-@@ -252,8 +254,8 @@
-               - {key: prometheus, operator: In, values: [{{ template "kube-prometheus-stack.fullname" . }}-prometheus]}
+@@ -262,8 +264,8 @@
+               - {key: prometheus, operator: In, values: [{{ template "kube-prometheus-stack.prometheus.crname" . }}]}
  {{- end }}
  {{- end }}
 +  tolerations: {{ include "linux-node-tolerations" . | nindent 4 }}
@@ -43,7 +25,7 @@
  {{ toYaml .Values.prometheus.prometheusSpec.tolerations | indent 4 }}
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.topologySpreadConstraints }}
-@@ -300,7 +302,7 @@
+@@ -310,7 +312,7 @@
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.containers }}
    containers:
@@ -52,10 +34,3 @@
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.initContainers }}
    initContainers:
-@@ -383,4 +385,4 @@
- {{- if .Values.prometheus.prometheusSpec.minReadySeconds }}
-   minReadySeconds: {{ .Values.prometheus.prometheusSpec.minReadySeconds }}
- {{- end }}
--{{- end }}
-+{{- end }}
-\ No newline at end of file
