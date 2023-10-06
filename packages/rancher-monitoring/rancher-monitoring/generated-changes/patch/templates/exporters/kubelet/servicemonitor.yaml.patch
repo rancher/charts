@@ -1,11 +1,11 @@
 --- charts-original/templates/exporters/kubelet/servicemonitor.yaml
 +++ charts/templates/exporters/kubelet/servicemonitor.yaml
 @@ -1,9 +1,12 @@
--{{- if .Values.kubelet.enabled }}
+-{{- if and .Values.kubelet.enabled .Values.kubernetesServiceMonitors.enabled }}
 +{{- if (and (not .Values.kubelet.enabled) .Values.hardenedKubelet.enabled) }}
 +{{ required "Cannot set .Values.hardenedKubelet.enabled=true when .Values.kubelet.enabled=false" "" }}
 +{{- end }}
-+{{- if (and .Values.kubelet.enabled (not .Values.hardenedKubelet.enabled) (not .Values.k3sServer.enabled)) }}
++{{- if (and .Values.kubelet.enabled .Values.kubernetesServiceMonitors.enabled (not .Values.hardenedKubelet.enabled) (not .Values.k3sServer.enabled)) }}
  apiVersion: monitoring.coreos.com/v1
  kind: ServiceMonitor
  metadata:
@@ -15,7 +15,7 @@
    labels:
      app: {{ template "kube-prometheus-stack.name" . }}-kubelet
    {{- with .Values.kubelet.serviceMonitor.additionalLabels }}
-@@ -29,10 +32,20 @@
+@@ -30,10 +33,20 @@
        insecureSkipVerify: true
      bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
      honorLabels: true
@@ -39,7 +39,7 @@
  {{- if .Values.kubelet.serviceMonitor.relabelings }}
      relabelings:
  {{ tpl (toYaml .Values.kubelet.serviceMonitor.relabelings | indent 4) . }}
-@@ -94,7 +107,7 @@
+@@ -95,7 +108,7 @@
  {{- if .Values.kubelet.serviceMonitor.resource }}
    - port: https-metrics
      scheme: https
@@ -48,7 +48,7 @@
      {{- if .Values.kubelet.serviceMonitor.interval }}
      interval: {{ .Values.kubelet.serviceMonitor.interval }}
      {{- end }}
-@@ -183,7 +196,7 @@
+@@ -184,7 +197,7 @@
  {{- end }}
  {{- if .Values.kubelet.serviceMonitor.resource }}
    - port: http-metrics
