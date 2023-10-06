@@ -1,29 +1,7 @@
 --- charts-original/templates/tests/test.yaml
 +++ charts/templates/tests/test.yaml
-@@ -21,22 +21,22 @@
-     - name: {{ tpl . $root }}
-   {{- end}}
+@@ -34,7 +34,7 @@
    {{- end }}
--  {{- with .Values.nodeSelector }}
--  nodeSelector:
--{{ toYaml . | indent 4 }}
-+  nodeSelector: {{ include "linux-node-selector" . | nindent 4 }}
-+  {{- if .Values.nodeSelector }}
-+{{ toYaml .Values.nodeSelector | indent 4 }}
-   {{- end }}
-   {{- $root := . }}
-   {{- with .Values.affinity }}
-   affinity:
- {{ tpl (toYaml .) $root | indent 4 }}
-   {{- end }}
--  {{- with .Values.tolerations }}
--  tolerations:
--{{ toYaml . | indent 4 }}
--  {{- end }}
-+  tolerations: {{ include "linux-node-tolerations" . | nindent 4 }}
-+{{- if .Values.tolerations }}
-+{{ toYaml .Values.tolerations | indent 4 }}
-+{{- end }}
    containers:
      - name: {{ .Release.Name }}-test
 -      image: "{{ .Values.testFramework.image}}:{{ .Values.testFramework.tag }}"
