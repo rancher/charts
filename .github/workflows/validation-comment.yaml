@@ -1,0 +1,35 @@
+name: Validation Comment
+
+on:
+  pull_request_target:
+    branches:
+      - dev-v*
+      - release-v*
+
+jobs:
+  validation-comment:
+    name: Make validation comment on PR
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - name: Make validation comment
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body:
+              `## Validation steps
+              - Ensure all container images have repository and tag on the same level to ensure that all container images are included in rancher-images.txt which are used by airgap customers.
+              <pre>
+              Ex:- 
+                longhorn-controller:
+                  repository: rancher/hardened-sriov-cni
+                  tag: v2.6.3-build20230913
+              </pre>
+              - Add a 👍 (thumbs up) reaction to this comment once done. CI won't pass without this reaction to the github-action bot's latest validation comment.
+              - Approve the PR to run the CI check.`
+            })
