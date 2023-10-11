@@ -1,0 +1,293 @@
+---
+questions:
+  # General settings
+
+  - variable: useCertManager
+    label: Use cert-manager
+    default: "true"
+    description: "Use cert-manager to provision TLS certificates"
+    type: boolean
+    group: "General"
+
+  - variable: tls.publicDomain.crt
+    show_if: "useCertManager=false"
+    description: "S3 TLS certificate (Public Domain)"
+    label: "S3 TLS certificate (Public Domain)"
+    type: string
+    group: "General"
+
+  - variable: tls.publicDomain.key
+    show_if: "useCertManager=false"
+    description: "S3 TLS key (Public Domain)"
+    label: "S3 TLS key (Public Domain)"
+    type: string
+    group: "General"
+
+  - variable: tls.privateDomain.crt
+    show_if: "useCertManager=false"
+    description: "S3 TLS certificate (Private Domain)"
+    label: "S3 TLS certificate (Private Domain)"
+    type: string
+    group: "General"
+
+  - variable: tls.privateDomain.key
+    show_if: "useCertManager=false"
+    description: "S3 TLS key (Private Domain)"
+    label: "S3 TLS key (Private Domain)"
+    type: string
+    group: "General"
+
+  - variable: tls.ui.publicDomain.crt
+    show_if: "useCertManager=false"
+    description: "UI TLS certificate"
+    label: "UI TLS certificate"
+    type: string
+    group: "General"
+
+  - variable: tls.ui.publicDomain.key
+    show_if: "useCertManager=false"
+    description: "UI TLS key"
+    label: "UI TLS key"
+    type: string
+    group: "General"
+
+  - variable: certManagerNamespace
+    show_if: "useCertManager=true"
+    label: cert-manager's namespace
+    default: "cert-manager"
+    description: "cert-manager's namespace"
+    type: string
+    required: false
+
+  - variable: useCustomTlsIssuer
+    show_if: "useCertManager=true"
+    label: Use your own TLS issuer
+    default: "false"
+    description: "Use your own TLS issuer"
+    type: boolean
+    group: "General"
+    show_subquestion_if: true
+    subquestions:
+    - variable: customTlsIssuer
+      label: Custom TLS issuer
+      description: "Name of the custom TLS issuer to use"
+      type: string
+      required: false
+
+  - variable: tlsIssuer
+    show_if: "useCertManager=true&&useCustomTlsIssuer=false"
+    label: TLS issuer
+    description: "Name of the predefined TLS issuer to use"
+    type: enum
+    required: false
+    group: "General"
+    options:
+      - "s3gw-issuer"
+      - "s3gw-letsencrypt-issuer"
+
+  - variable: email
+    show_if: "useCertManager=true&&tlsIssuer=s3gw-letsencrypt-issuer"
+    label: email address to use with s3gw-letsencrypt-issuer
+    description: "email address to use with s3gw-letsencrypt-issuer"
+    type: string
+    required: false
+    group: "General"
+
+  - variable: serviceName
+    default: s3gw
+    description: "S3 Service Name"
+    label: "S3 Service Name"
+    required: true
+    type: string
+    group: "General"
+
+  - variable: defaultUserCredentialsSecret
+    default: s3gw-creds
+    description: |
+      "The name of the secret containing the
+      S3 credentials for the default user"
+    type: string
+    group: "General"
+
+  - variable: useExistingSecret
+    default: false
+    description: |
+      "Check this to use a preexisting secret
+      containing the S3 credentials for the default user"
+    type: boolean
+    group: "General"
+
+  - variable: accessKey
+    show_if: "useExistingSecret=false"
+    default: test
+    description: |
+      "Set this as the empty string to make the Chart
+      to compute a random alphanumeric value"
+    label: "S3 Access Key"
+    type: string
+    group: "General"
+
+  - variable: secretKey
+    show_if: "useExistingSecret=false"
+    default: test
+    description: |
+      "Set this as the empty string to make the Chart
+      to compute a random alphanumeric value"
+    label: "S3 Secret Key"
+    type: string
+    group: "General"
+
+  - variable: ingress.enabled
+    default: true
+    description: "Deploy an Ingress (Required for TLS and UI)"
+    label: "Enable Ingress"
+    required: true
+    type: boolean
+    group: "General"
+
+  - variable: publicDomain
+    show_if: ingress.enabled=true
+    default: be.127.0.0.1.omg.howdoi.website
+    description: "Public domain of the S3 Service used by the Ingress"
+    label: "Public Domain"
+    required: true
+    type: string
+    group: "General"
+
+  - variable: privateDomain
+    default: svc.cluster.local
+    description: "Private domain of the S3 Service used inside the Kubernetes cluster"
+    label: "Private Domain"
+    required: true
+    type: string
+    group: "General"
+
+  - variable: ui.enabled
+    default: false
+    description: "UI Enabled"
+    label: "UI Enabled"
+    required: true
+    type: boolean
+    group: "General"
+
+  - variable: ui.serviceName
+    default: s3gw-ui
+    description: "UI Service Name"
+    label: "UI Service Name"
+    required: true
+    type: string
+    group: "General"
+
+  - variable: ui.publicDomain
+    show_if: ingress.enabled=true
+    default: fe.127.0.0.1.omg.howdoi.website
+    description: "Public domain of the UI Service used by the Ingress"
+    label: "UI Public Domain"
+    required: true
+    type: string
+    group: "General"
+
+  # Storage
+  - variable: storageSize
+    description: "Storage Size"
+    type: string
+    default: 10Gi
+    label: "Storage Size"
+    group: "Storage"
+
+  - variable: storageClass.name
+    description: "Storage Class Name"
+    type: string
+    default: "longhorn-single"
+    required: true
+    label: "Storage Class"
+    group: "Storage"
+
+  - variable: storageClass.create
+    description: |
+      Create a new opinionated storage class backed by longhorn.io
+    type: boolean
+    default: true
+    label: "Create Storage Class"
+    group: "Storage"
+
+  # Advanced Options
+  - variable: imageRegistry
+    default:
+    description: "Image Registry"
+    label: "Image Registry"
+    required: false
+    type: string
+    group: "Advanced"
+
+  - variable: imageCredentials.username
+    default:
+    description: "Registry Username"
+    label: "Username"
+    required: false
+    type: string
+    group: "Advanced"
+
+  - variable: imageCredentials.password
+    default:
+    description: "Registry Password"
+    label: "Password"
+    required: false
+    type: string
+    group: "Advanced"
+
+  - variable: imageCredentials.email
+    default:
+    description: "Registry Email"
+    label: "Email"
+    required: false
+    type: string
+    group: "Advanced"
+
+  - variable: imagePullPolicy
+    default:
+    description: "Image Pull Policy"
+    label: "Image Pull Policy"
+    required: false
+    type: string
+    group: "Advanced"
+
+  - variable: imageName
+    default:
+    description: "Gateway Image Name"
+    label: "Image Name"
+    required: false
+    type: string
+    group: "Advanced"
+
+  - variable: imageTag
+    default:
+    description: "Image Tag"
+    label: "Image Tag"
+    required: false
+    type: string
+    group: "Advanced"
+
+  - variable: ui.imageName
+    default:
+    description: "UI Image Name"
+    label: "UI Image Name"
+    required: false
+    type: string
+    group: "Advanced"
+
+  - variable: ui.imageTag
+    default:
+    description: "UI Image Tag"
+    label: "UI Image Tag"
+    required: false
+    type: string
+    group: "Advanced"
+
+  - variable: logLevel
+    default: "1"
+    description: "s3gw pod log level, lower values are less verbose"
+    label: "s3gw pod log level"
+    required: false
+    type: string
+    group: "Advanced"
