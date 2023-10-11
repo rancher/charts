@@ -1,37 +1,20 @@
 --- charts-original/values.yaml
 +++ charts/values.yaml
-@@ -1,9 +1,24 @@
-+global:
+@@ -1,4 +1,9 @@
+ global:
 +  cattle:
 +    psp:
 +      enabled: false
 +    systemDefaultRegistry: ""
 +
- rbac:
-   create: true
-   ## Use an existing ClusterRole/Role (depending on rbac.namespaced false/true)
-   # useExistingRole: name-of-some-(cluster)role
--  pspEnabled: true
--  pspUseAppArmor: true
-+  pspAnnotations: {}
-+  ## Specify pod annotations
-+  ## Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/#apparmor
-+  ## Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/#seccomp
-+  ## Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/#sysctl
-+  ##
-+  # seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'docker/default,runtime/default'
-+  # seccomp.security.alpha.kubernetes.io/defaultProfileName:  'docker/default'
-+  # apparmor.security.beta.kubernetes.io/allowedProfileNames: 'runtime/default'
-+  # apparmor.security.beta.kubernetes.io/defaultProfileName:  'runtime/default'
-+
-   namespaced: false
-   extraRoleRules: []
-   # - apiGroups: []
-@@ -73,9 +88,9 @@
+   # To help compatibility with other charts which use global.imagePullSecrets.
+   # Allow either an array of {name: pullSecret} maps (k8s-style), or an array of strings (more common helm-style).
+   # Can be tempalted.
+@@ -85,9 +90,9 @@
  # schedulerName: "default-scheduler"
  
  image:
--  repository: grafana/grafana
+-  repository: docker.io/grafana/grafana
 +  repository: rancher/mirrored-grafana-grafana
    # Overrides the Grafana image tag whose default is the chart appVersion
 -  tag: ""
@@ -39,12 +22,12 @@
    sha: ""
    pullPolicy: IfNotPresent
  
-@@ -88,13 +103,16 @@
+@@ -100,11 +105,13 @@
    #   - myRegistrKeySecretName
  
  testFramework:
 -  enabled: true
--  image: "bats/bats"
+-  image: docker.io/bats/bats
 +  enabled: false
 +  image: "rancher/mirrored-bats-bats"
    tag: "v1.4.1"
@@ -55,20 +38,17 @@
 +    runAsUser: 1000
  
  securityContext:
-+  runAsNonRoot: true
-   runAsUser: 472
-   runAsGroup: 472
-   fsGroup: 472
-@@ -127,7 +145,7 @@
+   runAsNonRoot: true
+@@ -145,7 +152,7 @@
  # priorityClassName:
  
  downloadDashboardsImage:
--  repository: curlimages/curl
+-  repository: docker.io/curlimages/curl
 +  repository: rancher/mirrored-curlimages-curl
    tag: 7.85.0
    sha: ""
    pullPolicy: IfNotPresent
-@@ -204,7 +222,7 @@
+@@ -235,7 +242,7 @@
    labels: {}
    path: /
  
@@ -77,25 +57,25 @@
    pathType: Prefix
  
    hosts:
-@@ -328,7 +346,7 @@
+@@ -361,7 +368,7 @@
    ## initChownData container image
    ##
    image:
--    repository: busybox
+-    repository: docker.io/library/busybox
 +    repository: rancher/mirrored-library-busybox
      tag: "1.31.1"
      sha: ""
      pullPolicy: IfNotPresent
-@@ -739,7 +757,7 @@
+@@ -794,7 +801,7 @@
  ## Requires at least Grafana 5 to work and can't be used together with parameters dashboardProviders, datasources and dashboards
  sidecar:
    image:
 -    repository: quay.io/kiwigrid/k8s-sidecar
 +    repository: rancher/mirrored-kiwigrid-k8s-sidecar
-     tag: 1.19.2
+     tag: 1.24.6
      sha: ""
    imagePullPolicy: IfNotPresent
-@@ -852,10 +870,10 @@
+@@ -956,10 +963,10 @@
      reloadURL: "http://localhost:3000/api/admin/provisioning/datasources/reload"
      # Absolute path to shell script to execute after a datasource got reloaded
      script: null
@@ -108,11 +88,11 @@
      # Sets the size limit of the datasource sidecar emptyDir volume
      sizeLimit: {}
    plugins:
-@@ -934,9 +952,9 @@
-   replicas: 1
+@@ -1066,9 +1073,9 @@
+     behavior: {}
    image:
      # image-renderer Image repository
--    repository: grafana/grafana-image-renderer
+-    repository: docker.io/grafana/grafana-image-renderer
 +    repository: rancher/mirrored-grafana-grafana-image-renderer
      # image-renderer Image tag
 -    tag: latest

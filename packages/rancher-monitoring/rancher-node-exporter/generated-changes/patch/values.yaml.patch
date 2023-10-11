@@ -1,26 +1,34 @@
 --- charts-original/values.yaml
 +++ charts/values.yaml
-@@ -1,10 +1,17 @@
+@@ -1,11 +1,12 @@
  # Default values for prometheus-node-exporter.
  # This is a YAML-formatted file.
  # Declare variables to be passed into your templates.
 +
-+global:
-+  cattle:
-+    psp:
-+      enabled: false
-+    systemDefaultRegistry: ""
-+
  image:
--  repository: quay.io/prometheus/node-exporter
+-  registry: quay.io
+-  repository: prometheus/node-exporter
++  registry: docker.io
 +  repository: rancher/mirrored-prometheus-node-exporter
    # Overrides the image tag whose default is {{ printf "v%s" .Chart.AppVersion }}
 -  tag: ""
 +  tag: v1.3.1
    pullPolicy: IfNotPresent
-   sha: ""
+   digest: ""
  
-@@ -13,8 +20,8 @@
+@@ -15,6 +16,11 @@
+ fullnameOverride: ""
+ 
+ global:
++  cattle:
++    psp:
++      enable: true
++    systemDefaultRegistry: ""
++
+   # To help compatibility with other charts which use global.imagePullSecrets.
+   # Allow either an array of {name: pullSecret} maps (k8s-style), or an array of strings (more common helm-style).
+   # global:
+@@ -66,8 +72,8 @@
  
  service:
    type: ClusterIP
@@ -31,7 +39,7 @@
    nodePort:
    portName: metrics
    listenOnAllInterfaces: true
-@@ -95,9 +102,6 @@
+@@ -276,9 +282,6 @@
    ## If true, create & use RBAC resources
    ##
    create: true
@@ -41,7 +49,7 @@
    pspAnnotations: {}
  
  # for deployments that have node_exporter deployed outside of the cluster, list
-@@ -164,6 +168,8 @@
+@@ -348,6 +351,8 @@
  tolerations:
    - effect: NoSchedule
      operator: Exists
