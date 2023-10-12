@@ -1,8 +1,8 @@
 --- charts-original/templates/servicemonitor.yaml
 +++ charts/templates/servicemonitor.yaml
-@@ -30,6 +30,20 @@
+@@ -30,10 +30,26 @@
      tlsConfig:
-     {{- toYaml .Values.serviceMonitor.tlsConfig | nindent 6 }}
+       {{- toYaml . | nindent 6 }}
      {{- end }}
 +    metricRelabelings:
 +    {{- if .Values.serviceMonitor.metricRelabelings }}
@@ -18,6 +18,12 @@
 +      targetLabel: cluster_name
 +      replacement: {{ .Values.global.cattle.clusterName }}
 +    {{- end }}
-     {{- if .Values.serviceMonitor.relabelings }}
++    {{- if .Values.serviceMonitor.relabelings }}
+     {{- with .Values.serviceMonitor.relabelings }}
      relabelings:
-     {{- toYaml .Values.serviceMonitor.relabelings | nindent 4 }}
+       {{- toYaml . | nindent 6 }}
+     {{- end }}
++    {{- end }}
+     {{- with .Values.serviceMonitor.metricRelabelings }}
+     metricRelabelings:
+       {{- toYaml . | nindent 6 }}

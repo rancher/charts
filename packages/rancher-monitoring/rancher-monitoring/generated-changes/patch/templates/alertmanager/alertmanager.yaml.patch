@@ -1,24 +1,6 @@
 --- charts-original/templates/alertmanager/alertmanager.yaml
 +++ charts/templates/alertmanager/alertmanager.yaml
-@@ -14,13 +14,13 @@
- spec:
- {{- if .Values.alertmanager.alertmanagerSpec.image }}
-   {{- if and .Values.alertmanager.alertmanagerSpec.image.tag .Values.alertmanager.alertmanagerSpec.image.sha }}
--  image: "{{ .Values.alertmanager.alertmanagerSpec.image.repository }}:{{ .Values.alertmanager.alertmanagerSpec.image.tag }}@sha256:{{ .Values.alertmanager.alertmanagerSpec.image.sha }}"
-+  image: "{{ template "system_default_registry" . }}{{ .Values.alertmanager.alertmanagerSpec.image.repository }}:{{ .Values.alertmanager.alertmanagerSpec.image.tag }}@sha256:{{ .Values.alertmanager.alertmanagerSpec.image.sha }}"
-   {{- else if .Values.alertmanager.alertmanagerSpec.image.sha }}
--  image: "{{ .Values.alertmanager.alertmanagerSpec.image.repository }}@sha256:{{ .Values.alertmanager.alertmanagerSpec.image.sha }}"
-+  image: "{{ template "system_default_registry" . }}{{ .Values.alertmanager.alertmanagerSpec.image.repository }}@sha256:{{ .Values.alertmanager.alertmanagerSpec.image.sha }}"
-   {{- else if .Values.alertmanager.alertmanagerSpec.image.tag }}
--  image: "{{ .Values.alertmanager.alertmanagerSpec.image.repository }}:{{ .Values.alertmanager.alertmanagerSpec.image.tag }}"
-+  image: "{{ template "system_default_registry" . }}{{ .Values.alertmanager.alertmanagerSpec.image.repository }}:{{ .Values.alertmanager.alertmanagerSpec.image.tag }}"
-   {{- else }}
--  image: "{{ .Values.alertmanager.alertmanagerSpec.image.repository }}"
-+  image: "{{ template "system_default_registry" . }}{{ .Values.alertmanager.alertmanagerSpec.image.repository }}"
-   {{- end }}
-   version: {{ .Values.alertmanager.alertmanagerSpec.image.tag }}
-   {{- if .Values.alertmanager.alertmanagerSpec.image.sha }}
-@@ -34,11 +34,13 @@
+@@ -35,11 +35,13 @@
    externalUrl: "{{ tpl .Values.alertmanager.alertmanagerSpec.externalUrl . }}"
  {{- else if and .Values.alertmanager.ingress.enabled .Values.alertmanager.ingress.hosts }}
    externalUrl: "http://{{ tpl (index .Values.alertmanager.ingress.hosts 0) . }}{{ .Values.alertmanager.alertmanagerSpec.routePrefix }}"
@@ -33,7 +15,7 @@
  {{ toYaml .Values.alertmanager.alertmanagerSpec.nodeSelector | indent 4 }}
  {{- end }}
    paused: {{ .Values.alertmanager.alertmanagerSpec.paused }}
-@@ -120,8 +122,8 @@
+@@ -125,8 +127,8 @@
                - {key: app.kubernetes.io/name, operator: In, values: [alertmanager]}
                - {key: alertmanager, operator: In, values: [{{ template "kube-prometheus-stack.alertmanager.crname" . }}]}
  {{- end }}
