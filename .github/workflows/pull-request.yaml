@@ -1,17 +1,23 @@
 name: CI-pullrequest
 
 on:
-  pull_request:
+  pull_request_target:
     branches:
       - dev-v*
       - release-v*
 
 jobs:
   build:
+    name: Build
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout base branch
+        uses: actions/checkout@v3
+
+      - name: Checkout PR
+        run: gh pr checkout ${{ github.event.pull_request.number }}
+        env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout into branch
         run: git checkout -b staging-pr-workflow
@@ -32,7 +38,13 @@ jobs:
     name: Check Container Images
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout base branch
+        uses: actions/checkout@v3
+
+      - name: Checkout PR
+        run: gh pr checkout ${{ github.event.pull_request.number }}
+        env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check container images 
         run: make check-images
@@ -44,7 +56,13 @@ jobs:
     name: Check RC Images and Charts
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout base branch
+        uses: actions/checkout@v3
+
+      - name: Checkout PR
+        run: gh pr checkout ${{ github.event.pull_request.number }}
+        env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check RC images and charts
         run: make check-rc
