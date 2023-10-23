@@ -70,9 +70,10 @@ jobs:
 
       - name: Sync Images to Registry
         run: |
+          export PATH=$PATH:$(pwd)
           head regsync.yaml
           ruby ./regsync-split.rb
-          time find regsync -type f -name split-regsync.yaml -print -exec time regsync once --config '{}' ';'
+          time find split-regsync -type f -name split-regsync.yaml -print -exec time regsync once --config '{}' ';'
         env:
           REGISTRY_ENDPOINT: ${{ secrets.REGISTRY_ENDPOINT }}
           REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
