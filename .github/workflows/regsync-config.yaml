@@ -43,16 +43,12 @@ jobs:
         with:
           ruby-version: '3.2' # Not needed with a .ruby-version file
 
-      # Need to remove export version once rancher/charts gets the latest version 
-      # of charts-build-script binary.
-      # Test removal of regsync.yaml, commit and push before regenerating it
       - name: Generate RegSync
         run: |
           echo ${{ secrets.PUSH_TOKEN }} | gh auth login --with-token
           gh pr checkout ${{ github.event.pull_request.number }}
           git config --global user.email "${{ secrets.USER_GITHUB }}"
           git config --global user.name "rancherbot"
-          export CHARTS_BUILD_SCRIPT_VERSION=v0.4.2 
           make pull-scripts
           make regsync
 
