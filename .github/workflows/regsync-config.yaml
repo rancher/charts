@@ -56,12 +56,23 @@ jobs:
           make pull-scripts
           make regsync
 
+      - name: Check for modifications in regsync.yaml
+        id: check_changes
+        run: |
+            git diff --quiet regsync.yaml || echo "::set-output name=changed::true"
+
       - name: Commit files
+        if: steps.check_changes.outputs.changed == 'true'
         run: |
             git add regsync.yaml
-            git commit -m "Updating resync.yaml"
+            git commit -m "Updating regsync.yaml"
             git branch
             git push
+
+      - name: No changes in regsync.yaml
+        if: steps.check_changes.outputs.changed != 'true'
+        run: |
+            echo "regsync.yaml is the same"
 
       - name: Install Regsync
         run: |
