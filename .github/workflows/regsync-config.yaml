@@ -43,25 +43,31 @@ jobs:
         with:
           ruby-version: '3.2' # Not needed with a .ruby-version file
 
-      # Need to remove export version once rancher/charts gets the latest version 
-      # of charts-build-script binary.
-      # Test removal of regsync.yaml, commit and push before regenerating it
       - name: Generate RegSync
         run: |
           echo ${{ secrets.PUSH_TOKEN }} | gh auth login --with-token
           gh pr checkout ${{ github.event.pull_request.number }}
           git config --global user.email "${{ secrets.USER_GITHUB }}"
           git config --global user.name "rancherbot"
-          export CHARTS_BUILD_SCRIPT_VERSION=v0.4.2 
           make pull-scripts
           make regsync
 
+      - name: Check for modifications in regsync.yaml
+        id: check_changes
+        run: |
+            git diff --quiet regsync.yaml || echo "::set-output name=changed::true"
+
       - name: Commit files
+        if: steps.check_changes.outputs.changed == 'true'
         run: |
             git add regsync.yaml
             git commit -m "Updating resync.yaml"
-            git branch
             git push
+
+      - name: No changes in regsync.yaml
+        if: steps.check_changes.outputs.changed != 'true'
+        run: |
+            echo "regsync.yaml is the same"
 
       - name: Install Regsync
         run: |
@@ -70,9 +76,11 @@ jobs:
 
       - name: Sync Images to Registry
         run: |
+          export PATH=$PATH:$(pwd)
           head regsync.yaml
           ruby ./regsync-split.rb
-          time find regsync -type f -name split-regsync.yaml -print -exec time regsync once --config '{}' ';'
+          tree ./split-regsync
+          time find split-regsync -type f -name split-regsync.yaml -print -exec time regsync once --config '{}' ';'
         env:
           REGISTRY_ENDPOINT: ${{ secrets.REGISTRY_ENDPOINT }}
           REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
