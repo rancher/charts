@@ -6,6 +6,14 @@ Our [Istio](https://istio.io/) installer wraps the istioctl binary commands in a
 
 For more information on how to use the feature, refer to our [docs](https://rancher.com/docs/rancher/v2.x/en/istio/v2.5/).
 
+---
+
+# Warnings
+
+* #### The default `authentication strategy` for `Kiali` has changed from anonymous to token at version `102.4.0+up1.18.2`. You can always edit it in the Helm values Yaml file:- Kiali.auth.strategy while installing or upgrading the chart through Rancher UI.
+More information on: [Kiali Authentication Docs](https://kiali.io/docs/configuration/authentication/)
+* Upgrading across more than two minor versions (e.g., 1.6.x to 1.9.x) in one step is not officially tested or recommended. See [Istio upgrade docs](https://istio.io/latest/docs/setup/upgrade/) for more details.
+
 ## Upgrading to Kubernetes v1.25+
 
 Starting in Kubernetes v1.25, [Pod Security Policies](https://kubernetes.io/docs/concepts/security/pod-security-policy/) have been removed from the Kubernetes API.
