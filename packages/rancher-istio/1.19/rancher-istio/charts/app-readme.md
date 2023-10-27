@@ -10,7 +10,7 @@ For more information on how to use the feature, refer to our [docs](https://ranc
 
 # Warnings
 
-* #### The default `authentication strategy` for `Kiali` has changed from anonymous to token at version `103.2.0+up1.19.0`. You can always edit it in the Helm values Yaml file Kiali.auth.strategy while installing or upgrading the chart.
+* #### The default `authentication strategy` for `Kiali` has changed from anonymous to token at version `102.4.0+up1.19.0`. You can always edit it in the Helm values Yaml file Kiali.auth.strategy while installing or upgrading the chart.
 More information on: [Kiali Authentication Docs](https://kiali.io/docs/configuration/authentication/)
 * Upgrading across more than two minor versions (e.g., 1.6.x to 1.9.x) in one step is not officially tested or recommended. See [Istio upgrade docs](https://istio.io/latest/docs/setup/upgrade/) for more details.
 
