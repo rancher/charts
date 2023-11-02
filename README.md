@@ -2,6 +2,10 @@
 
 This repository contains Helm charts served by Rancher Apps & Marketplace.
 
+### Issues 
+
+All issues must be created in `rancher/rancher` repository. 
+
 ### Branches
 
 - `dev-2.X` branches contain charts that under active development, to be released in an upcoming Rancher release.
