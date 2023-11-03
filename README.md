@@ -4,7 +4,7 @@ This repository contains Helm charts served by Rancher Apps & Marketplace.
 
 ### Issues 
 
-All issues must be created in `rancher/rancher` repository. 
+All issues must be created in [`rancher/rancher`](https://github.com/rancher/rancher) repository. 
 
 ### Branches
 
