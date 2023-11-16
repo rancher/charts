@@ -26,6 +26,10 @@ spec:
 {{ toYaml .Values.proxy.tolerations | indent 8 }}
 {{- end }}
       serviceAccountName: {{ template "pushProxy.proxy.name" . }}
+      {{- if .Values.global.imagePullSecretName }}
+      imagePullSecrets:
+      - name: {{ .Values.global.imagePullSecretName }}
+      {{- end }}
       containers:
       - name: pushprox-proxy
         image: {{ template "system_default_registry" . }}{{ .Values.proxy.image.repository }}:{{ .Values.proxy.image.tag }}
