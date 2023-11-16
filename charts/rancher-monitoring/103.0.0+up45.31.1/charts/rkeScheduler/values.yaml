@@ -75,9 +75,29 @@ clients:
   https:
     # Does the client require https to access the metrics?
     enabled: false
+    # Does the client require requests be sent to http or https?
+    forceHTTPSScheme: false
     # If set to true, the client will create a service account with adequate permissions and set a flag
     # on the client to use the service account token provided by it to make authorized scrape requests
     useServiceAccountCredentials: false
+    # Configuration for authentication to metrics via https endpoint
+    authenticationMethod:
+      # Reads token from defined file in container
+      # This function is deprecated in the prometheus operator api and may be removed in a future version
+      bearerTokenFile:
+        enabled: false
+        bearerTokenFilePath: "/var/run/secrets/kubernetes.io/serviceaccount/token"
+      # Reads token from defined secret in namespace
+      # This function is deprecated in the prometheus operator api and may be removed in a future version
+      bearerTokenSecret:
+        enabled: false
+      # Reads token from defined secret in namespace
+      authorization:
+        enabled: false
+        type: "bearer"
+        credentials:
+          key: "token"
+          optional: false
     # If set to true, the client will disable SSL security checks
     insecureSkipVerify: false
     # Directory on host where necessary TLS cert and key to scrape metrics can be found
