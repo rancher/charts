@@ -1,4 +1,4 @@
-{{- if or .Values.global.aws.enabled .Values.global.azure.enabled }}
+{{- if and .Values.rbac .Values.leastPrivilege -}}
 {{- $oc4 := and .Values.openshift (semverCompare ">=1.12-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) -}}
 {{- $oc3 := and .Values.openshift (not $oc4) (semverCompare ">=1.9-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) -}}
 {{- if $oc3 }}
@@ -10,7 +10,7 @@ apiVersion: v1
 {{- end }}
 kind: Role
 metadata:
-  name: neuvector-csp-adapter-role
+  name: neuvector-binding-scanner
   namespace: {{ .Release.Namespace }}
   labels:
     chart: {{ template "neuvector.chart" . }}
@@ -18,31 +18,12 @@ metadata:
     heritage: Helm
 rules:
 - apiGroups:
-  - ""
+  - apps
   resources:
-  - secrets
-  resourceNames:
-  - csp-adapter-cache
+  - deployments
   verbs:
-  - "*"
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - create
-- apiGroups:
-  - ""
-  resources:
-  - configmaps
-  resourceNames:
-  - csp-config
-  verbs:
-  - "*"
-- apiGroups:
-  - ""
-  resources:
-  - configmaps
-  verbs:
-  - create
+  - get
+  - watch
+  - patch
+  - update
 {{- end }}
