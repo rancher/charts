@@ -1,0 +1,98 @@
+{{- if .Values.openshift -}}
+{{- if .Values.controller.apisvc.route.enabled }}
+{{- if (semverCompare ">=1.9-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: route.openshift.io/v1
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: Route
+metadata:
+  name: neuvector-route-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+{{- if .Values.controller.apisvc.route.host }}
+  host: {{ .Values.controller.apisvc.route.host }}
+{{- end }}
+  to:
+    kind: Service
+    name: neuvector-svc-controller-api
+  port:
+    targetPort: controller-api
+  tls:
+    termination: {{ .Values.controller.apisvc.route.termination }}
+{{- if or (eq .Values.controller.apisvc.route.termination "reencrypt") (eq .Values.controller.apisvc.route.termination "edge") }}
+{{- with .Values.controller.apisvc.route.tls }}
+{{ toYaml . | indent 4 }}
+{{- end }}
+{{- end }}
+
+---
+{{ end -}}
+{{- if .Values.controller.federation.mastersvc.route.enabled }}
+{{- if (semverCompare ">=1.9-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: route.openshift.io/v1
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: Route
+metadata:
+  name: neuvector-route-fed-master
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+{{- if .Values.controller.federation.mastersvc.route.host }}
+  host: {{ .Values.controller.federation.mastersvc.route.host }}
+{{- end }}
+  to:
+    kind: Service
+    name: neuvector-svc-controller-fed-master
+  port:
+    targetPort: fed
+  tls:
+    termination: {{ .Values.controller.federation.mastersvc.route.termination }}
+{{- if or (eq .Values.controller.federation.mastersvc.route.termination "reencrypt") (eq .Values.controller.federation.mastersvc.route.termination "edge") }}
+{{- with .Values.controller.federation.mastersvc.route.tls }}
+{{ toYaml . | indent 4 }}
+{{- end }}
+{{- end }}
+---
+{{ end -}}
+{{- if .Values.controller.federation.managedsvc.route.enabled }}
+{{- if (semverCompare ">=1.9-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: route.openshift.io/v1
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: Route
+metadata:
+  name: neuvector-route-fed-managed
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+{{- if .Values.controller.federation.managedsvc.route.host }}
+  host: {{ .Values.controller.federation.managedsvc.route.host }}
+{{- end }}
+  to:
+    kind: Service
+    name: neuvector-svc-controller-fed-managed
+  port:
+    targetPort: fed
+  tls:
+    termination: {{ .Values.controller.federation.managedsvc.route.termination }}
+{{- if or (eq .Values.controller.federation.managedsvc.route.termination "reencrypt") (eq .Values.controller.federation.managedsvc.route.termination "edge") }}
+{{- with .Values.controller.federation.managedsvc.route.tls }}
+{{ toYaml . | indent 4 }}
+{{- end }}
+{{- end }}
+{{ end -}}
+{{- end -}}
