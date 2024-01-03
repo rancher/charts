@@ -1,0 +1,98 @@
+{{- if not (.Capabilities.APIVersions.Has "k8s.cni.cncf.io/v1/NetworkAttachmentDefinition") -}}
+{{- required "rke2-multus is required but not found" "" -}}
+{{- end -}}
+apiVersion: sriovnetwork.openshift.io/v1
+kind: SriovOperatorConfig
+metadata:
+  name: default
+  namespace: {{ .Release.Namespace }}
+spec:
+  # Add fields here
+  enableInjector: {{ .Values.operator.enableAdmissionController }}
+  enableOperatorWebhook: {{ .Values.operator.enableAdmissionController }}
+  configDaemonNodeSelector: {feature.node.kubernetes.io/network-sriov.capable: "true"}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "sriov-network-operator.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+  {{- include "sriov-network-operator.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: sriov-network-operator
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 33%
+  template:
+    metadata:
+      labels:
+        name: sriov-network-operator
+    spec:
+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
+{{- if .Values.operator.nodeSelector }}
+{{ toYaml .Values.operator.nodeSelector | indent 8 }}
+{{- end }}
+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+{{- if .Values.operator.tolerations }}
+{{ toYaml .Values.operator.tolerations | indent 8 }}
+{{- end }}
+      serviceAccountName: {{ include "sriov-network-operator.fullname" . }}
+      priorityClassName: "system-node-critical"
+      containers:
+        - name: {{ include "sriov-network-operator.fullname" . }}
+          image: {{ include "system_default_registry" . }}{{ .Values.images.operator.image }}:{{ .Values.images.operator.tag }}
+          command:
+            - sriov-network-operator
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: SRIOV_CNI_IMAGE
+              value: {{ include "system_default_registry" . }}{{ .Values.images.sriovCni.image }}:{{ .Values.images.sriovCni.tag }}
+            - name: SRIOV_INFINIBAND_CNI_IMAGE
+              value: {{ include "system_default_registry" . }}{{ .Values.images.ibSriovCni.image }}:{{ .Values.images.ibSriovCni.tag }}
+            - name: SRIOV_DEVICE_PLUGIN_IMAGE
+              value: {{ include "system_default_registry" . }}{{ .Values.images.sriovDevicePlugin.image }}:{{ .Values.images.sriovDevicePlugin.tag }}
+            - name: NETWORK_RESOURCES_INJECTOR_IMAGE
+              value: {{ include "system_default_registry" . }}{{ .Values.images.resourcesInjector.image }}:{{ .Values.images.resourcesInjector.tag }}
+            - name: OPERATOR_NAME
+              value: sriov-network-operator
+            - name: SRIOV_NETWORK_CONFIG_DAEMON_IMAGE
+              value: {{ include "system_default_registry" . }}{{ .Values.images.sriovConfigDaemon.image }}:{{ .Values.images.sriovConfigDaemon.tag }}
+            - name: SRIOV_NETWORK_WEBHOOK_IMAGE
+              value: {{ include "system_default_registry" . }}{{ .Values.images.webhook.image }}:{{ .Values.images.webhook.tag }}
+            - name: RESOURCE_PREFIX
+              value: {{ .Values.operator.resourcePrefix }}
+            - name: ENABLE_ADMISSION_CONTROLLER
+              value: {{ .Values.operator.enableAdmissionController | quote }}
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: RELEASE_VERSION
+              value: {{ .Release.AppVersion }}
+            - name: SRIOV_CNI_BIN_PATH
+              value: {{ .Values.operator.cniBinPath }}
+            - name: CLUSTER_TYPE
+              value: {{ .Values.operator.clusterType }}
+            {{- if .Values.operator.enableAdmissionController }}
+            {{- if not .Values.cert_manager }}
+            - name: WEBHOOK_CA_BUNDLE
+              value: "{{ include "sriov_operator_ca_cert" . }}"
+            {{- end }}
+            {{- end }}
