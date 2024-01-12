@@ -1,5 +1,14 @@
 --- charts-original/templates/alertmanager/alertmanager.yaml
 +++ charts/templates/alertmanager/alertmanager.yaml
+@@ -13,7 +13,7 @@
+ {{- end }}
+ spec:
+ {{- if .Values.alertmanager.alertmanagerSpec.image }}
+-  {{- $registry := .Values.global.imageRegistry | default .Values.alertmanager.alertmanagerSpec.image.registry -}}
++  {{- $registry := include "monitoring_registry" . | default .Values.alertmanager.alertmanagerSpec.image.registry }}
+   {{- if and .Values.alertmanager.alertmanagerSpec.image.tag .Values.alertmanager.alertmanagerSpec.image.sha }}
+   image: "{{ $registry }}/{{ .Values.alertmanager.alertmanagerSpec.image.repository }}:{{ .Values.alertmanager.alertmanagerSpec.image.tag }}@sha256:{{ .Values.alertmanager.alertmanagerSpec.image.sha }}"
+   {{- else if .Values.alertmanager.alertmanagerSpec.image.sha }}
 @@ -35,11 +35,13 @@
    externalUrl: "{{ tpl .Values.alertmanager.alertmanagerSpec.externalUrl . }}"
  {{- else if and .Values.alertmanager.ingress.enabled .Values.alertmanager.ingress.hosts }}
