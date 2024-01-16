@@ -1,6 +1,6 @@
 module github.com/rancher/charts/tests
 
-go 1.19
+go 1.21
 
 require (
 	github.com/rancher/hull v0.0.0-20230424152137-627ef5347afd
