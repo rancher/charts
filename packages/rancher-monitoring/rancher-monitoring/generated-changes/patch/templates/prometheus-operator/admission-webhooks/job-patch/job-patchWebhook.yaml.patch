@@ -1,5 +1,14 @@
 --- charts-original/templates/prometheus-operator/admission-webhooks/job-patch/job-patchWebhook.yaml
 +++ charts/templates/prometheus-operator/admission-webhooks/job-patch/job-patchWebhook.yaml
+@@ -34,7 +34,7 @@
+       {{- end }}
+       containers:
+         - name: patch
+-          {{- $registry := .Values.global.imageRegistry | default .Values.prometheusOperator.admissionWebhooks.patch.image.registry -}}
++          {{- $registry := include "monitoring_registry" . | default .Values.prometheusOperator.admissionWebhooks.patch.image.registry -}}
+           {{- if .Values.prometheusOperator.admissionWebhooks.patch.image.sha }}
+           image: {{ $registry }}/{{ .Values.prometheusOperator.admissionWebhooks.patch.image.repository }}:{{ .Values.prometheusOperator.admissionWebhooks.patch.image.tag }}@sha256:{{ .Values.prometheusOperator.admissionWebhooks.patch.image.sha }}
+           {{- else }}
 @@ -55,16 +55,16 @@
  {{ toYaml .Values.prometheusOperator.admissionWebhooks.patch.resources | indent 12 }}
        restartPolicy: OnFailure
