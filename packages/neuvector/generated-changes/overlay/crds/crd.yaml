@@ -12,7 +12,7 @@ metadata:
   labels:
     chart: {{ template "neuvector.chart" . }}
     release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+    heritage: Helm
 spec:
   group: neuvector.com
   names:
@@ -278,7 +278,7 @@ metadata:
   labels:
     chart: {{ template "neuvector.chart" . }}
     release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+    heritage: Helm
 spec:
   group: neuvector.com
   names:
@@ -544,7 +544,7 @@ metadata:
   labels:
     chart: {{ template "neuvector.chart" . }}
     release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+    heritage: Helm
 spec:
   group: neuvector.com
   names:
@@ -630,7 +630,7 @@ metadata:
   labels:
     chart: {{ template "neuvector.chart" . }}
     release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+    heritage: Helm
 spec:
   group: neuvector.com
   names:
@@ -729,6 +729,14 @@ spec:
                       - monitor
                       - protect
                       type: string
+                    containers:
+                      items:
+                        enum:
+                        - containers
+                        - init_containers
+                        - ephemeral_containers
+                        type: string
+                      type: array
                   required:
                   - action
                   - criteria
@@ -749,7 +757,7 @@ metadata:
   labels:
     chart: {{ template "neuvector.chart" . }}
     release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+    heritage: Helm
 spec:
   group: neuvector.com
   names:
@@ -824,6 +832,128 @@ spec:
         type: object
 {{- end }}
 ---
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: apiextensions.k8s.io/v1
+{{- else }}
+apiVersion: apiextensions.k8s.io/v1beta1
+{{- end }}
+kind: CustomResourceDefinition
+metadata:
+  name: nvcomplianceprofiles.neuvector.com
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+  group: neuvector.com
+  names:
+    kind: NvComplianceProfile
+    listKind: NvComplianceProfileList
+    plural: nvcomplianceprofiles
+    singular: nvcomplianceprofile
+  scope: Cluster
+{{- if (semverCompare "<1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+  version: v1
+{{- end }}
+  versions:
+  - name: v1
+    served: true
+    storage: true
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              templates:
+                properties:
+                  disable_system:
+                    type: boolean
+                  entries:
+                    items:
+                      properties:
+                        tags:
+                          items:
+                            type: string
+                          type: array
+                        test_number:
+                          type: string
+                      required:
+                      - test_number
+                      type: object
+                    type: array
+                required:
+                - entries
+                type: object
+            type: object
+        type: object
+{{- end }}
+---
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: apiextensions.k8s.io/v1
+{{- else }}
+apiVersion: apiextensions.k8s.io/v1beta1
+{{- end }}
+kind: CustomResourceDefinition
+metadata:
+  name: nvvulnerabilityprofiles.neuvector.com
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+  group: neuvector.com
+  names:
+    kind: NvVulnerabilityProfile
+    listKind: NvVulnerabilityProfileList
+    plural: nvvulnerabilityprofiles
+    singular: nvvulnerabilityprofile
+  scope: Cluster
+{{- if (semverCompare "<1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+  version: v1
+{{- end }}
+  versions:
+  - name: v1
+    served: true
+    storage: true
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              profile:
+                properties:
+                  entries:
+                    items:
+                      properties:
+                        comment:
+                          type: string
+                        days:
+                          type: integer
+                        domains:
+                          items:
+                            type: string
+                          type: array
+                        images:
+                          items:
+                            type: string
+                          type: array
+                        name:
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    type: array
+                required:
+                - entries
+                type: object
+            required:
+            - profile
+            type: object
+        type: object
+{{- end }}
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -832,7 +962,7 @@ metadata:
   labels:
     chart: {{ template "neuvector.chart" . }}
     release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+    heritage: Helm
 spec:
   ports:
     - port: 443
