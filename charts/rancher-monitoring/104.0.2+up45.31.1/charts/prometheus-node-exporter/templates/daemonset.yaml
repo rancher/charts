@@ -42,7 +42,7 @@ spec:
       containers:
         {{- $servicePort := ternary 8100 .Values.service.port .Values.kubeRBACProxy.enabled }}
         - name: node-exporter
-          image: {{ template "system_default_registry" . }}{{ include "prometheus-node-exporter.image" . }}
+          image: {{ include "prometheus-node-exporter.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
             - --path.procfs=/host/proc
@@ -192,10 +192,11 @@ spec:
             - name: kube-rbac-proxy-config
               mountPath: /etc/kube-rbac-proxy-config
           imagePullPolicy: {{ .Values.kubeRBACProxy.image.pullPolicy }}
+          {{- $base_registry := (include "monitoring_registry" .) }}
           {{- if .Values.kubeRBACProxy.image.sha }}
-          image: "{{ .Values.global.imageRegistry | default .Values.kubeRBACProxy.image.registry}}/{{ .Values.kubeRBACProxy.image.repository }}:{{ .Values.kubeRBACProxy.image.tag }}@sha256:{{ .Values.kubeRBACProxy.image.sha }}"
+          image: "{{ $base_registry | default .Values.kubeRBACProxy.image.registry}}/{{ .Values.kubeRBACProxy.image.repository }}:{{ .Values.kubeRBACProxy.image.tag }}@sha256:{{ .Values.kubeRBACProxy.image.sha }}"
           {{- else }}
-          image: "{{ .Values.global.imageRegistry | default .Values.kubeRBACProxy.image.registry}}/{{ .Values.kubeRBACProxy.image.repository }}:{{ .Values.kubeRBACProxy.image.tag }}"
+          image: "{{ $base_registry | default .Values.kubeRBACProxy.image.registry}}/{{ .Values.kubeRBACProxy.image.repository }}:{{ .Values.kubeRBACProxy.image.tag }}"
           {{- end }}
           ports:
             - containerPort: {{ .Values.service.port}}

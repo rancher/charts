@@ -40,9 +40,10 @@ spec:
     {{- end }}
       containers:
         - name: {{ template "kube-prometheus-stack.name" . }}
-          {{- $configReloaderRegistry := .Values.global.imageRegistry | default .Values.prometheusOperator.prometheusConfigReloader.image.registry -}}
-          {{- $operatorRegistry := .Values.global.imageRegistry | default .Values.prometheusOperator.image.registry -}}
-          {{- $thanosRegistry := .Values.global.imageRegistry | default .Values.prometheusOperator.thanosImage.registry -}}
+          {{- $base_registry := (include "monitoring_registry" .) }}
+          {{- $configReloaderRegistry := $base_registry | default .Values.prometheusOperator.prometheusConfigReloader.image.registry -}}
+          {{- $operatorRegistry := $base_registry | default .Values.prometheusOperator.image.registry -}}
+          {{- $thanosRegistry := $base_registry | default .Values.prometheusOperator.thanosImage.registry -}}
           {{- if .Values.prometheusOperator.image.sha }}
           image: "{{ $operatorRegistry }}/{{ .Values.prometheusOperator.image.repository }}:{{ .Values.prometheusOperator.image.tag | default .Chart.AppVersion }}@sha256:{{ .Values.prometheusOperator.image.sha }}"
           {{- else }}
@@ -76,10 +77,10 @@ spec:
             {{- end }}
             - --localhost=127.0.0.1
             {{- if .Values.prometheusOperator.prometheusDefaultBaseImage }}
-            - --prometheus-default-base-image={{ .Values.global.imageRegistry | default .Values.prometheusOperator.prometheusDefaultBaseImageRegistry }}/{{ .Values.prometheusOperator.prometheusDefaultBaseImage }}
+            - --prometheus-default-base-image={{ $base_registry | default .Values.prometheusOperator.prometheusDefaultBaseImageRegistry }}/{{ .Values.prometheusOperator.prometheusDefaultBaseImage }}
             {{- end }}
             {{- if .Values.prometheusOperator.alertmanagerDefaultBaseImage }}
-            - --alertmanager-default-base-image={{ .Values.global.imageRegistry | default .Values.prometheusOperator.alertmanagerDefaultBaseImageRegistry }}/{{ .Values.prometheusOperator.alertmanagerDefaultBaseImage }}
+            - --alertmanager-default-base-image={{ $base_registry | default .Values.prometheusOperator.alertmanagerDefaultBaseImageRegistry }}/{{ .Values.prometheusOperator.alertmanagerDefaultBaseImage }}
             {{- end }}
             {{- if .Values.prometheusOperator.prometheusConfigReloader.image.sha }}
             - --prometheus-config-reloader={{ $configReloaderRegistry }}/{{ .Values.prometheusOperator.prometheusConfigReloader.image.repository }}:{{ .Values.prometheusOperator.prometheusConfigReloader.image.tag | default .Chart.AppVersion }}@sha256:{{ .Values.prometheusOperator.prometheusConfigReloader.image.sha }}
