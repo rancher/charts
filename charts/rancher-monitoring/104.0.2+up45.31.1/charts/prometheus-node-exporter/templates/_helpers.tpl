@@ -104,16 +104,21 @@ Create the name of the service account to use
 The image to use
 */}}
 {{- define "prometheus-node-exporter.image" -}}
+{{- $temp_registry := (include "system_default_registry" .) }}
 {{- if .Values.image.sha }}
 {{- fail "image.sha forbidden. Use image.digest instead" }}
 {{- else if .Values.image.digest }}
-{{- if .Values.global.imageRegistry }}
+{{- if $temp_registry }}
+{{- printf "%s%s:%s@%s" $temp_registry .Values.image.repository (default (printf "v%s" .Chart.AppVersion) .Values.image.tag) .Values.image.digest }}
+{{- else if .Values.global.imageRegistry }}
 {{- printf "%s/%s:%s@%s" .Values.global.imageRegistry .Values.image.repository (default (printf "v%s" .Chart.AppVersion) .Values.image.tag) .Values.image.digest }}
 {{- else }}
 {{- printf "%s/%s:%s@%s" .Values.image.registry .Values.image.repository (default (printf "v%s" .Chart.AppVersion) .Values.image.tag) .Values.image.digest }}
 {{- end }}
 {{- else }}
-{{- if .Values.global.imageRegistry }}
+{{- if $temp_registry }}
+{{- printf "%s%s:%s" $temp_registry .Values.image.repository (default (printf "v%s" .Chart.AppVersion) .Values.image.tag) }}
+{{- else if .Values.global.imageRegistry }}
 {{- printf "%s/%s:%s" .Values.global.imageRegistry .Values.image.repository (default (printf "v%s" .Chart.AppVersion) .Values.image.tag) }}
 {{- else }}
 {{- printf "%s/%s:%s" .Values.image.registry .Values.image.repository (default (printf "v%s" .Chart.AppVersion) .Values.image.tag) }}

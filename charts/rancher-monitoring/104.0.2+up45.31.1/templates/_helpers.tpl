@@ -5,6 +5,15 @@
 {{- end -}}
 {{- end -}}
 
+{{- define "monitoring_registry" -}}
+  {{- $temp_registry := (include "system_default_registry" .) -}}
+  {{- if $temp_registry -}}
+    {{- trimSuffix "/" $temp_registry -}}
+  {{- else -}}
+    {{- .Values.global.imageRegistry -}}
+  {{- end -}}
+{{- end -}}
+
 {{/*
 https://github.com/helm/helm/issues/4535#issuecomment-477778391
 Usage: {{ include "call-nested" (list . "SUBCHART_NAME" "TEMPLATE") }}
