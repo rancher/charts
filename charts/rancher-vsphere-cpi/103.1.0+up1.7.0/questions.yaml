@@ -1,0 +1,62 @@
+questions:
+  - variable: vCenter.host
+    label: vCenter Host
+    description: IP address or FQDN of the vCenter
+    type: string
+    required: true
+    group: Configuration
+
+  - variable: vCenter.datacenters
+    description: Comma-separated list of paths to data centers. E.g "<dc1-path>, <dc2-path>, ..."
+    label: Data Centers
+    type: string
+    required: true
+    group: Configuration
+
+  - variable: vCenter.credentialsSecret.generate
+    label: Generate Credential's Secret
+    description: Generates a secret with the vSphere credentials (If the option to generate it is enabled, credentials will be visible in the API to authorized users)
+    type: boolean
+    default: true
+    required: true
+    group: Configuration
+    show_subquestion_if: true
+    subquestions:
+      - variable: vCenter.username
+        label: Username
+        description: Username for vCenter
+        type: string
+        group: Configuration
+      - variable: vCenter.password
+        label: Password
+        description: Password for vCenter
+        type: password
+        group: Configuration
+
+  - variable: vCenter.credentialsSecret.name
+    label: Credential's Secret Name
+    description: Name of the secret with the vSphere credentials (Will not be visible in the API. More info in the README)
+    default: "vsphere-cpi-creds"
+    type: string
+    group: Configuration
+    show_if: "vCenter.credentialsSecret.generate=false"
+
+  - variable: vCenter.labels.generate
+    label: Define vSphere Tags
+    description: "vSphere Tags used to determine the zone and region of a Kubernetes node. This labels will be propagated to NodeLabels"
+    type: boolean
+    default: false
+    required: true
+    group: Configuration
+    show_subquestion_if: true
+    subquestions:
+      - variable: vCenter.labels.region
+        label: Region
+        description: vSphere tag which will used to define regions. e.g. eu-central
+        type: string
+        group: Configuration
+      - variable: vCenter.labels.zone
+        label: Zone
+        description: vSphere tag which will used to define availability zones
+        type: string
+        group: Configuration
