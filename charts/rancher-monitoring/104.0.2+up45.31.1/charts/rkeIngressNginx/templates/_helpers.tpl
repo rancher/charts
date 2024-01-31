@@ -108,16 +108,21 @@ app: {{ template "pushprox.serviceMonitor.name" . }}
 {{- $serviceAccountTokenName := (include "pushProxy.client.serviceAccountTokenName" . ) -}}
 {{- $metricRelabelings := list }}
 {{- $endpoints := .Values.serviceMonitor.endpoints }}
+{{- if .Values.proxy.enabled }}
+{{- $_ := set . "proxyUrl" $proxyURL }}
+{{- end }}
 {{- range $endpoints }}
 {{- if $.Values.proxy.enabled }}
 {{- $_ := set . "proxyUrl" $proxyURL }}
 {{- end }}
 {{- $clusterIdRelabel := dict }}
+{{- $metricRelabelings := list }}
 {{- if $.Values.global.cattle.clusterId }}
 {{- $_ := set $clusterIdRelabel "action" "replace" }}
 {{- $_ := set $clusterIdRelabel "sourceLabels" (list "__address__") }}
 {{- $_ := set $clusterIdRelabel "targetLabel" "cluster_id" }}
 {{- $_ := set $clusterIdRelabel "replacement" $.Values.global.cattle.clusterId }}
+{{- $metricRelabelings = append $metricRelabelings $clusterIdRelabel }}
 {{- end }}
 {{- $clusterNameRelabel := dict }}
 {{- if $.Values.global.cattle.clusterName }}
@@ -125,13 +130,12 @@ app: {{ template "pushprox.serviceMonitor.name" . }}
 {{- $_ := set $clusterNameRelabel "sourceLabels" (list "__address__") }}
 {{- $_ := set $clusterNameRelabel "targetLabel" "cluster_name" }}
 {{- $_ := set $clusterNameRelabel "replacement" $.Values.global.cattle.clusterName }}
+{{- $metricRelabelings = append $metricRelabelings $clusterNameRelabel }}
 {{- end }}
-{{- $metricRelabelings := gt (len (keys $clusterNameRelabel)) 0 | ternary (append ($metricRelabelings) ($clusterNameRelabel)) ($metricRelabelings) }}
-{{- $metricRelabelings := gt (len (keys $clusterIdRelabel)) 0 | ternary (append ($metricRelabelings) ($clusterIdRelabel)) ($metricRelabelings) }}
 {{- if not (empty $metricRelabelings) }}
 {{- $_ := set . "metricRelabelings" ($metricRelabelings)}}
 {{- end }}
-{{- if $forceHTTPSScheme -}}
+{{- if $setHTTPSScheme -}}
 {{- $_ := set . "scheme" "https" }}
 {{- end -}}
 {{- if $useHTTPS -}}
