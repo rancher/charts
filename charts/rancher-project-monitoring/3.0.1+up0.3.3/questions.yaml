@@ -1,0 +1,128 @@
+questions:
+- variable: alertmanager.enabled
+  label: Enable Alertmanager
+  default: true
+  type: boolean
+  group: Alertmanager
+- variable: grafana.enabled
+  label: Enable Grafana
+  default: true
+  type: boolean
+  group: Grafana
+  show_subquestion_if: true
+  subquestions:
+  - variable: grafana.adminUser
+    label: Grafana Admin User
+    type: string
+    default: admin
+    group: Grafana
+  - variable: grafana.adminPassword
+    label: Grafana Admin Password
+    type: string
+    default: prom-operator
+    group: Grafana
+  - variable: grafana.sidecar.dashboards.label
+    label: Default Grafana Dashboard Label
+    default: grafana_dashboard
+    description: All ConfigMaps with this label are parsed as Grafana Dashboards
+    type: string
+    group: Grafana
+- variable: grafana.persistence.enabled
+  type: boolean
+  required: true
+  label: Enable Persistent Volume
+  show_subquestion_if: true
+  group: Grafana
+  subquestions:
+    - variable: grafana.persistence.size
+      type: string
+      default: 1Gi
+      label: Size
+    - variable: grafana.persistence.storageClass
+      type: storageclass
+      label: Storage Class Name
+    - variable: grafana.persistence.accessModes
+      type: enum
+      default: 
+        - ReadWriteOnce
+      options:
+        - [ReadWriteOnce]
+        - [ReadWriteMany]
+        - [ReadOnlyMany]
+      label: Access Mode
+- variable: prometheus.prometheusSpec.scrapeInterval
+  type: string
+  required: true
+  label: Scrape Interval
+  default: 30s
+  group: Prometheus
+- variable: prometheus.prometheusSpec.evaluationInterval
+  type: string
+  required: true
+  label: Evaluation Interval
+  default: 1m
+  group: Prometheus
+- variable: prometheus.prometheusSpec.retention
+  type: string
+  required: true
+  label: Retention
+  default: 10d
+  group: Prometheus
+- variable: prometheus.prometheusSpec.retentionSize
+  type: string
+  required: false
+  label: Retention Size
+  default: 50GB
+  group: Prometheus
+- variable: prometheus.prometheusSpec.resources.requests.cpu
+  type: string
+  required: true
+  label: Requested CPU
+  default: 750m
+  group: Prometheus
+- variable: prometheus.prometheusSpec.resources.requests.memory
+  type: string
+  required: true
+  label: Requested Memory
+  default: 750Mi
+  group: Prometheus
+- variable: prometheus.prometheusSpec.resources.limits.cpu
+  type: string
+  required: true
+  label: CPU Limit
+  default: 1000m
+  group: Prometheus
+- variable: prometheus.prometheusSpec.resources.limits.memory
+  type: string
+  required: true
+  label: Memory Limit
+  default: 3000Mi
+  group: Prometheus
+- variable: prometheus.prometheusSpec.storage.enabled
+  type: boolean
+  required: true
+  label: Enable Persistent Volume
+  show_subquestion_if: true
+  group: Prometheus
+  subquestions:
+    - variable: prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage
+      type: string
+      default: 50Gi
+      label: Size
+    - variable: prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName
+      type: storageclass
+      label: Storage Class Name
+    - variable: prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.accessModes
+      type: enum
+      default: 
+        - ReadWriteOnce
+      options:
+        - [ReadWriteOnce]
+        - [ReadWriteMany]
+        - [ReadOnlyMany]
+      label: Access Mode
+- variable: federate.enabled
+  label: Enable Federated Metrics From Cluster Prometheus
+  default: true
+  type: boolean
+  group: Federation
