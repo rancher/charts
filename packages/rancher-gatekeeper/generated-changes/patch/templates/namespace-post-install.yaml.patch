@@ -1,6 +1,16 @@
 --- charts-original/templates/namespace-post-install.yaml
 +++ charts/templates/namespace-post-install.yaml
-@@ -44,7 +44,7 @@
+@@ -31,9 +31,6 @@
+         release: '{{ .Release.Name }}'
+     spec:
+       restartPolicy: OnFailure
+-      {{- if .Values.postInstall.labelNamespace.priorityClassName }}
+-      priorityClassName: {{ .Values.postInstall.labelNamespace.priorityClassName }}
+-      {{- end }}
+       {{- if .Values.postInstall.labelNamespace.image.pullSecrets }}
+       imagePullSecrets:
+       {{- .Values.postInstall.labelNamespace.image.pullSecrets | toYaml | nindent 12 }}
+@@ -47,7 +44,7 @@
        {{- end }}
        containers:
          - name: kubectl-label
@@ -9,7 +19,7 @@
            imagePullPolicy: {{ .Values.postInstall.labelNamespace.image.pullPolicy }}
            args:
              - label
-@@ -85,12 +85,10 @@
+@@ -88,12 +85,10 @@
              {{- toYaml .Values.postInstall.securityContext | nindent 12 }}
          {{- end }}
        {{- with .Values.postInstall }}
@@ -24,7 +34,7 @@
        {{- end }}
  ---
  apiVersion: v1
-@@ -132,6 +130,12 @@
+@@ -135,6 +130,12 @@
        {{- range .Values.postInstall.labelNamespace.extraNamespaces }}
        - {{ . }}
        {{- end }}

@@ -1,6 +1,16 @@
 --- charts-original/templates/gatekeeper-audit-deployment.yaml
 +++ charts/templates/gatekeeper-audit-deployment.yaml
-@@ -42,11 +42,7 @@
+@@ -28,9 +28,6 @@
+         {{- if .Values.podAnnotations }}
+         {{- toYaml .Values.podAnnotations | trim | nindent 8 }}
+         {{- end }}
+-        {{- if .Values.auditPodAnnotations }}
+-        {{- toYaml .Values.auditPodAnnotations | trim | nindent 8 }}
+-        {{- end }}
+       labels:
+ {{- include "gatekeeper.podLabels" . }}
+         app: '{{ template "gatekeeper.name" . }}'
+@@ -45,11 +42,7 @@
          {{- toYaml .Values.audit.affinity | nindent 8 }}
        automountServiceAccountToken: true
        containers:
@@ -13,7 +23,19 @@
          args:
          - --audit-interval={{ .Values.auditInterval }}
          - --log-level={{ (.Values.audit.logLevel | empty | not) | ternary .Values.audit.logLevel .Values.logLevel }}
-@@ -94,7 +90,7 @@
+@@ -63,11 +56,6 @@
+         - --audit-events-involved-namespace={{ .Values.auditEventsInvolvedNamespace }}
+         - --operation=audit
+         - --operation=status
+-        {{ if .Values.audit.enablePubsub}}
+-        - --enable-pub-sub={{ .Values.audit.enablePubsub }}
+-        - --audit-connection={{ .Values.audit.connection }}
+-        - --audit-channel={{ .Values.audit.channel }}
+-        {{- end }}
+         {{ if not .Values.disableMutation}}- --operation=mutation-status{{- end }}
+         - --logtostderr
+         - --health-addr=:{{ .Values.audit.healthPort }}
+@@ -102,7 +90,7 @@
                fieldPath: metadata.namespace
          - name: CONTAINER_NAME
            value: manager
@@ -22,7 +44,7 @@
          livenessProbe:
            httpGet:
              path: /healthz
-@@ -130,9 +126,11 @@
+@@ -138,9 +126,11 @@
        dnsPolicy: {{ .Values.audit.dnsPolicy }}
        hostNetwork: {{ .Values.audit.hostNetwork }}
        imagePullSecrets:
@@ -37,7 +59,7 @@
        {{- if .Values.audit.priorityClassName }}
        priorityClassName:  {{ .Values.audit.priorityClassName }}
        {{- end }}
-@@ -140,8 +138,10 @@
+@@ -148,8 +138,10 @@
          {{- toYaml .Values.audit.podSecurityContext | nindent 8 }}
        serviceAccountName: gatekeeper-admin
        terminationGracePeriodSeconds: 60
