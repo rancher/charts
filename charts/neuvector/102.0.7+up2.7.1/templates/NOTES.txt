@@ -1,0 +1,23 @@
+{{- if and .Values.manager.enabled .Values.manager.ingress.enabled }}
+From outside the cluster, the NeuVector URL is:
+http://{{ .Values.manager.ingress.host }}
+{{- else if and .Values.manager.enabled .Values.manager.ingress.enabled .Values.manager.ingress.tls}}
+From outside the cluster, the NeuVector URL is:
+https://{{ .Values.manager.ingress.host }}
+{{- else if not .Values.openshift }}
+Get the NeuVector URL by running these commands:
+{{- if contains "NodePort" .Values.manager.svc.type }}
+  NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services neuvector-service-webui)
+  NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo https://$NODE_IP:$NODE_PORT
+{{- else if contains "ClusterIP" .Values.manager.svc.type }}
+  CLUSTER_IP=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.clusterIP}" services neuvector-service-webui)
+  echo https://$CLUSTER_IP:8443
+{{- else if contains "LoadBalancer" .Values.manager.svc.type }}
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+        Watch the status by running 'kubectl get svc --namespace {{ .Release.Namespace }} -w neuvector-service-webui'
+
+  SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} neuvector-service-webui -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
+  echo https://$SERVICE_IP:8443
+{{- end }}
+{{- end }}
