@@ -1,3 +1,6 @@
+git-workflow:
+	act -W '.github/workflows/validation-comment.yaml' --secret-file .github/dev/.secrets -e .github/dev/events.json
+
 pull-scripts:
 	./scripts/pull-scripts
 
