@@ -9,11 +9,25 @@ on:
 jobs:
   validation-comment:
     name: Make validation comment on PR
-    runs-on: ubuntu-latest
+    runs_on: ubuntu-latest
     permissions: write-all
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Check if /packages has been modified
+        id: check
+        run: |
+          if git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} | grep '^packages/'
+          then
+            echo "::set-output name=modified::true"
+          else
+            echo "::set-output name=modified::false"
+          fi
+
       - name: Make validation comment
         uses: actions/github-script@v4
+        if: steps.check.outputs.modified == 'true'
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
@@ -25,7 +39,7 @@ jobs:
               `## Validation steps
               - Ensure all container images have repository and tag on the same level to ensure that all container images are included in rancher-images.txt which are used by airgap customers.
               <pre>
-              Ex:- 
+              Ex:-
                 longhorn-controller:
                   repository: rancher/hardened-sriov-cni
                   tag: v2.6.3-build20230913
