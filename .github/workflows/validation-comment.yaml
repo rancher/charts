@@ -1,7 +1,7 @@
 name: Validation Comment
 
 on:
-  pull_request_target:
+  pull_request:
     branches:
       - dev-v*
       - release-v*
@@ -12,6 +12,36 @@ jobs:
     runs-on: ubuntu-latest
     permissions: write-all
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Check if /packages has been modified
+        id: check
+        run: |
+          MESSAGE="## Validation steps\n
+          - Ensure all container images have repository and tag on the same level to ensure that all container images are included in rancher-images.txt which are used by airgap customers.\n
+          <pre>\n
+          Ex:- \n
+            longhorn-controller:\n
+              repository: rancher/hardened-sriov-cni\n
+              tag: v2.6.3-build20230913\n
+          </pre>\n
+          - Add a 👍 (thumbs up) reaction to this comment once done. CI won't pass without this reaction to the github-action bot's latest validation comment.\n
+          - Approve the PR to run the CI check."
+
+          for commit in $(git rev-list ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+          do
+            if git diff-tree --no-commit-id --name-only -r $commit | grep '^packages/'
+            then
+              echo "::set-output name=message::$MESSAGE"
+              exit 0
+            fi
+          done
+
+          echo "::set-output name=message::No changes to /packages detected, validation not necessary."
+
       - name: Make validation comment
         uses: actions/github-script@v4
         with:
@@ -21,15 +51,5 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body:
-              `## Validation steps
-              - Ensure all container images have repository and tag on the same level to ensure that all container images are included in rancher-images.txt which are used by airgap customers.
-              <pre>
-              Ex:- 
-                longhorn-controller:
-                  repository: rancher/hardened-sriov-cni
-                  tag: v2.6.3-build20230913
-              </pre>
-              - Add a 👍 (thumbs up) reaction to this comment once done. CI won't pass without this reaction to the github-action bot's latest validation comment.
-              - Approve the PR to run the CI check.`
+              body: ${{ steps.check.outputs.message }}
             })
