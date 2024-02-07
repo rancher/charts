@@ -12,8 +12,40 @@ jobs:
     runs-on: ubuntu-latest
     permissions: write-all
     steps:
+      - name: Check for changes in packages directory
+        id: check_changes
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const prNumber = context.issue.number;
+            const { data: commits } = await github.pulls.listCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+            console.log(`Number of commits: ${commits.length}`);
+
+            for (const { sha } of commits) {
+              const { data: commit } = await github.repos.getCommit({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: sha
+              });
+
+              for (const file of commit.files) {
+                if (file.filename.startsWith('packages/')) {
+                  console.log("Pull Request modifies packages")
+                  return true;
+                }
+              }
+            }
+            console.log("Pull Request does not modify packages")
+            return false;
+
       - name: Make validation comment
         uses: actions/github-script@v4
+        if: steps.check_changes.outputs.result == 'true'
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
@@ -25,7 +57,7 @@ jobs:
               `## Validation steps
               - Ensure all container images have repository and tag on the same level to ensure that all container images are included in rancher-images.txt which are used by airgap customers.
               <pre>
-              Ex:- 
+              Ex:-
                 longhorn-controller:
                   repository: rancher/hardened-sriov-cni
                   tag: v2.6.3-build20230913
@@ -33,3 +65,7 @@ jobs:
               - Add a 👍 (thumbs up) reaction to this comment once done. CI won't pass without this reaction to the github-action bot's latest validation comment.
               - Approve the PR to run the CI check.`
             })
+
+      - name: Print success message
+        run: echo "Validation comment on PR job is successful. No changes in packages folder detected, no further validation needed."
+        if: steps.check_changes.outputs.result != 'true'
