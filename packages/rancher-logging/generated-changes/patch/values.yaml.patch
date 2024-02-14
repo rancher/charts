@@ -1,15 +1,40 @@
 --- charts-original/values.yaml
 +++ charts/values.yaml
-@@ -5,7 +5,7 @@
+@@ -5,13 +5,8 @@
  replicaCount: 1
  
  image:
--  repository: ghcr.io/banzaicloud/logging-operator
-+  repository: rancher/mirrored-banzaicloud-logging-operator
-   tag: 3.17.10
+-  # -- Name of the image repository to pull the container image from.
+-  repository: ghcr.io/kube-logging/logging-operator
+-
+-  # -- Image tag override for the default value (chart appVersion).
+-  tag: ""
+-
+-  # -- [Image pull policy](https://kubernetes.io/docs/concepts/containers/images/#updating-images) for updating already existing images on a node.
++  repository: rancher/mirrored-kube-logging-logging-operator
++  tag: 4.4.0
    pullPolicy: IfNotPresent
  
-@@ -42,9 +42,14 @@
+ env: []
+@@ -56,7 +51,7 @@
+ 
+   psp:
+     # -- Must be used with `rbac.enabled` true. If true, creates & uses RBAC resources required in the cluster with [Pod Security Policies](https://kubernetes.io/docs/concepts/policy/pod-security-policy/) enabled.
+-    enabled: true
++    # enabled: false
+ 
+     # -- PSP annotations
+     annotations:
+@@ -70,7 +65,7 @@
+   # specify service account manually
+   # serviceAccountName: custom
+ 
+-monitoring:
++1:
+   serviceMonitor:
+     # -- Create a Prometheus Operator ServiceMonitor object.
+     enabled: false
+@@ -115,10 +110,14 @@
    #   cpu: 100m
    #   memory: 128Mi
  
@@ -17,6 +42,7 @@
 +nodeSelector:
 +  kubernetes.io/os: linux
  
+-# -- Node Tolerations
 -tolerations: []
 +tolerations:
 +  - key: cattle.io/os
@@ -24,29 +50,45 @@
 +    value: "linux"
 +    effect: NoSchedule
  
+ # -- Node Affinity
  affinity: {}
- 
-@@ -63,7 +68,6 @@
- rbac:
-   enabled: true
-   psp:
--    enabled: true
-     annotations:
-       seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'docker/default,runtime/default'
-       seccomp.security.alpha.kubernetes.io/defaultProfileName: 'runtime/default'
-@@ -75,7 +79,7 @@
- 
- 
- ## SecurityContext holds pod-level security attributes and common container settings.
--## This defaults to non root user with uid 1000 and gid 2000.	*v1.PodSecurityContext	false
-+## This defaults to non-root user with uid 1000 and gid 2000.	*v1.PodSecurityContext	false
- ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
- ##
- podSecurityContext: {}
-@@ -102,3 +106,135 @@
- 
- serviceAccount:
-   annotations: {}
+@@ -267,11 +266,160 @@
+   image: fluent/fluent-bit
+   pullPolicy: IfNotPresent
+   port: 8080
+-  args: ["-i", "http", "-p", "port=8080", "-o", "stdout"]
+-  resources:
+-    limits:
+-      cpu: 100m
+-      memory: 50Mi
+-    requests:
+-      cpu: 20m
+-      memory: 25Mi
++  #   args: ["-i", "http", "-p", "port=8080", "-o", "stdout"]
++  # resources:
++  #   limits:
++  #     cpu: 100m
++  #     memory: 50Mi
++  #   requests:
++  #     cpu: 20m
++  #     memory: 25Mi
++  
++  # Service definition for query http service
++  service:
++    type: ClusterIP
++    clusterIP: None
++    # Annotations to query http service
++    annotations: {}
++    # Labels to query http service
++    labels: {}
++
++monitoring:
++  # Create a Prometheus Operator ServiceMonitor object
++  serviceMonitor:
++    enabled: false
++    additionalLabels: {}
++    metricRelabelings: []
++    relabelings: []
 +
 +###################################
 +# Rancher Logging Operator Values #
