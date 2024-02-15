@@ -52,12 +52,6 @@ kubernetes.io/os: windows
 {{- end -}}
 
 {{- define "windowsExporter.client.env" -}}
-- name: LISTEN_PORT
-  value: {{ required "Need .Values.clients.port to figure out where to get metrics from" .Values.clients.port | quote }}
-{{- if .Values.clients.enabledCollectors }}
-- name: ENABLED_COLLECTORS
-  value: {{ .Values.clients.enabledCollectors | quote }}
-{{- end }}
 {{- if .Values.clients.env }}
 {{ toYaml .Values.clients.env }}
 {{- end }}
