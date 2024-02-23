@@ -10,7 +10,26 @@ jobs:
     if: startsWith(github.event.pull_request.base.ref, 'dev-v') || startsWith(github.event.pull_request.base.ref, 'release-v')
     runs-on: ubuntu-latest
     steps:
+      - name: Check for modifications in specified folders
+        id: check-modifications
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            // Get the list of files modified in the PR
+            const files = await github.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            // Check if any of the modified files are in the specified folders
+            const modifiedSpecifiedFolders = files.data.some(file => file.filename.startsWith('assets/') || file.filename.startsWith('charts/') || file.filename.startsWith('packages/'));
+
+            return modifiedSpecifiedFolders;
+
       - name: Check for positive reaction on bot's latest validation comment
+        if: steps.check-modifications.outputs.result == 'true'
         uses: actions/github-script@v4
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
