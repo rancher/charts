@@ -2,9 +2,26 @@
 
 This repository contains Helm charts served by Rancher Apps & Marketplace.
 
-### Issues 
+- More information on `how to make changes` to this repository: [`docs/developing.md`](docs/developing.md).
+- More information on `experimental features`: [`docs/experimental.md`](docs/experimental.md).
+- More information on `commands` that can be run in this repository: [`docs/makefile.md`](docs/makefile.md).
+- More information on `Packages`: [`docs/packages.md`](docs/packages.md).
+- More information on `CI validation`: [`docs/validation.md`](docs/validation.md).
+- [Issues](#issues)
+- [Branches](#branches)
+- [Making Changes](#making-changes)
+- [Adding Net-New dependencies to dev-v2.X](#adding-net-new-dependencies-to-dev-27)
+- [Versioning Charets](#versioning-charts)
+- [Upstream Charts](#upstream-charts)
+- [Local Charts](#local-charts)
+- [Rancher Version Annotations](#rancher-version-annotations)
+- [Versioning FAQ](#versioning-faq)
+- [Supporting Images in Airgap](#supporting-images-in-airgap)
 
-All issues must be created in [`rancher/rancher`](https://github.com/rancher/rancher) repository. 
+
+### Issues
+
+All issues must be created in [`rancher/rancher`](https://github.com/rancher/rancher) repository.
 
 ### Branches
 
@@ -30,7 +47,7 @@ There are two kinds of charts that exist in this repository. One is upstream cha
 
 ##### Upstream Charts
 
-In this repository, all packages specify the `version` field in the `package.yaml`. The upstream charts follow this versioning X.Y.P[+upX.Y.Z] 
+In this repository, all packages specify the `version` field in the `package.yaml`. The upstream charts follow this versioning X.Y.P[+upX.Y.Z]
 X.Y.Z is the upstream chart's major.minor.patch.
 
 The X.Y.P versioning scheme roughly corresponds to the following rules (with exceptions):
@@ -118,17 +135,3 @@ images:
     repository: rancher/fluent-bit
     tag: 1.7.4
 ```
-
-### Links
-
-For more information on how to make changes to this repository, please see [`docs/developing.md`](docs/developing.md).
-
-For more information on experimental features, please see [`docs/experimental.md`](docs/experimental.md).
-
-For more information on commands that can be run in this repository, please see [`docs/makefile.md`](docs/makefile.md).
-
-For more information on `Packages`, please see [`docs/packages.md`](docs/packages.md).
-
-For more information on CI, please see [`docs/validation.md`](docs/validation.md).
-
-For more information on the charts deprecation policy, please see [`docs/deprecation.md`](docs/deprecation.md).
