@@ -52,24 +52,9 @@ kubernetes.io/os: windows
 {{- end -}}
 
 {{- define "windowsExporter.client.env" -}}
-- name: LISTEN_PORT
-  value: {{ required "Need .Values.clients.port to figure out where to get metrics from" .Values.clients.port | quote }}
-{{- if .Values.clients.enabledCollectors }}
-- name: ENABLED_COLLECTORS
-  value: {{ .Values.clients.enabledCollectors | quote }}
-{{- end }}
 {{- if .Values.clients.env }}
 {{ toYaml .Values.clients.env }}
 {{- end }}
-{{- end -}}
-
-{{- define "windowsExporter.validatePathPrefix" -}}
-{{- if .Values.global.cattle.rkeWindowsPathPrefix -}}
-{{- $prefixPath := (.Values.global.cattle.rkeWindowsPathPrefix | replace "/" "\\") -}}
-{{- if (not (hasSuffix "\\" $prefixPath)) -}}
-{{- fail (printf ".Values.global.cattle.rkeWindowsPathPrefix must end in '/' or '\\', found %s" $prefixPath) -}}
-{{- end -}}
-{{- end -}}
 {{- end -}}
 
 {{- define "windowsExporter.renamedMetrics" -}}

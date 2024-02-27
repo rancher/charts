@@ -9,7 +9,6 @@ global:
     psp:
       enabled: false
     systemDefaultRegistry: ""
-    rkeWindowsPathPrefix: "c:\\"
 
 # Configure ServiceMonitor that monitors metrics
 serviceMonitor: 
@@ -19,15 +18,22 @@ serviceMonitor:
 prometheusRule:
   enabled: true
 
+# Security context configuration for privileged HostProcess Windows pods
+securityContext:
+  windowsOptions:
+    hostProcess: true
+    runAsUserName: "NT AUTHORITY\\SYSTEM"
+
 ## Components scraping metrics from Windows nodes
 ##
 clients:
   enabled: true
 
+  maxRequests: 5
   port: 9796
   image:
     repository: rancher/windows_exporter-package
-    tag: v0.0.3
+    tag: v0.0.5
     os: "windows"
 
   # Specify the IP addresses of nodes that you want to collect metrics from
