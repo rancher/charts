@@ -1,0 +1,12 @@
+{{- if .Values.web_root_override }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kiali-console
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kiali-server.labels" . | nindent 4 }}
+data:
+  env.js: |
+    window.WEB_ROOT='/k8s/clusters/{{ .Values.global.cattle.clusterId }}/api/v1/namespaces/{{ .Release.Namespace }}/services/http:kiali:20001/proxy/kiali';
+{{- end }}
