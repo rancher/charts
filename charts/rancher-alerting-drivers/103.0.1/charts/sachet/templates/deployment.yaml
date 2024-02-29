@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "sachet.fullname" . }}
+  namespace: {{ include "sachet.namespace" . }}
+  labels: {{ include "sachet.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels: {{ include "sachet.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      labels: {{ include "sachet.selectorLabels" . | nindent 8 }}
+    spec:
+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
+      {{- if .Values.nodeSelector }}
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      {{- end }}
+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+      {{- if .Values.tolerations }}
+        {{- toYaml .Values.tolerations | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "sachet.fullname" . }}
+      {{- with .Values.podSecurityContext }}
+      securityContext: {{ toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext: {{ toYaml .Values.securityContext | nindent 12 }}
+          image: {{ include "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 9876
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /-/live
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+          volumeMounts:
+            - mountPath: /etc/sachet/
+              name: config-volume
+          {{- with .Values.resources }}
+          resources: {{ toYaml .Values.resources | nindent 12 }}
+          {{- end }}
+        - name: config-reloader
+          securityContext: {{ toYaml .Values.securityContext | nindent 12 }}
+          image: {{ include "system_default_registry" . }}{{ .Values.configReloader.repository }}:{{ .Values.configReloader.tag }}
+          imagePullPolicy: {{ .Values.configReloader.pullPolicy }}
+          args:
+            - -volume-dir=/watch-config
+            - -webhook-method=POST
+            - -webhook-status-code=200
+            - -webhook-url=http://127.0.0.1:{{ .Values.service.port }}/-/reload
+          volumeMounts:
+            - mountPath: /watch-config
+              name: config-volume
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ include "sachet.fullname" . }}
+            defaultMode: 0777
