@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: rancher-turtles-controller-manager
+  namespace: '{{ .Values.rancherTurtles.namespace }}'
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+      labels:
+        control-plane: controller-manager
+    spec:
+      {{- if .Values.rancherTurtles.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.rancherTurtles.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}  
+      {{- end }}
+      containers:
+      - args:
+        - --leader-elect
+        - --feature-gates=rancher-kube-secret-patch={{ index .Values "rancherTurtles" "features" "rancher-kubeconfigs" "label"}}
+        {{- range .Values.rancherTurtles.managerArguments }}
+        - {{ . }}
+        {{- end }}  
+        command:
+        - /manager
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_UID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.uid
+        {{- if (contains "sha256:" .Values.rancherTurtles.imageVersion) }}
+        image: '{{ .Values.rancherTurtles.image }}@{{ .Values.rancherTurtles.imageVersion }}'
+        {{- else }}
+        image: '{{ .Values.rancherTurtles.image }}:{{ .Values.rancherTurtles.imageVersion }}'
+        {{- end}}
+        imagePullPolicy: '{{ .Values.rancherTurtles.imagePullPolicy }}'
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 9440
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: manager
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 9440
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
+      serviceAccountName: rancher-turtles-manager
+      terminationGracePeriodSeconds: 10
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
