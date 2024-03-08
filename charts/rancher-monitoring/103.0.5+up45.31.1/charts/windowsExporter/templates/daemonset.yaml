@@ -1,0 +1,62 @@
+{{- if .Values.clients }}{{ if .Values.clients.enabled }}
+{{ include "windowsExporter.validatePathPrefix" . }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ template "windowsExporter.name" . }}
+  namespace: {{ template "windowsExporter.namespace" . }}
+  labels: {{ include "windowsExporter.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels: {{ include "windowsExporter.labels" . | nindent 6 }}
+  template:
+    metadata:
+      labels: {{ include "windowsExporter.labels" . | nindent 8 }}
+    spec:
+      hostNetwork: true
+      nodeSelector: {{ include "windowsExporter.client.nodeSelector" . | nindent 8 }}
+      tolerations: {{ include "windowsExporter.client.tolerations" . | nindent 8 }}
+      serviceAccountName: {{ template "windowsExporter.name" . }}
+      initContainers:
+       - name: ensure-port-9796-is-free
+         securityContext: {{ toYaml $.Values.securityContext | nindent 12 }}
+         image: {{ template "system_default_registry" . }}{{ .Values.clients.image.repository }}:{{ .Values.clients.image.tag }}
+         command:
+           - C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe
+         args: ["-f", "scripts/ensure-9796-is-free.ps1"]
+         volumeMounts:
+           - name: exporter-scripts
+             mountPath: /scripts
+       - name: configure-firewall-rule
+         securityContext: {{ toYaml $.Values.securityContext | nindent 12 }}
+         image: {{ template "system_default_registry" . }}{{ .Values.clients.image.repository }}:{{ .Values.clients.image.tag }}
+         command:
+          - C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe
+         args: ["-f", "scripts/configure-firewall.ps1"]
+         volumeMounts:
+           -  name: exporter-scripts
+              mountPath: /scripts
+      containers:
+        - name: windows-exporter-node
+          securityContext: {{ toYaml $.Values.securityContext | nindent 12 }}
+          image: {{ template "system_default_registry" . }}{{ .Values.clients.image.repository }}:{{ .Values.clients.image.tag }}
+          command:
+            - "windows-exporter.exe"
+          args: ["--collectors.enabled={{.Values.clients.enabledCollectors}}", "--telemetry.addr=:{{.Values.clients.port}}", "--telemetry.max-requests={{.Values.clients.maxRequests}}", "--telemetry.path=/metrics"]
+          ports:
+            - name: http
+              containerPort: {{.Values.clients.port}}
+              hostPort: {{.Values.clients.port}}
+              protocol: TCP
+
+{{- if .Values.clients.args }}
+          args: {{ .Values.clients.args }}
+{{- end }}
+{{- if .Values.clients.resources }}
+          resources: {{ toYaml .Values.clients.resources | nindent 10 }}
+{{end }}
+      volumes:
+        - name: exporter-scripts
+          configMap:
+            name: {{ template "windowsExporter.name" . }}-scripts
+{{- end }}{{- end }}
