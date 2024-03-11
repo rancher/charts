@@ -1,0 +1,23 @@
+--- charts-original/templates/service.yaml
++++ charts/templates/service.yaml
+@@ -4,7 +4,7 @@
+   name: {{ include "prometheus-windows-exporter.fullname" . }}
+   namespace: {{ include "prometheus-windows-exporter.namespace" . }}
+   labels:
+-    {{- include "prometheus-windows-exporter.labels" $ | nindent 4 }}
++    {{- include "windowsExporter.labels" $ | nindent 4 }}
+   {{- if or .Values.prometheus.monitor.enabled .Values.prometheus.podMonitor.enabled }}
+   {{- with .Values.service.annotations }}
+   annotations:
+@@ -24,9 +24,9 @@
+       {{- if ( and (eq .Values.service.type "NodePort" ) (not (empty .Values.service.nodePort)) ) }}
+       nodePort: {{ .Values.service.nodePort }}
+       {{- end }}
+-      targetPort: {{ .Values.service.portName }}
++      targetPort: {{ .Values.service.port }}
+       protocol: TCP
+       appProtocol: http
+       name: {{ .Values.service.portName }}
+   selector:
+-    {{- include "prometheus-windows-exporter.selectorLabels" . | nindent 4 }}
++    {{- include "windowsExporter.labels" . | nindent 4 }}
