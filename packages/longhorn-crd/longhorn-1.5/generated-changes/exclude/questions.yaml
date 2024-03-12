@@ -17,7 +17,7 @@ questions:
     label: Longhorn Manager Image Repository
     group: "Longhorn Images Settings"
   - variable: image.longhorn.manager.tag
-    default: v1.5.3
+    default: v1.5.4
     description: "Specify Longhorn Manager Image Tag"
     type: string
     label: Longhorn Manager Image Tag
@@ -29,7 +29,7 @@ questions:
     label: Longhorn Engine Image Repository
     group: "Longhorn Images Settings"
   - variable: image.longhorn.engine.tag
-    default: v1.5.3
+    default: v1.5.4
     description: "Specify Longhorn Engine Image Tag"
     type: string
     label: Longhorn Engine Image Tag
@@ -41,7 +41,7 @@ questions:
     label: Longhorn UI Image Repository
     group: "Longhorn Images Settings"
   - variable: image.longhorn.ui.tag
-    default: v1.5.3
+    default: v1.5.4
     description: "Specify Longhorn UI Image Tag"
     type: string
     label: Longhorn UI Image Tag
@@ -53,7 +53,7 @@ questions:
     label: Longhorn Instance Manager Image Repository
     group: "Longhorn Images Settings"
   - variable: image.longhorn.instanceManager.tag
-    default: v1.5.3
+    default: v1.5.4
     description: "Specify Longhorn Instance Manager Image Tag"
     type: string
     label: Longhorn Instance Manager Image Tag
@@ -65,7 +65,7 @@ questions:
     label: Longhorn Share Manager Image Repository
     group: "Longhorn Images Settings"
   - variable: image.longhorn.shareManager.tag
-    default: v1.5.3
+    default: v1.5.4
     description: "Specify Longhorn Share Manager Image Tag"
     type: string
     label: Longhorn Share Manager Image Tag
@@ -77,7 +77,7 @@ questions:
     label: Longhorn Backing Image Manager Image Repository
     group: "Longhorn Images Settings"
   - variable: image.longhorn.backingImageManager.tag
-    default: v1.5.3
+    default: v1.5.4
     description: "Specify Longhorn Backing Image Manager Image Tag"
     type: string
     label: Longhorn Backing Image Manager Image Tag
@@ -89,7 +89,7 @@ questions:
     label: Longhorn Support Bundle Kit Image Repository
     group: "Longhorn Images Settings"
   - variable: image.longhorn.supportBundleKit.tag
-    default: v0.0.27
+    default: v0.0.33
     description: "Specify Longhorn Support Bundle Manager Image Tag"
     type: string
     label: Longhorn Support Bundle Kit Image Tag
@@ -101,7 +101,7 @@ questions:
     label: Longhorn CSI Attacher Image Repository
     group: "Longhorn CSI Driver Images"
   - variable: image.csi.attacher.tag
-    default: v4.2.0
+    default: v4.4.2
     description: "Specify CSI attacher image tag. Leave blank to autodetect."
     type: string
     label: Longhorn CSI Attacher Image Tag
@@ -113,7 +113,7 @@ questions:
     label: Longhorn CSI Provisioner Image Repository
     group: "Longhorn CSI Driver Images"
   - variable: image.csi.provisioner.tag
-    default: v3.4.1
+    default: v3.6.2
     description: "Specify CSI provisioner image tag. Leave blank to autodetect."
     type: string
     label: Longhorn CSI Provisioner Image Tag
@@ -125,7 +125,7 @@ questions:
     label: Longhorn CSI Node Driver Registrar Image Repository
     group: "Longhorn CSI Driver Images"
   - variable: image.csi.nodeDriverRegistrar.tag
-    default: v2.7.0
+    default: v2.9.2
     description: "Specify CSI Node Driver Registrar image tag. Leave blank to autodetect."
     type: string
     label: Longhorn CSI Node Driver Registrar Image Tag
@@ -137,7 +137,7 @@ questions:
     label: Longhorn CSI Driver Resizer Image Repository
     group: "Longhorn CSI Driver Images"
   - variable: image.csi.resizer.tag
-    default: v1.7.0
+    default: v1.9.2
     description: "Specify CSI Driver Resizer image tag. Leave blank to autodetect."
     type: string
     label: Longhorn CSI Driver Resizer Image Tag
@@ -149,7 +149,7 @@ questions:
     label: Longhorn CSI Driver Snapshotter Image Repository
     group: "Longhorn CSI Driver Images"
   - variable: image.csi.snapshotter.tag
-    default: v6.2.1
+    default: v6.3.2
     description: "Specify CSI Driver Snapshotter image tag. Leave blank to autodetect."
     type: string
     label: Longhorn CSI Driver Snapshotter Image Tag
@@ -161,7 +161,7 @@ questions:
     label: Longhorn CSI Liveness Probe Image Repository
     group: "Longhorn CSI Driver Images"
   - variable: image.csi.livenessProbe.tag
-    default: v2.9.0
+    default: v2.12.0
     description: "Specify CSI liveness probe image tag. Leave blank to autodetect."
     type: string
     label: Longhorn CSI Liveness Probe Image Tag
@@ -314,11 +314,11 @@ The available volume spec options are:
     default: "disabled"
   - variable: defaultSettings.storageOverProvisioningPercentage
     label: Storage Over Provisioning Percentage
-    description: "The over-provisioning percentage defines how much storage can be allocated relative to the hard drive's capacity. By default 200."
+    description: "Percentage of storage that can be allocated relative to hard drive capacity. The default value is 100."
     group: "Longhorn Default Settings"
     type: int
     min: 0
-    default: 200
+    default: 100
   - variable: defaultSettings.storageMinimalAvailablePercentage
     label: Storage Minimal Available Percentage
     description: "If the minimum available disk capacity exceeds the actual percentage of available disk capacity, the disk becomes unschedulable until more space is freed up. By default 25."
@@ -456,6 +456,8 @@ If disabled, Longhorn will not delete the workload pod that is managed by a cont
     group: "Longhorn Default Settings"
     type: enum
     options:
+      - "block-for-eviction"
+      - "block-for-eviction-if-contains-last-replica"
       - "block-if-contains-last-replica"
       - "allow-if-replica-is-stopped"
       - "always-allow"
@@ -565,6 +567,12 @@ Set the value to **0** to disable backup restore."
     group: "Longhorn Default Settings"
     type: string
     default: "Info"
+  - variable: defaultSettings.disableSnapshotPurge
+    label: Disable Snapshot Purge
+    description: "Temporarily prevent all attempts to purge volume snapshots."
+    group: "Longhorn Default Settings"
+    type: boolean
+    default: "false"
 - variable: defaultSettings.kubernetesClusterAutoscalerEnabled
   label: Kubernetes Cluster Autoscaler Enabled (Experimental)
   description: "Enabling this setting will notify Longhorn that the cluster is using Kubernetes Cluster Autoscaler.
@@ -675,6 +683,12 @@ Set the value to **0** to disable backup restore."
   type: int
   min: 1
   default: 2
+- variable: defaultSettings.allowCollectingLonghornUsageMetrics
+  label: Allow Collecting Longhorn Usage Metrics
+  description: "Enabling this setting will allow Longhorn to provide additional usage metrics to https://metrics.longhorn.io/. This information will help us better understand how Longhorn is being used, which will ultimately contribute to future improvements."
+  group: "Longhorn Default Settings"
+  type: boolean
+  default: true
 - variable: defaultSettings.v2DataEngine
   label: V2 Data Engine
   description: "This allows users to activate v2 data engine based on SPDK. Currently, it is in the preview phase and should not be utilized in a production environment.
@@ -687,7 +701,7 @@ Set the value to **0** to disable backup restore."
   default: false
 - variable: defaultSettings.offlineReplicaRebuilding
   label: Offline Replica Rebuilding
-  description: ""This setting allows users to enable the offline replica rebuilding for volumes using v2 data engine."
+  description: "This setting allows users to enable the offline replica rebuilding for volumes using v2 data engine."
   group: "Longhorn V2 Data Engine (Preview Feature) Settings"
   required: true
   type: enum
