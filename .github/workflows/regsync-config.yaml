@@ -41,15 +41,14 @@ jobs:
       - name: Set-up Ruby 3.2
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.2'
-
-      - name: Configure git
-        run: |
-          git config --global user.email "${{ secrets.USER_GITHUB }}"
-          git config --global user.name "rancherbot"
+          ruby-version: '3.2' # Not needed with a .ruby-version file
 
       - name: Generate RegSync
         run: |
+          echo ${{ secrets.PUSH_TOKEN }} | gh auth login --with-token
+          gh pr checkout ${{ github.event.pull_request.number }}
+          git config --global user.email "${{ secrets.USER_GITHUB }}"
+          git config --global user.name "rancherbot"
           make pull-scripts
           make regsync
 
