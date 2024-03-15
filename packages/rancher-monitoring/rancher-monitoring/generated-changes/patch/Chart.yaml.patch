@@ -1,6 +1,6 @@
 --- charts-original/Chart.yaml
 +++ charts/Chart.yaml
-@@ -6,108 +6,123 @@
+@@ -6,111 +6,96 @@
      - name: Upstream Project
        url: https://github.com/prometheus-operator/kube-prometheus
    artifacthub.io/operator: "true"
@@ -18,10 +18,14 @@
 +  catalog.cattle.io/requests-memory: 4000Mi
 +  catalog.cattle.io/type: cluster-tool
 +  catalog.cattle.io/ui-component: monitoring
-+  catalog.cattle.io/upstream-version: 45.31.1
++  catalog.cattle.io/upstream-version: 57.0.3
  apiVersion: v2
- appVersion: v0.65.1
+ appVersion: v0.72.0
  dependencies:
+-- condition: crds.enabled
+-  name: crds
+-  repository: ""
+-  version: 0.0.0
  - condition: grafana.enabled
    name: grafana
    repository: file://./charts/grafana
@@ -76,7 +80,10 @@
    name: prometheus-node-exporter
    repository: file://./charts/prometheus-node-exporter
 -  version: 4.20.0
-+  version: '*'
+-- condition: windowsMonitoring.enabled
+-  name: prometheus-windows-exporter
+-  repository: https://prometheus-community.github.io/helm-charts
+-  version: 0.3.*
  - condition: rke2ControllerManager.enabled
    name: rke2ControllerManager
    repository: file://./charts/rke2ControllerManager
@@ -143,18 +150,3 @@
  keywords:
  - operator
  - prometheus
- - kube-prometheus
--kubeVersion: '>=1.16.0-0'
-+kubeVersion: '>=1.26.0-0'
- maintainers:
- - email: andrew@quadcorps.co.uk
-   name: andrewgkew
-@@ -123,7 +138,7 @@
-   name: Xtigyro
- - email: quentin.bisson@gmail.com
-   name: QuentinBisson
--name: kube-prometheus-stack
-+name: rancher-monitoring
- sources:
- - https://github.com/prometheus-community/helm-charts
- - https://github.com/prometheus-operator/kube-prometheus

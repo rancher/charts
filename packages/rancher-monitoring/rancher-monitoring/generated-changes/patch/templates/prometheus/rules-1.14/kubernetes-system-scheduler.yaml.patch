@@ -1,11 +1,16 @@
 --- charts-original/templates/prometheus/rules-1.14/kubernetes-system-scheduler.yaml
 +++ charts/templates/prometheus/rules-1.14/kubernetes-system-scheduler.yaml
-@@ -34,7 +34,7 @@
+@@ -37,11 +37,8 @@
          description: KubeScheduler has disappeared from Prometheus target discovery.
          runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubeschedulerdown
          summary: Target disappeared from Prometheus target discovery.
 -      expr: absent(up{job="kube-scheduler"} == 1)
+-      for: {{ dig "KubeSchedulerDown" "for" "15m" .Values.customRules }}
+-      {{- with .Values.defaultRules.keepFiringFor }}
+-      keep_firing_for: "{{ . }}"
+-      {{- end }}
 +      expr: absent(up{job="{{ include "exporter.kubeScheduler.jobName" . }}"} == 1)
-       for: 15m
++      for: 15m
        labels:
-         severity: critical
+         severity: {{ dig "KubeSchedulerDown" "severity" "critical" .Values.customRules }}
+       {{- if or .Values.defaultRules.additionalRuleLabels .Values.defaultRules.additionalRuleGroupLabels.kubeSchedulerAlerting }}

@@ -4,7 +4,7 @@
    groups:
    - name: kube-apiserver-histogram.rules
      rules:
--    - expr: histogram_quantile(0.99, sum by (cluster, le, resource) (rate(apiserver_request_slo_duration_seconds_bucket{job="apiserver",verb=~"LIST|GET",subresource!~"proxy|attach|log|exec|portforward"}[5m]))) > 0
+-    - expr: histogram_quantile(0.99, sum by ({{ range $.Values.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster, le, resource) (rate(apiserver_request_sli_duration_seconds_bucket{job="apiserver",verb=~"LIST|GET",subresource!~"proxy|attach|log|exec|portforward"}[5m]))) > 0
 +    - expr: histogram_quantile(0.99, sum by (cluster, le, resource) (rate(apiserver_request{{ if (semverCompare ">=1.23.0-0" $kubeTargetVersion) }}_slo{{ end }}_duration_seconds_bucket{job="apiserver",verb=~"LIST|GET",subresource!~"proxy|attach|log|exec|portforward"}[5m]))) > 0
        labels:
          quantile: '0.99'
