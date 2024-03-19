@@ -55,18 +55,6 @@ var suite = test.Suite{
 				Set("nodeSelector", testNodeSelector),
 		},
 		{
-			Name: "Set .Values.global.cattle.psp.enabled to true",
-
-			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				Set("global.cattle.psp.enabled", true),
-		},
-		{
-			Name: "Set .Values.global.cattle.psp.enabled to false",
-
-			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				Set("global.cattle.psp.enabled", false),
-		},
-		{
 			Name: "Set Values.global.cattle.clusterName",
 
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
@@ -322,14 +310,6 @@ var suite = test.Suite{
 
 				patchSaJobExistsCheck,
 			},
-		},
-		{
-
-			Name: "PSPs Are Created And Referenced As Per .Values.global.cattle.psp.enabled field",
-			Covers: []string{
-				".Values.global.cattle.psp.enabled",
-			},
-			Checks: common.EnsurePSPsExist(1),
 		},
 		{
 

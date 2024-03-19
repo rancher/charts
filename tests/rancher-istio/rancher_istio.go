@@ -37,20 +37,6 @@ var suite = test.Suite{
 					"global.cattle.systemDefaultRegistry", "testRegistry",
 				),
 		},
-
-		{
-			Name: "Set .Values.global.cattle.psp.enabled to true",
-
-			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				Set("global.cattle.psp.enabled", true),
-		},
-		{
-			Name: "Set .Values.global.cattle.psp.enabled to false",
-
-			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
-				Set("global.cattle.psp.enabled", false),
-		},
-
 		{
 			Name: "Set .Values.global.proxy",
 			TemplateOptions: chart.NewTemplateOptions(DefaultReleaseName, DefaultNamespace).
@@ -353,39 +339,6 @@ var suite = test.Suite{
 						"workload %s (type: %T) does not have correct tolerations, expected: %v got: %v",
 						obj.GetName(), obj, expectedTolerations, podTemplateSpec.Spec.Tolerations,
 					)
-				}),
-			},
-		},
-
-		{ //Set PSPs
-			Name: "Set PSPs",
-
-			Covers: []string{
-				".Values.global.cattle.psp.enabled",
-			},
-
-			Checks: test.Checks{
-				checker.PerResource(func(tc *checker.TestContext, cr *rbacv1.ClusterRole) {
-					pspsEnabled, _ := checker.RenderValue[bool](tc, ".Values.global.cattle.psp.enabled")
-					pspsFound := false
-					for _, rule := range cr.Rules {
-						for _, resource := range rule.Resources {
-							if resource == "podsecuritypolicies" {
-								pspsFound = true
-							}
-						}
-					}
-					if !pspsEnabled {
-						assert.False(tc.T, pspsFound, "ClusterRole %s has incorrect PSP configuration", cr.Name)
-					}
-				}),
-				checker.OnResources(func(tc *checker.TestContext, psps []*policyv1beta1.PodSecurityPolicy) {
-					pspsEnabled, _ := checker.RenderValue[bool](tc, ".Values.global.cattle.psp.enabled")
-					if pspsEnabled {
-						assert.Equal(tc.T, 5, len(psps), "Missing PSPs")
-					} else {
-						assert.Equal(tc.T, 0, len(psps), "Missing PSPs")
-					}
 				}),
 			},
 		},
