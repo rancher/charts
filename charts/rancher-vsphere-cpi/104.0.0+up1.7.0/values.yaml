@@ -1,0 +1,103 @@
+vCenter:
+  host: ""
+  port: 443
+  insecureFlag: true
+  datacenters: ""
+  username: ""
+  password: ""
+  credentialsSecret:
+    name: "vsphere-cpi-creds"
+    generate: true
+
+# vSphere Tags used to determine the zone and region of a Kubernetes node. This labels will be propagated to NodeLabels
+  labels:
+    region: "k8s-region"
+    zone: "k8s-zone"
+    generate: false
+
+# A list of Semver constraint strings (defined by https://github.com/Masterminds/semver) and values.yaml overrides.
+#
+# For each key in versionOverrides, this chart will check to see if the current Kubernetes cluster's version matches
+# any of the semver constraints provided as keys on the map.
+#
+# On seeing a match, the default value for each values.yaml field overridden will be updated with the new value.
+#
+# If multiple matches are encountered (due to overlapping semver ranges), the matches will be applied in order.
+#
+# Notes:
+# - On running a helm template, Helm uses the `.Capabilities.APIVersion` of whatever
+#   Kubernetes release that version of Helm was built against.
+# - On running a helm install --dry-run, the correct kubeVersion should be chosen.
+#
+# Supported versions can be found at:
+# https://github.com/kubernetes/cloud-provider-vsphere#compatibility-with-kubernetes
+versionOverrides:
+  - constraint: "~ 1.28"
+    values:
+      cloudControllerManager:
+        repository: rancher/mirrored-cloud-provider-vsphere-cpi-release-manager
+        tag: v1.28.0
+  - constraint: "~ 1.27"
+    values:
+      cloudControllerManager:
+        repository: rancher/mirrored-cloud-provider-vsphere-cpi-release-manager
+        tag: v1.27.0
+  - constraint: "~ 1.26"
+    values:
+      cloudControllerManager:
+        repository: rancher/mirrored-cloud-provider-vsphere-cpi-release-manager
+        tag: v1.26.2
+  - constraint: "~ 1.25"
+    values:
+      cloudControllerManager:
+        repository: rancher/mirrored-cloud-provider-vsphere-cpi-release-manager
+        tag: v1.25.3
+  - constraint: ">= 1.24 < 1.25"
+    values:
+      cloudControllerManager:
+        repository: rancher/mirrored-cloud-provider-vsphere-cpi-release-manager
+        tag: v1.24.6
+  - constraint: ">= 1.23 < 1.24"
+    values:
+      cloudControllerManager:
+        repository: rancher/mirrored-cloud-provider-vsphere-cpi-release-manager
+        tag: v1.23.4
+  - constraint: "~ 1.22"
+    values:
+      cloudControllerManager:
+        repository: rancher/mirrored-cloud-provider-vsphere-cpi-release-manager
+        tag: v1.22.8
+  - constraint: "~ 1.21"
+    values:
+      cloudControllerManager:
+        repository: rancher/mirrored-cloud-provider-vsphere-cpi-release-manager
+        tag: v1.21.3
+  - constraint: "~ 1.20"
+    values:
+      cloudControllerManager:
+        repository: rancher/mirrored-cloud-provider-vsphere-cpi-release-manager
+        tag: v1.20.1
+  - constraint: "~ 1.19"
+    values:
+      cloudControllerManager:
+        repository: rancher/mirrored-cloud-provider-vsphere-cpi-release-manager
+        tag: v1.19.0
+  - constraint: "~ 1.18"
+    values:
+      cloudControllerManager:
+        repository: rancher/mirrored-cloud-provider-vsphere-cpi-release-manager
+        tag: v1.18.0
+
+cloudControllerManager:
+  repository: rancher/mirrored-cloud-provider-vsphere-cpi-release-manager
+  tag: latest
+  nodeSelector: {}
+  tolerations: []
+  ## Optional additional labels to add to pods
+  podLabels: {}
+  rbac:
+    enabled: true
+
+global:
+  cattle:
+    systemDefaultRegistry: ""
