@@ -130,3 +130,5 @@ For more information on commands that can be run in this repository, please see 
 For more information on `Packages`, please see [`docs/packages.md`](docs/packages.md).
 
 For more information on CI, please see [`docs/validation.md`](docs/validation.md).
+
+For more information on the charts deprecation policy, please see [`docs/deprecation.md`](docs/deprecation.md).
