@@ -64,16 +64,13 @@ The `1.0.#` versioning scheme roughly corresponds to the following rules (with e
 - **Major Version**: represents the Rancher minor version these charts are being released to.
   - Anything less than `100`: Rancher 2.5
   - `100`: Rancher 2.6
-  - `101`: Rancher 2.7
-  - `102`: Rancher 2.7
+  - `101` and `102`: Rancher 2.7
   - `103`: Rancher 2.8
+  - `104`: Rancher 2.9
   - etc.
 - **Minor Version**: represents a release line of a given chart within a Rancher minor version.
 - **Patch Version**: represents a patch to a given release line of a chart within a Rancher minor version.
 
-As a rule of thumb, you will only ever touch this version to **increment the patch version once per Rancher patch release**.
-
-Once it has been incremented, it should not be incremented again until the next Rancher patch release, even if the chart points to an upstream that has been modified.
 
 For more information on how package versioning works, please see [`docs/developing.md`](docs/developing.md).
 
@@ -152,3 +149,38 @@ images:
     repository: rancher/fluent-bit
     tag: 1.7.4
 ```
+
+#### Pull Request rules
+
+Please create your Pull Request title following this rule:
+
+```
+[dev-v2.X] <chart> <version> <action>
+[release-v2.X] <chart> <version> <action>
+```
+
+A working example:
+```
+[dev-v2.8] rancher-istio 103.2.0+up1.19.6 update
+```
+
+- `<chart>`: The full name of the charts exactly how it is written under `/charts folder`
+- `<version>`: The full version of the chart, exactly how it is written under `release.yaml`
+- `<action>`: `update`; `remove`; `add`
+
+What you should keep in mind for releasing charts:
+
+##### Basics
+- Each Pull Request should only modify one chart with its dependencies.
+
+##### release.yaml
+- Each chart version in release.yaml DOES NOT modify an already released chart. If so, stop and modify the versions so that it releases a net-new chart.
+- Each chart version in release.yaml IS exactly 1 more patch or minor version than the last released chart version. If not, stop and modify the versions so that it releases a net-new chart.
+
+##### Chart.yaml and index.yaml
+- The `index.yaml` file has an entry for your new chart version.
+- The `index.yaml` entries for each chart matches the `Chart.yaml` for each chart.
+- Each chart has ALL required annotations
+  - kube-version annotation
+  - rancher-version annotation
+  - permits-os annotation (indicates Windows and/or Linux)
