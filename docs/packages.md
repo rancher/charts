@@ -22,12 +22,10 @@ additionalCharts:
 # These contain other charts that you would like to package alongside this chart
 - workingDir: # same as above
   upstreamOptions:
-    # Mutually exclusive with crdOptions
     url: # same as above
     subdirectory: # optional, same as above
     commit: # optional, same as above
   crdOptions:
-    # Mutually exclusive with upstreamOptions
     templateDirectory: # A directory within packages/<package>/template that will contain a template for your CRD chart
     crdDirectory: # Where to place your CRDs within a CRD chart (e.g. crds for default charts)
     addCRDValidationToMainChart: # Whether to add additional validation to your main chart to check that the CRD chart is installed.
@@ -45,7 +43,9 @@ Charts or AdditionalCharts can provide UpstreamOptions with the following possib
 
 #### Additional Charts CRD Options
 
-AdditionalCharts can provide CRDOptions instead of UpstreamOptions. These CRDOptions allow the scripts to automatically construct a CRD chart from your main Chart's contents based on the template provided.
+AdditionalCharts can provide CRDOptions instead of or in addition to
+UpstreamOptions. These CRDOptions allow the scripts to automatically construct a
+CRD chart from your main Chart's contents based on the template provided.
 
 A CRD Chart is a Helm Chart whose sole purpose is to install CRDs onto a cluster before the main Chart is installed.
 
