@@ -1,5 +1,18 @@
 ## Developer Workflow
 
+- [Introducing a new package](#introducing-a-new-package)
+- [Local Chart](#local-chart)
+- [Upstream Chart Types](#upstream-chart-types)
+- [Making Changes To Packages](#making-changes-to-packages)
+- [Rebasing An Existing Package](#rebasing-an-existing-package)
+- [Versioning Packages](#versioning-packages)
+- [Version](#version)
+- [PackageVersion](#packageversion)
+- [Updating Dependencies And Subcharts](#updating-dependencies-and-subcharts)
+- [Making Changes to Released Charts](#making-changes-to-released-charts)
+- [Troubleshooting](#troubleshooting)
+
+
 ### Introducing a new package
 
 Introducing a new package usually requires two things: creating a directory under `packages` and filling in a `package.yaml`.
@@ -25,7 +38,9 @@ url: local
 
 *Note: For local charts, you will also need to commit the Helm chart itself under `packages/${PACKAGE}/charts`.*
 
-#### Upstream Chart From a Git Repository
+#### Upstream Chart Types
+
+From a Git Repository
 
 ```yaml
 url: https://github.com/ORG/REPO.git
@@ -36,7 +51,7 @@ subdirectory: charts/mychart # optional
 # packageVersion: 1
 ```
 
-#### Upstream Chart From a Chart Archive
+From a Chart Archive
 
 ```yaml
 url: https://github.com/ORG/REPO/releases/download/VERSION/CHART.tgz
@@ -143,7 +158,7 @@ If the chart version you are currently modifying has never been released before,
 
 *Note: You should reset the packageVersion to 1 instead of 0 since the scripts will always introduce at least one change to the chart.*
 
-### Updating Dependencies / Subcharts
+### Updating Dependencies and Subcharts
 
 The scripts used to maintain this repository natively supports managing dependencies / subcharts for Helm charts.
 
@@ -199,7 +214,3 @@ Otherwise, you are ready to make a PR!
 ### Troubleshooting
 
 Open up an issue on [https://github.com/rancher/charts-build-scripts](https://github.com/rancher/charts-build-scripts).
-
-#### Maintainers
-- aiyengar2 (arvind.iyengar@suse.com)
-- jiaqiluo (jiaqi.luo@suse.com)
