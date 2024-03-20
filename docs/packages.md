@@ -1,5 +1,11 @@
 ## Packages
 
+- [What is a Package?](#what-is-a-package?)
+- [UpstreamOptions](#upstreamoptions)
+- [Additional Charts CRD Options](#additional-charts-crd-options)
+- [Directory Structure](#directory-structure)
+
+
 ### What is a Package?
 
 A Package represents a grouping of one or more Helm Charts. It is declared within `packages/<package>/package.yaml` with the following spec:
@@ -9,11 +15,8 @@ version: # The version of the generated chart. This value will override the upst
 packageVersion: 1 # The value range is from 1 to 99. Mutually exclusive with version
 workingDir: # The directory within your package that will contain your working copy of the chart (e.g. charts)
 url: # A URL pointing to an UpstreamConfiguration
-subdirectory: # Optional field for a specific subdirectory for all upstreams. 
-              # Example:- 
-              #           url: {github repo}
-              #           subdirectory: charts/helm # This means the helm chart is located in this directory in the GitHub repo and this directory must be pulled as an upstream chart.
-commit: # Optional field for a specific commit if your URL point to a GitHub Repository
+subdirectory: # Optional field for a specific subdirectory for all upstreams
+commit: # Optional field for a specific commit if your URL point to a Github Repository
 doNotRelease: # Optional field to specify that this chart should not produce any generated changes on running `make charts`.
 additionalCharts:
 # These contain other charts that you would like to package alongside this chart
@@ -40,7 +43,7 @@ Charts or AdditionalCharts can provide UpstreamOptions with the following possib
 - Package: provide a `url: packages/<package>` and the main Chart from that package can be pulled. You should ensure that a loop is not introduced.
 - Local: provide `url: local` and the package will assume the contents of `workingDir` are exactly the chart you want to use.
 
-#### [AdditionalCharts] CRDOptions
+#### Additional Charts CRD Options
 
 AdditionalCharts can provide CRDOptions instead of UpstreamOptions. These CRDOptions allow the scripts to automatically construct a CRD chart from your main Chart's contents based on the template provided.
 
@@ -76,4 +79,3 @@ packages/
     templates/
       # Contains any templates. Currently only used by CRDOptions
 ```
-
