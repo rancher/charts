@@ -1,5 +1,12 @@
 ## Makefile
 
+- [Basic Commands](#basic-commands)
+- [Package Commands](#package-commands)
+- [Assets, Chart, and Index Commands](#assets,-chart,-and-index-commands)
+- [CI Commands](#ci-commands)
+- [Docs and Scripts Commands](#docs-and-scripts-commands)
+- [Advanced Commands](#advanced-commands)
+
 ### Basic Commands
 
 `make pull-scripts`: Pulls in the version of the `charts-build-scripts` indicated in scripts.
@@ -36,7 +43,7 @@ Please see [`docs/validation.md`](validation.md) for more information on how CI 
 
 `make template`: Updates the current directory by applying the configuration.yaml on [upstream Go templates](https://github.com/rancher/charts-build-scripts/tree/master/templates/template) to pull in the most up-to-date docs, scripts, etc. from [rancher/charts-build-scripts](https://github.com/rancher/charts-build-scripts).
 
-### Advanced and Misc. Commands
+### Advanced Commands
 
 `make list`: Prints the list of all packages tracked in the current repository and recognized by the scripts. `export PORCELAIN=1` allows you to specify that the output of this command should be script-friendly.
 
