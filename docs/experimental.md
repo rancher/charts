@@ -1,4 +1,10 @@
-## Experimental: Caching
+## Experimental
+
+- [Caching](#caching)
+- [Using Manifest Upstreams Instead of Helm Charts](#using-manifest-upstreams-instead-of-helm-charts)
+- [Performing only local or upstream validation](#performing-only-local-or-upstream-validation)
+
+### Caching
 
 If you specify `export USE_CACHE=1` before running the scripts, a cache will be used that is located at `.charts-build-scripts/.cache`. This cache is only used on `make prepare`, `make patch`, and `make charts`; it is intentionally disabled on `make validate`.
 
@@ -8,7 +14,7 @@ However, currently caching is only implemented for `UpstreamOptions` that point 
 
 If you would like to clean up your cache, either delete the `.charts-build-scripts/.cache` directory or run `make clean-cache`.
 
-## Experimental: Using Manifest Upstreams (Instead of Helm Charts)
+### Using Manifest Upstreams Instead of Helm Charts
 
 If your package.yaml points to an upstream that does not declare a Chart.yaml, the default behavior of the scripts is as follows:
 1) Move all YAML files to `templates`
@@ -27,7 +33,7 @@ This will be applied on the upstream chart before applying `make patch`, which m
 
 Note: This feature is marked as experimental since it's unclear if there are any additional requirements necessary to support edge cases around pulling upstream manifests. Please open up an issue on [https://github.com/rancher/charts-build-scripts](https://github.com/rancher/charts-build-scripts) if you have any suggestions!
 
-## Experimental: Performing only local or upstream validation
+### Performing only local or upstream validation
 
 In order to make it easier to debug issues related to a failure in `make validate`, two command-line flags were introduced.
 
