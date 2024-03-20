@@ -1,5 +1,11 @@
 ## Packages
 
+- [What is a Package?](#what-is-a-package?)
+- [UpstreamOptions](#upstreamoptions)
+- [Additional Charts CRD Options](#additional-charts-crd-options)
+- [Directory Structure](#directory-structure)
+
+
 ### What is a Package?
 
 A Package represents a grouping of one or more Helm Charts. It is declared within `packages/<package>/package.yaml` with the following spec:
@@ -37,7 +43,7 @@ Charts or AdditionalCharts can provide UpstreamOptions with the following possib
 - Package: provide a `url: packages/<package>` and the main Chart from that package can be pulled. You should ensure that a loop is not introduced.
 - Local: provide `url: local` and the package will assume the contents of `workingDir` are exactly the chart you want to use.
 
-#### [AdditionalCharts] CRDOptions
+#### Additional Charts CRD Options
 
 AdditionalCharts can provide CRDOptions instead of UpstreamOptions. These CRDOptions allow the scripts to automatically construct a CRD chart from your main Chart's contents based on the template provided.
 
@@ -73,4 +79,3 @@ packages/
     templates/
       # Contains any templates. Currently only used by CRDOptions
 ```
-

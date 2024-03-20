@@ -1,4 +1,10 @@
-## Repository Validation / CI
+## Validation
+
+- [Repository CI Validation](#repository-ci-validation)
+- [What is the release yaml file](#what-is-the-release-yaml-file)
+- [Modifying Chart Versions That Exist In Upstream](#modifying-chart-versions-that-exist-in-upstream)
+
+### Repository CI Validation
 
 In order to provide a way for CI to ensure that the current state of a repository is valid and all necessary commits that produce generated changes have been run by developers, `make validate` runs a series of checks on a clean Git repository.
 
@@ -10,7 +16,7 @@ Specifically, the workflow used by `make validate` does the following:
    - For any assets that exist in local but not in upstream, check if it corresponds to an entry in the `release.yaml`; if not, fail.
 4. Run `make unzip`; if Git is no longer clean, fail.
 
-### What is the release.yaml?
+### What is the release yaml file
 
 The `release.yaml` is only specified if `validate.url` and `validate.branch` are provided in the repository's `configuration.yaml`. It is created automatically if you run `make validate`, which will produce a list of assets that have been modified based on your upstream repository.
 
