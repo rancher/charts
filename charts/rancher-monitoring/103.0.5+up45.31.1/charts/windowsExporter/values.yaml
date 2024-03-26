@@ -1,0 +1,52 @@
+# Default values for rancher-windows-exporter.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Configuration
+
+global:
+  cattle:
+    psp:
+      enabled: false
+    systemDefaultRegistry: ""
+    rkeWindowsPathPrefix: "c:\\"
+
+# Configure ServiceMonitor that monitors metrics
+serviceMonitor: 
+  enabled: true
+
+# Configure PrometheusRule that renames existing metrics
+prometheusRule:
+  enabled: true
+
+## Components scraping metrics from Windows nodes
+##
+clients:
+  enabled: true
+
+  port: 9796
+  image:
+    repository: rancher/windows_exporter-package
+    tag: v0.0.3
+    os: "windows"
+
+  # Specify the IP addresses of nodes that you want to collect metrics from
+  endpoints: []
+
+  # Get more details on https://github.com/prometheus-community/windows_exporter
+  args: []
+  env: {}
+  enabledCollectors: "net,os,service,system,cpu,cs,logical_disk,tcp,memory,container"
+
+  # Resource limits
+  resources: {}
+  
+  # Options to select nodes to target for scraping Windows metrics
+  nodeSelector: {} # Note: {<beta.>kubernetes.io/os: windows} is default and cannot be overridden
+  tolerations: []  # Note: if not specified, the default option is to use [{operator: Exists}]
+
+  # Image Pull Secrets for the service account used by the clients
+  imagePullSecrets: {}
+
+  proxy:
+    resources: {}
