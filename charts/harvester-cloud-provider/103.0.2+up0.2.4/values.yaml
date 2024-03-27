@@ -1,0 +1,106 @@
+# Default values for harvester-cloud-provider.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicasCount: 1
+
+image:
+  repository: rancher/harvester-cloud-provider
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: v0.2.1
+
+cloudConfigPath: "/etc/kubernetes/cloud-config"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector:
+  kubernetes.io/os: linux
+
+tolerations:
+- effect: NoSchedule
+  key: node.cloudprovider.kubernetes.io/uninitialized
+  operator: Equal
+  value: "true"
+- effect: NoSchedule
+  key: node-role.kubernetes.io/control-plane
+  operator: Equal
+- effect: NoExecute
+  key: node-role.kubernetes.io/etcd
+  operator: Equal
+- key: cattle.io/os
+  operator: Equal
+  value: "linux"
+  effect: NoSchedule
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - harvester-cloud-provider
+        topologyKey: kubernetes.io/hostname
+
+global:
+  cattle:
+    systemDefaultRegistry: ""
+    clusterName: ""
+
+kube-vip:
+  enabled: true
+  tolerations:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/control-plane
+    operator: Exists
+  - effect: NoExecute
+    key: node-role.kubernetes.io/etcd
+    operator: Exists
+  image:
+    repository: rancher/mirrored-kube-vip-kube-vip-iptables
+    tag: v0.6.0
+  env:
+    vip_interface: ""
+    vip_arp: "true"
+    lb_enable: "true"
+    lb_port: "6443"
+    vip_cidr: "32"
+    cp_enable: "false"
+    svc_enable: "true"
+    vip_leaderelection: "false"
+    enable_service_security: "true"
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        # For RKE1
+        - matchExpressions:
+          - key: node-role.kubernetes.io/controlplane
+            operator: Exists
+        # For RKE2
+        - matchExpressions:
+          - key: node-role.kubernetes.io/control-plane
+            operator: Exists
