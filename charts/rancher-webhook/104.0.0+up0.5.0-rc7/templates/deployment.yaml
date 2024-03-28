@@ -12,15 +12,8 @@ spec:
       labels:
         app: rancher-webhook
     spec:
-      {{- if or .Values.capi.enabled $auth.clientCA }}
-      volumes:
-      {{- end }}
-      {{- if .Values.capi.enabled }}
-      - name: tls
-        secret:
-          secretName: rancher-webhook-tls
-      {{- end }}
       {{- if $auth.clientCA }}
+      volumes:
       - name: client-ca
         secret:
           secretName: client-ca
@@ -40,14 +33,10 @@ spec:
       - env:
         - name: STAMP
           value: "{{.Values.stamp}}"
-        - name: ENABLE_CAPI
-          value: "{{.Values.capi.enabled}}"
         - name: ENABLE_MCM
           value: "{{.Values.mcm.enabled}}"
         - name: CATTLE_PORT
           value: {{.Values.port | default 9443 | quote}}
-        - name: CATTLE_CAPI_PORT
-          value: {{.Values.capi.port | default 8777 | quote}}
         - name: NAMESPACE
           valueFrom:
             fieldRef:
@@ -62,8 +51,6 @@ spec:
         ports:
         - name: https
           containerPort: {{ .Values.port | default 9443 }}
-        - name: capi-https
-          containerPort: {{ .Values.capi.port | default 8777}}
         startupProbe:
           httpGet:
             path: "/healthz"
@@ -77,15 +64,8 @@ spec:
             port: "https"
             scheme: "HTTPS"
           periodSeconds: 5
-        {{- if or .Values.capi.enabled $auth.clientCA }}
-        volumeMounts:
-        {{- end }}
-        {{- if .Values.capi.enabled }}
-        - name: tls
-          mountPath: /tmp/k8s-webhook-server/serving-certs
-          readOnly: true
-        {{- end }}
         {{- if $auth.clientCA }}
+        volumeMounts:
         - name: client-ca
           mountPath: /tmp/k8s-webhook-server/client-ca
           readOnly: true
