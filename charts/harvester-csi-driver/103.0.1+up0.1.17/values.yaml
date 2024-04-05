@@ -1,0 +1,54 @@
+# Default values for harvester-csi-driver.
+
+replicasCount: 3
+
+image:
+  harvester:
+    csiDriver:
+      repository: rancher/harvester-csi-driver
+      # Overrides the image tag whose default is the chart appVersion.
+      tag: "v0.1.5"
+  csi:
+    nodeDriverRegistrar:
+      repository: rancher/mirrored-longhornio-csi-node-driver-registrar
+      tag: v2.3.0
+    resizer:
+      repository: rancher/mirrored-longhornio-csi-resizer
+      tag: v1.2.0
+    provisioner:
+      repository: rancher/mirrored-longhornio-csi-provisioner
+      tag: v2.1.2
+    attacher:
+      repository: rancher/mirrored-longhornio-csi-attacher
+      tag: v3.2.1
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+kubeletRootDir: /var/lib/kubelet
+cloudConfig:
+  secretName: ""
+  hostPath: "/var/lib/rancher/rke2/etc/config-files/"
+
+nodeSelector:
+  kubernetes.io/os: linux
+
+tolerations:
+  - effect: NoSchedule
+    key: kubevirt.io/drain
+    operator: Exists
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/control-plane
+    operator: Equal
+  - effect: NoExecute
+    key: node-role.kubernetes.io/etcd
+    operator: Equal
+  - key: cattle.io/os
+    operator: Equal
+    value: "linux"
+    effect: NoSchedule
+
+global:
+  cattle:
+    systemDefaultRegistry: ""
