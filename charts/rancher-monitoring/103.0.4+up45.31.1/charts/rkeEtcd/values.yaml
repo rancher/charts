@@ -1,0 +1,146 @@
+# Default values for rancher-pushprox.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Default image containing both the proxy and the client was generated from the following Dockerfile
+# https://github.com/prometheus-community/PushProx/blob/eeadbe766641699129920ccfaaaa30a85c67fe81/Dockerfile#L1-L15
+
+# Configuration
+
+global:
+  cattle:
+    psp:
+      enabled: false
+    systemDefaultRegistry: ""
+  seLinux:
+    enabled: false
+
+# A list of Semver constraint strings (defined by https://github.com/Masterminds/semver) and values.yaml overrides.
+#
+# For each key in kubeVersionOverrides, this chart will check to see if the current Kubernetes cluster's version matches
+# any of the semver constraints provided as keys on the map.
+#
+# On seeing a match, the default value for each values.yaml field overridden will be updated with the new value.
+#
+# If multiple matches are encountered (due to overlapping semver ranges), the matches will be applied in order.
+#
+# Notes:
+# - On running a helm template, Helm generally assumes the kubeVersion is v1.20.0
+# - On running a helm install --dry-run, the correct kubeVersion should be chosen.
+kubeVersionOverrides: []
+# - constraint: "< 1.21"
+#   values:
+#     metricsPort: 10252
+#     clients:
+#       https:
+#         enabled: false
+#         insecureSkipVerify: false
+#         useServiceAccountCredentials: false
+
+namespaceOverride: ""
+
+# The component that is being monitored (i.e. etcd)
+component: "component"
+
+# The port containing the metrics that need to be scraped
+metricsPort: 2739
+
+# Configure ServiceMonitor that monitors metrics from the metricsPort endpoint
+serviceMonitor:
+  enabled: true
+  # A list of endpoints that will be added to the ServiceMonitor based on the Endpoint spec
+  # Source: https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/api.md#endpoint
+  # By default, proxyUrl and params._scheme will be overridden based on other values
+  endpoints:
+  - port: metrics
+
+# Configure Service that grabs scrape targets
+service:
+  # The selector that is used to populate the Service's Endpoints object.
+  # The chart will error out on rendering templating if .Values.clients.enabled is set alongside this field,
+  # since it is expected that this service should point to the PushProx Clients Daemonset / Deployment
+  selector: {}
+
+clients:
+  enabled: true
+  # The port which the PushProx client will post PushProx metrics to
+  port: 9369
+  # If unset, this will default to the URL for the proxy service: http://pushprox-{{component}}-proxy.{{namepsace}}.svc.cluster.local:{{proxy.port}}
+  # Should be modified if the clients are being deployed outside the cluster where the proxy rests, otherwise leave it null
+  proxyUrl: ""
+  # If set to true, the client will forward any requests from the host IP to 127.0.0.1
+  # It will only allow proxy requests to the metricsPort specified
+  useLocalhost: false
+  # Configuration for accessing metrics via HTTPS
+  https:
+    # Does the client require https to access the metrics?
+    enabled: false
+    # If set to true, the client will create a service account with adequate permissions and set a flag
+    # on the client to use the service account token provided by it to make authorized scrape requests
+    useServiceAccountCredentials: false
+    # If set to true, the client will disable SSL security checks
+    insecureSkipVerify: false
+    # Directory on host where necessary TLS cert and key to scrape metrics can be found
+    certDir: ""
+    # Filenames for files located in .Values.clients.https.certDir that correspond to TLS settings
+    certFile: ""
+    keyFile: ""
+    caCertFile: ""
+    # seLinuxOptions to be passed into the container that copies certs. Should define a container with permissions to read the files in the certDir provided on the host.
+    # Required and only used if `clients.https.enabled` is set and `clients.https.certDir` is provided.
+    seLinuxOptions: {}
+
+  metrics:
+    # Whether the client should publish PushProx client-specific metrics to .Values.clients.port
+    enabled: false
+
+  rbac:
+    # Additional permissions to provide to the ServiceAccount bound to the client
+    # This can be used to provide additional permissions for the client to scrape metrics from the k8s API
+    # Only enabled if clients.https.enabled and clients.https.useServiceAccountCredentials are true
+    additionalRules: []
+
+  # Resource limits
+  resources: {}
+
+  # Options to select all nodes to deploy client DaemonSet on
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+  image:
+    repository: rancher/pushprox-client
+    tag: v0.1.0-rancher2-client
+  command: ["pushprox-client"]
+
+  copyCertsImage:
+    repository: rancher/mirrored-library-busybox
+    tag: 1.31.1
+
+  # The default intention of rancher-pushprox clients is to scrape hostNetwork metrics across all nodes.
+  # This can be used to scrape internal Kubernetes components or DaemonSets of hostNetwork Pods in
+  # situations where a cloud provider firewall prevents Pod-To-Host communication but not Pod-To-Pod.
+  # However, if the underlying hostNetwork Pod that is being scraped is managed by a Deployment,
+  # this advanced option enables users to deploy the client as a Deployment instead of a DaemonSet.
+  # If a user deploys this feature and the underlying Deployment's number of replicas changes, the user will
+  # be responsible for upgrading this chart accordingly to the right number of replicas.
+  deployment:
+    enabled: false
+    replicas: 0
+
+proxy:
+  enabled: true
+  # The port through which PushProx clients will communicate to the proxy
+  port: 8080
+  
+  # Resource limits
+  resources: {}
+  
+  # Options to select a node to run a single proxy deployment on
+  nodeSelector: {}
+  tolerations: []
+
+  image:
+    repository: rancher/pushprox-proxy
+    tag: v0.1.0-rancher2-proxy
+  command: ["pushprox-proxy"]
