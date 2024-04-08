@@ -78,5 +78,14 @@ spec:
       Merge_Parser: "{{ .Values.fluentbit.filterKubernetes.Merge_Parser }}"
       {{- end }}
     {{- end }}
+  fluentd:
+    {{- if .Values.loggingServiceAccountAnnotations.root }}
+    serviceAccount:
+      metadata:
+        annotations:
+        {{- with .Values.loggingServiceAccountAnnotations.root }}
+        {{ toYaml . | indent 8 }}
+        {{- end }}
+    {{- end }}
 {{- end -}}
 {{- include "logging-operator.logging" (list . "logging-operator.logging.root") -}}
