@@ -1,0 +1,155 @@
+questions:
+  - variable: vCenter.configSecret.generate
+    label: Generate CSI vSphere Config Secret
+    description: Generates a Secret that contains a CSI vSphere config and credentials (If the option to generate it is enabled, credentials will be visible in the API to authorized users)
+    type: boolean
+    default: true
+    required: true
+    group: vCenter Configuration
+    show_subquestion_if: true
+    subquestions:
+      - variable: vCenter.host
+        label: vCenter Host
+        description: IP address or FQDN of the vCenter
+        type: string
+
+      - variable: vCenter.datacenters
+        description: Comma-separated list of paths to data centers. E.g "<dc1-path>, <dc2-path>, ..."
+        label: Data Centers
+        type: string
+
+      - variable: vCenter.username
+        label: Username
+        description: Username for vCenter
+        type: string
+
+      - variable: vCenter.password
+        label: Password
+        description: Password for vCenter
+        type: password
+
+  - variable: vCenter.configSecret.name
+    label: CSI vSphere Config Secret Name
+    description: Name of the Secret that contains a CSI vSphere config and credentials (Will not be visible in the API. More info in the README)
+    type: string
+    group: vCenter Configuration
+    show_if: "vCenter.configSecret.generate=false"
+
+  - variable: csiMigration.enabled
+    label: Enable CSI Migration
+    description: Enable migration of volumes provisioned by in-tree vSphere provider to CSI (Available for vSphere 7.0 U1+ only)
+    type: boolean
+    default: false
+    group: Driver Configuration
+
+  - variable: csiAuthCheck.enabled
+    label: Enable authorization checks on operations involving datastores
+    type: boolean
+    default: false
+    group: Driver Configuration
+
+  - variable: onlineVolumeExtend.enabled
+    label: Enable Online Volume Extend
+    description: Enable expansion of PVCs that are in use by a Pod or mounted in a Node (Available for vSphere 7.0 U2+ only)
+    type: boolean
+    default: false
+    group: Driver Configuration
+
+  - variable: triggerCsiFullsync.enabled
+    label: Enable CSI Full Sync
+    description: Keeps CNS up to date with Kubernetes volume metadata information (such as PVs, PVCs, pods, and so on)
+    type: boolean
+    default: false
+    group: Driver Configuration
+
+  - variable: asyncQueryVolume.enabled
+    label: Enable Async Query Volume
+    description: Improves retrieval of volume information
+    type: boolean
+    default: false
+    group: Driver Configuration
+
+  - variable: improvedCsiIdempotency.enabled
+    label: Enable Improved CSI Idempotency
+    description: Enhances driver to ensure volume operations are idempotent
+    type: boolean
+    default: false
+    group: Driver Configuration
+
+  - variable: improvedVolumeTopology.enabled
+    label: Enable Improved Volume Topology
+    description: Allows using the topology feature without the need to mount vSphere credentials in the CSI node daemonset
+    type: boolean
+    default: false
+    group: Driver Configuration
+
+  - variable: csiWindowsSupport.enabled
+    label: Enable CSI Windows Support
+    description: Enables Windows support.
+    type: boolean
+    default: false
+    group: Driver Configuration
+
+  - variable: topology.enabled
+    label: Enable CSI Topology Plugin
+    description: Enables the CSI Topology Plugin
+    type: boolean
+    default: false
+    group: Driver Configuration
+
+  - variable: csiController.csiResizer.enabled
+    label: Enable CSI Volume Resizer
+    description: This feature is available for vSphere 7.0 U1+ only
+    type: boolean
+    default: false
+    group: Storage
+
+  - variable: storageClass.enabled
+    default: true
+    label: Create Storage Class
+    description: Create a storageClass with the vSphere CSI provisioner
+    type: boolean
+    required: true
+    show_subquestion_if: true
+    group: Storage
+    subquestions:
+      - variable: storageClass.name
+        label: Storage Class Name
+        default: "vsphere-csi-sc"
+        type: string
+
+      - variable: storageClass.isDefault
+        label: Default Storage Class
+        description: Set the Storage Class as the default
+        default: true
+        type: boolean
+
+      - variable: storageClass.allowVolumeExpansion
+        label: Allow Volume Expansion
+        description: Allows resizing the volume by editing the corresponding PVC object (Available for vSphere 7.0+ only)
+        default: false
+        type: boolean
+
+      - variable: storageClass.storagePolicyName
+        label: Storage Policy Name
+        description: Name of the Storage Policy created in vCenter
+        type: string
+
+      - variable: storageClass.datastoreURL
+        label: Data Store URL
+        description: URL of the data store to use for new volumes (If unspecified, any data store that matches the request will be selected).
+        type: string
+
+  - variable: csiNode.prefixPath
+    label: Prefix Path for `/var/lib/kubelet`
+    description: For some operating systems including RancherOS, RKE prefixes `/var/lib/kubelet` with `/opt/rke`.  Add the prefix path of the location of /var/lib/kubelet
+    type: string
+    default: ""
+    group: Node Configuration
+
+  - variable: csiNode.prefixPathWindows
+    label: Prefix Path for `/var/lib/kubelet`
+    description: For some operating systems including RancherOS, RKE prefixes `/var/lib/kubelet` with `/opt/rke`. For Windows, this will likely be the default value, which is 'C:'
+    type: string
+    default: ""
+    group: Node Configuration
