@@ -68,6 +68,10 @@ provider: kubernetes
 {{- printf "pushprox-%s-client" (required ".Values.component is required" .Values.component) -}}
 {{- end -}}
 
+{{- define "pushProxy.client.serviceAccountTokenName" -}}
+{{- printf "pushprox-%s-client-service-account-token" (required ".Values.component is required" .Values.component) -}}
+{{- end -}}
+
 {{- define "pushProxy.client.labels" -}}
 k8s-app: {{ template "pushProxy.client.name" . }}
 {{ template "pushProxy.commonLabels" . }}
@@ -98,6 +102,11 @@ app: {{ template "pushprox.serviceMonitor.name" . }}
 {{- define "pushProxy.serviceMonitor.endpoints" -}}
 {{- $proxyURL := (include "pushProxy.proxyUrl" .) -}}
 {{- $useHTTPS := .Values.clients.https.enabled -}}
+{{- $setHTTPSScheme := .Values.clients.https.forceHTTPSScheme -}}
+{{- $insecureSkipVerify := .Values.clients.https.insecureSkipVerify -}}
+{{- $useServiceAccountCredentials := .Values.clients.https.useServiceAccountCredentials -}}
+{{- $serviceAccountTokenName := (include "pushProxy.client.serviceAccountTokenName" . ) -}}
+{{- $metricRelabelings := list }}
 {{- $endpoints := .Values.serviceMonitor.endpoints }}
 {{- range $endpoints }}
 {{- if $.Values.proxy.enabled }}
@@ -117,13 +126,39 @@ app: {{ template "pushprox.serviceMonitor.name" . }}
 {{- $_ := set $clusterNameRelabel "targetLabel" "cluster_name" }}
 {{- $_ := set $clusterNameRelabel "replacement" $.Values.global.cattle.clusterName }}
 {{- end }}
-{{- $metricRelabelings := append (list ($clusterNameRelabel)) ($clusterIdRelabel) }}
+{{- $metricRelabelings := gt (len (keys $clusterNameRelabel)) 0 | ternary (append ($metricRelabelings) ($clusterNameRelabel)) ($metricRelabelings) }}
+{{- $metricRelabelings := gt (len (keys $clusterIdRelabel)) 0 | ternary (append ($metricRelabelings) ($clusterIdRelabel)) ($metricRelabelings) }}
+{{- if not (empty $metricRelabelings) }}
 {{- $_ := set . "metricRelabelings" ($metricRelabelings)}}
+{{- end }}
+{{- if $forceHTTPSScheme -}}
+{{- $_ := set . "scheme" "https" }}
+{{- end -}}
 {{- if $useHTTPS -}}
 {{- if (hasKey . "params") }}
 {{- $_ := set (get . "params") "_scheme" (list "https") }}
 {{- else }}
 {{- $_ := set . "params" (dict "_scheme" (list "https")) }}
+{{- end }}
+{{- end }}
+{{- if (hasKey . "tlsConfig") }}
+{{- $_ := set (get . "tlsConfig") "insecureSkipVerify" $insecureSkipVerify }}
+{{- else }}
+{{- $_ := set . "tlsConfig" (dict "insecureSkipVerify" $insecureSkipVerify) }}
+{{- end }}
+{{- if $.Values.clients.https.authenticationMethod.bearerTokenFile.enabled }}
+{{- $_ := set . "bearerTokenFile" $.Values.clients.https.authenticationMethod.bearerTokenFile.bearerTokenFilePath }}
+{{- end }}
+{{- if $.Values.clients.https.authenticationMethod.bearerTokenSecret.enabled }}
+{{- $_ := set . "bearerTokenSecret" $serviceAccountTokenName }}
+{{- end }}
+{{- if $.Values.clients.https.authenticationMethod.authorization.enabled }}
+{{- if (hasKey . "authorization") }}
+{{- $_ := set (get . "authorization") "type" $.Values.clients.https.authenticationMethod.authorization.type }}
+{{- $_ := set (get . "authorization") "credentials" (dict "name" $serviceAccountTokenName "key" $.Values.clients.https.authenticationMethod.authorization.credentials.key "optional" $.Values.clients.https.authenticationMethod.authorization.credentials.optional) }}
+{{- else }}
+{{- $_ := set . "authorization" (dict "type" $.Values.clients.https.authenticationMethod.authorization.type) }}
+{{- $_ := set . "authorization" (dict "credentials" (dict "name" $serviceAccountTokenName "key" $.Values.clients.https.authenticationMethod.authorization.credentials.key "optional" $.Values.clients.https.authenticationMethod.authorization.credentials.optional)) }}
 {{- end }}
 {{- end }}
 {{- end }}
