@@ -2,7 +2,7 @@
 
 This chart enables security scanning of the cluster using [CIS (Center for Internet Security) benchmarks](https://www.cisecurity.org/benchmark/kubernetes/).
 
-For more information on how to use the feature, refer to our [docs](https://rancher.com/docs/rancher/v2.x/en/cis-scans/v2.5/).
+For more information on how to use the feature, refer to our [docs](https://ranchermanager.docs.rancher.com/how-to-guides/advanced-user-guides/cis-scan-guides).
 
 This chart installs the following components:
 
@@ -13,6 +13,28 @@ This chart installs the following components:
 - Alerting Resources - Rancher's CIS Benchmark application lets you run a cluster scan on a schedule, and send alerts when scans finish.
     - If you want to enable alerts to be delivered when a cluster scan completes, you need to ensure that [Rancher's Monitoring and Alerting](https://rancher.com/docs/rancher/v2.x/en/monitoring-alerting/v2.5/) application is pre-installed and the [Receivers and Routes](https://rancher.com/docs/rancher/v2.x/en/monitoring-alerting/v2.5/configuration/#alertmanager-config) are configured to send out alerts.
     - Additionally, you need to set `alerts: true` in the Values YAML while installing or upgrading this chart.
+
+## CIS Kubernetes Benchmark support
+
+| Source | Kubernetes distribution | scan profile                                                                                                       | Kubernetes versions |
+|--------|-------------------------|--------------------------------------------------------------------------------------------------------------------|---------------------|
+| CIS    | any                     | [cis-1.7](https://github.com/rancher/security-scan/tree/master/package/cfg/cis-1.7)                                | v1.25               |
+| CIS    | any                     | [cis-1.8](https://github.com/rancher/security-scan/tree/master/package/cfg/cis-1.8)                                | v1.26+              |
+| CIS    | rke                     | [rke-cis-1.7-permissive](https://github.com/rancher/security-scan/tree/master/package/cfg/rke-cis-1.7-permissive)  | rke1-v1.25          |
+| CIS    | rke                     | [rke-cis-1.7-hardened](https://github.com/rancher/security-scan/tree/master/package/cfg/rke-cis-1.7-hardened)      | rke1-v1.25          |
+| CIS    | rke                     | [rke-cis-1.8-permissive](https://github.com/rancher/security-scan/tree/master/package/cfg/rke-cis-1.8-permissive)  | rke1-v1.26+         |
+| CIS    | rke                     | [rke-cis-1.8-hardened](https://github.com/rancher/security-scan/tree/master/package/cfg/rke-cis-1.8-hardened)      | rke1-v1.26+         |
+| CIS    | rke2                    | [rke2-cis-1.7-permissive](https://github.com/rancher/security-scan/tree/master/package/cfg/rke2-cis-1.7-permissive)| rke2-v1.25          |
+| CIS    | rke2                    | [rke2-cis-1.7-hardened](https://github.com/rancher/security-scan/tree/master/package/cfg/rke2-cis-1.7-hardened)    | rke2-v1.25          |
+| CIS    | rke2                    | [rke2-cis-1.8-permissive](https://github.com/rancher/security-scan/tree/master/package/cfg/rke2-cis-1.8-permissive)| rke2-v1.26+         |
+| CIS    | rke2                    | [rke2-cis-1.8-hardened](https://github.com/rancher/security-scan/tree/master/package/cfg/rke2-cis-1.8-hardened)    | rke2-v1.26+         |
+| CIS    | k3s                     | [k3s-cis-1.7-permissive](https://github.com/rancher/security-scan/tree/master/package/cfg/k3s-cis-1.7-permissive)  | k3s-v1.25           |
+| CIS    | k3s                     | [k3s-cis-1.7-hardened](https://github.com/rancher/security-scan/tree/master/package/cfg/k3s-cis-1.7-hardened)      | k3s-v1.25           |
+| CIS    | k3s                     | [k3s-cis-1.8-permissive](https://github.com/rancher/security-scan/tree/master/package/cfg/k3s-cis-1.8-permissive)  | k3s-v1.26+          |
+| CIS    | k3s                     | [k3s-cis-1.8-hardened](https://github.com/rancher/security-scan/tree/master/package/cfg/k3s-cis-1.8-hardened)      | k3s-v1.26+          |
+| CIS    | eks                     | eks-1.2.0                                                                                                          | eks                 |
+| CIS    | aks                     | aks-1.0                                                                                                            | aks                 |
+| CIS    | gke                     | gke-1.2.0                                                                                                          | gke                 |
 
 ## Upgrading to Kubernetes v1.25+
 
