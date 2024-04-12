@@ -1,0 +1,127 @@
+{{- if .Values.controller.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: neuvector-svc-controller
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+  clusterIP: None
+  ports:
+    - port: 18300
+      protocol: "TCP"
+      name: "cluster-tcp-18300"
+    - port: 18301
+      protocol: "TCP"
+      name: "cluster-tcp-18301"
+    - port: 18301
+      protocol: "UDP"
+      name: "cluster-udp-18301"
+  selector:
+    app: neuvector-controller-pod
+{{- if .Values.controller.apisvc.type }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neuvector-svc-controller-api
+  namespace: {{ .Release.Namespace }}
+{{- with .Values.controller.apisvc.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+  type: {{ .Values.controller.apisvc.type }}
+  ports:
+    - port: 10443
+      protocol: "TCP"
+      name: "controller-api"
+  selector:
+    app: neuvector-controller-pod
+{{ end -}}
+{{- if .Values.controller.federation.mastersvc.type }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neuvector-svc-controller-fed-master
+  namespace: {{ .Release.Namespace }}
+{{- with .Values.controller.federation.mastersvc.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+  type: {{ .Values.controller.federation.mastersvc.type }}
+{{- if and .Values.controller.federation.mastersvc.loadBalancerIP (eq .Values.controller.federation.mastersvc.type "LoadBalancer") }}
+  loadBalancerIP: {{ .Values.controller.federation.mastersvc.loadBalancerIP }}
+{{- end }}
+{{- if .Values.controller.federation.mastersvc.clusterIP }}
+  clusterIP: {{ .Values.controller.federation.mastersvc.clusterIP }}
+{{- end }}
+{{- if .Values.controller.federation.mastersvc.externalTrafficPolicy }}
+  externalTrafficPolicy: {{ .Values.controller.federation.mastersvc.externalTrafficPolicy }}
+{{- end }}
+{{- if .Values.controller.federation.mastersvc.internalTrafficPolicy }}
+  internalTrafficPolicy: {{ .Values.controller.federation.mastersvc.internalTrafficPolicy }}
+{{- end }}
+  ports:
+  - port: 11443
+    name: fed
+    protocol: TCP
+{{- if .Values.controller.federation.mastersvc.nodePort }}
+    nodePort: {{ .Values.controller.federation.mastersvc.nodePort }}
+{{- end }}
+  selector:
+    app: neuvector-controller-pod
+{{ end -}}
+{{- if .Values.controller.federation.managedsvc.type }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neuvector-svc-controller-fed-managed
+  namespace: {{ .Release.Namespace }}
+{{- with .Values.controller.federation.managedsvc.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+  type: {{ .Values.controller.federation.managedsvc.type }}
+{{- if and .Values.controller.federation.managedsvc.loadBalancerIP (eq .Values.controller.federation.managedsvc.type "LoadBalancer") }}
+  loadBalancerIP: {{ .Values.controller.federation.managedsvc.loadBalancerIP }}
+{{- end }}
+{{- if .Values.controller.federation.managedsvc.clusterIP }}
+  clusterIP: {{ .Values.controller.federation.managedsvc.clusterIP }}
+{{- end }}
+{{- if .Values.controller.federation.managedsvc.externalTrafficPolicy }}
+  externalTrafficPolicy: {{ .Values.controller.federation.managedsvc.externalTrafficPolicy }}
+{{- end }}
+{{- if .Values.controller.federation.managedsvc.internalTrafficPolicy }}
+  internalTrafficPolicy: {{ .Values.controller.federation.managedsvc.internalTrafficPolicy }}
+{{- end }}
+  ports:
+  - port: 10443
+    name: fed
+    protocol: TCP
+{{- if .Values.controller.federation.managedsvc.nodePort }}
+    nodePort: {{ .Values.controller.federation.managedsvc.nodePort }}
+{{- end }}
+  selector:
+    app: neuvector-controller-pod
+{{ end -}}
+{{- end -}}
