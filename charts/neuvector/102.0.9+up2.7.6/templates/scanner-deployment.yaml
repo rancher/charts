@@ -1,0 +1,102 @@
+{{- if .Values.cve.scanner.enabled -}}
+{{- if (semverCompare ">=1.9-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: apps/v1
+{{- else }}
+apiVersion: extensions/v1beta1
+{{- end }}
+kind: Deployment
+metadata:
+  name: neuvector-scanner-pod
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    heritage: Helm
+    release: {{ .Release.Name }}
+spec:
+  strategy:
+{{ toYaml .Values.cve.scanner.strategy | indent 4 }}
+  replicas: {{ .Values.cve.scanner.replicas }}
+  selector:
+    matchLabels:
+      app: neuvector-scanner-pod
+  template:
+    metadata:
+      labels:
+        app: neuvector-scanner-pod
+        {{- with .Values.cve.scanner.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.cve.scanner.podAnnotations }}
+      annotations:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- if .Values.cve.scanner.affinity }}
+      affinity:
+{{ toYaml .Values.cve.scanner.affinity | indent 8 }}
+      {{- end }}
+      {{- if .Values.cve.scanner.tolerations }}
+      tolerations:
+{{ toYaml .Values.cve.scanner.tolerations | indent 8 }}
+      {{- end }}
+      {{- if .Values.cve.scanner.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.cve.scanner.nodeSelector | indent 8 }}
+      {{- end }}
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecrets }}
+      {{- end }}
+      {{- if .Values.cve.scanner.priorityClassName }}
+      priorityClassName: {{ .Values.cve.scanner.priorityClassName }}
+      {{- end }}
+      {{- if .Values.leastPrivilege }}
+      serviceAccountName: scanner
+      serviceAccount: scanner
+      {{- else }}
+      serviceAccountName: {{ .Values.serviceAccount }}
+      serviceAccount: {{ .Values.serviceAccount }}
+      {{- end }}
+      {{- if .Values.cve.scanner.runAsUser }}
+      securityContext:
+        runAsUser: {{ .Values.cve.scanner.runAsUser }}
+      {{- end }}
+      containers:
+        - name: neuvector-scanner-pod
+          image: {{ template "system_default_registry" . }}{{ .Values.cve.scanner.image.repository }}:{{ .Values.cve.scanner.image.tag }}
+          imagePullPolicy: Always
+          env:
+            - name: CLUSTER_JOIN_ADDR
+              value: neuvector-svc-controller.{{ .Release.Namespace }}
+          {{- if .Values.cve.scanner.dockerPath }}
+            - name: SCANNER_DOCKER_URL
+              value: {{ .Values.cve.scanner.dockerPath }}
+          {{- end }}
+          {{- with .Values.cve.scanner.env }}
+{{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+{{ toYaml .Values.cve.scanner.resources | indent 12 }}
+          {{- if or .Values.internal.certmanager.enabled .Values.cve.scanner.internal.certificate.secret }}
+          volumeMounts:
+            - mountPath: /etc/neuvector/certs/internal/cert.key
+              subPath: {{ .Values.cve.scanner.internal.certificate.keyFile }}
+              name: internal-cert
+              readOnly: true
+            - mountPath: /etc/neuvector/certs/internal/cert.pem
+              subPath: {{ .Values.cve.scanner.internal.certificate.pemFile }}
+              name: internal-cert
+              readOnly: true
+            - mountPath: /etc/neuvector/certs/internal/ca.cert
+              subPath: {{ .Values.cve.scanner.internal.certificate.caFile }}
+              name: internal-cert
+              readOnly: true
+          {{- end }}
+      restartPolicy: Always
+      {{- if or .Values.internal.certmanager.enabled .Values.cve.scanner.internal.certificate.secret }}
+      volumes:
+        - name: internal-cert
+          secret:
+            secretName: {{ .Values.cve.scanner.internal.certificate.secret }}
+      {{- end }}
+{{- end }}

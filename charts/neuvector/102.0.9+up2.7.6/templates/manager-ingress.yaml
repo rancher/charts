@@ -1,0 +1,71 @@
+{{- if and .Values.manager.enabled .Values.manager.ingress.enabled -}}
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: neuvector-webui-ingress
+  namespace: {{ .Release.Namespace }}
+{{- with .Values.manager.ingress.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+{{- if .Values.manager.ingress.ingressClassName }}
+  ingressClassName: {{ .Values.manager.ingress.ingressClassName | quote }}
+{{ end }}
+{{- if .Values.manager.ingress.tls }}
+  tls:
+  - hosts:
+    - {{ .Values.manager.ingress.host }}
+{{- if .Values.manager.ingress.secretName }}
+    secretName: {{ .Values.manager.ingress.secretName }}
+{{- end }}
+{{- end }}
+  rules:
+  - host: {{ .Values.manager.ingress.host }}
+    http:
+      paths:
+      - path: {{ .Values.manager.ingress.path }}
+        pathType: Prefix
+        backend:
+          service:
+            name: neuvector-service-webui
+            port:
+              number: 8443
+{{- else }}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: neuvector-webui-ingress
+  namespace: {{ .Release.Namespace }}
+{{- with .Values.manager.ingress.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+{{- if .Values.manager.ingress.tls }}
+  tls:
+  - hosts:
+    - {{ .Values.manager.ingress.host }}
+{{- if .Values.manager.ingress.secretName }}
+    secretName: {{ .Values.manager.ingress.secretName }}
+{{- end }}
+{{- end }}
+  rules:
+  - host: {{ .Values.manager.ingress.host }}
+    http:
+      paths:
+      - path: {{ .Values.manager.ingress.path }}
+        backend:
+          serviceName: neuvector-service-webui
+          servicePort: 8443
+{{- end }}
+{{- end -}}
