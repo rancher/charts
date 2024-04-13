@@ -1,0 +1,79 @@
+{{- if .Values.cve.updater.enabled -}}
+{{- if (semverCompare ">=1.21-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: batch/v1
+{{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: batch/v1beta1
+{{- else }}
+apiVersion: batch/v2alpha1
+{{- end }}
+kind: CronJob
+metadata:
+  name: neuvector-updater-pod
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+  schedule: {{ .Values.cve.updater.schedule | quote }}
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: neuvector-updater-pod
+            release: {{ .Release.Name }}
+            {{- with .Values.cve.updater.podLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.cve.updater.podAnnotations }}
+          annotations:
+          {{- toYaml . | nindent 12 }}
+          {{- end }}
+        spec:
+        {{- if .Values.imagePullSecrets }}
+          imagePullSecrets:
+            - name: {{ .Values.imagePullSecrets }}
+        {{- end }}
+        {{- if .Values.cve.updater.nodeSelector }}
+          nodeSelector:
+{{ toYaml .Values.cve.updater.nodeSelector | indent 12 }}
+        {{- end }}
+        {{- if .Values.cve.updater.priorityClassName }}
+          priorityClassName: {{ .Values.cve.updater.priorityClassName }}
+        {{- end }}
+        {{- if .Values.leastPrivilege }}
+          serviceAccountName: updater
+          serviceAccount: updater
+        {{- else }}
+          serviceAccountName: {{ .Values.serviceAccount }}
+          serviceAccount: {{ .Values.serviceAccount }}
+        {{- end }}
+          {{- if .Values.cve.updater.runAsUser }}
+          securityContext:
+            runAsUser: {{ .Values.cve.updater.runAsUser }}
+          {{- end }}
+          containers:
+            - name: neuvector-updater-pod
+              image: {{ template "system_default_registry" . }}{{ .Values.cve.updater.image.repository }}:{{ .Values.cve.updater.image.tag }}
+              imagePullPolicy: Always
+          {{- if .Values.cve.scanner.enabled }}
+              command:
+              - /bin/sh
+              - -c
+            {{- if (semverCompare ">=1.9-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+              {{- if .Values.cve.updater.secure }}
+              {{- if .Values.cve.updater.cacert }}
+              - /usr/bin/curl -v --cacert {{ .Values.cve.updater.cacert }} -X PATCH -H "Authorization:Bearer $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" -H "Content-Type:application/strategic-merge-patch+json" -d '{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"'`date +%Y-%m-%dT%H:%M:%S%z`'"}}}}}' 'https://kubernetes.default/apis/apps/v1/namespaces/{{ .Release.Namespace }}/deployments/neuvector-scanner-pod'
+              {{- else }}
+              - /usr/bin/curl -v -X PATCH -H "Authorization:Bearer $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" -H "Content-Type:application/strategic-merge-patch+json" -d '{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"'`date +%Y-%m-%dT%H:%M:%S%z`'"}}}}}' 'https://kubernetes.default/apis/apps/v1/namespaces/{{ .Release.Namespace }}/deployments/neuvector-scanner-pod'
+              {{- end }}
+              {{- else }}
+              - /usr/bin/curl -kv -X PATCH -H "Authorization:Bearer $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" -H "Content-Type:application/strategic-merge-patch+json" -d '{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"'`date +%Y-%m-%dT%H:%M:%S%z`'"}}}}}' 'https://kubernetes.default/apis/apps/v1/namespaces/{{ .Release.Namespace }}/deployments/neuvector-scanner-pod'
+              {{- end }}
+            {{- else }}
+              - /usr/bin/curl -kv -X PATCH -H "Authorization:Bearer $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" -H "Content-Type:application/strategic-merge-patch+json" -d '{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"'`date +%Y-%m-%dT%H:%M:%S%z`'"}}}}}' 'https://kubernetes.default/apis/extensions/v1beta1/namespaces/{{ .Release.Namespace }}/deployments/neuvector-scanner-pod'
+            {{- end }}
+          {{- end }}
+          restartPolicy: Never
+{{- end }}
