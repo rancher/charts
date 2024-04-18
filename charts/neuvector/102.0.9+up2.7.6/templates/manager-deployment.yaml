@@ -1,0 +1,122 @@
+{{- if .Values.manager.enabled -}}
+{{- if (semverCompare ">=1.9-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: apps/v1
+{{- else }}
+apiVersion: extensions/v1beta1
+{{- end }}
+kind: Deployment
+metadata:
+  name: neuvector-manager-pod
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neuvector-manager-pod
+  template:
+    metadata:
+      labels:
+        app: neuvector-manager-pod
+        release: {{ .Release.Name }}
+        {{- with .Values.manager.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- if or .Values.manager.podAnnotations (eq "true" (toString .Values.autoGenerateCert)) }}
+      annotations:
+        {{- if eq "true" (toString .Values.autoGenerateCert) }}
+        checksum/manager-secret: {{ include (print $.Template.BasePath "/manager-secret.yaml") . | sha256sum }}
+        {{- end }}
+        {{- if .Values.manager.podAnnotations }}
+        {{- toYaml .Values.manager.podAnnotations | nindent 8 }}
+        {{- end }}
+      {{- end }}
+    spec:
+      {{- if .Values.manager.affinity }}
+      affinity:
+{{ toYaml .Values.manager.affinity | indent 8 }}
+      {{- end }}
+      {{- if .Values.manager.tolerations }}
+      tolerations:
+{{ toYaml .Values.manager.tolerations | indent 8 }}
+      {{- end }}
+      {{- if .Values.manager.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.manager.nodeSelector | indent 8 }}
+      {{- end }}
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecrets }}
+      {{- end }}
+      {{- if .Values.manager.priorityClassName }}
+      priorityClassName: {{ .Values.manager.priorityClassName }}
+      {{- end }}
+      {{- if .Values.leastPrivilege }}
+      serviceAccountName: basic
+      serviceAccount: basic
+      {{- else }}
+      serviceAccountName: {{ .Values.serviceAccount }}
+      serviceAccount: {{ .Values.serviceAccount }}
+      {{- end }}
+      {{- if .Values.manager.runAsUser }}
+      securityContext:
+        runAsUser: {{ .Values.manager.runAsUser }}
+      {{- end }}
+      containers:
+        - name: neuvector-manager-pod
+          image: {{ template "system_default_registry" . }}{{ .Values.manager.image.repository }}:{{ .Values.manager.image.tag }}
+          ports:
+            - name: http
+              containerPort: 8443
+              protocol: TCP
+          env:
+            - name: CTRL_SERVER_IP
+              value: neuvector-svc-controller.{{ .Release.Namespace }}
+            {{- if not .Values.manager.env.ssl }}
+            - name: MANAGER_SSL
+              value: "off"
+            {{- end }}
+            {{- with .Values.manager.env.envs }}
+{{- toYaml . | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+          {{- if .Values.manager.certificate.secret }}
+            - mountPath: /etc/neuvector/certs/ssl-cert.key
+              subPath: {{ .Values.manager.certificate.keyFile }}
+              name: cert
+              readOnly: true
+            - mountPath: /etc/neuvector/certs/ssl-cert.pem
+              subPath: {{ .Values.manager.certificate.pemFile }}
+              name: cert
+              readOnly: true
+          {{- else if eq "true" (toString .Values.autoGenerateCert) }}
+            - mountPath: /etc/neuvector/certs/ssl-cert.key
+              subPath: ssl-cert.key
+              name: cert
+              readOnly: true
+            - mountPath: /etc/neuvector/certs/ssl-cert.pem
+              subPath: ssl-cert.pem
+              name: cert
+              readOnly: true
+          {{- end }}
+          resources:
+          {{- if .Values.manager.resources }}
+{{ toYaml .Values.manager.resources | indent 12 }}
+          {{- else }}
+{{ toYaml .Values.resources | indent 12 }}
+          {{- end }}
+      restartPolicy: Always
+      volumes:
+      {{- if .Values.manager.certificate.secret }}
+        - name: cert
+          secret:
+            secretName: {{ .Values.manager.certificate.secret }}
+      {{- else if eq "true" (toString .Values.autoGenerateCert) }}
+        - name: cert
+          secret:
+            secretName: neuvector-manager-secret
+      {{- end }}
+{{- end }}
