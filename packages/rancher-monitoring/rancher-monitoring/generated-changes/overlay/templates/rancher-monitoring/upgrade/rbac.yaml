@@ -90,6 +90,12 @@ metadata:
     "helm.sh/hook": pre-upgrade, pre-rollback
     "helm.sh/hook-delete-policy": before-hook-creation, hook-succeeded, hook-failed
     "helm.sh/hook-weight": "1"
+{{- if .Values.global.pullSecrets }}
+imagePullSecrets:
+  {{- range .Values.global.pullSecrets }}
+  - name: {{ . }}
+  {{- end }}
+{{- end }}
 ---
 {{- if .Values.global.cattle.psp.enabled }}
 apiVersion: policy/v1beta1

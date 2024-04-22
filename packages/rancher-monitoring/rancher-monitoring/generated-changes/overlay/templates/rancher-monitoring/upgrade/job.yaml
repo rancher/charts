@@ -28,6 +28,12 @@ spec:
         - name: run-scripts
           image: {{ template "system_default_registry" . }}{{ .Values.upgrade.image.repository }}:{{ .Values.upgrade.image.tag }}
           imagePullPolicy: {{ $.Values.global.kubectl.pullPolicy }}
+          {{- if .Values.global.pullSecrets }}
+          imagePullSecrets:
+            {{- range .Values.image.pullSecrets }}
+            - name: {{ . }}
+            {{- end }}
+          {{- end }}
           command:
           - /bin/sh
           - -c
