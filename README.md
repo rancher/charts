@@ -31,6 +31,11 @@ All issues must be created in the [`rancher/rancher`](https://github.com/rancher
 
 ### Making Changes
 
+General rules:
+- **Fork and Clone**: Start by forking the repository and then cloning it locally to make changes in your own copy of the project.
+- **Branch Naming**: Create a branch for your changes that is descriptive of the feature or fix you're working on. Do not create branches on this repository. There is an automation in place that will remove unauthorized branches.
+- **Commit Messages**: Write meaningful commit messages that describe the changes made in each commit. Check [`docs/validation.md`](docs/validation.md) for more information on commit messages.
+
 Since this repository uses [`rancher/charts-build-scripts`](https://github.com/rancher/charts-build-scripts), making changes to this repository involves three steps:
 1. Adding or modifying an existing `Package` tracked in the `packages/` directory. Usually involves `make prepare`, `make patch`, and `make clean`.
 2. Running `make charts` to automatically generate assets used to serve a Helm repository (`charts/`, `assets/`, and `index.yaml`) based on the contents of `packages/`.
