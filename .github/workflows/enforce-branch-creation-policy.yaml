@@ -1,0 +1,36 @@
+name: Enforce Branch Creation Policy
+
+on:
+  create:
+
+jobs:
+  enforce-branch-policy:
+    runs-on: ubuntu-latest
+    if: github.event.ref_type == 'branch'
+    steps:
+      - name: Authenticate GitHub CLI
+        run: |
+          echo "${{ secrets.TOKEN }}" | gh auth login --with-token
+
+      - name: Check if branch creator is in the allowed team
+        id: check_user
+        run: |
+          MEMBER_LOGIN_IDS=$(gh api /orgs/${{ vars.ORG_NAME }}/teams/${{ vars.TEAM_SLUG }}/members --jq '.[].login' | tr '\n' ' ')
+          echo "Team members: $MEMBER_LOGIN_IDS"
+          if [[ $MEMBER_LOGIN_IDS =~ (^|[[:space:]])"${{ github.actor }}"($|[[:space:]]) ]]; then
+            echo "User is allowed to create branches."
+            echo "is_allowed=true" >> $GITHUB_OUTPUT
+          else
+            echo "User is not allowed to create branches."
+            echo "is_allowed=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.TOKEN }}
+
+      - name: Delete unauthorized branch
+        if: steps.check_user.outputs.is_allowed == 'false'
+        run: |
+          echo "Deleting unauthorized branch (${{ github.ref_name }}) created by ${{ github.actor }}"
+          gh api -X DELETE repos/${{ github.repository }}/git/refs/heads/${{ github.ref_name }}
+        env:
+          GH_TOKEN: ${{ secrets.TOKEN }}
