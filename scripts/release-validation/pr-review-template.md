@@ -1,4 +1,4 @@
-## Charts Checklist (built for v0.3.x charts-build-scripts)
+## Charts Checklist (built for v0.5.5 charts-build-scripts)
 
 ### Checkpoint 0: Validate `release.yaml`
 
