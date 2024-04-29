@@ -1,19 +1,9 @@
 --- charts-original/templates/operator.yaml
 +++ charts/templates/operator.yaml
-@@ -1,7 +1,22 @@
+@@ -1,7 +1,12 @@
 +{{- if not (.Capabilities.APIVersions.Has "k8s.cni.cncf.io/v1/NetworkAttachmentDefinition") -}}
 +{{- required "rke2-multus is required but not found" "" -}}
 +{{- end -}}
-+apiVersion: sriovnetwork.openshift.io/v1
-+kind: SriovOperatorConfig
-+metadata:
-+  name: default
-+  namespace: {{ .Release.Namespace }}
-+spec:
-+  # Add fields here
-+  enableInjector: {{ .Values.operator.enableAdmissionController }}
-+  enableOperatorWebhook: {{ .Values.operator.enableAdmissionController }}
-+  configDaemonNodeSelector: {feature.node.kubernetes.io/network-sriov.capable: "true"}
 +---
  apiVersion: apps/v1
  kind: Deployment
@@ -23,40 +13,16 @@
    labels:
    {{- include "sriov-network-operator.labels" . | nindent 4 }}
  spec:
-@@ -18,23 +33,19 @@
-       labels:
-         name: sriov-network-operator
-     spec:
--      {{- with .Values.operator.nodeSelector }}
--      nodeSelector:
--      {{- toYaml . | nindent 8 }}
--      {{- end }}
--      {{- with .Values.operator.affinity }}
--      affinity:
--        {{- toYaml . | nindent 8}}
--      {{- end }}
--      {{- with .Values.operator.tolerations }}
--      tolerations:
--      {{- toYaml . | nindent 8 }}
--      {{- end }}
-+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
-+{{- if .Values.operator.nodeSelector }}
-+{{ toYaml .Values.operator.nodeSelector | indent 8 }}
-+{{- end }}
-+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
-+{{- if .Values.operator.tolerations }}
-+{{ toYaml .Values.operator.tolerations | indent 8 }}
-+{{- end }}
-       serviceAccountName: {{ include "sriov-network-operator.fullname" . }}
-       priorityClassName: "system-node-critical"
+@@ -40,7 +45,7 @@
+       {{- end }}
        containers:
          - name: {{ include "sriov-network-operator.fullname" . }}
 -          image: {{ .Values.images.operator }}
 +          image: {{ include "system_default_registry" . }}{{ .Values.images.operator.repository }}:{{ .Values.images.operator.tag }}
            command:
              - sriov-network-operator
-           imagePullPolicy: IfNotPresent
-@@ -48,19 +59,19 @@
+           resources:
+@@ -53,19 +58,19 @@
                  fieldRef:
                    fieldPath: metadata.namespace
              - name: SRIOV_CNI_IMAGE
@@ -81,14 +47,4 @@
 +              value: {{ include "system_default_registry" . }}{{ .Values.images.webhook.repository }}:{{ .Values.images.webhook.tag }}
              - name: RESOURCE_PREFIX
                value: {{ .Values.operator.resourcePrefix }}
-             - name: ENABLE_ADMISSION_CONTROLLER
-@@ -79,3 +90,9 @@
-               value: {{ .Values.operator.cniBinPath }}
-             - name: CLUSTER_TYPE
-               value: {{ .Values.operator.clusterType }}
-+            {{- if .Values.operator.enableAdmissionController }}
-+            {{- if not .Values.cert_manager }}
-+            - name: WEBHOOK_CA_BUNDLE
-+              value: "{{ include "sriov_operator_ca_cert" . }}"
-+            {{- end }}
-+            {{- end }}
+             - name: IMAGE_PULL_SECRETS
