@@ -1,4 +1,4 @@
-## Charts Checklist (built for v0.3.x charts-build-scripts)
+## Charts Checklist (built for v0.5.2 charts-build-scripts)
 
 ### Checkpoint 0: Validate `release.yaml`
 
@@ -22,10 +22,3 @@ Validation steps:
   - kube-version annotation
   - rancher-version annotation
   - permits-os annotation (indicates Windows and/or Linux)
-
-### Checkpoint 3: Logical Checks
-
-Validation steps (requires manual inspection of differences between previous and latest chart version):
-- [ ] Ensure no RC images are included.
-- [ ] Ensure all mirrored images include the right prefix.
-- [ ] Ensure any new images have `repository` and `tag` on the same level to ensure the rancher-images.txt is generated correctly for it for airgap scenarios.
