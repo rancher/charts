@@ -1,0 +1,116 @@
+{{- if not (.Capabilities.APIVersions.Has "k8s.cni.cncf.io/v1/NetworkAttachmentDefinition") -}}
+{{- required "rke2-multus is required but not found" "" -}}
+{{- end -}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "sriov-network-operator.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+  {{- include "sriov-network-operator.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: sriov-network-operator
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 33%
+  template:
+    metadata:
+      labels:
+        name: sriov-network-operator
+    spec:
+      {{- with .Values.operator.nodeSelector }}
+      nodeSelector:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.operator.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8}}
+      {{- end }}
+      {{- with .Values.operator.tolerations }}
+      tolerations:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "sriov-network-operator.fullname" . }}
+      priorityClassName: "system-node-critical"
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.imagePullSecrets }}
+      - name: {{ . }}
+      {{- end }}
+      {{- end }}
+      containers:
+        - name: {{ include "sriov-network-operator.fullname" . }}
+          image: {{ include "system_default_registry" . }}{{ .Values.images.operator.repository }}:{{ .Values.images.operator.tag }}
+          command:
+            - sriov-network-operator
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: SRIOV_CNI_IMAGE
+              value: {{ include "system_default_registry" . }}{{ .Values.images.sriovCni.repository }}:{{ .Values.images.sriovCni.tag }}
+            - name: SRIOV_INFINIBAND_CNI_IMAGE
+              value: {{ include "system_default_registry" . }}{{ .Values.images.ibSriovCni.repository }}:{{ .Values.images.ibSriovCni.tag }}
+            - name: SRIOV_DEVICE_PLUGIN_IMAGE
+              value: {{ include "system_default_registry" . }}{{ .Values.images.sriovDevicePlugin.repository }}:{{ .Values.images.sriovDevicePlugin.tag }}
+            - name: NETWORK_RESOURCES_INJECTOR_IMAGE
+              value: {{ include "system_default_registry" . }}{{ .Values.images.resourcesInjector.repository }}:{{ .Values.images.resourcesInjector.tag }}
+            - name: OPERATOR_NAME
+              value: sriov-network-operator
+            - name: SRIOV_NETWORK_CONFIG_DAEMON_IMAGE
+              value: {{ include "system_default_registry" . }}{{ .Values.images.sriovConfigDaemon.repository }}:{{ .Values.images.sriovConfigDaemon.tag }}
+            - name: SRIOV_NETWORK_WEBHOOK_IMAGE
+              value: {{ include "system_default_registry" . }}{{ .Values.images.webhook.repository }}:{{ .Values.images.webhook.tag }}
+            - name: RESOURCE_PREFIX
+              value: {{ .Values.operator.resourcePrefix }}
+            - name: IMAGE_PULL_SECRETS
+              value: {{ join "," .Values.imagePullSecrets }}
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: RELEASE_VERSION
+              value: {{ .Release.AppVersion }}
+            - name: SRIOV_CNI_BIN_PATH
+              value: {{ .Values.operator.cniBinPath }}
+            - name: CLUSTER_TYPE
+              value: {{ .Values.operator.clusterType }}
+        {{- if .Values.operator.admissionControllers.enabled }}
+            - name: ADMISSION_CONTROLLERS_CERTIFICATES_OPERATOR_SECRET_NAME
+              value: {{ .Values.operator.admissionControllers.certificates.secretNames.operator }}
+            - name: ADMISSION_CONTROLLERS_CERTIFICATES_INJECTOR_SECRET_NAME
+              value: {{ .Values.operator.admissionControllers.certificates.secretNames.injector }}
+        {{- if .Values.operator.admissionControllers.certificates.certManager.enabled }}
+            - name: ADMISSION_CONTROLLERS_CERTIFICATES_CERT_MANAGER_ENABLED
+              value: {{ .Values.operator.admissionControllers.certificates.certManager.enabled | quote }}
+        {{- else }}
+            - name: ADMISSION_CONTROLLERS_CERTIFICATES_OPERATOR_CA_CRT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.operator.admissionControllers.certificates.secretNames.operator }}
+                  key: ca.crt
+            - name: ADMISSION_CONTROLLERS_CERTIFICATES_INJECTOR_CA_CRT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.operator.admissionControllers.certificates.secretNames.injector }}
+                  key: ca.crt
+        {{- end }}
+        {{- end }}

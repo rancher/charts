@@ -1,11 +1,6 @@
 --- charts-original/values.yaml
 +++ charts/values.yaml
-@@ -1,11 +1,11 @@
- operator:
-   tolerations:
--    - key: "node-role.kubernetes.io/master"
--      operator: "Exists"
--      effect: "NoSchedule"
+@@ -6,6 +6,9 @@
      - key: "node-role.kubernetes.io/control-plane"
        operator: "Exists"
        effect: "NoSchedule"
@@ -15,15 +10,28 @@
    nodeSelector: {}
    affinity:
      nodeAffinity:
-@@ -21,17 +21,44 @@
+@@ -24,7 +27,7 @@
                  values: [ "" ]
    nameOverride: ""
    fullnameOverride: ""
 -  resourcePrefix: "openshift.io"
 +  resourcePrefix: "rancher.io"
-   enableAdmissionController: false
    cniBinPath: "/opt/cni/bin"
    clusterType: "kubernetes"
+   admissionControllers:
+@@ -78,9 +81,9 @@
+ 
+ sriovOperatorConfig:
+   # deploy sriovOperatorConfig CR with the below values
+-  deploy: false
++  deploy: true
+   # node slectors for sriov-network-config-daemon
+-  configDaemonNodeSelector: {}
++  configDaemonNodeSelector: {feature.node.kubernetes.io/network-sriov.capable: 'true'}
+   # log level for both operator and sriov-network-config-daemon
+   logLevel: 2
+   # disable node draining when configuring SR-IOV, set to true in case of a single node
+@@ -91,12 +94,36 @@
  
  # Image URIs for sriov-network-operator components
  images:
@@ -36,31 +44,30 @@
 -  webhook: ghcr.io/k8snetworkplumbingwg/sriov-network-operator-webhook
 +  operator:
 +    repository: rancher/hardened-sriov-network-operator
-+    tag: v1.2.0-build20230912
++    tag: v1.2.0-build20240327
 +  sriovConfigDaemon:
 +    repository: rancher/hardened-sriov-network-config-daemon
-+    tag: v1.2.0-build20230912
++    tag: v1.2.0-build20240327
 +  sriovCni:
 +    repository: rancher/hardened-sriov-cni
-+    tag: v2.6.3-build20230913
++    tag: v2.7.0-build20240327
 +  ibSriovCni: 
 +    repository: rancher/hardened-ib-sriov-cni
-+    tag: v1.0.2-build20230911
++    tag: v1.0.3-build20240327
 +  sriovDevicePlugin: 
 +    repository: rancher/hardened-sriov-network-device-plugin
-+    tag: v3.5.1-build20230911
++    tag: v3.6.2-build20240327
 +  resourcesInjector: 
 +    repository: rancher/hardened-sriov-network-resources-injector
-+    tag: v1.5-build20230911
++    tag: v1.5-build20240327
 +  webhook:
 +    repository: rancher/hardened-sriov-network-webhook
-+    tag: v1.2.0-build20230912
++    tag: v1.2.0-build20240327
+ 
+ imagePullSecrets: []
 +
-+# cert_manager enables integration with cert-manager to generate
-+# certificates for the operator webhooks. Otherwise the chart will
-+# generate ad-hoc certificates with no automated renewal at expiration,
-+# not recommended for production clusters.
-+cert_manager: false
++# Example for supportedExtraNICs values ['MyNIC: "8086 1521 1520"']
++supportedExtraNICs: []
 +
 +global:
 +  cattle:
