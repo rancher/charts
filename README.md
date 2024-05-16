@@ -20,6 +20,61 @@ This repository contains Helm charts served by Rancher Apps & Marketplace.
 
 ---
 
+### New Out Of Band Release Process
+Starting on `17/May/2024`.
+
+This is only valid for `prod-v2.*` branches.
+Since this implementation, all teams may release each chart when they want.
+
+##### Overview of the process:
+1. Assuming you have a chart ready and merged on `dev-v2.*` branch.
+2. On your local machine: `fetch`, `pull` and `checkout` to `prod-v2.*`
+3. Create a new branch from `prod-v2.*`
+4. Execute `make forward-port`
+5. Clear your `release.yaml` file, leave only your chart that will be released
+6. Add, Commit and push your changes to your forked repository
+
+**Attention**: If you have a CRD that must be released with the chart, you should repeat `Step 4.` until `Step 6.` for the CRD chart.
+
+7. Create a Pull Request from your forked repository to `rancher/charts` pointing to `prod-v2.*`
+
+
+##### How to use `forward-port`:
+
+**Usage:**
+
+```(bash)
+make forward-port CHART=<your_chart> VERSION=<version> BRANCH=<branch_to_pull_from> UPSTREAM=<git_remote>
+```
+
+Script Arguments Reference:
+- CHART=`Chart name, exactly the same as in /charts and /assets folder`
+- VERSION=`The version you want to release, the same one you would write into release.yaml`
+- BRANCH=`The branch where the ready chart is merged in the remote repository`
+- UPSTREAM=`The git remote name where the chart is present`
+
+
+**Real-Example:**
+
+```(bash)
+make forward-port CHART=rancher-istio VERSION=103.3.0+up1.21.1 BRANCH=dev-v2.8 UPSTREAM=upstream
+```
+
+In this case, we are at branch `prod-v2.8`, we have a new version of Istio at `dev-v2.8`.
+
+The script will get all necessary changes for `assets`, `charts`, `release.yaml` and `index.yaml` and handle them all automatically.
+
+The changes will be pulled from the remote repository, the `UPSTREAM` variable tells which git remote the script must pull from, in my case I renamed it to upstream, the default value is `origin`.
+
+```
+❯ git remote -v
+fork	https://github.com/nicholasSUSE/charts (fetch)
+fork	https://github.com/nicholasSUSE/charts (push)
+upstream	https://github.com/rancher/charts (fetch)
+upstream	https://github.com/rancher/charts (push)
+
+```
+
 ### Issues
 
 All issues must be created in the [`rancher/rancher`](https://github.com/rancher/rancher) repository.
