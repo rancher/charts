@@ -7,6 +7,9 @@ This repository contains Helm charts served by Rancher Apps & Marketplace.
 - More information on `commands` that can be run in this repository: [`docs/makefile.md`](docs/makefile.md).
 - More information on `Packages`: [`docs/packages.md`](docs/packages.md).
 - More information on `CI validation`: [`docs/validation.md`](docs/validation.md).
+- [New Out Of Band Release Process](#new-out-of-band-release-process)
+- [New Assets Lifecycle](#new-assets-lifecycle)
+- [New Release Process Workflow](#new-release-process-workflow)
 - [Issues](#issues)
 - [Branches](#branches)
 - [Making Changes](#making-changes)
@@ -74,6 +77,36 @@ upstream	https://github.com/rancher/charts (fetch)
 upstream	https://github.com/rancher/charts (push)
 
 ```
+
+### New Assets Lifecycle
+
+Starting on `17/May/2024` there is a new asset lifecycle in place.
+
+We will keep only the relevant assets in the corresponding branch.
+
+This means a cycle of always 3 active branches, with each branch always holding up to 2 previous versions before it.
+
+In a nutshell:
+- prod-v2.7 hold chart versions for Rancher: (2.5; 2.6; 2.7)
+- prod-v2.8 hold chart versions for Rancher: (2.6; 2.7; 2.8)
+- prod-v2.9 hold chart versions for Rancher: (2.7; 2.8; 2.9)
+
+![Assets Lifecycle](./docs/assets_lifecycle.png)
+
+
+### New Release Process Workflow
+
+Starting on `17/May/2024` there is a new workflow for developing and releasing charts in place.
+
+
+![Release Workflow](./docs/dev_workflow.png)
+
+Main changes from the previous workflow:
+
+- The development workflow is still the same however QA should test Charts from `dev-v2.X` branches now.
+- Instead of the Mapps team releasing Charts in Bataches and waiting for Chart development to be ready, now each team owner is responsible for the release process using `make forward-port`.
+    - See: [New Out Of Band Release Process](#new-out-of-band-release-process)
+- Each Chart owner must be aware of Rancher release dates and must coordinate with QA in order to have the Charts released before the Rancher release happens.
 
 ### Issues
 
