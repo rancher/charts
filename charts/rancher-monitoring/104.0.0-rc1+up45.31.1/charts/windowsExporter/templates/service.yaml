@@ -1,15 +1,32 @@
-{{- if and .Values.clients }}{{- if and .Values.clients.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ template "windowsExporter.name" . }}
-  namespace: {{ template "windowsExporter.namespace" . }}
-  labels: {{ include "windowsExporter.labels" . | nindent 4 }}
+  name: {{ include "prometheus-windows-exporter.fullname" . }}
+  namespace: {{ include "prometheus-windows-exporter.namespace" . }}
+  labels:
+    {{- include "windowsExporter.labels" $ | nindent 4 }}
+  {{- if or .Values.prometheus.monitor.enabled .Values.prometheus.podMonitor.enabled }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- unset . "prometheus.io/scrape" | toYaml | nindent 4 }}
+  {{- end }}
+  {{- else }}
+  annotations:
+    prometheus.io/scrape: "true"
+  {{- with .Values.service.annotations }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- end }}
 spec:
+  type: {{ .Values.service.type }}
   ports:
-  - name: windows-metrics
-    port: {{ required "Need .Values.clients.port to figure out where to get metrics from" .Values.clients.port }}
-    protocol: TCP
-    targetPort: {{ .Values.clients.port }}
-  selector: {{ include "windowsExporter.labels" . | nindent 4 }}
-{{- end }}{{- end }}
+    - port: {{ .Values.service.port }}
+      {{- if ( and (eq .Values.service.type "NodePort" ) (not (empty .Values.service.nodePort)) ) }}
+      nodePort: {{ .Values.service.nodePort }}
+      {{- end }}
+      targetPort: {{ .Values.service.port }}
+      protocol: TCP
+      appProtocol: http
+      name: {{ .Values.service.portName }}
+  selector:
+    {{- include "windowsExporter.labels" . | nindent 4 }}

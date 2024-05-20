@@ -1,17 +1,42 @@
-# rancher-windows-exporter
+# Prometheus `Windows Exporter`
 
-A Rancher chart based on the [prometheus-community/windows-exporter](https://github.com/prometheus-community/windows_exporter) project (previously called wmi-exporter) that sets up a DaemonSet of clients that can scrape windows-exporter metrics from Windows nodes on a Kubernetes cluster.
+Prometheus exporter for hardware and OS metrics exposed by Windows kernels, written in Go with pluggable metric collectors.
 
-A [Prometheus Operator](https://github.com/coreos/prometheus-operator) ServiceMonitor CR and PrometheusRule CR are also created by this chart to collect metrics and add some recording rules to map `windows_` series with their OS-agnostic counterparts.
+This chart bootstraps a prometheus [`Windows Exporter`](http://github.com/prometheus-community/windows_exporter) daemonset on a [Kubernetes](http://kubernetes.io) cluster using the [Helm](https://helm.sh) package manager.
 
-## Node Requirements
+## Get Repository Info
 
-Since Windows does not support privileged pods, this chart expects a Named Pipe (`\\.\pipe\rancher_wins`) to exist on the Windows host that allows containers to communicate with the host. This is done by deploying a [rancher/wins](https://github.com/rancher/wins) server on the host.
+```console
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+```
 
-The image used by the chart, [windows_exporter-package](https://github.com/rancher/windows_exporter-package), is configured to create a wins client that communicates with the wins server, alongside a running copy of a particular version of [windows-exporter](https://github.com/prometheus-community/windows_exporter). Through the wins client and wins server, the windows-exporter is able to communicate directly with the Windows host to collect metrics and expose them.
+_See [`helm repo`](https://helm.sh/docs/helm/helm_repo/) for command documentation._
 
-If the cluster you are installing this chart on is a custom cluster that was created via RKE1 with Windows Support enabled, your nodes should already have the wins server running; this should have been added as part of [the bootstrapping process for adding the Windows node onto your RKE1 cluster](https://github.com/rancher/rancher/blob/master/package/windows/bootstrap.ps1).
+## Install Chart
 
-## Configuration
+```console
+helm install [RELEASE_NAME] prometheus-community/prometheus-windows-exporter
+```
 
-See [rancher-monitoring](https://github.com/rancher/charts/tree/gh-pages/packages/rancher-monitoring) for an example of how this chart can be used.
+_See [configuration](#configuring) below._
+
+_See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._
+
+## Uninstall Chart
+
+```console
+helm uninstall [RELEASE_NAME]
+```
+
+This removes all the Kubernetes components associated with the chart and deletes the release.
+
+_See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command documentation._
+
+## Configuring
+
+See [Customizing the Chart Before Installing](https://helm.sh/docs/intro/using_helm/#customizing-the-chart-before-installing). To see all configurable options with detailed comments, visit the chart's [values.yaml](./values.yaml), or run these configuration commands:
+
+```console
+helm show values prometheus-community/prometheus-windows-exporter
+```
