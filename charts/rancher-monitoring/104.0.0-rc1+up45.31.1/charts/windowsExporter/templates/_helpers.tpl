@@ -1,13 +1,3 @@
-# Rancher
-
-{{- define "system_default_registry" -}}
-{{- if .Values.global.cattle.systemDefaultRegistry -}}
-{{- printf "%s/" .Values.global.cattle.systemDefaultRegistry -}}
-{{- end -}}
-{{- end -}}
-
-# General
-
 {{/*
 Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
@@ -15,61 +5,30 @@ If release name contains chart name it will be used as a full name.
 The components in this chart create additional resources that expand the longest created name strings.
 The longest name that gets created adds and extra 37 characters, so truncation should be 63-35=26.
 */}}
-{{- define "windowsExporter.name" -}}
+{{- define "prometheus-windows-exporter.fullname" -}}
 {{ printf "%s-windows-exporter" .Release.Name }}
 {{- end -}}
 
-{{- define "windowsExporter.namespace" -}}
-{{- default .Release.Namespace .Values.namespaceOverride -}}
+{{- define "system_default_registry" -}}
+{{- if .Values.global.cattle.systemDefaultRegistry -}}
+{{- printf "%s/" .Values.global.cattle.systemDefaultRegistry -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "windowsExporter.renamedMetricsRelabeling" -}}
+{{- range $original, $new := (include "windowsExporter.renamedMetrics" . | fromJson) -}}
+- sourceLabels: [__name__]
+  regex: {{ $original }}
+  replacement: '{{ $new }}'
+  targetLabel: __name__
+{{ end -}}
 {{- end -}}
 
 {{- define "windowsExporter.labels" -}}
-k8s-app: {{ template "windowsExporter.name" . }}
+k8s-app: {{ template "prometheus-windows-exporter.fullname" . }}
 release: {{ .Release.Name }}
 component: "windows-exporter"
 provider: kubernetes
-{{- end -}}
-
-# Client
-
-{{- define "windowsExporter.client.nodeSelector" -}}
-{{- if semverCompare "<1.14-0" .Capabilities.KubeVersion.GitVersion -}}
-beta.kubernetes.io/os: windows
-{{- else -}}
-kubernetes.io/os: windows
-{{- end -}}
-{{- if .Values.clients.nodeSelector }}
-{{ toYaml .Values.clients.nodeSelector }}
-{{- end }}
-{{- end -}}
-
-{{- define "windowsExporter.client.tolerations" -}}
-{{- if .Values.clients.tolerations -}}
-{{ toYaml .Values.clients.tolerations }}
-{{- else -}}
-- operator: Exists
-{{- end -}}
-{{- end -}}
-
-{{- define "windowsExporter.client.env" -}}
-- name: LISTEN_PORT
-  value: {{ required "Need .Values.clients.port to figure out where to get metrics from" .Values.clients.port | quote }}
-{{- if .Values.clients.enabledCollectors }}
-- name: ENABLED_COLLECTORS
-  value: {{ .Values.clients.enabledCollectors | quote }}
-{{- end }}
-{{- if .Values.clients.env }}
-{{ toYaml .Values.clients.env }}
-{{- end }}
-{{- end -}}
-
-{{- define "windowsExporter.validatePathPrefix" -}}
-{{- if .Values.global.cattle.rkeWindowsPathPrefix -}}
-{{- $prefixPath := (.Values.global.cattle.rkeWindowsPathPrefix | replace "/" "\\") -}}
-{{- if (not (hasSuffix "\\" $prefixPath)) -}}
-{{- fail (printf ".Values.global.cattle.rkeWindowsPathPrefix must end in '/' or '\\', found %s" $prefixPath) -}}
-{{- end -}}
-{{- end -}}
 {{- end -}}
 
 {{- define "windowsExporter.renamedMetrics" -}}
@@ -96,18 +55,162 @@ kubernetes.io/os: windows
 {{- $renamed | toJson -}}
 {{- end -}}
 
-{{- define "windowsExporter.renamedMetricsRelabeling" -}}
-{{- range $original, $new := (include "windowsExporter.renamedMetrics" . | fromJson) -}}
-- sourceLabels: [__name__]
-  regex: {{ $original }}
-  replacement: '{{ $new }}'
-  targetLabel: __name__
-{{ end -}}
+{{/*
+Create chart name and version as used by the chart label.
+*/}}
+{{- define "prometheus-windows-exporter.chart" -}}
+{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Common labels
+*/}}
+{{- define "prometheus-windows-exporter.labels" -}}
+helm.sh/chart: {{ include "prometheus-windows-exporter.chart" . }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+app.kubernetes.io/component: metrics
+app.kubernetes.io/part-of: {{ include "prometheus-windows-exporter.name" . }}
+{{ include "prometheus-windows-exporter.selectorLabels" . }}
+{{- with .Chart.AppVersion }}
+app.kubernetes.io/version: {{ . | quote }}
+{{- end }}
+{{- with .Values.podLabels }}
+{{ toYaml . }}
+{{- end }}
+{{- if .Values.releaseLabel }}
+release: {{ .Release.Name }}
+{{- end }}
+{{- end }}
+
+{{/*
+Selector labels
+*/}}
+{{- define "prometheus-windows-exporter.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "prometheus-windows-exporter.fullname" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+
+{{/*
+Create the name of the service account to use
+*/}}
+{{- define "prometheus-windows-exporter.serviceAccountName" -}}
+{{- if .Values.serviceAccount.create }}
+{{- default (include "prometheus-windows-exporter.fullname" .) .Values.serviceAccount.name }}
+{{- else }}
+{{- default "default" .Values.serviceAccount.name }}
+{{- end }}
+{{- end }}
+
+{{/*
+The image to use
+*/}}
+{{- define "prometheus-windows-exporter.image" -}}
+{{- if .Values.image.sha }}
+{{- fail "image.sha forbidden. Use image.digest instead" }}
+{{- else if .Values.image.digest }}
+{{- if .Values.global.cattle.systemDefaultRegistry }}
+{{- printf "%s/%s:%s@%s" .Values.global.cattle.systemDefaultRegistry .Values.image.repository (default .Chart.AppVersion .Values.image.tag) .Values.image.digest }}
+{{- else }}
+{{- printf "%s/%s:%s@%s" .Values.image.registry .Values.image.repository (default .Chart.AppVersion .Values.image.tag) .Values.image.digest }}
+{{- end }}
+{{- else }}
+{{- if .Values.global.cattle.systemDefaultRegistry }}
+{{- printf "%s/%s:%s" .Values.global.cattle.systemDefaultRegistry .Values.image.repository (default .Chart.AppVersion .Values.image.tag) }}
+{{- else }}
+{{- printf "%s/%s:%s" .Values.image.registry .Values.image.repository (default .Chart.AppVersion .Values.image.tag) }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Allow the release namespace to be overridden for multi-namespace deployments in combined charts
+*/}}
+{{- define "prometheus-windows-exporter.namespace" -}}
+{{- if .Values.namespaceOverride }}
+{{- .Values.namespaceOverride }}
+{{- else }}
+{{- .Release.Namespace }}
+{{- end }}
+{{- end }}
+
+{{/*
+Create the namespace name of the service monitor
+*/}}
+{{- define "prometheus-windows-exporter.monitor-namespace" -}}
+{{- if .Values.namespaceOverride }}
+{{- .Values.namespaceOverride }}
+{{- else }}
+{{- if .Values.prometheus.monitor.namespace }}
+{{- .Values.prometheus.monitor.namespace }}
+{{- else }}
+{{- .Release.Namespace }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/* Sets default scrape limits for servicemonitor */}}
+{{- define "servicemonitor.scrapeLimits" -}}
+{{- with .sampleLimit }}
+sampleLimit: {{ . }}
+{{- end }}
+{{- with .targetLimit }}
+targetLimit: {{ . }}
+{{- end }}
+{{- with .labelLimit }}
+labelLimit: {{ . }}
+{{- end }}
+{{- with .labelNameLengthLimit }}
+labelNameLengthLimit: {{ . }}
+{{- end }}
+{{- with .labelValueLengthLimit }}
+labelValueLengthLimit: {{ . }}
+{{- end }}
+{{- end }}
+
+{{/*
+Formats imagePullSecrets. Input is (dict "Values" .Values "imagePullSecrets" .{specific imagePullSecrets})
+*/}}
+{{- define "prometheus-windows-exporter.imagePullSecrets" -}}
+{{- range (concat .Values.global.imagePullSecrets .imagePullSecrets) }}
+  {{- if eq (typeOf .) "map[string]interface {}" }}
+- {{ toYaml . | trim }}
+  {{- else }}
+- name: {{ . }}
+  {{- end }}
+{{- end }}
 {{- end -}}
 
-{{- define "windowsExporter.renamedMetricsRules" -}}
-{{- range $original, $new := (include "windowsExporter.renamedMetrics" . | fromJson) -}}
-- record: {{ $original }}
-  expr: {{ $new }}
-{{ end -}}
-{{- end -}}
+{{/*
+Create the namespace name of the pod monitor
+*/}}
+{{- define "prometheus-windows-exporter.podmonitor-namespace" -}}
+{{- if .Values.namespaceOverride }}
+{{- .Values.namespaceOverride }}
+{{- else }}
+{{- if .Values.prometheus.podMonitor.namespace }}
+{{- .Values.prometheus.podMonitor.namespace }}
+{{- else }}
+{{- .Release.Namespace }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/* Sets default scrape limits for podmonitor */}}
+{{- define "podmonitor.scrapeLimits" -}}
+{{- with .sampleLimit }}
+sampleLimit: {{ . }}
+{{- end }}
+{{- with .targetLimit }}
+targetLimit: {{ . }}
+{{- end }}
+{{- with .labelLimit }}
+labelLimit: {{ . }}
+{{- end }}
+{{- with .labelNameLengthLimit }}
+labelNameLengthLimit: {{ . }}
+{{- end }}
+{{- with .labelValueLengthLimit }}
+labelValueLengthLimit: {{ . }}
+{{- end }}
+{{- end }}
