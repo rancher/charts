@@ -12,7 +12,7 @@ check-release-yaml:
 
 lifecycle-assets:
 	@./scripts/pull-scripts
-	@./bin/charts-build-scripts lifecycle-assets --branch-version=$(BRANCH_VERSION)
+	@./bin/charts-build-scripts lifecycle-assets --branch-version=$(BRANCH_VERSION) --debugFlag=$(DEBUG) --chart=$(CHART)
 
 TARGETS := prepare patch clean clean-cache charts list index unzip zip standardize validate template regsync check-images check-rc
 
