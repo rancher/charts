@@ -22,10 +22,13 @@ fi
 
 # Prune empty directories
 set +e
-rmdir charts/${CHART} >/dev/null 2>&1 
-rmdir charts >/dev/null 2>&1 
-rmdir assets/${CHART} >/dev/null 2>&1 
-rmdir assets >/dev/null 2>&1 
+rmdir charts/${CHART} >/dev/null 2>&1
+rmdir charts >/dev/null 2>&1
+rmdir assets/${CHART} >/dev/null 2>&1
+rmdir assets >/dev/null 2>&1
 set -e
+
+touch release.yaml
+yq e -i ".${CHART} = ((.${CHART} + [\"${VERSION}\"]) | unique)" release.yaml
 
 make index
