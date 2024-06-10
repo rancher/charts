@@ -37,6 +37,13 @@ Please see [`docs/developing.md`](developing.md) for more information on how to 
 
 `make validate`: Checks whether all generated assets used to serve a Helm repository (`charts/`, `assets/`, and `index.yaml`) are up-to-date. If `validate.url` and `validate.branch` are provided in the configuration.yaml, it will also ensure that any additional changes introduced only modify chart or package versions specified in the `release.yaml`; otherwise it will output the expected `release.yaml` based on assets it detected changes in.
 
+3 operating modes for `make validate`:
+- `default` - `make validate`: Executes internally `make prepare` and `make charts`, generates a new charts folder from all packages and compare them with the current `/charts folder`. In the end will compare `/charts folder` and the new generated `assets`.
+- `remote` - `make validate remote=true`: Skips generating charts locally, compares the current local charts against the upstream assets.
+- `local` - `make validate local=true`: Skips pulling the upstream charts assets, compares only the local assets and local charts.
+
+The `remote` and `local` options are mutually exclusive, you can't set both to true at the same time.
+
 Please see [`docs/validation.md`](validation.md) for more information on how CI is performed.
 
 ### Docs and Scripts Commands
