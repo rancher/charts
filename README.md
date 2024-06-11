@@ -7,6 +7,9 @@ This repository contains Helm charts served by Rancher Apps & Marketplace.
 - More information on `commands` that can be run in this repository: [`docs/makefile.md`](docs/makefile.md).
 - More information on `Packages`: [`docs/packages.md`](docs/packages.md).
 - More information on `CI validation`: [`docs/validation.md`](docs/validation.md).
+- [New Out Of Band Release Process](#new-out-of-band-release-process)
+- [New Assets Lifecycle](#new-assets-lifecycle)
+- [New Release Process Workflow](#new-release-process-workflow)
 - [Issues](#issues)
 - [Branches](#branches)
 - [Making Changes](#making-changes)
@@ -19,6 +22,91 @@ This repository contains Helm charts served by Rancher Apps & Marketplace.
 - [Supporting Images in Airgap](#supporting-images-in-airgap)
 
 ---
+
+### New Out Of Band Release Process
+Starting on `17/May/2024`.
+
+This is only valid for `prod-v2.*` branches.
+Since this implementation, all teams may release each chart when they want.
+
+##### Overview of the process:
+1. Assuming you have a chart ready and merged on `dev-v2.*` branch.
+2. On your local machine: `fetch`, `pull` and `checkout` to `prod-v2.*`
+3. Create a new branch from `prod-v2.*`
+4. Execute `make forward-port`
+5. Clear your `release.yaml` file, leave only your chart that will be released
+6. Add, Commit and push your changes to your forked repository
+
+**Attention**: If you have a CRD that must be released with the chart, you should repeat `Step 4.` until `Step 6.` for the CRD chart.
+
+7. Create a Pull Request from your forked repository to `rancher/charts` pointing to `prod-v2.*`
+
+
+##### How to use `forward-port`:
+
+**Usage:**
+
+```(bash)
+make forward-port CHART=<your_chart> VERSION=<version> BRANCH=<branch_to_pull_from> UPSTREAM=<git_remote>
+```
+
+Script Arguments Reference:
+- CHART=`Chart name, exactly the same as in /charts and /assets folder`
+- VERSION=`The version you want to release, the same one you would write into release.yaml`
+- BRANCH=`The branch where the ready chart is merged in the remote repository`
+- UPSTREAM=`The git remote name where the chart is present`
+
+
+**Real-Example:**
+
+```(bash)
+make forward-port CHART=rancher-istio VERSION=103.3.0+up1.21.1 BRANCH=dev-v2.8 UPSTREAM=upstream
+```
+
+In this case, we are at branch `prod-v2.8`, we have a new version of Istio at `dev-v2.8`.
+
+The script will get all necessary changes for `assets`, `charts`, `release.yaml` and `index.yaml` and handle them all automatically.
+
+The changes will be pulled from the remote repository, the `UPSTREAM` variable tells which git remote the script must pull from, in my case I renamed it to upstream, the default value is `origin`.
+
+```
+❯ git remote -v
+fork	https://github.com/nicholasSUSE/charts (fetch)
+fork	https://github.com/nicholasSUSE/charts (push)
+upstream	https://github.com/rancher/charts (fetch)
+upstream	https://github.com/rancher/charts (push)
+
+```
+
+### New Assets Lifecycle
+
+Starting on `17/May/2024` there is a new asset lifecycle in place.
+
+We will keep only the relevant assets in the corresponding branch.
+
+This means a cycle of always 3 active branches, with each branch always holding up to 2 previous versions before it.
+
+In a nutshell:
+- prod-v2.7 hold chart versions for Rancher: (2.5; 2.6; 2.7)
+- prod-v2.8 hold chart versions for Rancher: (2.6; 2.7; 2.8)
+- prod-v2.9 hold chart versions for Rancher: (2.7; 2.8; 2.9)
+
+![Assets Lifecycle](./docs/assets_lifecycle.png)
+
+
+### New Release Process Workflow
+
+Starting on `17/May/2024` there is a new workflow for developing and releasing charts in place.
+
+
+![Release Workflow](./docs/dev_workflow.png)
+
+Main changes from the previous workflow:
+
+- The development workflow is still the same however QA should test Charts from `dev-v2.X` branches now.
+- Instead of the Mapps team releasing Charts in Bataches and waiting for Chart development to be ready, now each team owner is responsible for the release process using `make forward-port`.
+    - See: [New Out Of Band Release Process](#new-out-of-band-release-process)
+- Each Chart owner must be aware of Rancher release dates and must coordinate with QA in order to have the Charts released before the Rancher release happens.
 
 ### Issues
 

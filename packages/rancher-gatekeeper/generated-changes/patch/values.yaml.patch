@@ -1,26 +1,6 @@
 --- charts-original/values.yaml
 +++ charts/values.yaml
-@@ -14,10 +14,9 @@
- validatingWebhookObjectSelector: {}
- validatingWebhookCheckIgnoreFailurePolicy: Fail
- validatingWebhookCustomRules: {}
--validatingWebhookURL: null
- enableDeleteOperations: false
- enableExternalData: true
--enableGeneratorResourceExpansion: true
-+enableGeneratorResourceExpansion: false
- enableTLSHealthcheck: false
- maxServingThreads: -1
- mutatingWebhookName: gatekeeper-mutating-webhook-configuration
-@@ -28,7 +27,6 @@
- mutatingWebhookObjectSelector: {}
- mutatingWebhookTimeoutSeconds: 1
- mutatingWebhookCustomRules: {}
--mutatingWebhookURL: null
- mutationAnnotations: false
- auditChunkSize: 500
- logLevel: INFO
-@@ -39,23 +37,26 @@
+@@ -39,10 +39,13 @@
  admissionEventsInvolvedNamespace: false
  auditEventsInvolvedNamespace: false
  resourceQuota: true
@@ -31,19 +11,14 @@
 +images:
 +  gatekeeper:
 +    repository: rancher/mirrored-openpolicyagent-gatekeeper
-+    tag: v3.12.0
++    tag: v3.13.0
 +  gatekeepercrd:
 +    repository: rancher/mirrored-openpolicyagent-gatekeeper-crds
-+    tag: v3.12.0
++    tag: v3.13.0
    pullPolicy: IfNotPresent
    pullSecrets: []
  preInstall:
-   crdRepository:
-     image:
-       repository: null
--      tag: v3.13.0
-+      tag: v3.12.0
- postUpgrade:
+@@ -54,8 +57,8 @@
    labelNamespace:
      enabled: false
      image:
@@ -54,30 +29,16 @@
        pullPolicy: IfNotPresent
        pullSecrets: []
      extraNamespaces: []
-@@ -66,7 +67,6 @@
-       "pod-security.kubernetes.io/enforce=restricted",
-       "pod-security.kubernetes.io/enforce-version=v1.24"]
-     extraAnnotations: {}
--    priorityClassName: ""
-   affinity: {}
-   tolerations: []
-   nodeSelector: {kubernetes.io/os: linux}
-@@ -85,8 +85,8 @@
+@@ -85,7 +88,7 @@
      enabled: true
      extraRules: []
      image:
 -      repository: openpolicyagent/gatekeeper-crds
--      tag: v3.13.0
 +      repository: rancher/mirrored-openpolicyagent-gatekeeper-crds
-+      tag: v3.12.0
+       tag: v3.13.0
        pullPolicy: IfNotPresent
        pullSecrets: []
-     extraNamespaces: []
-@@ -97,18 +97,16 @@
-       "pod-security.kubernetes.io/enforce=restricted",
-       "pod-security.kubernetes.io/enforce-version=v1.24"]
-     extraAnnotations: {}
--    priorityClassName: ""
+@@ -101,7 +104,7 @@
    probeWebhook:
      enabled: true
      image:
@@ -86,24 +47,16 @@
        tag: 7.83.1
        pullPolicy: IfNotPresent
        pullSecrets: []
-     waitTimeout: 60
-     httpTimeout: 2
-     insecureHTTPS: false
--    priorityClassName: ""
-   affinity: {}
-   tolerations: []
-   nodeSelector: {kubernetes.io/os: linux}
-@@ -126,14 +124,13 @@
+@@ -126,14 +129,14 @@
      extraRules: []
      enabled: false
      image:
 -      repository: openpolicyagent/gatekeeper-crds
--      tag: v3.13.0
 +      repository: rancher/mirrored-openpolicyagent-gatekeeper-crds
-+      tag: v3.12.0
+       tag: v3.13.0
        pullPolicy: IfNotPresent
        pullSecrets: []
--    priorityClassName: ""
+     priorityClassName: ""
    affinity: {}
    tolerations: []
 -  nodeSelector: {kubernetes.io/os: linux}
@@ -111,23 +64,7 @@
    resources: {}
    securityContext:
      allowPrivilegeEscalation: false
-@@ -145,7 +142,6 @@
-     runAsNonRoot: true
-     runAsUser: 1000
- podAnnotations: {}
--auditPodAnnotations: {}
- podLabels: {}
- podCountLimit: "100"
- secretAnnotations: {}
-@@ -164,7 +160,6 @@
-   disableCertRotation: false
-   tlsMinVersion: 1.3
-   clientCertName: ""
--  strategyType: RollingUpdate
-   affinity:
-     podAntiAffinity:
-       preferredDuringSchedulingIgnoredDuringExecution:
-@@ -179,7 +174,7 @@
+@@ -179,7 +182,7 @@
            weight: 100
    topologySpreadConstraints: []
    tolerations: []
@@ -136,15 +73,7 @@
    resources:
      limits:
        memory: 512Mi
-@@ -207,7 +202,6 @@
-       #   - ipBlock:
-       #       cidr: 0.0.0.0/0
- audit:
--  enablePubsub: false
-   hostNetwork: false
-   dnsPolicy: ClusterFirst
-   metricsPort: 8888
-@@ -218,7 +212,7 @@
+@@ -218,7 +221,7 @@
    disableCertRotation: true
    affinity: {}
    tolerations: []
@@ -153,7 +82,7 @@
    resources:
      limits:
        memory: 512Mi
-@@ -257,14 +251,19 @@
+@@ -257,10 +260,16 @@
  pdb:
    controllerManager:
      minAvailable: 1
@@ -172,7 +101,10 @@
  upgradeCRDs:
    enabled: true
    extraRules: []
--  priorityClassName: ""
- rbac:
+@@ -269,4 +278,4 @@
    create: true
  externalCertInjection:
+   enabled: false
+-  secretName: gatekeeper-webhook-server-cert
++  secretName: gatekeeper-webhook-server-cert
+\ No newline at end of file
