@@ -1,0 +1,975 @@
+{{- if .Values.crdwebhook.enabled -}}
+{{- $oc4 := and .Values.openshift (semverCompare ">=1.12-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) -}}
+{{- $oc3 := and .Values.openshift (not $oc4) (semverCompare ">=1.9-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) -}}
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: apiextensions.k8s.io/v1
+{{- else }}
+apiVersion: apiextensions.k8s.io/v1beta1
+{{- end }}
+kind: CustomResourceDefinition
+metadata:
+  name: nvsecurityrules.neuvector.com
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+  group: neuvector.com
+  names:
+    kind: NvSecurityRule
+    listKind: NvSecurityRuleList
+    plural: nvsecurityrules
+    singular: nvsecurityrule
+  scope: Namespaced
+{{- if (semverCompare "<1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+  version: v1
+{{- end }}
+  versions:
+  - name: v1
+    served: true
+    storage: true
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              egress:
+                items:
+                  properties:
+                    action:
+                      enum:
+                      - allow
+                      - deny
+                      type: string
+                    applications:
+                      items:
+                        type: string
+                      type: array
+                    name:
+                      type: string
+                    ports:
+                      type: string
+                    priority:
+                      type: integer
+                    selector:
+                      properties:
+                        comment:
+                          type: string
+                        criteria:
+                          items:
+                            properties:
+                              key:
+                                type: string
+                              op:
+                                type: string
+                              value:
+                                type: string
+                            required:
+                            - key
+                            - op
+                            - value
+                            type: object
+                          type: array
+                        name:
+                          type: string
+                        original_name:
+                          type: string
+                      required:
+                      - name
+                      type: object
+                  required:
+                  - action
+                  - name
+                  - selector
+                  type: object
+                type: array
+              file:
+                items:
+                  properties:
+                    app:
+                      items:
+                        type: string
+                      type: array
+                    behavior:
+                      enum:
+                      - monitor_change
+                      - block_access
+                      type: string
+                    filter:
+                      type: string
+                    recursive:
+                      type: boolean
+                  required:
+                  - behavior
+                  - filter
+                  type: object
+                type: array
+              ingress:
+                items:
+                  properties:
+                    action:
+                      enum:
+                      - allow
+                      - deny
+                      type: string
+                    applications:
+                      items:
+                        type: string
+                      type: array
+                    name:
+                      type: string
+                    ports:
+                      type: string
+                    priority:
+                      type: integer
+                    selector:
+                      properties:
+                        comment:
+                          type: string
+                        criteria:
+                          items:
+                            properties:
+                              key:
+                                type: string
+                              op:
+                                type: string
+                              value:
+                                type: string
+                            required:
+                            - key
+                            - op
+                            - value
+                            type: object
+                          type: array
+                        name:
+                          type: string
+                        original_name:
+                          type: string
+                      required:
+                      - name
+                      type: object
+                  required:
+                  - action
+                  - name
+                  - selector
+                  type: object
+                type: array
+              process:
+                items:
+                  properties:
+                    action:
+                      enum:
+                      - allow
+                      - deny
+                      type: string
+                    allow_update:
+                      type: boolean
+                    name:
+                      type: string
+                    path:
+                      type: string
+                  required:
+                  - action
+                  type: object
+                type: array
+              process_profile:
+                properties:
+                  baseline:
+                    enum:
+                    - default
+                    - shield
+                    - basic
+                    - zero-drift
+                    type: string
+                type: object
+              target:
+                properties:
+                  policymode:
+                    enum:
+                    - Discover
+                    - Monitor
+                    - Protect
+                    - N/A
+                    type: string
+                  selector:
+                    properties:
+                      comment:
+                        type: string
+                      criteria:
+                        items:
+                          properties:
+                            key:
+                              type: string
+                            op:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                          - key
+                          - op
+                          - value
+                          type: object
+                        type: array
+                      name:
+                        type: string
+                      original_name:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                required:
+                - selector
+                type: object
+              dlp:
+                properties:
+                  settings:
+                    items:
+                      properties:
+                        action:
+                          enum:
+                          - allow
+                          - deny
+                          type: string
+                        name:
+                          type: string
+                      required:
+                      - name
+                      - action
+                      type: object
+                    type: array
+                  status:
+                    type: boolean
+                type: object
+              waf:
+                properties:
+                  settings:
+                    items:
+                      properties:
+                        action:
+                          enum:
+                          - allow
+                          - deny
+                          type: string
+                        name:
+                          type: string
+                      required:
+                      - name
+                      - action
+                      type: object
+                    type: array
+                  status:
+                    type: boolean
+                type: object
+            required:
+            - target
+            type: object
+        type: object
+{{- end }}
+---
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: apiextensions.k8s.io/v1
+{{- else }}
+apiVersion: apiextensions.k8s.io/v1beta1
+{{- end }}
+kind: CustomResourceDefinition
+metadata:
+  name: nvclustersecurityrules.neuvector.com
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+  group: neuvector.com
+  names:
+    kind: NvClusterSecurityRule
+    listKind: NvClusterSecurityRuleList
+    plural: nvclustersecurityrules
+    singular: nvclustersecurityrule
+  scope: Cluster
+{{- if (semverCompare "<1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+  version: v1
+{{- end }}
+  versions:
+  - name: v1
+    served: true
+    storage: true
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              egress:
+                items:
+                  properties:
+                    action:
+                      enum:
+                      - allow
+                      - deny
+                      type: string
+                    applications:
+                      items:
+                        type: string
+                      type: array
+                    name:
+                      type: string
+                    ports:
+                      type: string
+                    priority:
+                      type: integer
+                    selector:
+                      properties:
+                        comment:
+                          type: string
+                        criteria:
+                          items:
+                            properties:
+                              key:
+                                type: string
+                              op:
+                                type: string
+                              value:
+                                type: string
+                            required:
+                            - key
+                            - op
+                            - value
+                            type: object
+                          type: array
+                        name:
+                          type: string
+                        original_name:
+                          type: string
+                      required:
+                      - name
+                      type: object
+                  required:
+                  - action
+                  - name
+                  - selector
+                  type: object
+                type: array
+              file:
+                items:
+                  properties:
+                    app:
+                      items:
+                        type: string
+                      type: array
+                    behavior:
+                      enum:
+                      - monitor_change
+                      - block_access
+                      type: string
+                    filter:
+                      type: string
+                    recursive:
+                      type: boolean
+                  required:
+                  - behavior
+                  - filter
+                  type: object
+                type: array
+              ingress:
+                items:
+                  properties:
+                    action:
+                      enum:
+                      - allow
+                      - deny
+                      type: string
+                    applications:
+                      items:
+                        type: string
+                      type: array
+                    name:
+                      type: string
+                    ports:
+                      type: string
+                    priority:
+                      type: integer
+                    selector:
+                      properties:
+                        comment:
+                          type: string
+                        criteria:
+                          items:
+                            properties:
+                              key:
+                                type: string
+                              op:
+                                type: string
+                              value:
+                                type: string
+                            required:
+                            - key
+                            - op
+                            - value
+                            type: object
+                          type: array
+                        name:
+                          type: string
+                        original_name:
+                          type: string
+                      required:
+                      - name
+                      type: object
+                  required:
+                  - action
+                  - name
+                  - selector
+                  type: object
+                type: array
+              process:
+                items:
+                  properties:
+                    action:
+                      enum:
+                      - allow
+                      - deny
+                      type: string
+                    allow_update:
+                      type: boolean
+                    name:
+                      type: string
+                    path:
+                      type: string
+                  required:
+                  - action
+                  type: object
+                type: array
+              process_profile:
+                properties:
+                  baseline:
+                    enum:
+                    - default
+                    - shield
+                    - basic
+                    - zero-drift
+                    type: string
+                type: object
+              target:
+                properties:
+                  policymode:
+                    enum:
+                    - Discover
+                    - Monitor
+                    - Protect
+                    - N/A
+                    type: string
+                  selector:
+                    properties:
+                      comment:
+                        type: string
+                      criteria:
+                        items:
+                          properties:
+                            key:
+                              type: string
+                            op:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                          - key
+                          - op
+                          - value
+                          type: object
+                        type: array
+                      name:
+                        type: string
+                      original_name:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                required:
+                - selector
+                type: object
+              dlp:
+                properties:
+                  settings:
+                    items:
+                      properties:
+                        action:
+                          enum:
+                          - allow
+                          - deny
+                          type: string
+                        name:
+                          type: string
+                      required:
+                      - name
+                      - action
+                      type: object
+                    type: array
+                  status:
+                    type: boolean
+                type: object
+              waf:
+                properties:
+                  settings:
+                    items:
+                      properties:
+                        action:
+                          enum:
+                          - allow
+                          - deny
+                          type: string
+                        name:
+                          type: string
+                      required:
+                      - name
+                      - action
+                      type: object
+                    type: array
+                  status:
+                    type: boolean
+                type: object
+            required:
+            - target
+            type: object
+        type: object
+{{- end }}
+---
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: apiextensions.k8s.io/v1
+{{- else }}
+apiVersion: apiextensions.k8s.io/v1beta1
+{{- end }}
+kind: CustomResourceDefinition
+metadata:
+  name: nvdlpsecurityrules.neuvector.com
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+  group: neuvector.com
+  names:
+    kind: NvDlpSecurityRule
+    listKind: NvDlpSecurityRuleList
+    plural: nvdlpsecurityrules
+    singular: nvdlpsecurityrule
+  scope: Cluster
+{{- if (semverCompare "<1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+  version: v1
+{{- end }}
+  versions:
+  - name: v1
+    served: true
+    storage: true
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              sensor:
+                properties:
+                  comment:
+                    type: string
+                  name:
+                    type: string
+                  rules:
+                    items:
+                      properties:
+                        name:
+                          type: string
+                        patterns:
+                          items:
+                            properties:
+                              context:
+                                enum:
+                                - url
+                                - header
+                                - body
+                                - packet
+                                type: string
+                              key:
+                                enum:
+                                - pattern
+                                type: string
+                              op:
+                                enum:
+                                - regex
+                                - '!regex'
+                                type: string
+                              value:
+                                type: string
+                            required:
+                            - key
+                            - op
+                            - value
+                            - context
+                            type: object
+                          type: array
+                      required:
+                      - name
+                      - patterns
+                      type: object
+                    type: array
+                required:
+                - name
+                type: object
+            required:
+            - sensor
+            type: object
+        type: object
+{{- end }}
+---
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: apiextensions.k8s.io/v1
+{{- else }}
+apiVersion: apiextensions.k8s.io/v1beta1
+{{- end }}
+kind: CustomResourceDefinition
+metadata:
+  name: nvadmissioncontrolsecurityrules.neuvector.com
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+  group: neuvector.com
+  names:
+    kind: NvAdmissionControlSecurityRule
+    listKind: NvAdmissionControlSecurityRuleList
+    plural: nvadmissioncontrolsecurityrules
+    singular: nvadmissioncontrolsecurityrule
+  scope: Cluster
+{{- if (semverCompare "<1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+  version: v1
+{{- end }}
+  versions:
+  - name: v1
+    served: true
+    storage: true
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              config:
+                properties:
+                  client_mode:
+                    enum:
+                    - service
+                    - url
+                    type: string
+                  enable:
+                    type: boolean
+                  mode:
+                    enum:
+                    - monitor
+                    - protect
+                    type: string
+                required:
+                - enable
+                - mode
+                - client_mode
+                type: object
+              rules:
+                items:
+                  properties:
+                    action:
+                      enum:
+                      - allow
+                      - deny
+                      type: string
+                    comment:
+                      type: string
+                    criteria:
+                      items:
+                        properties:
+                          name:
+                            type: string
+                          op:
+                            type: string
+                          path:
+                            type: string
+                          sub_criteria:
+                            items:
+                              properties:
+                                name:
+                                  type: string
+                                op:
+                                  type: string
+                                value:
+                                  type: string
+                              required:
+                              - name
+                              - op
+                              - value
+                              type: object
+                            type: array
+                          template_kind:
+                            type: string
+                          type:
+                            type: string
+                          value:
+                            type: string
+                          value_type:
+                            type: string
+                        required:
+                        - name
+                        - op
+                        - value
+                        type: object
+                      type: array
+                    disabled:
+                      type: boolean
+                    id:
+                      type: integer
+                    rule_mode:
+                      enum:
+                      - ""
+                      - monitor
+                      - protect
+                      type: string
+                    containers:
+                      items:
+                        enum:
+                        - containers
+                        - init_containers
+                        - ephemeral_containers
+                        type: string
+                      type: array
+                  required:
+                  - action
+                  - criteria
+                  type: object
+                type: array
+            type: object
+        type: object
+{{- end }}
+---
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: apiextensions.k8s.io/v1
+{{- else }}
+apiVersion: apiextensions.k8s.io/v1beta1
+{{- end }}
+kind: CustomResourceDefinition
+metadata:
+  name: nvwafsecurityrules.neuvector.com
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+  group: neuvector.com
+  names:
+    kind: NvWafSecurityRule
+    listKind: NvWafSecurityRuleList
+    plural: nvwafsecurityrules
+    singular: nvwafsecurityrule
+  scope: Cluster
+{{- if (semverCompare "<1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+  version: v1
+{{- end }}
+  versions:
+  - name: v1
+    served: true
+    storage: true
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              sensor:
+                properties:
+                  comment:
+                    type: string
+                  name:
+                    type: string
+                  rules:
+                    items:
+                      properties:
+                        name:
+                          type: string
+                        patterns:
+                          items:
+                            properties:
+                              context:
+                                enum:
+                                - url
+                                - header
+                                - body
+                                - packet
+                                type: string
+                              key:
+                                enum:
+                                - pattern
+                                type: string
+                              op:
+                                enum:
+                                - regex
+                                - '!regex'
+                                type: string
+                              value:
+                                type: string
+                            required:
+                            - key
+                            - op
+                            - value
+                            - context
+                            type: object
+                          type: array
+                      required:
+                      - name
+                      - patterns
+                      type: object
+                    type: array
+                required:
+                - name
+                type: object
+            required:
+            - sensor
+            type: object
+        type: object
+{{- end }}
+---
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: apiextensions.k8s.io/v1
+{{- else }}
+apiVersion: apiextensions.k8s.io/v1beta1
+{{- end }}
+kind: CustomResourceDefinition
+metadata:
+  name: nvcomplianceprofiles.neuvector.com
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+  group: neuvector.com
+  names:
+    kind: NvComplianceProfile
+    listKind: NvComplianceProfileList
+    plural: nvcomplianceprofiles
+    singular: nvcomplianceprofile
+  scope: Cluster
+{{- if (semverCompare "<1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+  version: v1
+{{- end }}
+  versions:
+  - name: v1
+    served: true
+    storage: true
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              templates:
+                properties:
+                  disable_system:
+                    type: boolean
+                  entries:
+                    items:
+                      properties:
+                        tags:
+                          items:
+                            type: string
+                          type: array
+                        test_number:
+                          type: string
+                      required:
+                      - test_number
+                      type: object
+                    type: array
+                required:
+                - entries
+                type: object
+            type: object
+        type: object
+{{- end }}
+---
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: apiextensions.k8s.io/v1
+{{- else }}
+apiVersion: apiextensions.k8s.io/v1beta1
+{{- end }}
+kind: CustomResourceDefinition
+metadata:
+  name: nvvulnerabilityprofiles.neuvector.com
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+  group: neuvector.com
+  names:
+    kind: NvVulnerabilityProfile
+    listKind: NvVulnerabilityProfileList
+    plural: nvvulnerabilityprofiles
+    singular: nvvulnerabilityprofile
+  scope: Cluster
+{{- if (semverCompare "<1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+  version: v1
+{{- end }}
+  versions:
+  - name: v1
+    served: true
+    storage: true
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              profile:
+                properties:
+                  entries:
+                    items:
+                      properties:
+                        comment:
+                          type: string
+                        days:
+                          type: integer
+                        domains:
+                          items:
+                            type: string
+                          type: array
+                        images:
+                          items:
+                            type: string
+                          type: array
+                        name:
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    type: array
+                required:
+                - entries
+                type: object
+            required:
+            - profile
+            type: object
+        type: object
+{{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neuvector-svc-crd-webhook
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+  ports:
+    - port: 443
+      targetPort: 30443
+      protocol: TCP
+      name: crd-webhook
+  type: {{ .Values.crdwebhook.type }}
+  selector:
+    app: neuvector-controller-pod
+{{- end }}
