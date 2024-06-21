@@ -1,0 +1,94 @@
+# Default values for helm-project-operator.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Prometheus Federator Configuration
+
+global:
+  cattle:
+    psp:
+      enabled: false
+    systemDefaultRegistry: ""
+    projectLabel: field.cattle.io/projectId
+    clusterId: ""
+    systemProjectId: ""
+    url: ""
+  rbac:
+    pspEnabled: true
+    pspAnnotations: {}
+      ## Specify pod annotations
+      ## Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/#apparmor
+      ## Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/#seccomp
+      ## Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/#sysctl
+      ##
+      # seccomp.security.alpha.kubernetes.io/allowedProfileNames: '*'
+      # seccomp.security.alpha.kubernetes.io/defaultProfileName: 'docker/default'
+      # apparmor.security.beta.kubernetes.io/defaultProfileName: 'runtime/default'
+
+  ## Reference to one or more secrets to be used when pulling images
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+  ##
+  imagePullSecrets: []
+  # - name: "image-pull-secret"
+
+helmProjectOperator:
+  enabled: true
+
+  # ensures that all resources created by subchart show up as prometheus-federator
+  helmApiVersion: monitoring.cattle.io/v1alpha1
+
+  nameOverride: prometheus-federator
+
+  helmController:
+    # Note: should be disabled for RKE2 clusters since they already run Helm Controller to manage internal Kubernetes components
+    enabled: true
+
+  helmLocker:
+    enabled: true
+
+  ## valuesOverride overrides values that are set on each Project Prometheus Stack Helm Chart deployment on an operator level
+  ## all values provided here will override any user-provided values automatically
+  valuesOverride:
+
+    federate:
+      # Change this to point at all Prometheuses you want all your Project Prometheus Stacks to federate from
+      # By default, this matches the default deployment of Rancher Monitoring
+      targets:
+      - rancher-monitoring-prometheus.cattle-monitoring-system.svc:9090
+
+  image:
+    repository: rancher/prometheus-federator
+    tag: v0.2.1
+    pullPolicy: IfNotPresent
+
+  # Additional arguments to be passed into the Prometheus Federator image
+  additionalArgs: []
+
+  ## Define which Nodes the Pods are scheduled on.
+  ## ref: https://kubernetes.io/docs/user-guide/node-selection/
+  ##
+  nodeSelector: {}
+
+  ## Tolerations for use with node taints
+  ## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  ##
+  tolerations: []
+  # - key: "key"
+  #   operator: "Equal"
+  #   value: "value"
+  #   effect: "NoSchedule"
+
+  resources: {}
+    # limits:
+    #   memory: 500Mi
+    #   cpu: 1000m
+    # requests:
+    #   memory: 100Mi
+    #   cpu: 100m
+
+  securityContext: {}
+    # allowPrivilegeEscalation: false
+    # readOnlyRootFilesystem: true
+    
+  debug: false
+  debugLevel: 0

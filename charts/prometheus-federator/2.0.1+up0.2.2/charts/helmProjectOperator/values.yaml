@@ -1,0 +1,226 @@
+# Default values for helm-project-operator.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Helm Project Operator Configuration
+
+global:
+  cattle:
+    clusterId: ""
+    psp:
+      enabled: false
+    projectLabel: field.cattle.io/projectId
+    systemDefaultRegistry: ""
+    systemProjectId: ""
+    url: ""
+  rbac:
+    ## Create RBAC resources for ServiceAccounts and users
+    ##
+    create: true
+
+    userRoles:
+      ## Create default user ClusterRoles to allow users to interact with ProjectHelmCharts
+      create: true
+      ## Aggregate default user ClusterRoles into default k8s ClusterRoles
+      aggregateToDefaultRoles: true
+
+    pspAnnotations: {}
+      ## Specify pod annotations
+      ## Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/#apparmor
+      ## Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/#seccomp
+      ## Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/#sysctl
+      ##
+      # seccomp.security.alpha.kubernetes.io/allowedProfileNames: '*'
+      # seccomp.security.alpha.kubernetes.io/defaultProfileName: 'docker/default'
+      # apparmor.security.beta.kubernetes.io/defaultProfileName: 'runtime/default'
+
+  ## Reference to one or more secrets to be used when pulling images
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+  ##
+  imagePullSecrets: []
+  # - name: "image-pull-secret"
+
+helmApiVersion: dummy.cattle.io/v1alpha1
+
+## valuesOverride overrides values that are set on each ProjectHelmChart deployment on an operator-level
+## User-provided values will be overwritten based on the values provided here
+valuesOverride: {}
+
+## projectReleaseNamespaces are auto-generated namespaces that are created to host Helm Releases
+## managed by this operator on behalf of a ProjectHelmChart
+projectReleaseNamespaces:
+  ## Enabled determines whether Project Release Namespaces should be created. If false, the underlying
+  ## Helm release will be deployed in the Project Registration Namespace
+  enabled: true
+  ## labelValue is the value of the Project that the projectReleaseNamespace should be created within
+  ## If empty, this will be set to the value of global.cattle.systemProjectId
+  ## If global.cattle.systemProjectId is also empty, project release namespaces will be disabled
+  labelValue: ""
+
+## otherSystemProjectLabelValues are project labels that identify namespaces as those that should be treated as system projects
+## i.e. they will be entirely ignored by the operator
+## By default, the global.cattle.systemProjectId will be in this list
+otherSystemProjectLabelValues: []
+
+## releaseRoleBindings configures RoleBindings automatically created by the Helm Project Operator
+## in Project Release Namespaces where underlying Helm charts are deployed
+releaseRoleBindings:
+  ## aggregate enables creating these RoleBindings off aggregating RoleBindings in the
+  ## Project Registration Namespace or ClusterRoleBindings that bind users to the ClusterRoles
+  ## specified under clusterRoleRefs
+  aggregate: true
+
+  ## clusterRoleRefs are the ClusterRoles whose RoleBinding or ClusterRoleBindings should determine
+  ## the RoleBindings created in the Project Release Namespace
+  ## 
+  ## By default, these are set to create RoleBindings based on the RoleBindings / ClusterRoleBindings
+  ## attached to the default K8s user-facing ClusterRoles of admin, edit, and view.
+  ## ref: https://kubernetes.io/docs/reference/access-authn-authz/rbac/#user-facing-roles
+  ##
+  clusterRoleRefs:
+    admin: admin
+    edit: edit
+    view: view
+
+hardenedNamespaces:
+  # Whether to automatically manage the configuration of the default ServiceAccount and
+  # auto-create a NetworkPolicy for each namespace created by this operator
+  enabled: true
+
+  configuration:
+    # Values to be applied to each default ServiceAccount created in a managed namespace
+    serviceAccountSpec:
+      secrets: []
+      imagePullSecrets: []
+      automountServiceAccountToken: false
+    # Values to be applied to each default generated NetworkPolicy created in a managed namespace
+    networkPolicySpec:
+      podSelector: {}
+      egress: []
+      ingress: []
+      policyTypes: ["Ingress", "Egress"]
+
+## systemNamespacesConfigMap is a ConfigMap created to allow users to see valid entries
+## for registering a ProjectHelmChart for a given Project on the Rancher Dashboard UI.
+## It does not need to be enabled for a non-Rancher use case.
+systemNamespacesConfigMap:
+  ## Create indicates whether the system namespaces configmap should be created
+  ## This is a required value for integration with Rancher Dashboard
+  create: true
+
+  ## RBAC provides options around the RBAC created to allow users to be able to view
+  ## the systemNamespacesConfigMap; if not specified, only users with the ability to
+  ## view ConfigMaps in the namespace where this chart is deployed will be able to
+  ## properly view the system namespaces on the Rancher Dashboard UI
+  rbac:
+    ## enabled indicates that we should deploy a RoleBinding and Role to view this ConfigMap
+    enabled: true
+    ## subjects are the subjects that should be bound to this default RoleBinding
+    ## By default, we allow anyone who is authenticated to the system to be able to view
+    ## this ConfigMap in the deployment namespace
+    subjects:
+    - kind: Group
+      name: system:authenticated
+
+nameOverride: ""
+
+namespaceOverride: ""
+
+image:
+  repository: rancher/helm-project-operator
+  tag: v0.1.0
+  pullPolicy: IfNotPresent
+
+helmController:
+  # Note: should be disabled for RKE2 clusters since they already run Helm Controller to manage internal Kubernetes components
+  enabled: true
+
+  job:
+    image:
+      repository: rancher/klipper-helm
+      tag: v0.7.0-build20220315
+
+helmLocker:
+  enabled: true
+
+# Additional arguments to be passed into the Helm Project Operator image
+additionalArgs: []
+
+## Define which Nodes the Pods are scheduled on.
+## ref: https://kubernetes.io/docs/user-guide/node-selection/
+##
+nodeSelector: {}
+
+## Tolerations for use with node taints
+## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+##
+tolerations: []
+# - key: "key"
+#   operator: "Equal"
+#   value: "value"
+#   effect: "NoSchedule"
+
+resources: {}
+  # limits:
+  #   memory: 500Mi
+  #   cpu: 1000m
+  # requests:
+  #   memory: 100Mi
+  #   cpu: 100m
+
+containerSecurityContext: {}
+  # allowPrivilegeEscalation: false
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # privileged: false
+  # readOnlyRootFilesystem: true
+
+securityContext: {}
+  # runAsGroup: 1000
+  # runAsUser: 1000
+  # supplementalGroups:
+  # - 1000
+
+debug: false
+debugLevel: 0
+
+cleanup:
+  image:
+    repository: rancher/shell
+    tag: v0.1.19
+    pullPolicy: IfNotPresent
+
+  ## Define which Nodes the Pods are scheduled on.
+  ## ref: https://kubernetes.io/docs/user-guide/node-selection/
+  ##
+  nodeSelector: {}
+
+  ## Tolerations for use with node taints
+  ## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  ##
+  tolerations: []
+  # - key: "key"
+  #   operator: "Equal"
+  #   value: "value"
+  #   effect: "NoSchedule"
+
+  containerSecurityContext: {}
+    # allowPrivilegeEscalation: false
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # privileged: false
+    # readOnlyRootFilesystem: true
+
+  securityContext:
+    runAsNonRoot: false
+    runAsUser: 0
+
+  resources: {}
+    # limits:
+    #   memory: 500Mi
+    #   cpu: 1000m
+    # requests:
+    #   memory: 100Mi
+    #   cpu: 100m
