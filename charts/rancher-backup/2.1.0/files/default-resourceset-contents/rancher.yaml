@@ -1,0 +1,49 @@
+- apiVersion: "v1"
+  kindsRegexp: "^namespaces$"
+  resourceNameRegexp: "^cattle-|^p-|^c-|^user-|^u-"
+  resourceNames:
+    - "local"
+- apiVersion: "v1"
+  kindsRegexp: "^secrets$"
+  namespaceRegexp: "^cattle-|^p-|^c-|^local$|^user-|^u-"
+  labelSelectors:
+    matchExpressions:
+      - key: "owner"
+        operator: "NotIn"
+        values: ["helm"]
+- apiVersion: "v1"
+  kindsRegexp: "^serviceaccounts$"
+  namespaceRegexp: "^cattle-|^p-|^c-|^local$|^user-|^u-"
+- apiVersion: "v1"
+  kindsRegexp: "^configmaps$"
+  namespaces:
+    - "cattle-system"
+- apiVersion: "rbac.authorization.k8s.io/v1"
+  kindsRegexp: "^roles$|^rolebindings$"
+  namespaceRegexp: "^cattle-|^p-|^c-|^local$|^user-|^u-"
+- apiVersion: "rbac.authorization.k8s.io/v1"
+  kindsRegexp: "^clusterrolebindings$"
+  resourceNameRegexp: "^cattle-|^clusterrolebinding-|^globaladmin-user-|^grb-u-|^crb-"
+- apiVersion: "rbac.authorization.k8s.io/v1"
+  kindsRegexp: "^clusterroles$"
+  resourceNameRegexp: "^cattle-|^p-|^c-|^local-|^user-|^u-|^project-|^create-ns$"
+- apiVersion: "apiextensions.k8s.io/v1"
+  kindsRegexp: "."
+  resourceNameRegexp: "management.cattle.io$|project.cattle.io$|catalog.cattle.io$|resources.cattle.io$"
+- apiVersion: "management.cattle.io/v3"
+  kindsRegexp: "."
+  excludeKinds:
+    - "tokens"
+- apiVersion: "management.cattle.io/v3"
+  kindsRegexp: "^tokens$"
+  labelSelectors:
+    matchExpressions:
+      - key: "authn.management.cattle.io/kind"
+        operator: "NotIn"
+        values: [ "provisioning" ]
+- apiVersion: "project.cattle.io/v3"
+  kindsRegexp: "."
+- apiVersion: "catalog.cattle.io/v1"
+  kindsRegexp: "^clusterrepos$"
+- apiVersion: "resources.cattle.io/v1"
+  kindsRegexp: "^ResourceSet$"

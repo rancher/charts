@@ -1,0 +1,88 @@
+suite: Test PVC
+templates:
+- pvc.yaml
+- _helpers.tpl
+tests:
+- it: should set name
+  template: pvc.yaml
+  set:
+    persistence:
+      enabled: true
+  asserts:
+  - equal:
+      path: metadata.name
+      value: "RELEASE-NAME-0"
+- it: should set namespace
+  template: pvc.yaml
+  set:
+    persistence:
+      enabled: true
+  asserts:
+  - equal:
+      path: metadata.namespace
+      value: "NAMESPACE"
+- it: should set accessModes
+  template: pvc.yaml
+  set:
+    persistence:
+      enabled: true
+  asserts:
+  - equal:
+      path: spec.accessModes[0]
+      value: "ReadWriteOnce"
+- it: should set size
+  template: pvc.yaml
+  set:
+    persistence:
+      enabled: true
+  asserts:
+  - equal:
+      path: spec.resources.requests.storage
+      value: "2Gi"
+- it: should set size
+  template: pvc.yaml
+  set:
+    persistence:
+      enabled: true
+      size: "10Gi"
+  asserts:
+  - equal:
+      path: spec.resources.requests.storage
+      value: "10Gi"
+- it: should not set volumeName
+  template: pvc.yaml
+  set:
+    persistence:
+      enabled: true
+  asserts:
+  - isNull:
+      path: spec.volumeName
+- it: should set default storageClass
+  template: pvc.yaml
+  set:
+    persistence:
+      enabled: true
+  asserts:
+  - equal:
+      path: spec.storageClassName
+      value: ""
+- it: should set custom storageClass
+  template: pvc.yaml
+  set:
+    persistence:
+      enabled: true
+      storageClass: "storage-class"
+  asserts:
+  - equal:
+      path: spec.storageClassName
+      value: "storage-class"
+- it: should set custom volumeName
+  template: pvc.yaml
+  set:
+    persistence:
+      enabled: true
+      volumeName: "volume-name"
+  asserts:
+  - equal:
+      path: spec.volumeName
+      value: "volume-name"

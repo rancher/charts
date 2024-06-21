@@ -1,0 +1,185 @@
+suite: Test Deployment
+templates:
+- deployment.yaml
+- s3-secret.yaml
+- pvc.yaml
+- _helpers.tpl
+tests:
+- it: should set name
+  template: deployment.yaml
+  asserts:
+  - equal:
+      path: metadata.name
+      value: "rancher-backup"
+- it: should set namespace
+  template: deployment.yaml
+  asserts:
+  - equal:
+      path: metadata.namespace
+      value: "NAMESPACE"
+- it: should set priorityClassName
+  set:
+    priorityClassName: "testClass"
+  template: deployment.yaml
+  asserts:
+  - equal:
+      path: spec.template.spec.priorityClassName
+      value: "testClass"
+- it: should set default imagePullPolicy
+  template: deployment.yaml
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].imagePullPolicy
+      value: "Always"
+- it: should set imagePullPolicy
+  set:
+    imagePullPolicy: "IfNotPresent"
+  template: deployment.yaml
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].imagePullPolicy
+      value: "IfNotPresent"
+- it: should set debug loglevel
+  set:
+    debug: true
+  template: deployment.yaml
+  asserts:
+  - contains:
+      path: spec.template.spec.containers[0].args
+      content: "--debug"
+- it: should set trace loglevel
+  set:
+    trace: true
+  template: deployment.yaml
+  asserts:
+  - contains:
+      path: spec.template.spec.containers[0].args
+      content: "--trace"
+- it: should set proxy environment variables
+  set:
+    proxy: "https://127.0.0.1:3128"
+  template: deployment.yaml
+  asserts:
+  - contains:
+      path: spec.template.spec.containers[0].env
+      content:
+        name: HTTP_PROXY
+        value: "https://127.0.0.1:3128"
+  - contains:
+      path: spec.template.spec.containers[0].env
+      content:
+        name: HTTPS_PROXY
+        value: "https://127.0.0.1:3128"
+  - contains:
+      path: spec.template.spec.containers[0].env
+      content:
+        name: NO_PROXY
+        value: "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,.svc,.cluster.local"
+- it: should set proxy environment variables with modified noproxy
+  set:
+    proxy: "https://127.0.0.1:3128"
+    noProxy: "192.168.0.0/24"
+  template: deployment.yaml
+  asserts:
+  - contains:
+      path: spec.template.spec.containers[0].env
+      content:
+        name: NO_PROXY
+        value: "192.168.0.0/24"
+- it: should set persistence variables
+  set:
+    persistence.enabled: true
+  template: deployment.yaml
+  asserts:
+  - contains:
+      path: spec.template.spec.containers[0].env
+      content:
+        name: DEFAULT_PERSISTENCE_ENABLED
+        value: "persistence-enabled"
+  - contains:
+      path: spec.template.spec.containers[0].volumeMounts
+      content:
+        mountPath: "/var/lib/backups"
+        name: "pv-storage"
+  - equal:
+      path: spec.template.spec.volumes[0].name
+      value: "pv-storage"
+  - equal:
+      path: spec.template.spec.volumes[0].persistentVolumeClaim
+      value:
+        claimName: RELEASE-NAME-0
+- it: should set private registry
+  template: deployment.yaml
+  set:
+    global.cattle.systemDefaultRegistry: "my.registry.local:3000"
+  asserts:
+  - matchRegex:
+      path: spec.template.spec.containers[0].image
+      pattern: ^my.registry.local:3000/rancher/backup-restore-operator:.*$
+- it: should set nodeselector
+  template: deployment.yaml
+  asserts:
+  - equal:
+      path: spec.template.spec.nodeSelector
+      value:
+        kubernetes.io/os: linux
+- it: should not set default affinity
+  template: deployment.yaml
+  asserts:
+  - isNull:
+      path: spec.template.spec.affinity
+- it: should set custom affinity
+  template: deployment.yaml
+  set:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: disktype
+              operator: In
+              values:
+              - ssd  
+  asserts:
+  - equal:
+      path: spec.template.spec.affinity
+      value:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: disktype
+                operator: In
+                values:
+                - ssd  
+- it: should set tolerations
+  template: deployment.yaml
+  asserts:
+  - equal:
+      path: spec.template.spec.tolerations[0]
+      value:
+        key: "cattle.io/os"
+        value: "linux"
+        effect: "NoSchedule"
+        operator: "Equal"
+- it: should set custom tolerations
+  template: deployment.yaml
+  set:
+    tolerations:
+    - key: "example-key"
+      operator: "Exists"
+      effect: "NoSchedule"
+  asserts:
+  - equal:
+      path: spec.template.spec.tolerations[0]
+      value:
+        key: "cattle.io/os"
+        value: "linux"
+        effect: "NoSchedule"
+        operator: "Equal"
+  - equal:
+      path: spec.template.spec.tolerations[1]
+      value:
+        key: "example-key"
+        operator: "Exists"
+        effect: "NoSchedule"
