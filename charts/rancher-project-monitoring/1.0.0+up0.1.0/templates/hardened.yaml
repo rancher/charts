@@ -1,0 +1,121 @@
+{{- $namespaces := dict "_0" .Release.Namespace -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ template "project-prometheus-stack.fullname" . }}-patch-sa
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ template "project-prometheus-stack.fullname" . }}-patch-sa
+  annotations:
+    "helm.sh/hook": post-install, post-upgrade
+    "helm.sh/hook-delete-policy": hook-succeeded, before-hook-creation
+spec:
+  template:
+    metadata:
+      name: {{ template "project-prometheus-stack.fullname" . }}-patch-sa
+      labels:
+        app: {{ template "project-prometheus-stack.fullname" . }}-patch-sa
+    spec:
+      serviceAccountName: {{ template "project-prometheus-stack.fullname" . }}-patch-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      restartPolicy: Never
+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+      containers:
+      {{- range $_, $ns := $namespaces }}
+      - name: patch-sa-{{ $ns }}
+        image: {{ template "system_default_registry" $ }}{{ $.Values.global.kubectl.repository }}:{{ $.Values.global.kubectl.tag }}
+        imagePullPolicy: {{ $.Values.global.kubectl.pullPolicy }}
+        command: ["kubectl", "patch", "serviceaccount", "default", "-p", "{\"automountServiceAccountToken\": false}"]
+        args: ["-n", "{{ $ns }}"]
+      {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "project-prometheus-stack.fullname" . }}-patch-sa
+  labels:
+    app: {{ template "project-prometheus-stack.fullname" . }}-patch-sa
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
+  verbs: ['get', 'patch']
+- apiGroups: ['policy']
+  resources: ['podsecuritypolicies']
+  verbs:     ['use']
+  resourceNames:
+  - {{ template "project-prometheus-stack.fullname" . }}-patch-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ template "project-prometheus-stack.fullname" . }}-patch-sa
+  labels:
+    app: {{ template "project-prometheus-stack.fullname" . }}-patch-sa
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ template "project-prometheus-stack.fullname" . }}-patch-sa
+subjects:
+- kind: ServiceAccount
+  name: {{ template "project-prometheus-stack.fullname" . }}-patch-sa
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ template "project-prometheus-stack.fullname" . }}-patch-sa
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ template "project-prometheus-stack.fullname" . }}-patch-sa
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: {{ template "project-prometheus-stack.fullname" . }}-patch-sa
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ template "project-prometheus-stack.fullname" . }}-patch-sa
+spec:
+  privileged: false
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+  seLinux:
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1
+        max: 65535
+  fsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1
+        max: 65535
+  readOnlyRootFilesystem: false
+  volumes:
+    - 'secret'
+{{- range $_, $ns := $namespaces }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-allow-all
+  namespace: {{ $ns }}
+spec:
+  podSelector: {}
+  ingress:
+  - {}
+  egress:
+  - {}
+  policyTypes:
+  - Ingress
+  - Egress
+{{- end }}
