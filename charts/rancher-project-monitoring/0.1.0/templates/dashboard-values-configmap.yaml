@@ -1,0 +1,57 @@
+{{- $rancherDashboards := dict }}
+{{- range $glob := tuple "files/rancher/workloads/*" "files/rancher/pods/*" -}}
+{{- range $dashboard, $_ := ($.Files.Glob $glob) }}
+{{- $dashboardMap := ($.Files.Get $dashboard | fromJson) }}
+{{- $_ := set $rancherDashboards (get $dashboardMap "uid") (get $dashboardMap "title") -}}
+{{- end }}
+{{- end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "project-prometheus-stack.fullname" . }}-dashboard-values
+  namespace: {{ template "project-prometheus-stack.namespace" . }}
+  labels: {{ include "project-prometheus-stack.labels" . | nindent 4 }}
+    helm.cattle.io/dashboard-values-configmap: {{ .Release.Name }}
+data:
+  values.json: |-
+    {
+{{- if not .Values.prometheus.enabled }}
+      "prometheusURL": "",
+{{- else if .Values.prometheus.prometheusSpec.externalUrl }}
+      "prometheusURL": "{{ tpl .Values.prometheus.prometheusSpec.externalUrl . }}",
+{{- else if and .Values.prometheus.ingress.enabled .Values.prometheus.ingress.hosts }}
+      "prometheusURL": "http://{{ tpl (index .Values.prometheus.ingress.hosts 0) . }}{{ .Values.prometheus.prometheusSpec.routePrefix }}",
+{{- else if not (or (kindIs "invalid" .Values.global.cattle.url) (kindIs "invalid" .Values.global.cattle.clusterId)) }}
+      "prometheusURL": "{{ .Values.global.cattle.url }}/k8s/clusters/{{ .Values.global.cattle.clusterId }}/api/v1/namespaces/{{ template "project-prometheus-stack.namespace" . }}/services/http:{{ template "project-prometheus-stack.fullname" . }}-prometheus:{{ .Values.prometheus.service.port }}/proxy",
+{{- else }}
+      "prometheusURL": "http://{{ template "project-prometheus-stack.fullname" . }}-prometheus.{{ template "project-prometheus-stack.namespace" . }}:{{ .Values.prometheus.service.port }}",
+{{- end }}
+
+{{- if not .Values.grafana.enabled }}
+      "grafanaURL": "",
+{{- else if and .Values.grafana.ingress.enabled .Values.grafana.ingress.hosts }}
+      "grafanaURL": "http://{{ tpl (index .Values.grafana.ingress.hosts 0) . }}{{ .Values.grafana.grafanaSpec.ingress.path }}",
+{{- else if not (or (kindIs "invalid" .Values.global.cattle.url) (kindIs "invalid" .Values.global.cattle.clusterId)) }}
+      "grafanaURL": "{{ .Values.global.cattle.url }}/k8s/clusters/{{ .Values.global.cattle.clusterId }}/api/v1/namespaces/{{ template "project-prometheus-stack.namespace" . }}/services/http:{{ include "call-nested" (list . "grafana" "grafana.fullname") }}:{{ .Values.grafana.service.port }}/proxy",
+{{- else }}
+      "grafanaURL": "http://{{ include "call-nested" (list . "grafana" "grafana.fullname") }}.{{ template "project-prometheus-stack.namespace" . }}:{{ .Values.grafana.service.port }}",
+{{- end }}
+
+{{- if not .Values.alertmanager.enabled }}
+      "alertmanagerURL": "",
+{{- else if .Values.alertmanager.alertmanagerSpec.externalUrl }}
+      "alertmanagerURL": "{{ tpl .Values.alertmanager.alertmanagerSpec.externalUrl . }}",
+{{- else if and .Values.alertmanager.ingress.enabled .Values.alertmanager.ingress.hosts }}
+      "alertmanagerURL": "http://{{ tpl (index .Values.alertmanager.ingress.hosts 0) . }}{{ .Values.alertmanager.alertmanagerSpec.routePrefix }}",
+{{- else if not (or (kindIs "invalid" .Values.global.cattle.url) (kindIs "invalid" .Values.global.cattle.clusterId)) }}
+      "alertmanagerURL": "{{ .Values.global.cattle.url }}/k8s/clusters/{{ .Values.global.cattle.clusterId }}/api/v1/namespaces/{{ template "project-prometheus-stack.namespace" . }}/services/http:{{ template "project-prometheus-stack.fullname" . }}-alertmanager:{{ .Values.alertmanager.service.port }}/proxy",
+{{- else }}
+      "alertmanagerURL": "http://{{ template "project-prometheus-stack.fullname" . }}-alertmanager.{{ template "project-prometheus-stack.namespace" . }}:{{ .Values.alertmanager.service.port }}",
+{{- end }}
+
+{{- if and .Values.grafana.enabled .Values.grafana.defaultDashboardsEnabled }}
+      "rancherDashboards": {{- $rancherDashboards | toPrettyJson | nindent 8 }}
+{{- else }}
+      "rancherDashboards": []
+{{- end }}
+    }

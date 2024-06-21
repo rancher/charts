@@ -1,0 +1,21 @@
+{{- if and .Values.alertmanager.enabled .Values.alertmanager.podDisruptionBudget.enabled }}
+apiVersion: {{ include "project-prometheus-stack.pdb.apiVersion" . }}
+kind: PodDisruptionBudget
+metadata:
+  name: {{ template "project-prometheus-stack.fullname" . }}-alertmanager
+  namespace: {{ template "project-prometheus-stack.namespace" . }}
+  labels:
+    app: {{ template "project-prometheus-stack.name" . }}-alertmanager
+{{ include "project-prometheus-stack.labels" . | indent 4 }}
+spec:
+  {{- if .Values.alertmanager.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.alertmanager.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  {{- if .Values.alertmanager.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.alertmanager.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: alertmanager
+      alertmanager: {{ template "project-prometheus-stack.fullname" . }}-alertmanager
+{{- end }}

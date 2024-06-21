@@ -1,0 +1,36 @@
+{{- if or (and .Values.grafana.enabled .Values.grafana.sidecar.datasources.enabled) .Values.grafana.forceDeployDatasources }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "project-prometheus-stack.fullname" . }}-grafana-datasource
+  namespace: {{ include "project-prometheus-stack.namespace" . }}
+{{- if .Values.grafana.sidecar.datasources.annotations }}
+  annotations:
+{{ toYaml .Values.grafana.sidecar.datasources.annotations | indent 4 }}
+{{- end }}
+  labels:
+    {{ $.Values.grafana.sidecar.datasources.label }}: "1"
+    app: {{ template "project-prometheus-stack.name" $ }}-grafana
+{{ include "project-prometheus-stack.labels" $ | indent 4 }}
+data:
+  datasource.yaml: |-
+    apiVersion: 1
+    datasources:
+{{- $scrapeInterval := .Values.grafana.sidecar.datasources.defaultDatasourceScrapeInterval | default .Values.prometheus.prometheusSpec.scrapeInterval | default "30s" }}
+{{- if .Values.grafana.sidecar.datasources.defaultDatasourceEnabled }}
+    - name: Prometheus
+      type: prometheus
+      {{- if .Values.grafana.sidecar.datasources.url }}
+      url: {{ .Values.grafana.sidecar.datasources.url }}
+      {{- else }}
+      url: http://{{ template "project-prometheus-stack.fullname" . }}-prometheus.{{ template "project-prometheus-stack.namespace" . }}:{{ .Values.prometheus.service.port }}/{{ trimPrefix "/" .Values.prometheus.prometheusSpec.routePrefix }}
+      {{- end }}
+      access: proxy
+      isDefault: true
+      jsonData:
+        timeInterval: {{ $scrapeInterval }}
+{{- end }}
+{{- if .Values.grafana.additionalDataSources }}
+{{ tpl (toYaml .Values.grafana.additionalDataSources | indent 4) . }}
+{{- end }}
+{{- end }}
