@@ -1,0 +1,124 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "helm-project-operator.name" . }}
+  namespace: {{ template "helm-project-operator.namespace" . }}
+  labels: {{ include "helm-project-operator.labels" . | nindent 4 }}
+    app: {{ template "helm-project-operator.name" . }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ template "helm-project-operator.name" . }}
+      release: {{ $.Release.Name | quote }}
+  template:
+    metadata:
+      labels: {{ include "helm-project-operator.labels" . | nindent 8 }}
+        app: {{ template "helm-project-operator.name" . }}
+    spec:
+      containers:
+        - name: {{ template "helm-project-operator.name" . }}
+          image: "{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+          args:
+          - {{ template "helm-project-operator.name" . }}
+          - --namespace={{ template "helm-project-operator.namespace" . }}
+          - --controller-name={{ template "helm-project-operator.name" . }}
+          - --values-override-file=/etc/helmprojectoperator/config/values.yaml
+{{- if .Values.global.cattle.systemDefaultRegistry }}
+          - --system-default-registry={{ .Values.global.cattle.systemDefaultRegistry }}
+{{- end }}
+{{- if .Values.global.cattle.url }}
+          - --cattle-url={{ .Values.global.cattle.url }}
+{{- end }}
+{{- if .Values.global.cattle.projectLabel }}
+          - --project-label={{ .Values.global.cattle.projectLabel }}
+{{- end }}
+{{- if not .Values.projectReleaseNamespaces.enabled }}
+          - --system-project-label-values={{ join "," (append .Values.otherSystemProjectLabelValues .Values.global.cattle.systemProjectId) }}
+{{- else if and (ne (len .Values.global.cattle.systemProjectId) 0) (ne (len .Values.projectReleaseNamespaces.labelValue) 0) (ne .Values.projectReleaseNamespaces.labelValue .Values.global.cattle.systemProjectId) }}
+          - --system-project-label-values={{ join "," (append .Values.otherSystemProjectLabelValues .Values.global.cattle.systemProjectId) }}
+{{- else if len .Values.otherSystemProjectLabelValues }}
+          - --system-project-label-values={{ join "," .Values.otherSystemProjectLabelValues }}
+{{- end }}
+{{- if .Values.projectReleaseNamespaces.enabled }}
+{{- if .Values.projectReleaseNamespaces.labelValue }}
+          - --project-release-label-value={{ .Values.projectReleaseNamespaces.labelValue }}
+{{- else if .Values.global.cattle.systemProjectId }}
+          - --project-release-label-value={{ .Values.global.cattle.systemProjectId }}
+{{- end }}
+{{- end }}
+{{- if .Values.global.cattle.clusterId }}
+          - --cluster-id={{ .Values.global.cattle.clusterId }}
+{{- end }}
+{{- if .Values.releaseRoleBindings.aggregate }}
+{{- if .Values.releaseRoleBindings.clusterRoleRefs }}
+{{- if .Values.releaseRoleBindings.clusterRoleRefs.admin }}
+          - --admin-cluster-role={{ .Values.releaseRoleBindings.clusterRoleRefs.admin }}
+{{- end }}
+{{- if .Values.releaseRoleBindings.clusterRoleRefs.edit }}
+          - --edit-cluster-role={{ .Values.releaseRoleBindings.clusterRoleRefs.edit }}
+{{- end }}
+{{- if .Values.releaseRoleBindings.clusterRoleRefs.view }}
+          - --view-cluster-role={{ .Values.releaseRoleBindings.clusterRoleRefs.view }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if .Values.hardenedNamespaces.enabled }}
+          - --hardening-options-file=/etc/helmprojectoperator/config/hardening.yaml
+{{- else }}
+          - --disable-hardening
+{{- end }}
+{{- if .Values.debug }}
+          - --debug
+          - --debug-level={{ .Values.debugLevel }}
+{{- end }}
+{{- if not .Values.helmController.enabled }}
+          - --disable-embedded-helm-controller
+{{- else }}
+          - --helm-job-image={{ template "system_default_registry" . }}{{ .Values.helmController.job.image.repository }}:{{ .Values.helmController.job.image.tag }}
+{{- end }}
+{{- if not .Values.helmLocker.enabled }}
+          - --disable-embedded-helm-locker
+{{- end }}
+{{- if .Values.additionalArgs }}
+{{- toYaml .Values.additionalArgs | nindent 10 }}
+{{- end }}
+          env:
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          ## Note: The below two values only exist to force Helm to upgrade the deployment on
+          ## a change to the contents of the ConfigMap during an upgrade. Neither serve
+          ## any practical purpose and can be removed and replaced with a configmap reloader
+          ## in a future change if dynamic updates are required.
+          - name: HARDENING_OPTIONS_SHA_256_HASH
+            value: {{ .Values.hardenedNamespaces.configuration | toYaml | sha256sum }}
+          - name: VALUES_OVERRIDE_SHA_256_HASH
+            value: {{ .Values.valuesOverride | toYaml | sha256sum }}
+{{- if .Values.resources }}
+          resources: {{ toYaml .Values.resources | nindent 12 }}
+{{- end }}
+{{- if .Values.containerSecurityContext }}
+          securityContext: {{ toYaml .Values.containerSecurityContext | nindent 12 }}
+{{- end }}
+          volumeMounts:
+          - name: config
+            mountPath: "/etc/helmprojectoperator/config"
+      serviceAccountName: {{ template "helm-project-operator.name" . }}
+{{- if .Values.securityContext }}
+      securityContext: {{ toYaml .Values.securityContext | nindent 8 }}
+{{- end }}
+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }} 
+{{- if .Values.nodeSelector }}
+{{- toYaml .Values.nodeSelector | nindent 8 }}
+{{- end }}
+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }} 
+{{- if .Values.tolerations }}
+{{- toYaml .Values.tolerations | nindent 8 }}
+{{- end }}
+      volumes:
+      - name: config
+        configMap:
+          name: {{ template "helm-project-operator.name" . }}-config
