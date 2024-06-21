@@ -1,0 +1,12 @@
+- job_name: 'federate'
+  scrape_interval: {{ .Values.federate.interval }}
+  honor_labels: true
+  metrics_path: '/federate'
+
+  params:
+    'match[]':
+      - '{namespace=~"{{ .Values.global.cattle.projectNamespaces | join "|" }}", job=~"kube-state-metrics|kubelet"}'
+      - '{namespace=~"{{ .Values.global.cattle.projectNamespaces | join "|" }}", job=""}'
+
+  static_configs:
+    - targets: {{ .Values.federate.targets | toYaml | nindent 6 }}
