@@ -10,16 +10,11 @@ forward-port:
 check-release-yaml:
 	./scripts/check-release-yaml
 
-lifecycle-assets:
-	@./scripts/pull-scripts
-	@./bin/charts-build-scripts lifecycle-assets --branch-version=$(BRANCH_VERSION) --debugFlag=$(DEBUG) --chart=$(CHART)
-
-
 validate:
 	@./scripts/pull-scripts
 	@./bin/charts-build-scripts validate $(if $(filter true,$(remote)),--remote) $(if $(filter true,$(local)),--local)
 
-TARGETS := prepare patch clean clean-cache charts list index unzip zip standardize template regsync check-images check-rc lifecycle-status
+TARGETS := prepare patch clean clean-cache charts list index unzip zip standardize template regsync check-images check-rc enforce-lifecycle lifecycle-status
 
 $(TARGETS):
 	@./scripts/pull-scripts

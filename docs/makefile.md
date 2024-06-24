@@ -60,4 +60,5 @@ Please see [`docs/validation.md`](validation.md) for more information on how CI 
 
 `make clean-cache`: Deletes `.charts-build-scripts/.cache`. Only used if `export USE_CACHE=1` is set, which indicates that you are using the experimental caching feature introduced in v0.3.0 of the scripts. Please see [`docs/experimental.md`](experimental.md) for more information.
 
-`make lifecycle-assets BRANCH_VERSION=<2.X> DEBUG="<true || false>"`: Lists all assets versions and then starts to remove older versions with `make remove` enforcing the rules defined at: [New Assets Lifecycle](../README.md#new-assets-lifecycle).
+`BRANCH_VERSION="<2.X>" CHART="<some_chart>" DEBUG="<true || false>" make enforce-lifecycle`: Lists all assets versions and then starts to remove older versions with `make remove` enforcing the rules defined at: [New Assets Lifecycle](../README.md#new-assets-lifecycle).
+If run without specifying `CHART=`, will enforce lifecycle rules in all charts.
