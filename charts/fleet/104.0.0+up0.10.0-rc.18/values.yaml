@@ -1,11 +1,11 @@
 image:
   repository: rancher/fleet
-  tag: v0.10.0-rc.17
+  tag: v0.10.0-rc.18
   imagePullPolicy: IfNotPresent
 
 agentImage:
   repository: rancher/fleet-agent
-  tag: v0.10.0-rc.17
+  tag: v0.10.0-rc.18
   imagePullPolicy: IfNotPresent
 
 # For cluster registration the public URL of the Kubernetes API server must be set here
@@ -15,6 +15,10 @@ apiServerURL: ""
 # For cluster registration the pem encoded value of the CA of the Kubernetes API server must be set here
 # If left empty it is assumed this Kubernetes API TLS is signed by a well known CA.
 apiServerCA: ""
+
+# Determines whether the agent should trust CA bundles from the operating system's trust store when connecting to a
+# management cluster. True in `system-store` mode, false in `strict` mode.
+agentTLSMode: "system-store"
 
 # A duration string for how often agents should report a heartbeat
 agentCheckinInterval: "15m"
@@ -47,7 +51,6 @@ bootstrap:
   secret: ""
   branch: master
   paths: ""
-
 
 global:
   cattle:
@@ -104,3 +107,14 @@ controller:
 # extraEnv:
 # - name: EXPERIMENTAL_OCI_STORAGE
 #   value: "true"
+
+# shards:
+#   - id: shard0
+#     nodeSelector:
+#       kubernetes.io/hostname: k3d-upstream-server-0
+#   - id: shard1
+#     nodeSelector:
+#       kubernetes.io/hostname: k3d-upstream-server-1
+#   - id: shard2
+#     nodeSelector:
+#       kubernetes.io/hostname: k3d-upstream-server-2
