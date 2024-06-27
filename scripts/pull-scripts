@@ -6,7 +6,9 @@ cd $(dirname $0)
 source ./version
 
 if ls ../bin/charts-build-scripts 1>/dev/null 2>/dev/null; then
-    CURRENT_SCRIPT_VERSION=$(../bin/charts-build-scripts --version | cut -d' ' -f3)
+    # Use awk to split the version output correctly and extract the version number
+    CURRENT_SCRIPT_VERSION="v$(../bin/charts-build-scripts --version | awk '{print $3}')"
+    echo "Current version: ${CURRENT_SCRIPT_VERSION}, Expected version: ${CHARTS_BUILD_SCRIPT_VERSION}"
     if [[ "${CURRENT_SCRIPT_VERSION}" == "${CHARTS_BUILD_SCRIPT_VERSION}" ]]; then
         exit 0
     fi
@@ -29,9 +31,9 @@ fi
 curl -s -L ${CHARTS_BUILD_SCRIPTS_REPO%.git}/releases/download/${CHARTS_BUILD_SCRIPT_VERSION}/${BINARY_NAME} --output bin/charts-build-scripts
 
 # Fall back to binary name format from old release scheme
-if ! [[ -f bin/charts-build-scripts ]] || [[ $(cat bin/charts-build-scripts) == "Not Found" ]]; then 
+if ! [[ -f bin/charts-build-scripts ]] || [[ $(cat bin/charts-build-scripts) == "Not Found" ]]; then
     echo "Falling back to old binary name format..."
-    rm bin/charts-build-scripts; 
+    rm bin/charts-build-scripts;
     if [[ ${OS} == "linux" ]]; then
         BINARY_NAME=charts-build-scripts
     else
