@@ -1,0 +1,26 @@
+{{- if .Values.manager.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: neuvector-service-webui
+  namespace: {{ .Release.Namespace }}
+{{- with .Values.manager.svc.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+  type: {{ .Values.manager.svc.type }}
+{{- if and .Values.manager.svc.loadBalancerIP (eq .Values.manager.svc.type "LoadBalancer") }}
+  loadBalancerIP: {{ .Values.manager.svc.loadBalancerIP }}
+{{- end }}
+  ports:
+    - port: 8443
+      name: manager
+      protocol: TCP
+  selector:
+    app: neuvector-manager-pod
+{{- end }}
