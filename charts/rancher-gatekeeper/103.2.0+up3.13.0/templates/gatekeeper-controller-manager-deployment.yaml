@@ -1,0 +1,171 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: '{{ template "gatekeeper.name" . }}'
+    chart: '{{ template "gatekeeper.name" . }}'
+    control-plane: controller-manager
+    gatekeeper.sh/operation: webhook
+    gatekeeper.sh/system: "yes"
+    heritage: '{{ .Release.Service }}'
+    release: '{{ .Release.Name }}'
+  name: gatekeeper-controller-manager
+  namespace: '{{ .Release.Namespace }}'
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: '{{ template "gatekeeper.name" . }}'
+      chart: '{{ template "gatekeeper.name" . }}'
+      control-plane: controller-manager
+      gatekeeper.sh/operation: webhook
+      gatekeeper.sh/system: "yes"
+      heritage: '{{ .Release.Service }}'
+      release: '{{ .Release.Name }}'
+  strategy:
+    type: {{ .Values.controllerManager.strategyType }}
+  template:
+    metadata:
+      annotations:
+        {{- if .Values.podAnnotations }}
+        {{- toYaml .Values.podAnnotations | trim | nindent 8 }}
+        {{- end }}
+      labels:
+{{- include "gatekeeper.podLabels" . }}
+        app: '{{ template "gatekeeper.name" . }}'
+        chart: '{{ template "gatekeeper.name" . }}'
+        control-plane: controller-manager
+        gatekeeper.sh/operation: webhook
+        gatekeeper.sh/system: "yes"
+        heritage: '{{ .Release.Service }}'
+        release: '{{ .Release.Name }}'
+    spec:
+      affinity:
+        {{- toYaml .Values.controllerManager.affinity | nindent 8 }}
+      automountServiceAccountToken: true
+      containers:
+      - image: '{{ template "system_default_registry" . }}{{ .Values.images.gatekeeper.repository }}:{{ .Values.images.gatekeeper.tag }}'
+        imagePullPolicy: '{{ .Values.images.pullPolicy }}'
+        args:
+        - --port={{ .Values.controllerManager.port }}
+        - --health-addr=:{{ .Values.controllerManager.healthPort }}
+        - --prometheus-port={{ .Values.controllerManager.metricsPort }}
+        - --logtostderr
+        - --log-denies={{ .Values.logDenies }}
+        - --emit-admission-events={{ .Values.emitAdmissionEvents }}
+        - --admission-events-involved-namespace={{ .Values.admissionEventsInvolvedNamespace }}
+        - --log-level={{ (.Values.controllerManager.logLevel | empty | not) | ternary .Values.controllerManager.logLevel .Values.logLevel }}
+        - --exempt-namespace={{ .Release.Namespace }}
+        - --operation=webhook
+        - --enable-external-data={{ .Values.enableExternalData }}
+        - --enable-generator-resource-expansion={{ .Values.enableGeneratorResourceExpansion }}
+        - --log-mutations={{ .Values.logMutations }}
+        - --mutation-annotations={{ .Values.mutationAnnotations }}
+        - --disable-cert-rotation={{ .Values.controllerManager.disableCertRotation }}
+        - --max-serving-threads={{ .Values.maxServingThreads }}
+        - --tls-min-version={{ .Values.controllerManager.tlsMinVersion }}
+        {{ if ne .Values.controllerManager.clientCertName "" }}- --client-cert-name={{ .Values.controllerManager.clientCertName }}{{- end }}
+        
+        {{- range .Values.metricsBackends}}
+        - --metrics-backend={{ . }}
+        {{- end }}
+        {{ if .Values.enableTLSHealthcheck}}- --enable-tls-healthcheck{{- end }}
+        {{ if not .Values.disableMutation}}- --operation=mutation-webhook{{- end }}
+        
+        {{- range .Values.disabledBuiltins}}
+        - --disable-opa-builtin={{ . }}
+        {{- end }}
+        
+        {{- range .Values.controllerManager.exemptNamespaces}}
+        - --exempt-namespace={{ . }}
+        {{- end }}
+        
+        {{- range .Values.controllerManager.exemptNamespacePrefixes}}
+        - --exempt-namespace-prefix={{ . }}
+        {{- end }}
+        
+        {{- range .Values.controllerManager.exemptNamespaceSuffixes}}
+        - --exempt-namespace-suffix={{ . }}
+        {{- end }}
+        
+        {{- if .Values.controllerManager.logFile}}
+        - --log-file={{ .Values.controllerManager.logFile }}
+        {{- end }}
+        command:
+        - /manager
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: CONTAINER_NAME
+          value: manager
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: {{ .Values.controllerManager.healthPort }}
+          timeoutSeconds: {{ .Values.controllerManager.livenessTimeout }}
+        name: manager
+        ports:
+        - containerPort: {{ .Values.controllerManager.port }}
+          name: webhook-server
+          protocol: TCP
+        - containerPort: {{ .Values.controllerManager.metricsPort }}
+          name: metrics
+          protocol: TCP
+        - containerPort: {{ .Values.controllerManager.healthPort }}
+          name: healthz
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: {{ .Values.controllerManager.healthPort }}
+          timeoutSeconds: {{ .Values.controllerManager.readinessTimeout }}
+        resources:
+          {{- toYaml .Values.controllerManager.resources | nindent 10 }}
+        securityContext:
+          {{- if .Values.enableRuntimeDefaultSeccompProfile }}
+          seccompProfile:
+            type: RuntimeDefault
+          {{- end }}
+          {{- toYaml .Values.controllerManager.securityContext | nindent 10}}
+        volumeMounts:
+        - mountPath: /certs
+          name: cert
+          readOnly: true
+      dnsPolicy: {{ .Values.controllerManager.dnsPolicy }}
+      hostNetwork: {{ .Values.controllerManager.hostNetwork }}
+      imagePullSecrets:
+        {{- toYaml .Values.images.pullSecrets | nindent 8 }}
+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
+{{- if .Values.controllerManager.nodeSelector }}
+{{ toYaml .Values.controllerManager.nodeSelector | indent 8 }}
+{{- end }}
+      {{- if .Values.controllerManager.priorityClassName }}
+      priorityClassName:  {{ .Values.controllerManager.priorityClassName }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.controllerManager.podSecurityContext | nindent 8 }}
+      serviceAccountName: gatekeeper-admin
+      terminationGracePeriodSeconds: 60
+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+{{- if .Values.controllerManager.tolerations }}
+{{ toYaml .Values.controllerManager.tolerations | indent 8 }}
+{{- end }}
+      topologySpreadConstraints:
+        {{- toYaml .Values.controllerManager.topologySpreadConstraints | nindent 8 }}
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: gatekeeper-webhook-server-cert
