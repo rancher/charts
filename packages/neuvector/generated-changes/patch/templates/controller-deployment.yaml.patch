@@ -1,11 +1,11 @@
 --- charts-original/templates/controller-deployment.yaml
 +++ charts/templates/controller-deployment.yaml
-@@ -79,23 +79,7 @@
+@@ -87,23 +87,7 @@
        {{- end }}
        containers:
          - name: neuvector-controller-pod
 -          {{- if .Values.global.azure.enabled }}
--          image: "{{ .Values.global.azure.images.controller.registry }}/{{ .Values.global.azure.images.controller.image }}@{{ .Values.global.azure.images.controller.digest }}"
+-          image: "{{ .Values.global.azure.images.controller.registry }}/{{ .Values.global.azure.images.controller.image }}:{{ .Values.global.azure.images.controller.tag }}"
 -          {{- else }}
 -          {{- if eq .Values.registry "registry.neuvector.com" }}
 -          {{- if .Values.oem }}
@@ -22,10 +22,10 @@
 -          {{- end }}
 -          {{- end }}
 +          image: {{ template "system_default_registry" . }}{{ .Values.controller.image.repository }}:{{ .Values.controller.image.tag }}
+           {{- if $pre530 }}
            securityContext:
              privileged: true
-           resources:
-@@ -132,18 +116,6 @@
+@@ -145,18 +129,6 @@
              - name: CTRL_PERSIST_CONFIG
                value: "1"
            {{- end }}
