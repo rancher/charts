@@ -1,9 +1,14 @@
 --- charts-original/templates/prometheus/servicemonitor.yaml
 +++ charts/templates/prometheus/servicemonitor.yaml
-@@ -38,6 +38,16 @@
-     {{- if .Values.prometheus.serviceMonitor.metricRelabelings }}
-     metricRelabelings: {{- tpl (toYaml .Values.prometheus.serviceMonitor.metricRelabelings | nindent 6) . }}
+@@ -35,8 +35,19 @@
+     bearerTokenFile: {{ .Values.prometheus.serviceMonitor.bearerTokenFile }}
      {{- end }}
+     path: "{{ trimSuffix "/" .Values.prometheus.prometheusSpec.routePrefix }}/metrics"
++    metricRelabelings: 
+     {{- if .Values.prometheus.serviceMonitor.metricRelabelings }}
+-    metricRelabelings: {{- tpl (toYaml .Values.prometheus.serviceMonitor.metricRelabelings | nindent 6) . }}
++    {{- tpl (toYaml .Values.prometheus.serviceMonitor.metricRelabelings | nindent 6) . }}
++    {{- end }}
 +    {{ if .Values.global.cattle.clusterId }}
 +      - sourceLabels: [__address__]
 +        targetLabel: cluster_id
@@ -13,7 +18,6 @@
 +      - sourceLabels: [__address__]
 +        targetLabel: cluster_name
 +        replacement: {{ .Values.global.cattle.clusterName }}
-+    {{- end }}
+     {{- end }}
      {{- if .Values.prometheus.serviceMonitor.relabelings }}
      relabelings: {{- toYaml .Values.prometheus.serviceMonitor.relabelings | nindent 6 }}
-     {{- end }}
