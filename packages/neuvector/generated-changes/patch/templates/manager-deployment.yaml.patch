@@ -1,11 +1,11 @@
 --- charts-original/templates/manager-deployment.yaml
 +++ charts/templates/manager-deployment.yaml
-@@ -67,23 +67,7 @@
+@@ -71,23 +71,7 @@
        {{- end }}
        containers:
          - name: neuvector-manager-pod
 -          {{- if .Values.global.azure.enabled }}
--          image: "{{ .Values.global.azure.images.manager.registry }}/{{ .Values.global.azure.images.manager.image }}@{{ .Values.global.azure.images.manager.digest }}"
+-          image: "{{ .Values.global.azure.images.manager.registry }}/{{ .Values.global.azure.images.manager.image }}:{{ .Values.global.azure.images.manager.tag }}"
 -          {{- else }}
 -          {{- if eq .Values.registry "registry.neuvector.com" }}
 -          {{- if .Values.oem }}
@@ -22,6 +22,6 @@
 -          {{- end }}
 -          {{- end }}
 +          image: {{ template "system_default_registry" . }}{{ .Values.manager.image.repository }}:{{ .Values.manager.image.tag }}
-           env:
-             - name: CTRL_SERVER_IP
-               value: neuvector-svc-controller.{{ .Release.Namespace }}
+           ports:
+             - name: http
+               containerPort: 8443

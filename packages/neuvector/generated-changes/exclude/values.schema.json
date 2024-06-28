@@ -1,0 +1,1689 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "properties": {
+    "openshift": {
+      "type": "boolean",
+      "description": "If deploying in OpenShift, set this to true"
+    },
+    "registry": {
+      "type": "string",
+      "description": "NeuVector container registry"
+    },
+    "tag": {
+      "type": ["string", "null"],
+      "description": "image tag for controller enforcer manager"
+    },
+    "oem": {
+      "type": ["string", "null"],
+      "description": "OEM release name"
+    },
+    "imagePullSecrets": {
+      "description": "image pull secret"
+    },
+    "psp": {
+      "type": "boolean",
+      "description": "NeuVector Pod Security Policy when psp policy is enabled"
+    },
+    "rbac": {
+      "type": "boolean",
+      "description": "NeuVector RBAC Manifests are installed when RBAC is enabled; required for rancher authentication"
+    },
+    "serviceAccount": {
+      "type": "string",
+      "description": "Service account name for NeuVector components"
+    },
+    "leastPrivilege": {
+      "type": "boolean",
+      "description": "Use least privileged service account"
+    },
+    "global" : {
+      "type": "object",
+      "properties": {
+        "cattle": {
+          "type": "object",
+          "description": "required for rancher authentication",          "properties": {
+            "url": {
+              "type": ["string", "null"],
+              "description": "Set the Rancher Server URL; Required for Rancher Authentication. https://<Rancher_URL>/",
+              "format": "uri"
+            }
+          }
+        },
+        "azure": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "If true, install Azure billing csp adapter; **Note**: default admin user is disabled when azure market place billing enabled, use secret to create admin-role user to manage NeuVector deployment."
+            },
+            "identity": {
+              "type": "object",
+              "properties": {
+                "clientId": {
+                  "type": "string",
+                  "description": "Azure populates this value at deployment time"
+                }
+              }
+            },
+            "marketplace": {
+              "type": "object",
+              "properties": {
+                "planId": {
+                  "type": "string",
+                  "description": "Azure populates this value at deployment time"
+                }
+              }
+            },
+            "extension": {
+              "type": "object",
+              "properties": {
+                "resourceId": {
+                  "type": "string",
+                  "description": "application's Azure Resource ID, Azure populates this value at deployment time"
+                }
+              }
+            },
+            "serviceAccount": {
+              "type": "string",
+              "description": "Service account name for csp adapter"
+            },
+            "imagePullSecrets": {
+              "description": "Pull secret for csp adapter image"
+            },
+            "images": {
+              "type": "object",
+              "properties": {
+                "neuvector_csp_pod": {
+                  "type": "object",
+                  "properties": {
+                    "digest": {
+                      "type": "string",
+                      "description": "csp adapter image digest"
+                    },
+                    "image": {
+                      "type": "string",
+                      "description": " csp adapter image repository"
+                    },
+                    "registry": {
+                      "type": "string",
+                      "description": "csp adapter image registry"
+                    },
+                    "imagePullPolicy": {
+                      "enum": ["Always", "Never", "IfNotPresent"],
+                      "description": "csp adapter image pull policy"
+                    }
+                  }
+                },
+                "controller": {
+                  "type": "object",
+                  "properties": {
+                    "digest": {
+                      "type": "string"
+                    },
+                    "image": {
+                      "type": "string"
+                    },
+                    "registry": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "manager": {
+                  "type": "object",
+                  "properties": {
+                    "digest": {
+                      "type": "string"
+                    },
+                    "image": {
+                      "type": "string"
+                    },
+                    "registry": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "scanner": {
+                  "type": "object",
+                  "properties": {
+                    "digest": {
+                      "type": "string"
+                    },
+                    "image": {
+                      "type": "string"
+                    },
+                    "registry": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "enforcer": {
+                  "type": "object",
+                  "properties": {
+                    "digest": {
+                      "type": "string"
+                    },
+                    "image": {
+                      "type": "string"
+                    },
+                    "registry": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": [
+            "enabled"
+          ]
+        },
+        "aws": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "If true, install AWS billing csp adapter. **Note**: default admin user is disabled when aws market place billing enabled, use secret to create admin-role user to manage NeuVector deployment."
+            },
+            "accountNumber": {
+              "type": ["integer", "string"],
+              "description": "AWS Account Number; Follow AWS subscription instruction"
+            },
+            "roleName": {
+              "type": "string",
+              "description": "AWS Role name for billing; Follow AWS subscription instruction"
+            },
+            "serviceAccount": {
+              "type": "string",
+              "description": "Service account name for csp adapter"
+            },
+            "annotations": {
+              "type": "object"
+            },
+            "imagePullSecrets": {
+              "description": "Pull secret for csp adapter image"
+            },
+            "image": {
+              "type": "object",
+              "properties": {
+                "digest": {
+                  "type": "string",
+                  "description": "csp adapter image digest"
+                },
+                "repository": {
+                  "type": "string",
+                  "description": "csp adapter image repository"
+                },
+                "tag": {
+                  "type": ["string", "null"],
+                  "description": "csp adapter image tag"
+                },
+                "imagePullPolicy": {
+                  "type": "string",
+                  "enum": ["Always", "Never", "IfNotPresent"],
+                  "description": "csp adapter image pull policy"
+                }
+              }
+            }
+          },
+          "required": [
+            "enabled"
+          ]
+        }
+      },
+      "required": [
+        "azure",
+        "aws"
+      ]
+    },
+    "autoGenerateCert": {
+      "type": "boolean",
+      "description": "Automatically generate certificate or not"
+    },
+    "defaultValidityPeriod": {
+      "type": "integer",
+      "description": "The default validity period used for certs automatically generated (days)"
+    },
+    "internal": {
+      "type": "object",
+      "properties": {
+        "certmanager": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "enable when cert-manager is installed for the internal certificates"
+            },
+            "secretname": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "enabled"
+          ]
+        }
+      }
+    },
+    "controller": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "If false, controller will not be installed"
+        },
+        "annotations": {
+          "type": "object"
+        },
+        "strategy": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "enum": ["Recreate", "RollingUpdate"]
+            },
+            "rollingUpdate": {
+              "type": "object",
+              "properties": {
+                "maxSurge": {
+                  "type": "integer"
+                },
+                "maxUnavailable": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": {
+              "type": "string",
+              "description": "controller image repository"
+            },
+            "hash": {
+              "type": ["string", "null"],
+              "description": "controller image hash in the format of sha256:xxxx. If present it overwrites the image tag value."
+            }
+          }
+        },
+        "replicas": {
+          "type": "integer",
+          "description": "controller replicas"
+        },
+        "disruptionbudget": {
+          "type": "integer",
+          "description": "controller PodDisruptionBudget. 0 to disable. Recommended value: 2."
+        },
+        "schedulerName": {
+          "type": ["string", "null"],
+          "description": "kubernetes scheduler name"
+        },
+        "priorityClassName": {
+          "type": ["string", "null"],
+          "description": "controller priorityClassName. Must exist prior to helm deployment. Leave empty to disable."
+        },
+        "podLabels": {
+          "type": "object",
+          "description": "Specify the pod labels."
+        },
+        "podAnnotations": {
+          "type": "object",
+          "description": "Specify the pod annotations."
+        },
+        "env": {
+          "type": "array",
+          "description": "User-defined environment variables for controller."
+        },
+        "affinity": {
+          "type": "object",
+          "description": "controller affinity rules",
+          "properties": {
+            "podAntiAffinity": {
+              "type": "object",
+              "properties": {
+                "preferredDuringSchedulingIgnoredDuringExecution": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "weight": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100
+                      },
+                      "podAffinityTerm": {
+                        "type": "object",
+                        "properties": {
+                          "labelSelector": {
+                            "type": "object",
+                            "properties": {
+                              "matchExpressions": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "key": {
+                                      "type": "string"
+                                    },
+                                    "operator": {
+                                      "type": "string"
+                                    },
+                                    "values": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "topologyKey": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tolerations": {
+          "type": "array",
+          "description": "List of node taints to tolerate"
+        },
+        "nodeSelector": {
+          "type": "object",
+          "description": "Enable and specify nodeSelector labels"
+        },
+        "apisvc": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "description": "Controller REST API service type"
+            },
+            "annotations": {
+              "type": "object",
+              "description": "Add annotations to controller REST API service"
+            },
+            "route": {
+              "type": "object",
+              "description": "OpenShift Route configuration. Controller supports HTTPS only, so edge termination not supported.",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "If true, create a OpenShift route to expose the Controller REST API service"
+                },
+                "termination": {
+                  "enum": ["passthrough", "reencrypt"],
+                  "description": "Specify TLS termination for OpenShift route for Controller REST API service. Possible passthrough, reencrypt"
+                },
+                "host": {
+                  "type": ["string", "null"],
+                  "format": "hostname",
+                  "description": "Set controller REST API service hostname"
+                },
+                "tls": {
+                  "type": ["object", "null"],
+                  "properties": {
+                    "certificate": {
+                      "type": "string",
+                      "description": "Set controller REST API service PEM format certificate file"
+                    },
+                    "caCertificate": {
+                      "type": "string",
+                      "description": "Set controller REST API service CA certificate may be required to establish a certificate chain for validation"
+                    },
+                    "destinationCACertificate": {
+                      "type": "string",
+                      "description": "Set controller REST API service CA certificate to validate the endpoint certificate"
+                    },
+                    "key": {
+                      "type": "string",
+                      "description": "Set controller REST API service PEM format key file"
+                    }
+                  }
+                }
+              },
+              "required": [
+                "enabled"
+              ]
+            }
+          }
+        },
+        "ranchersso": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "If true, enable single sign on for Rancher; required for rancher authentication"
+            }
+          },
+          "required": [
+            "enabled"
+          ]
+        },
+        "pvc": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "If true, enable persistence for controller using PVC"
+            },
+            "existingClaim": {
+              "type": ["boolean", "string"],
+              "description": "If `false`, a new PVC will be created. If a string is provided, an existing PVC with this name will be used."
+            },
+            "accessModes": {
+              "type": "array",
+              "description": "Access modes for the created PVC. Requires RWX",
+              "items": {
+                "enum": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany", "ReadWriteOncePod"]
+              }
+            },
+            "storageClass": {
+              "type": ["string", "null"],
+              "description": "Storage Class to be used"
+            },
+            "capacity": {
+              "type": ["string", "null"],
+              "description": "Storage capacity. Requires 1Gi",
+              "pattern": "^([0-9]+)(m|k|M|G|T|P|E|Ki|Mi|Gi|Ti|Pi|Ei)$"
+            }
+          },
+          "required": [
+            "enabled"
+          ]
+        },
+        "azureFileShare": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "If true, enable the usage of an existing or statically provisioned Azure File Share"
+            },
+            "secretName": {
+              "type": ["string", "null"],
+              "description": "The name of the secret containing the Azure file share storage account name and key"
+            },
+            "shareName": {
+              "type": ["string", "null"],
+              "description": "The name of the Azure file share to use"
+            }
+          },
+          "required": [
+            "enabled"
+          ]
+        },
+        "certificate": {
+          "type": "object",
+          "properties": {
+            "secret": {
+              "description": "Replace controller REST API certificate using secret if secret name is specified"
+            },
+            "keyFile": {
+              "type": "string",
+              "description": "Replace controller REST API certificate key file"
+            },
+            "pemFile": {
+              "type": "string",
+              "description": "Replace controller REST API certificate pem file"
+            }
+          }
+        },
+        "internal": {
+          "type": "object",
+          "properties": {
+            "certificate": {
+              "type": "object",
+              "description": "this is used for internal communication. Please use the SAME CA for all the components (controller, scanner, adapter and enforcer)",
+              "properties": {
+                "secret": {
+                  "type": "string"
+                },
+                "keyFile": {
+                  "type": "string"
+                },
+                "pemFile": {
+                  "type": "string"
+                },
+                "caFile": {
+                  "type": "string",
+                  "description": "must be the same CA for all internal."
+                }
+              }
+            }
+          }
+        },
+        "federation": {
+          "type": "object",
+          "properties": {
+            "mastersvc": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName", null],
+                  "description": "Multi-cluster primary cluster service type. If specified, the deployment will be used to manage other clusters. Possible values include NodePort, LoadBalancer and ClusterIP."
+                },
+                "clusterIP": {
+                  "type": ["string", "null"],
+                  "format": "ipv4",
+                  "description": "Set clusterIP to be used for mastersvc"
+                },
+                "externalTrafficPolicy": {
+                  "description": "Set externalTrafficPolicy to be used for mastersvc"
+                },
+                "internalTrafficPolicy": {
+                  "description": "Set internalTrafficPolicy to be used for mastersvc"
+                },
+                "ingress": {
+                  "type": "object",
+                  "description": "Federation Master Ingress",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "If true, create ingress for federation master service, must also set ingress host value"
+                    },
+                    "host": {
+                      "type": ["string", "null"],
+                      "description": "MUST be set, if ingress is enabled",
+                      "format": "hostname"
+                    },
+                    "ingressClassName": {
+                      "type": "string",
+                      "description": "To be used instead of the ingress.class annotation if an IngressClass is provisioned"
+                    },
+                    "path": {
+                      "type": "string",
+                      "description": "or this could be \"/api\", but might need \"rewrite-target\" annotation",
+                      "format": "uri-reference"
+                    },
+                    "annotations": {
+                      "type": "object",
+                      "description": "Add annotations to ingress to influence behavior",
+                      "properties": {
+                        "nginx.ingress.kubernetes.io/backend-protocol": {
+                          "type": "string"
+                        },
+                        "ingress.kubernetes.io/rewrite-target": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "tls": {
+                      "type": "boolean",
+                      "description": "If true, TLS is enabled for controller federation master ingress service. If set, the tls-host used is the one set with `controller.federation.mastersvc.ingress.host`."
+                    },
+                    "secretName": {
+                      "type": ["string", "null"],
+                      "description": "Name of the secret to be used for TLS-encryption. Secret must be created separately (Let's encrypt, manually)"
+                    }
+                  },
+                  "required": [
+                    "enabled"
+                  ]
+                },
+                "annotations": {
+                  "type": "object",
+                  "description": "Add annotations to Multi-cluster primary cluster REST API service"
+                },
+                "route": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "If true, create a OpenShift route to expose the Multi-cluster primary cluster service"
+                    },
+                    "termination": {
+                      "enum": ["passthrough", "reencrypt"],
+                      "description": "Specify TLS termination for OpenShift route for Multi-cluster primary cluster service. Possible passthrough, reencrypt"
+                    },
+                    "host": {
+                      "type": ["string", "null"],
+                      "format": "hostname",
+                      "description": "Set OpenShift route host for primary cluster service"
+                    },
+                    "tls": {
+                      "type": ["object", "null"],
+                      "properties": {
+                        "certificate": {
+                          "type": "string",
+                          "description": "Set PEM format key certificate file for OpenShift route for Multi-cluster primary cluster service"
+                        },
+                        "caCertificate": {
+                          "type": "string",
+                          "description": "Set CA certificate may be required to establish a certificate chain for validation for OpenShift route for Multi-cluster primary cluster service"
+                        },
+                        "destinationCACertificate": {
+                          "type": "string",
+                          "description": "Set CA certificate to validate the endpoint certificate for OpenShift route for Multi-cluster primary cluster service"
+                        },
+                        "key": {
+                          "type": "string",
+                          "description": "Set PEM format key file for OpenShift route for Multi-cluster primary cluster service"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "enabled"
+                  ]
+                }
+              }
+            },
+            "managedsvc": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName", null],
+                  "description": "Multi-cluster managed cluster service type. If specified, the deployment will be managed by the managed cluster. Possible values include NodePort, LoadBalancer and ClusterIP."
+                },
+                "clusterIP": {
+                  "type": ["string", "null"],
+                  "format": "ipv4",
+                  "description": "Set clusterIP to be used for managedsvc"
+                },
+                "externalTrafficPolicy": {
+                  "description": "Set externalTrafficPolicy to be used for managedsvc"
+                },
+                "internalTrafficPolicy": {
+                  "description": "Set internalTrafficPolicy to be used for managedsvc"
+                },
+                "ingress": {
+                  "type": "object",
+                  "description": "Federation Managed Ingress",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "If true, create ingress for federation managed service, must also set ingress host value"
+                    },
+                    "host": {
+                      "type": ["string", "null"],
+                      "description": "MUST be set, if ingress is enabled",
+                      "format": "hostname"
+                    },
+                    "ingressClassName": {
+                      "type": "string",
+                      "description": "To be used instead of the ingress.class annotation if an IngressClass is provisioned"
+                    },
+                    "path": {
+                      "type": "string",
+                      "description": "or this could be \"/api\", but might need \"rewrite-target\" annotation",
+                      "format": "uri-reference"
+                    },
+                    "annotations": {
+                      "type": "object",
+                      "description": "Add annotations to ingress to influence behavior",
+                      "properties": {
+                        "nginx.ingress.kubernetes.io/backend-protocol": {
+                          "type": "string"
+                        },
+                        "ingress.kubernetes.io/rewrite-target": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "tls": {
+                      "type": "boolean",
+                      "description": "If true, TLS is enabled for controller federation managed ingress service"
+                    },
+                    "secretName": {
+                     "type": ["string", "null"],
+                     "description": "Name of the secret to be used for TLS-encryption. Secret must be created separately (Let's encrypt, manually)"
+                    }
+                  },
+                  "required": [
+                    "enabled"
+                  ]
+                },
+                "annotations": {
+                  "type": "object",
+                  "description": "Add annotations to Multi-cluster managed cluster REST API service"
+                },
+                "route": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "If true, create a OpenShift route to expose the Multi-cluster managed cluster service"
+                    },
+                    "termination": {
+                      "enum": ["passthrough", "reencrypt"],
+                      "description": "Specify TLS termination for OpenShift route for Multi-cluster managed cluster service. Possible passthrough, reencrypt"
+                    },
+                    "host": {
+                      "type": ["string", "null"],
+                      "format": "hostname",
+                      "description": "Set OpenShift route host for manageed service"
+                    },
+                    "tls": {
+                      "type": ["object", "null"],
+                      "properties": {
+                        "certificate": {
+                          "type": "string",
+                          "description": "Set PEM format certificate file for OpenShift route for Multi-cluster managed cluster service"
+                        },
+                        "caCertificate": {
+                          "type": "string",
+                          "description": "Set CA certificate may be required to establish a certificate chain for validation for OpenShift route for Multi-cluster managed cluster service"
+                        },
+                        "destinationCACertificate": {
+                          "type": "string",
+                          "description": "Set CA certificate to validate the endpoint certificate for OpenShift route for Multi-cluster managed cluster service"
+                        },
+                        "key": {
+                          "type": "string",
+                          "description": "Set PEM format key file for OpenShift route for Multi-cluster managed cluster service"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "enabled"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "ingress": {
+          "type": "object",
+          "description": "Federation Managed Ingress",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "If true, create ingress for rest api, must also set ingress host value"
+            },
+            "host": {
+              "type": ["string", "null"],
+              "description": "MUST be set, if ingress is enabled",
+              "format": "hostname"
+            },
+            "ingressClassName": {
+              "type": "string",
+              "description": "To be used instead of the ingress.class annotation if an IngressClass is provisioned"
+            },
+            "path": {
+              "type": "string",
+              "description": "or this could be \"/api\", but might need \"rewrite-target\" annotation",
+              "format": "uri-reference"
+            },
+            "annotations": {
+              "type": "object",
+              "description": "Add annotations to ingress to influence behavior",
+              "properties": {
+                "nginx.ingress.kubernetes.io/backend-protocol": {
+                  "type": "string"
+                },
+                "ingress.kubernetes.io/rewrite-target": {
+                  "type": "string"
+                }
+              }
+            },
+            "tls": {
+              "type": "boolean",
+              "description": "If true, TLS is enabled for controller rest api ingress service. If set, the tls-host used is the one set with `controller.ingress.host`"
+            },
+            "secretName": {
+              "type": ["string", "null"],
+              "description": " Name of the secret to be used for TLS-encryption. Secret must be created separately (Let's encrypt, manually)"
+            }
+          },
+          "required": [
+            "enabled"
+          ]
+        },
+        "resources": {
+          "type": "object",
+          "description": "Add resources requests and limits to controller deployment"
+        },
+        "configmap": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "If true, configure NeuVector global settings using a ConfigMap"
+            },
+            "data": {
+              "type": ["object", "null"],
+              "description": "NeuVector configuration in YAML format"
+            }
+          },
+          "required": [
+            "enabled"
+          ]
+        },
+        "secret": {
+          "type": "object",
+          "description": "files defined here have preferrence over the ones defined in the configmap section",
+          "properties": {
+            "enabled": {
+              "type":"boolean",
+              "description": "If true, configure NeuVector global settings using secrets"
+            },
+            "data": {
+              "type": "object",
+              "description": "NeuVector configuration in key/value pair format",
+              "properties": {
+                "userinitcfg.yaml": {
+                  "type": "object",
+                  "properties": {
+                    "users": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "Fullname": {
+                            "type": "string"
+                          },
+                          "Password": {
+                            "type": ["string", "null"]
+                          },
+                          "Role": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": [
+            "enabled"
+          ]
+        }
+      },
+      "required": [
+        "enabled"
+      ]
+    },
+    "enforcer": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "If false, enforcer will not be installed",
+          "description": "If true, create enforcer"
+        },
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": {
+              "type": "string",
+              "description": "enforcer image repository"
+            },
+            "hash": {
+              "type": ["string", "null"],
+              "description": "enforcer image hash in the format of sha256:xxxx. If present it overwrites the image tag value."
+            }
+          }
+        },
+        "updateStrategy": {
+          "type": "object",
+          "description": "enforcer update strategy type.",
+          "properties": {
+            "type": {
+              "enum": ["Recreate", "RollingUpdate"]
+            }
+          }
+        },
+        "priorityClassName": {
+          "description": "enforcer priorityClassName. Must exist prior to helm deployment. Leave empty to disable."
+        },
+        "podLabels": {
+          "type": "object",
+          "description": "Specify the pod labels."
+        },
+        "podAnnotations": {
+          "type": "object",
+          "description": "Specify the pod annotations."
+        },
+        "env": {
+          "type": "array",
+          "description": "User-defined environment variables for enforcers."
+        },
+        "tolerations": {
+          "type": "array",
+          "description": "List of node taints to tolerate. Other taints can be added after the default",
+          "items": {
+            "type": "object",
+            "properties": {
+              "effect": {
+                "enum": ["NoExecute", "NoSchedule", "PreferNoSchedule"]
+              },
+              "key": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "resources": {
+          "type": "object",
+          "description": "Add resources requests and limits to enforcer deployment"
+        },
+        "internal": {
+          "type": "object",
+          "properties": {
+            "certificate": {
+              "type": "object",
+              "description": "this is used for internal communication. Please use the SAME CA for all the components (controller, scanner, adapter and enforcer)",
+              "properties": {
+                "secret": {
+                  "type": "string"
+                },
+                "keyFile": {
+                  "type": "string"
+                },
+                "pemFile": {
+                  "type": "string"
+                },
+                "caFile": {
+                  "type": "string",
+                  "description": "must be the same CA for all internal."
+                }
+              }
+            }
+          }
+        }
+      },
+      "required": [
+        "enabled"
+      ]
+    },
+    "manager": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "If true, create manager"
+        },
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": {
+              "type": "string",
+              "description": "manager image repository"
+            },
+            "hash": {
+              "type": ["string", "null"],
+              "description": "manager image hash in the format of sha256:xxxx. If present it overwrites the image tag value."
+            }
+          }
+        },
+        "priorityClassName": {
+          "type": ["string", "null"],
+          "description": "manager priorityClassName. Must exist prior to helm deployment. Leave empty to disable."
+        },
+        "env": {
+          "type": "object",
+          "properties": {
+            "ssl": {
+              "type": "boolean",
+              "description": "If false, manager will listen on HTTP access instead of HTTPS"
+            },
+            "envs": {
+              "type": "array",
+              "description": "Other environment variables. The following variables are accepted.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "required": [
+            "ssl"
+          ]
+        },
+        "svc": {
+          "type": "object",
+          "description": "set manager service type for native Kubernetes. if it is OpenShift platform or ingress is enabled, then default is `ClusterIP`. Set to LoadBalancer if using cloud providers, such as Azure, Amazon, Google.",
+          "properties": {
+            "type": {
+              "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"]
+            },
+            "loadBalancerIP": {
+              "type": ["string", "null"],
+              "format": "ipv4",
+              "description": "if manager service type is LoadBalancer, this is used to specify the load balancer's IP"
+            },
+            "annotations": {
+              "type": "object",
+              "description": "Add annotations to manager service"
+            }
+          }
+        },
+        "route": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "If true, create a OpenShift route to expose the management console service"
+            },
+            "termination": {
+              "enum": ["passthrough", "reencrypt"],
+              "description": "Specify TLS termination for OpenShift route for management console service. Possible passthrough, reencrypt"
+            },
+            "host": {
+              "type": ["string", "null"],
+              "format": "hostname",
+              "description": "Set OpenShift route host for management console service"
+            },
+            "tls": {
+              "type": ["object", "null"],
+              "properties": {
+                "certificate": {
+                  "type": "string",
+                  "description": "Set PEM format certificate file for OpenShift route for management console service"
+                },
+                "caCertificate": {
+                  "type": "string",
+                  "description": "Set CA certificate may be required to establish a certificate chain for validation for OpenShift route for management console service"
+                },
+                "destinationCACertificate": {
+                  "type": "string",
+                  "description": "Set controller REST API service CA certificate to validate the endpoint certificate for OpenShift route for management console service"
+                },
+                "key": {
+                  "type": "string",
+                  "description": "Set PEM format key file for OpenShift route for management console service"
+                }
+              }
+            }
+          },
+          "required": [
+            "enabled"
+          ]
+        },
+        "certificate": {
+          "type": "object",
+          "properties": {
+            "secret": {
+              "type": ["string", "null"],
+              "description": "Replace manager UI certificate using secret if secret name is specified"
+            },
+            "keyFile": {
+              "type": "string",
+              "description": "Replace manager UI certificate key file"
+            },
+            "pemFile": {
+              "type": "string",
+              "description": "Replace manager UI certificate pem file"
+            }
+          }
+        },
+        "ingress": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "If true, create ingress, must also set ingress host value"
+            },
+            "host": {
+              "type": ["string", "null"],
+              "description": "MUST be set, if ingress is enabled",
+              "format": "hostname"
+            },
+            "ingressClassName": {
+              "type": "string",
+              "description": "To be used instead of the ingress.class annotation if an IngressClass is provisioned"
+            },
+            "path": {
+              "type": "string",
+              "format": "uri-reference",
+              "description": "Set ingress path. If set, it might be necessary to set a rewrite rule in annotations. Currently only supports `/`"
+            },
+            "annotations": {
+              "type": "object",
+              "description": "Add annotations to ingress to influence behavior",
+              "properties": {
+                "nginx.ingress.kubernetes.io/backend-protocol": {
+                  "type": "string"
+                },
+                "kubernetes.io/ingress.class": {
+                  "type": "string"
+                },
+                "nginx.ingress.kubernetes.io/whitelist-source-range": {
+                  "type": "string"
+                },
+                "ingress.kubernetes.io/rewrite-target": {
+                  "type": "string"
+                },
+                "nginx.ingress.kubernetes.io/enable-rewrite-log": {
+                  "type": "string"
+                }
+              }
+            },
+            "tls": {
+              "type": "boolean",
+              "description": "only for end-to-end tls conf - ingress-nginx accepts backend self-signed cert"
+            },
+            "secretName": {
+              "description": "my-tls-secret",
+              "description": "Name of the secret to be used for TLS-encryption. Secret must be created separately (Let's encrypt, manually)"
+            }
+          },
+          "required": [
+            "enabled"
+          ]
+        },
+        "resources": {
+          "type": "object",
+          "description": "Add resources requests and limits to manager deployment"
+        },
+        "affinity": {
+          "type": "object",
+          "description": "manager affinity rules"
+        },
+        "podLabels": {
+          "type": "object",
+          "description": "Specify the pod labels."
+        },
+        "podAnnotations": {
+          "type": "object",
+          "description": "Specify the pod annotations."
+        },
+        "tolerations": {
+          "type": "array",
+          "description": "List of node taints to tolerate"
+        },
+        "nodeSelector": {
+          "type": "object",
+          "description": "Enable and specify nodeSelector labels"
+        },
+        "runAsUser": {
+          "type": ["string", "null"],
+          "description": "MUST be set for Rancher hardened cluster"
+        }
+      },
+      "required": [
+        "enabled"
+      ]
+    },
+    "cve": {
+      "type": "object",
+      "properties": {
+        "adapter": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "If true, create registry adapter"
+            },
+            "image": {
+              "type": "object",
+              "properties": {
+                "repository": {
+                  "type": "string",
+                  "description": "registry adapter image repository"
+                },
+                "tag": {
+                  "type": ["string", "null"],
+                  "description": "registry adapter image tag"
+                },
+                "hash": {
+                  "type": ["string", "null"],
+                  "description": "registry adapter image hash in the format of sha256:xxxx. If present it overwrites the image tag value."
+                }
+              }
+            },
+            "priorityClassName": {
+              "type": ["string", "null"],
+              "description": "registry adapter priorityClassName. Must exist prior to helm deployment. Leave empty to disable."
+            },
+            "resources": {
+              "type": "object",
+              "description": "Add resources requests and limits to registry adapter deployment"
+            },
+            "affinity": {
+              "type": "object",
+              "description": "registry adapter affinity rules"
+            },
+            "podLabels": {
+              "type": "object",
+              "description": "Specify the pod labels."
+            },
+            "podAnnotations": {
+              "type": "object",
+              "description": "Specify the pod annotations."
+            },
+            "env": {
+              "type": "array",
+              "description": "User-defined environment variables for adapter."
+            },
+            "tolerations": {
+              "type": "array",
+              "description": "List of node taints to tolerate"
+            },
+            "nodeSelector": {
+              "type": "object",
+              "description": "Enable and specify nodeSelector labels"
+            },
+            "runAsUser": {
+              "type": ["string", "null"],
+              "description": "Specify the run as User ID. MUST be set for Rancher hardened cluster"
+            },
+            "certificate": {
+              "type": "object",
+              "description": "TLS cert/key.  If absent, TLS cert/key automatically generated will be used.",
+              "properties": {
+                "secret": {
+                  "type": ["string", "null"],
+                  "description": "Replace registry adapter certificate using secret if secret name is specified"
+                },
+                "keyFile": {
+                  "type": "string",
+                  "description": "Replace registry adapter certificate key file"
+                },
+                "pemFile": {
+                  "type": "string",
+                  "description": "Replace registry adapter certificate pem file"
+                }
+              }
+            },
+            "harbor": {
+              "type": "object",
+              "properties": {
+                "protocol": {
+                  "enum": ["http", "https"],
+                  "description": "Harbor registry request protocol"
+                },
+                "secretName": {
+                  "type": ["string", "null"],
+                  "description": "Harbor registry adapter's basic authentication secret"
+                }
+              }
+            },
+            "svc": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"],
+                  "description": "set registry adapter service type for native Kubernetes. If it is OpenShift platform or ingress is enabled, then default is `ClusterIP`. Set to LoadBalancer if using cloud providers, such as Azure, Amazon, Google"
+                },
+                "loadBalancerIP": {
+                  "type": ["string", "null"],
+                  "format": "ipv4",
+                  "description": "if registry adapter service type is LoadBalancer, this is used to specify the load balancer's IP"
+                },
+                "annotations": {
+                  "type": "object",
+                  "description": "Add annotations to registry adapter service"
+                }
+              }
+            },
+            "route": {
+              "type": "object",
+              "description": "OpenShift Route configuration",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "If true, create a OpenShift route to expose the management console service"
+                },
+                "termination": {
+                  "enum": ["passthrough", "reencrypt"],
+                  "description": "Specify TLS termination for OpenShift route for management console service. Possible passthrough, reencrypt"
+                },
+                "host": {
+                  "type": ["string", "null"],
+                  "format": "hostname",
+                  "description": "Set OpenShift route host for management console service"
+                },
+                "tls": {
+                  "type": ["object", "null"],
+                  "properties": {
+                    "certificate": {
+                      "type": "string",
+                      "description": "Set PEM format certificate file for OpenShift route for management console service"
+                    },
+                    "caCertificate": {
+                      "type": "string",
+                      "description": "Set CA certificate may be required to establish a certificate chain for validation for OpenShift route for management console service"
+                    },
+                    "destinationCACertificate": {
+                      "type": "string",
+                      "description": "Set controller REST API service CA certificate to validate the endpoint certificate for OpenShift route for management console service"
+                    },
+                    "key": {
+                      "type": "string",
+                      "description": "Set PEM format key file for OpenShift route for management console service"
+                    }
+                  }
+                }
+              }
+            },
+            "ingress": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "If true, create ingress, must also set ingress host value"
+                },
+                "host": {
+                  "type": ["string", "null"],
+                  "description": "MUST be set, if ingress is enabled",
+                  "format": "hostname"
+                },
+                "ingressClassName": {
+                  "type": "string",
+                  "description": "To be used instead of the ingress.class annotation if an IngressClass is provisioned"
+                },
+                "path": {
+                  "type": "string",
+                  "format": "uri-reference",
+                  "description": "Set ingress path. If set, it might be necessary to set a rewrite rule in annotations. Currently only supports `/`"
+                },
+                "annotations": {
+                  "type": "object",
+                  "description": "Add annotations to ingress to influence behavior",
+                  "properties": {
+                    "nginx.ingress.kubernetes.io/backend-protocol": {
+                      "type": "string"
+                    },
+                    "kubernetes.io/ingress.class": {
+                      "type": "string"
+                    },
+                    "nginx.ingress.kubernetes.io/whitelist-source-range": {
+                      "type": "string"
+                    },
+                    "ingress.kubernetes.io/rewrite-target": {
+                      "type": "string"
+                    },
+                    "nginx.ingress.kubernetes.io/enable-rewrite-log": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "tls": {
+                  "type": "boolean",
+                  "description": "If true, TLS is enabled for registry adapter ingress service. If set, the tls-host used is the one set with `cve.adapter.ingress.host`."
+                },
+                "secretName": {
+                  "type": ["string", "null"],
+                  "description": "Name of the secret to be used for TLS-encryption. Secret must be created separately (Let's encrypt, manually)"
+                }
+              }
+            },
+            "internal": {
+              "type": "object",
+              "properties": {
+                "certificate": {
+                  "type": "object",
+                  "description": "this is used for internal communication. Please use the SAME CA for all the components (controller, scanner, adapter and enforcer)",
+                  "properties": {
+                    "secret": {
+                      "type": "string"
+                    },
+                    "keyFile": {
+                      "type": "string"
+                    },
+                    "pemFile": {
+                      "type": "string"
+                    },
+                    "caFile": {
+                      "type": "string",
+                      "description": "must be the same CA for all internal."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": [
+            "enabled"
+          ]
+        },
+        "updater": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "If true, create cve updater . If false, cve updater will not be installed"
+            },
+            "secure": {
+              "type": "boolean",
+              "description": "If true, API server's certificate is validated"
+            },
+            "cacert": {
+              "type": "string",
+              "format": "uri-reference",
+              "description": "If set, use this ca file to validate API server's certificate"
+            },
+            "image": {
+              "type": "object",
+              "properties": {
+                "registry": {
+                  "type": "string",
+                  "description": "cve updater image registry to overwrite global registry"
+                },
+                "repository": {
+                  "type": "string",
+                  "description": "cve updater image repository"
+                },
+                "tag": {
+                  "type": ["string", "null"],
+                  "description": "image tag for cve updater"
+                },
+                "hash": {
+                  "type": ["string", "null"],
+                  "description": "cve updateer image hash in the format of sha256:xxxx. If present it overwrites the image tag value."
+                }
+              }
+            },
+            "schedule": {
+              "type": "string",
+              "description": "cronjob cve updater schedule"
+            },
+            "priorityClassName": {
+              "type": ["string", "null"],
+              "description": "cve updater priorityClassName. Must exist prior to helm deployment. Leave empty to disable."
+            },
+            "podLabels": {
+              "type": "object",
+              "description": "Specify the pod labels."
+            },
+            "podAnnotations": {
+              "type": "object",
+              "description": "Specify the pod annotations."
+            },
+            "nodeSelector": {
+              "type": "object",
+              "description": "Enable and specify nodeSelector labels"
+            },
+            "runAsUser": {
+              "description": "Specify the run as User ID. MUST be set for Rancher hardened cluster"
+            }
+          },
+          "required": [
+            "enabled"
+          ]
+        },
+        "scanner": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "If true, cve scanners will be deployed"
+            },
+            "replicas": {
+              "type": "integer",
+              "description": "external scanner replicas"
+            },
+            "dockerPath": {
+              "type": "string",
+              "description": "the remote docker socket if CI/CD integration need scan images before they are pushed to the registry"
+            },
+            "strategy": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "enum": ["Recreate", "RollingUpdate"]
+                },
+                "rollingUpdate": {
+                  "type": "object",
+                  "properties": {
+                    "maxSurge": {
+                      "type": "integer"
+                    },
+                    "maxUnavailable": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            },
+            "image": {
+              "type": "object",
+              "properties": {
+                "registry": {
+                  "type": "string",
+                  "description": "cve scanner image registry to overwrite global registry"
+                },
+                "repository": {
+                  "type": "string",
+                  "description": "cve scanner image repository"
+                },
+                "tag": {
+                  "type": ["string", "null"],
+                  "description": "cve scanner image tag"
+                },
+                "hash": {
+                  "type": ["string", "null"],
+                  "description": "cve scanner image hash in the format of sha256:xxxx. If present it overwrites the image tag value."
+                }
+              }
+            },
+            "priorityClassName": {
+              "type": ["string", "null"],
+              "description": "cve scanner priorityClassName. Must exist prior to helm deployment. Leave empty to disable."
+            },
+            "resources": {
+              "type": "object",
+              "description": "Add resources requests and limits to scanner deployment"
+            },
+            "affinity": {
+              "type": "object",
+              "description": "scanner affinity rules"
+            },
+            "podLabels": {
+              "type": "object",
+              "description": "Specify the pod labels."
+            },
+            "podAnnotations": {
+              "type": "object",
+              "description": "Specify the pod annotations."
+            },
+            "env": {
+              "type": "array",
+              "description": "User-defined environment variables for scanner."
+            },
+            "tolerations": {
+              "type": "array",
+              "description": "List of node taints to tolerate"
+            },
+            "nodeSelector": {
+              "type": "object",
+              "description": "Enable and specify nodeSelector labels"
+            },
+            "runAsUser": {
+              "description": "Specify the run as User ID. MUST be set for Rancher hardened cluster"
+            },
+            "internal": {
+              "type": "object",
+              "properties": {
+                "certificate": {
+                  "type": "object",
+                  "description": "this is used for internal communication. Please use the SAME CA for all the components (controller, scanner, adapter and enforcer)",
+                  "properties": {
+                    "secret": {
+                      "type": "string"
+                    },
+                    "keyFile": {
+                      "type": "string"
+                    },
+                    "pemFile": {
+                      "type": "string"
+                    },
+                    "caFile": {
+                      "type": "string",
+                      "description": "must be the same CA for all internal."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": [
+            "enabled"
+          ]
+        }
+      },
+      "required": [
+        "adapter",
+        "updater",
+        "scanner"
+      ]
+    },
+    "resources": {
+      "type": "object"
+    },
+    "runtimePath": {
+      "type": ["string", "null"],
+      "format": "uri-reference",
+      "description": "container runtime socket path, if it's not at the default location."
+    },
+    "admissionwebhook": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"],
+          "description": "admission webhook type"
+        }
+      }
+    },
+    "crdwebhook": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable crd service and create crd related resources"
+        },
+        "type": {
+          "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"],
+          "description": "crd webhook type"
+        }
+      },
+      "required": [
+        "enabled"
+      ]
+    }
+  },
+  "required": [
+    "openshift",
+    "registry",
+    "psp",
+    "rbac",
+    "serviceAccount",
+    "leastPrivilege",
+    "global",
+    "autoGenerateCert",
+    "defaultValidityPeriod",
+    "internal",
+    "controller",
+    "enforcer",
+    "manager",
+    "cve"
+  ],
+  "title": "Values",
+  "type": "object"
+}
