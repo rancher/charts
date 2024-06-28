@@ -1,19 +1,51 @@
 --- charts-original/templates/alertmanager/servicemonitor.yaml
 +++ charts/templates/alertmanager/servicemonitor.yaml
-@@ -39,6 +39,16 @@
+@@ -27,7 +27,7 @@
+     interval: {{ .Values.alertmanager.serviceMonitor.interval }}
+     {{- end }}
+     {{- if .Values.alertmanager.serviceMonitor.proxyUrl }}
+-    proxyUrl: {{ .Values.alertmanager.serviceMonitor.proxyUrl}}
++    proxyUrl: {{ .Values.alertmanager.serviceMonitor.proxyUrl }}
+     {{- end }}
+     {{- if .Values.alertmanager.serviceMonitor.scheme }}
+     scheme: {{ .Values.alertmanager.serviceMonitor.scheme }}
+@@ -39,28 +39,19 @@
      tlsConfig: {{- toYaml .Values.alertmanager.serviceMonitor.tlsConfig | nindent 6 }}
      {{- end }}
      path: "{{ trimSuffix "/" .Values.alertmanager.alertmanagerSpec.routePrefix }}/metrics"
++    metricRelabelings:
+     {{- if .Values.alertmanager.serviceMonitor.metricRelabelings }}
+-    metricRelabelings: {{- tpl (toYaml .Values.alertmanager.serviceMonitor.metricRelabelings | nindent 6) . }}
++    {{- tpl (toYaml .Values.alertmanager.serviceMonitor.metricRelabelings | nindent 6) . }}
+     {{- end }}
+-    {{- if .Values.alertmanager.serviceMonitor.relabelings }}
+-    relabelings: {{- toYaml .Values.alertmanager.serviceMonitor.relabelings | nindent 6 }}
+-    {{- end }}
+-  - port: reloader-web
+-    {{- if .Values.alertmanager.serviceMonitor.interval }}
+-    interval: {{ .Values.alertmanager.serviceMonitor.interval }}
+-    {{- end }}
+-    {{- if .Values.alertmanager.serviceMonitor.proxyUrl }}
+-    proxyUrl: {{ .Values.alertmanager.serviceMonitor.proxyUrl}}
+-    {{- end }}
+-    {{- if .Values.alertmanager.serviceMonitor.scheme }}
+-    scheme: {{ .Values.alertmanager.serviceMonitor.scheme }}
+-    {{- end }}
+-    {{- if .Values.alertmanager.serviceMonitor.tlsConfig }}
+-    tlsConfig: {{- toYaml .Values.alertmanager.serviceMonitor.tlsConfig | nindent 6 }}
+-    {{- end }}
+-    path: "/metrics"
+-    {{- if .Values.alertmanager.serviceMonitor.metricRelabelings }}
+-    metricRelabelings: {{- tpl (toYaml .Values.alertmanager.serviceMonitor.metricRelabelings | nindent 6) . }}
 +    {{ if .Values.global.cattle.clusterId }}
-+      - sourceLabels: [__address__]
-+        targetLabel: cluster_id
-+        replacement: {{ .Values.global.cattle.clusterId }}
++    - sourceLabels: [__address__]
++      targetLabel: cluster_id
++      replacement: {{ .Values.global.cattle.clusterId }}
 +    {{- end }}
 +    {{ if .Values.global.cattle.clusterName }}
-+      - sourceLabels: [__address__]
-+        targetLabel: cluster_name
-+        replacement: {{ .Values.global.cattle.clusterName }}
-+    {{- end }}
-     {{- if .Values.alertmanager.serviceMonitor.metricRelabelings }}
-     metricRelabelings: {{- tpl (toYaml .Values.alertmanager.serviceMonitor.metricRelabelings | nindent 6) . }}
++    - sourceLabels: [__address__]
++      targetLabel: cluster_name
++      replacement: {{ .Values.global.cattle.clusterName }}
      {{- end }}
+     {{- if .Values.alertmanager.serviceMonitor.relabelings }}
+     relabelings: {{- toYaml .Values.alertmanager.serviceMonitor.relabelings | nindent 6 }}
