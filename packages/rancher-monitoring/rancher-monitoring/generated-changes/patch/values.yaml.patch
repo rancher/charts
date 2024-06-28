@@ -636,9 +636,9 @@
 -namespaceOverride: ""
 +namespaceOverride: "cattle-monitoring-system"
  
- ## Provide a k8s version to auto dashboard import script example: kubeTargetVersionOverride: 1.16.6
+ ## Provide a k8s version to auto dashboard import script example: kubeTargetVersionOverride: 1.26.6
  ##
-@@ -105,13 +727,37 @@
+@@ -201,13 +823,37 @@
  
  ##
  global:
@@ -680,7 +680,7 @@
      pspAnnotations: {}
        ## Specify pod annotations
        ## Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/#apparmor
-@@ -124,7 +770,7 @@
+@@ -220,7 +866,7 @@
  
    ## Global image registry to use if it needs to be overriden for some specific use cases (e.g local registries, custom images, ...)
    ##
@@ -689,7 +689,7 @@
  
    ## Reference to one or more secrets to be used when pulling images
    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
-@@ -238,25 +884,77 @@
+@@ -364,25 +1010,77 @@
    ## ref: https://prometheus.io/docs/alerting/notifications/
    ##      https://prometheus.io/docs/alerting/notification_examples/
    ##
@@ -786,7 +786,7 @@
  
    ingress:
      enabled: false
-@@ -302,6 +1000,9 @@
+@@ -428,6 +1126,9 @@
    secret:
      annotations: {}
  
@@ -796,19 +796,17 @@
    ## Configuration for creating an Ingress that will map to each Alertmanager replica service
    ## alertmanager.servicePerReplica must be enabled
    ##
-@@ -501,9 +1202,8 @@
+@@ -646,8 +1347,7 @@
      ## Image of Alertmanager
      ##
      image:
 -      registry: quay.io
 -      repository: prometheus/alertmanager
--      tag: v0.25.0
 +      repository: rancher/mirrored-prometheus-alertmanager
-+      tag: v0.26.0
+       tag: v0.27.0
        sha: ""
  
-     ## If true then the user will be responsible to provide a secret with alertmanager configuration
-@@ -632,9 +1332,13 @@
+@@ -788,9 +1488,13 @@
      ## Define resources requests and limits for single Pods.
      ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
      ##
@@ -825,7 +823,7 @@
  
      ## Pod anti-affinity can prevent the scheduler from placing Prometheus replicas on the same node.
      ## The default value "soft" means that the scheduler should *prefer* to not schedule two replica pods onto the same node but no guarantee is provided.
-@@ -764,6 +1468,30 @@
+@@ -946,6 +1650,30 @@
    enabled: true
    namespaceOverride: ""
  
@@ -856,7 +854,7 @@
    ## ForceDeployDatasources Create datasource configmap even if grafana deployment has been disabled
    ##
    forceDeployDatasources: false
-@@ -776,6 +1504,18 @@
+@@ -958,6 +1686,18 @@
    ##
    defaultDashboardsEnabled: true
  
@@ -875,7 +873,7 @@
    ## Timezone for the default dashboards
    ## Other options are: browser or a specific timezone, i.e. Europe/Luxembourg
    ##
-@@ -783,11 +1523,6 @@
+@@ -969,11 +1709,6 @@
  
    adminPassword: prom-operator
  
@@ -887,15 +885,18 @@
    ingress:
      ## If true, Grafana Ingress will be created
      ##
-@@ -830,6 +1565,7 @@
+@@ -1032,9 +1767,8 @@
      dashboards:
        enabled: true
        label: grafana_dashboard
 +      searchNamespace: cattle-dashboards
        labelValue: "1"
-       # Allow discovery in all namespaces for dashboards
-       searchNamespace: ALL
-@@ -911,8 +1647,63 @@
+-      # Allow discovery in all namespaces for dashboards
+-      searchNamespace: ALL
+ 
+       # Support for new table panels, when enabled grafana auto migrates the old table panels to newer table panels
+       enableNewTablePanelSyntax: false
+@@ -1121,8 +1855,63 @@
    ## Passed to grafana subchart and used by servicemonitor below
    ##
    service:
@@ -914,7 +915,7 @@
 +    ## Service type
 +    ##
 +    type: ClusterIP
- 
++
 +  proxy:
 +    image:
 +      repository: rancher/mirrored-library-nginx
@@ -942,7 +943,7 @@
 +      securityContext:
 +        runAsUser: 101
 +        runAsGroup: 101
-+
+ 
 +  ## Volumes that can be used in containers
 +  extraContainerVolumes:
 +    - name: nginx-home
@@ -960,7 +961,7 @@
    serviceMonitor:
      # If true, a ServiceMonitor CRD is created for a prometheus operator
      # https://github.com/coreos/prometheus-operator
-@@ -946,6 +1737,17 @@
+@@ -1156,6 +1945,17 @@
      #   replacement: $1
      #   action: replace
  
@@ -978,7 +979,7 @@
  ## Flag to disable all the kubernetes component scrapers
  ##
  kubernetesServiceMonitors:
-@@ -1215,7 +2017,7 @@
+@@ -1438,7 +2238,7 @@
  ## Component scraping the kube controller manager
  ##
  kubeControllerManager:
@@ -987,7 +988,7 @@
  
    ## If your kube controller manager is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1452,7 +2254,7 @@
+@@ -1700,7 +2500,7 @@
  ## Component scraping etcd
  ##
  kubeEtcd:
@@ -996,7 +997,7 @@
  
    ## If your etcd is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1544,7 +2346,7 @@
+@@ -1801,7 +2601,7 @@
  ## Component scraping kube scheduler
  ##
  kubeScheduler:
@@ -1005,7 +1006,7 @@
  
    ## If your kube scheduler is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1633,7 +2435,7 @@
+@@ -1899,7 +2699,7 @@
  ## Component scraping kube proxy
  ##
  kubeProxy:
@@ -1014,7 +1015,7 @@
  
    ## If your kube proxy is not deployed as a pod, specify IPs it can be found on
    ##
-@@ -1856,10 +2658,6 @@
+@@ -2140,10 +2940,6 @@
        #   targetLabel: nodename
        #   replacement: $1
        #   action: replace
@@ -1025,7 +1026,7 @@
  
  ## Manages Prometheus and Alertmanager components
  ##
-@@ -1872,8 +2670,8 @@
+@@ -2167,8 +2963,8 @@
      enabled: true
      # Value must match version names from https://golang.org/pkg/crypto/tls/#pkg-constants
      tlsMinVersion: VersionTLS13
@@ -1036,7 +1037,19 @@
  
    ## Admission webhook support for PrometheusRules resources added in Prometheus Operator 0.30 can be enabled to prevent incorrectly formatted
    ## rules from making their way into prometheus and potentially preventing the container from starting
-@@ -1897,8 +2695,7 @@
+@@ -2298,9 +3094,9 @@
+       ##
+       image:
+         registry: quay.io
+-        repository: prometheus-operator/admission-webhook
++        repository: rancher/mirrored-prometheus-operator-admission-webhook
+         # if not set appVersion field from Chart.yaml is used
+-        tag: ""
++        tag: v0.72.0
+         sha: ""
+         pullPolicy: IfNotPresent
+ 
+@@ -2409,8 +3205,7 @@
      patch:
        enabled: true
        image:
@@ -1046,7 +1059,7 @@
          tag: v20221220-controller-v1.5.1-58-g787ea74b6
          sha: ""
          pullPolicy: IfNotPresent
-@@ -2116,13 +2913,13 @@
+@@ -2647,13 +3442,13 @@
  
    ## Resource limits & requests
    ##
@@ -1065,9 +1078,9 @@
 +      cpu: 100m
 +      memory: 100Mi
  
-   # Required for use in managed kubernetes clusters (such as AWS EKS) with custom CNI (such as calico),
-   # because control-plane managed by AWS cannot communicate with pods' IP CIDR and admission webhooks are not working
-@@ -2202,10 +2999,8 @@
+   ## Operator Environment
+   ##  env:
+@@ -2755,10 +3550,8 @@
    ## Prometheus-operator image
    ##
    image:
@@ -1076,11 +1089,11 @@
 -    # if not set appVersion field from Chart.yaml is used
 -    tag: ""
 +    repository: rancher/mirrored-prometheus-operator-prometheus-operator
-+    tag: v0.65.1
++    tag: v0.72.0
      sha: ""
      pullPolicy: IfNotPresent
  
-@@ -2229,10 +3024,8 @@
+@@ -2782,10 +3575,8 @@
    ##
    prometheusConfigReloader:
      image:
@@ -1089,42 +1102,59 @@
 -      # if not set appVersion field from Chart.yaml is used
 -      tag: ""
 +      repository: rancher/mirrored-prometheus-operator-prometheus-config-reloader
-+      tag: v0.65.1
++      tag: v0.72.0
        sha: ""
  
      # add prometheus config reloader liveness and readiness probe. Default: false
-@@ -2250,8 +3043,7 @@
+@@ -2803,8 +3594,7 @@
    ## Thanos side-car image when configured
    ##
    thanosImage:
 -    registry: quay.io
 -    repository: thanos/thanos
 +    repository: rancher/mirrored-thanos-thanos
-     tag: v0.30.2
+     tag: v0.34.1
      sha: ""
  
-@@ -2416,7 +3208,7 @@
+@@ -2988,7 +3778,7 @@
      port: 9090
  
      ## To be used with a proxy extraContainer port
 -    targetPort: 9090
 +    targetPort: 8081
  
-     ## List of IP addresses at which the Prometheus server service is available
-     ## Ref: https://kubernetes.io/docs/user-guide/services/#external-ips
-@@ -2753,9 +3545,8 @@
+     ## Port for Prometheus Reloader to listen on
+     ##
+@@ -3308,15 +4098,15 @@
+     ## Defaults to 30s.
+     ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/release-0.44/pkg/prometheus/promcfg.go#L180-L183
+     ##
+-    scrapeInterval: ""
++    scrapeInterval: "30s"
+ 
+     ## Number of seconds to wait for target to respond before erroring
+     ##
+-    scrapeTimeout: ""
++    # scrapeTimeout: "30s"
+ 
+     ## Interval between consecutive evaluations.
+     ##
+-    evaluationInterval: ""
++    evaluationInterval: "30s"
+ 
+     ## ListenLocal makes the Prometheus server listen on loopback, so that it does not bind against the Pod IP.
+     ##
+@@ -3352,8 +4142,7 @@
      ## Image of Prometheus.
      ##
      image:
 -      registry: quay.io
 -      repository: prometheus/prometheus
--      tag: v2.42.0
 +      repository: rancher/mirrored-prometheus-prometheus
-+      tag: v2.45.0
+       tag: v2.50.1
        sha: ""
  
-     ## Tolerations for use with node taints
-@@ -2854,7 +3645,7 @@
+@@ -3453,7 +4242,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the PrometheusRule resources created
      ##
@@ -1133,7 +1163,7 @@
  
      ## PrometheusRules to be selected for target discovery.
      ## If {}, select all PrometheusRules
-@@ -2879,7 +3670,7 @@
+@@ -3478,7 +4267,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the servicemonitors created
      ##
@@ -1142,7 +1172,7 @@
  
      ## ServiceMonitors to be selected for target discovery.
      ## If {}, select all ServiceMonitors
-@@ -2902,7 +3693,7 @@
+@@ -3501,7 +4290,7 @@
      ## prometheus resource to be created with selectors based on values in the helm deployment,
      ## which will also match the podmonitors created
      ##
@@ -1151,7 +1181,7 @@
  
      ## PodMonitors to be selected for target discovery.
      ## If {}, select all PodMonitors
-@@ -3042,9 +3833,13 @@
+@@ -3663,9 +4452,13 @@
  
      ## Resource limits & requests
      ##
@@ -1168,7 +1198,7 @@
  
      ## Prometheus StorageSpec for persistent data
      ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/user-guides/storage.md
-@@ -3067,7 +3862,13 @@
+@@ -3688,7 +4481,13 @@
      #    medium: Memory
  
      # Additional volumes on the output StatefulSet definition.
@@ -1183,9 +1213,9 @@
  
      # Additional VolumeMounts on the output StatefulSet definition.
      volumeMounts: []
-@@ -3213,21 +4014,34 @@
-       #         fileName: "objstore.yaml"
-       # objectStorageConfigFile: /var/secrets/object-store.yaml
+@@ -3852,25 +4651,34 @@
+       #     #   access_key: ""
+       #     #   secret_key: ""
  
 +    proxy:
 +      image:
@@ -1197,14 +1227,18 @@
 -    containers: []
 -    # containers:
 -    # - name: oauth-proxy
--    #   image: quay.io/oauth2-proxy/oauth2-proxy:v7.3.0
+-    #   image: quay.io/oauth2-proxy/oauth2-proxy:v7.5.1
 -    #   args:
--    #   - --upstream=http://127.0.0.1:9093
+-    #   - --upstream=http://127.0.0.1:9090
 -    #   - --http-address=0.0.0.0:8081
+-    #   - --metrics-address=0.0.0.0:8082
 -    #   - ...
 -    #   ports:
 -    #   - containerPort: 8081
 -    #     name: oauth-proxy
+-    #     protocol: TCP
+-    #   - containerPort: 8082
+-    #     name: oauth-metrics
 -    #     protocol: TCP
 -    #   resources: {}
 +    containers:  |
@@ -1231,13 +1265,24 @@
  
      ## InitContainers allows injecting additional initContainers. This is meant to allow doing some changes
      ## (permissions, dir tree) on mounted volumes before starting prometheus
-@@ -3637,8 +4451,7 @@
+@@ -3895,7 +4703,7 @@
+     ## they will only discover targets within the namespace of the PodMonitor, ServiceMonitor and Probe object,
+     ## and servicemonitors will be installed in the default service namespace.
+     ## Defaults to false.
+-    ignoreNamespaceSelectors: false
++    ignoreNamespaceSelectors: true
+ 
+     ## EnforcedNamespaceLabel enforces adding a namespace label of origin for each alert and metric that is user created.
+     ## The label value will always be the namespace of the object that is being created.
+@@ -4338,10 +5146,8 @@
      ## Image of ThanosRuler
      ##
      image:
 -      registry: quay.io
 -      repository: thanos/thanos
 +      repository: rancher/mirrored-thanos-thanos
-       tag: v0.30.2
-       sha: ""
+       tag: v0.34.1
+-      sha: ""
  
+     ## Namespaces to be selected for PrometheusRules discovery.
+     ## If nil, select own namespace. Namespaces to be selected for ServiceMonitor discovery.

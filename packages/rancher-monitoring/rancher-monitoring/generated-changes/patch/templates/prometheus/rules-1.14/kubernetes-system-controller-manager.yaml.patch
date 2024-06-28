@@ -18,16 +18,21 @@
  {{- if not (.Values.defaultRules.disabled.KubeControllerManagerDown | default false) }}
      - alert: KubeControllerManagerDown
        annotations:
-@@ -34,7 +34,7 @@
+@@ -37,11 +37,8 @@
          description: KubeControllerManager has disappeared from Prometheus target discovery.
          runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubecontrollermanagerdown
          summary: Target disappeared from Prometheus target discovery.
 -      expr: absent(up{job="kube-controller-manager"} == 1)
+-      for: {{ dig "KubeControllerManagerDown" "for" "15m" .Values.customRules }}
+-      {{- with .Values.defaultRules.keepFiringFor }}
+-      keep_firing_for: "{{ . }}"
+-      {{- end }}
 +      expr: absent(up{job="{{ include "exporter.kubeControllerManager.jobName" . }}"} == 1)
-       for: 15m
++      for: 15m
        labels:
-         severity: critical
-@@ -43,4 +43,5 @@
+         severity: {{ dig "KubeControllerManagerDown" "severity" "critical" .Values.customRules }}
+       {{- if or .Values.defaultRules.additionalRuleLabels .Values.defaultRules.additionalRuleGroupLabels.kubeControllerManager }}
+@@ -54,4 +51,5 @@
        {{- end }}
  {{- end }}
  {{- end }}

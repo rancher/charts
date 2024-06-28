@@ -1,16 +1,9 @@
 --- charts-original/templates/alertmanager/servicemonitor.yaml
 +++ charts/templates/alertmanager/servicemonitor.yaml
-@@ -39,10 +39,20 @@
-     tlsConfig: {{ toYaml .Values.alertmanager.serviceMonitor.tlsConfig | nindent 6 }}
+@@ -39,6 +39,16 @@
+     tlsConfig: {{- toYaml .Values.alertmanager.serviceMonitor.tlsConfig | nindent 6 }}
      {{- end }}
      path: "{{ trimSuffix "/" .Values.alertmanager.alertmanagerSpec.routePrefix }}/metrics"
--{{- if .Values.alertmanager.serviceMonitor.metricRelabelings }}
-     metricRelabelings:
--{{ tpl (toYaml .Values.alertmanager.serviceMonitor.metricRelabelings | indent 6) . }}
--{{- end }}
-+    {{- if .Values.alertmanager.serviceMonitor.metricRelabelings }}
-+    {{ tpl (toYaml .Values.alertmanager.serviceMonitor.metricRelabelings | indent 6) . }}
-+    {{- end }}
 +    {{ if .Values.global.cattle.clusterId }}
 +      - sourceLabels: [__address__]
 +        targetLabel: cluster_id
@@ -21,6 +14,6 @@
 +        targetLabel: cluster_name
 +        replacement: {{ .Values.global.cattle.clusterName }}
 +    {{- end }}
- {{- if .Values.alertmanager.serviceMonitor.relabelings }}
-     relabelings:
- {{ toYaml .Values.alertmanager.serviceMonitor.relabelings | indent 6 }}
+     {{- if .Values.alertmanager.serviceMonitor.metricRelabelings }}
+     metricRelabelings: {{- tpl (toYaml .Values.alertmanager.serviceMonitor.metricRelabelings | nindent 6) . }}
+     {{- end }}

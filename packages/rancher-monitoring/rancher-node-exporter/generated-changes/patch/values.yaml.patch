@@ -16,8 +16,8 @@
    pullPolicy: IfNotPresent
    digest: ""
  
-@@ -15,6 +16,11 @@
- fullnameOverride: ""
+@@ -19,6 +20,11 @@
+ revisionHistoryLimit: 10
  
  global:
 +  cattle:
@@ -28,20 +28,20 @@
    # To help compatibility with other charts which use global.imagePullSecrets.
    # Allow either an array of {name: pullSecret} maps (k8s-style), or an array of strings (more common helm-style).
    # global:
-@@ -36,8 +42,8 @@
- kubeRBACProxy:
-   enabled: false
+@@ -43,8 +49,8 @@
+   env: {}
+     # VARIABLE: value
    image:
 -    registry: quay.io
 -    repository: brancz/kube-rbac-proxy
 +    registry: docker.io
 +    repository: rancher/mirrored-kube-rbac-proxy
-     tag: v0.14.0
+     tag: v0.15.0
      sha: ""
      pullPolicy: IfNotPresent
-@@ -66,8 +72,8 @@
- 
+@@ -81,8 +87,8 @@
  service:
+   enabled: true
    type: ClusterIP
 -  port: 9100
 -  targetPort: 9100
@@ -50,7 +50,7 @@
    nodePort:
    portName: metrics
    listenOnAllInterfaces: true
-@@ -276,9 +282,6 @@
+@@ -299,9 +305,6 @@
    ## If true, create & use RBAC resources
    ##
    create: true
@@ -60,12 +60,12 @@
    pspAnnotations: {}
  
  # for deployments that have node_exporter deployed outside of the cluster, list
-@@ -348,6 +351,8 @@
+@@ -384,6 +387,8 @@
  tolerations:
    - effect: NoSchedule
      operator: Exists
 +  - effect: NoExecute
 +    operator: Exists
  
- ## Assign a PriorityClassName to pods if set
- # priorityClassName: ""
+ # Enable or disable container termination message settings
+ # https://kubernetes.io/docs/tasks/debug/debug-application/determine-reason-pod-failure/

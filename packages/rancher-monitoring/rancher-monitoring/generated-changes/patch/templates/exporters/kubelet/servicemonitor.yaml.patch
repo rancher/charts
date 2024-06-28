@@ -1,6 +1,6 @@
 --- charts-original/templates/exporters/kubelet/servicemonitor.yaml
 +++ charts/templates/exporters/kubelet/servicemonitor.yaml
-@@ -1,9 +1,12 @@
+@@ -1,4 +1,7 @@
 -{{- if and .Values.kubelet.enabled .Values.kubernetesServiceMonitors.enabled }}
 +{{- if (and (not .Values.kubelet.enabled) .Values.hardenedKubelet.enabled) }}
 +{{ required "Cannot set .Values.hardenedKubelet.enabled=true when .Values.kubelet.enabled=false" "" }}
@@ -9,20 +9,11 @@
  apiVersion: monitoring.coreos.com/v1
  kind: ServiceMonitor
  metadata:
-   name: {{ template "kube-prometheus-stack.fullname" . }}-kubelet
--  namespace: {{ template "kube-prometheus-stack.namespace" . }}
-+  namespace: {{ .Values.kubelet.namespace }}
-   labels:
-     app: {{ template "kube-prometheus-stack.name" . }}-kubelet
-   {{- with .Values.kubelet.serviceMonitor.additionalLabels }}
-@@ -30,10 +33,20 @@
-       insecureSkipVerify: true
-     bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
-     honorLabels: true
--{{- if .Values.kubelet.serviceMonitor.metricRelabelings }}
+@@ -41,7 +44,19 @@
+     honorTimestamps: {{ .Values.kubelet.serviceMonitor.honorTimestamps }}
+ {{- if .Values.kubelet.serviceMonitor.metricRelabelings }}
      metricRelabelings:
 -{{ tpl (toYaml .Values.kubelet.serviceMonitor.metricRelabelings | indent 4) . }}
--{{- end }}
 +    {{- if .Values.kubelet.serviceMonitor.metricRelabelings }}
 +    {{ tpl (toYaml .Values.kubelet.serviceMonitor.metricRelabelings | indent 4) . }}
 +    {{- end }}
@@ -36,10 +27,10 @@
 +        targetLabel: cluster_name
 +        replacement: {{ .Values.global.cattle.clusterName }}
 +    {{- end }}
+ {{- end }}
  {{- if .Values.kubelet.serviceMonitor.relabelings }}
      relabelings:
- {{ tpl (toYaml .Values.kubelet.serviceMonitor.relabelings | indent 4) . }}
-@@ -95,7 +108,7 @@
+@@ -106,7 +121,7 @@
  {{- if .Values.kubelet.serviceMonitor.resource }}
    - port: https-metrics
      scheme: https
@@ -48,7 +39,7 @@
      {{- if .Values.kubelet.serviceMonitor.interval }}
      interval: {{ .Values.kubelet.serviceMonitor.interval }}
      {{- end }}
-@@ -184,7 +197,7 @@
+@@ -199,7 +214,7 @@
  {{- end }}
  {{- if .Values.kubelet.serviceMonitor.resource }}
    - port: http-metrics
