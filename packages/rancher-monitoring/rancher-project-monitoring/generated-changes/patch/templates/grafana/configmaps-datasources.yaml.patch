@@ -1,0 +1,30 @@
+--- charts-original/templates/grafana/configmaps-datasources.yaml
++++ charts/templates/grafana/configmaps-datasources.yaml
+@@ -55,11 +55,25 @@
+         timeInterval: {{ $scrapeInterval }}
+ {{- if $.Values.grafana.sidecar.datasources.exemplarTraceIdDestinations }}
+         exemplarTraceIdDestinations:
+-        - datasourceUid: {{ .Values.grafana.sidecar.datasources.exemplarTraceIdDestinations.datasourceUid }}
+-          name: {{ .Values.grafana.sidecar.datasources.exemplarTraceIdDestinations.traceIdLabelName }}
++        - datasourceUid: {{ $.Values.grafana.sidecar.datasources.exemplarTraceIdDestinations.datasourceUid }}
++          name: {{ $.Values.grafana.sidecar.datasources.exemplarTraceIdDestinations.traceIdLabelName }}
+ {{- end }}
+ {{- end }}
+ {{- end }}
++{{- if .Values.grafana.sidecar.datasources.alertmanager.enabled }}
++    - name: Alertmanager
++      type: alertmanager
++      uid: {{ .Values.grafana.sidecar.datasources.alertmanager.uid }}
++      {{- if .Values.grafana.sidecar.datasources.alertmanager.url }}
++      url: {{ .Values.grafana.sidecar.datasources.alertmanager.url }}
++      {{- else }}
++      url: http://{{ template "project-prometheus-stack.fullname" . }}-alertmanager.{{ template "project-prometheus-stack.namespace" . }}:{{ .Values.alertmanager.service.port }}/{{ trimPrefix "/" .Values.alertmanager.alertmanagerSpec.routePrefix }}
++      {{- end }}
++      access: proxy
++      jsonData:
++        handleGrafanaManagedAlerts: {{ .Values.grafana.sidecar.datasources.alertmanager.handleGrafanaManagedAlerts }}
++        implementation: {{ .Values.grafana.sidecar.datasources.alertmanager.implementation }}
++{{- end }}
+ {{- end }}
+ {{- if .Values.grafana.additionalDataSources }}
+ {{ tpl (toYaml .Values.grafana.additionalDataSources | indent 4) . }}

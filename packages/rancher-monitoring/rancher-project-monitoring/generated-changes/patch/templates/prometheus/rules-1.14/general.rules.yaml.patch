@@ -1,0 +1,94 @@
+--- charts-original/templates/prometheus/rules-1.14/general.rules.yaml
++++ charts/templates/prometheus/rules-1.14/general.rules.yaml
+@@ -30,15 +30,26 @@
+ {{- if .Values.defaultRules.additionalRuleAnnotations }}
+ {{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
+ {{- end }}
++{{- if .Values.defaultRules.additionalRuleGroupAnnotations.general }}
++{{ toYaml .Values.defaultRules.additionalRuleGroupAnnotations.general | indent 8 }}
++{{- end }}
+         description: '{{`{{`}} printf "%.4g" $value {{`}}`}}% of the {{`{{`}} $labels.job {{`}}`}}/{{`{{`}} $labels.service {{`}}`}} targets in {{`{{`}} $labels.namespace {{`}}`}} namespace are down.'
+         runbook_url: {{ .Values.defaultRules.runbookUrl }}/general/targetdown
+         summary: One or more targets are unreachable.
+-      expr: 100 * (count(up == 0) BY (job, namespace, service) / count(up) BY (job, namespace, service)) > 10
+-      for: 10m
++      expr: 100 * (count(up == 0) BY (cluster, job, namespace, service) / count(up) BY (cluster, job, namespace, service)) > 10
++      for: {{ dig "TargetDown" "for" "10m" .Values.customRules }}
++      {{- with .Values.defaultRules.keepFiringFor }}
++      keep_firing_for: "{{ . }}"
++      {{- end }}
+       labels:
+-        severity: warning
+-      {{- if .Values.defaultRules.additionalRuleLabels }}
+-        {{ toYaml .Values.defaultRules.additionalRuleLabels | nindent 8 }}
++        severity: {{ dig "TargetDown" "severity" "warning" .Values.customRules }}
++      {{- if or .Values.defaultRules.additionalRuleLabels .Values.defaultRules.additionalRuleGroupLabels.general }}
++        {{- with .Values.defaultRules.additionalRuleLabels }}
++          {{- toYaml . | nindent 8 }}
++        {{- end }}
++        {{- with .Values.defaultRules.additionalRuleGroupLabels.general }}
++          {{- toYaml . | nindent 8 }}
++        {{- end }}
+       {{- end }}
+ {{- end }}
+ {{- if not (.Values.defaultRules.disabled.Watchdog | default false) }}
+@@ -47,6 +58,9 @@
+ {{- if .Values.defaultRules.additionalRuleAnnotations }}
+ {{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
+ {{- end }}
++{{- if .Values.defaultRules.additionalRuleGroupAnnotations.general }}
++{{ toYaml .Values.defaultRules.additionalRuleGroupAnnotations.general | indent 8 }}
++{{- end }}
+         description: 'This is an alert meant to ensure that the entire alerting pipeline is functional.
+ 
+           This alert is always firing, therefore it should always be firing in Alertmanager
+@@ -62,9 +76,14 @@
+         summary: An alert that should always be firing to certify that Alertmanager is working properly.
+       expr: vector(1)
+       labels:
+-        severity: none
+-      {{- if .Values.defaultRules.additionalRuleLabels }}
+-        {{ toYaml .Values.defaultRules.additionalRuleLabels | nindent 8 }}
++        severity: {{ dig "Watchdog" "severity" "none" .Values.customRules }}
++      {{- if or .Values.defaultRules.additionalRuleLabels .Values.defaultRules.additionalRuleGroupLabels.general }}
++        {{- with .Values.defaultRules.additionalRuleLabels }}
++          {{- toYaml . | nindent 8 }}
++        {{- end }}
++        {{- with .Values.defaultRules.additionalRuleGroupLabels.general }}
++          {{- toYaml . | nindent 8 }}
++        {{- end }}
+       {{- end }}
+ {{- end }}
+ {{- if not (.Values.defaultRules.disabled.InfoInhibitor | default false) }}
+@@ -73,6 +92,9 @@
+ {{- if .Values.defaultRules.additionalRuleAnnotations }}
+ {{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
+ {{- end }}
++{{- if .Values.defaultRules.additionalRuleGroupAnnotations.general }}
++{{ toYaml .Values.defaultRules.additionalRuleGroupAnnotations.general | indent 8 }}
++{{- end }}
+         description: 'This is an alert that is used to inhibit info alerts.
+ 
+           By themselves, the info-level alerts are sometimes very noisy, but they are relevant when combined with
+@@ -88,11 +110,16 @@
+           '
+         runbook_url: {{ .Values.defaultRules.runbookUrl }}/general/infoinhibitor
+         summary: Info-level alert inhibition.
+-      expr: ALERTS{severity = "info"} == 1 unless on(namespace) ALERTS{alertname != "InfoInhibitor", severity =~ "warning|critical", alertstate="firing"} == 1
++      expr: ALERTS{severity = "info"} == 1 unless on ({{ range $.Values.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}namespace) ALERTS{alertname != "InfoInhibitor", severity =~ "warning|critical", alertstate="firing"} == 1
+       labels:
+-        severity: none
+-      {{- if .Values.defaultRules.additionalRuleLabels }}
+-        {{ toYaml .Values.defaultRules.additionalRuleLabels | nindent 8 }}
++        severity: {{ dig "InfoInhibitor" "severity" "none" .Values.customRules }}
++      {{- if or .Values.defaultRules.additionalRuleLabels .Values.defaultRules.additionalRuleGroupLabels.general }}
++        {{- with .Values.defaultRules.additionalRuleLabels }}
++          {{- toYaml . | nindent 8 }}
++        {{- end }}
++        {{- with .Values.defaultRules.additionalRuleGroupLabels.general }}
++          {{- toYaml . | nindent 8 }}
++        {{- end }}
+       {{- end }}
+ {{- end }}
+ {{- end }}
+\ No newline at end of file

@@ -1,0 +1,16 @@
+--- charts-original/charts/grafana/templates/image-renderer-deployment.yaml
++++ charts/charts/grafana/templates/image-renderer-deployment.yaml
+@@ -65,10 +65,11 @@
+       {{- end }}
+       containers:
+         - name: {{ .Chart.Name }}-image-renderer
++          {{- $registry := include "system_default_registry" | default .Values.imageRenderer.image.registry -}}
+           {{- if .Values.imageRenderer.image.sha }}
+-          image: "{{ template "system_default_registry" . }}{{ .Values.imageRenderer.image.repository }}:{{ .Values.imageRenderer.image.tag }}@sha256:{{ .Values.imageRenderer.image.sha }}"
++          image: "{{ $registry }}{{ .Values.imageRenderer.image.repository }}:{{ .Values.imageRenderer.image.tag }}@sha256:{{ .Values.imageRenderer.image.sha }}"
+           {{- else }}
+-          image: "{{ template "system_default_registry" . }}{{ .Values.imageRenderer.image.repository }}:{{ .Values.imageRenderer.image.tag }}"
++          image: "{{ $registry }}{{ .Values.imageRenderer.image.repository }}:{{ .Values.imageRenderer.image.tag }}"
+           {{- end }}
+           imagePullPolicy: {{ .Values.imageRenderer.image.pullPolicy }}
+           {{- if .Values.imageRenderer.command }}
