@@ -1,0 +1,21 @@
+--- charts-original/charts/grafana/templates/clusterrole.yaml
++++ charts/charts/grafana/templates/clusterrole.yaml
+@@ -1,14 +1,14 @@
+-{{- if and .Values.rbac.create (or (not .Values.rbac.namespaced) .Values.rbac.extraClusterRoleRules) (not .Values.rbac.useExistingRole) }}
++{{- if and .Values.rbac.create (or (not .Values.rbac.namespaced) .Values.rbac.extraClusterRoleRules) (not .Values.rbac.useExistingClusterRole) }}
+ kind: ClusterRole
+ apiVersion: rbac.authorization.k8s.io/v1
+ metadata:
+   labels:
+     {{- include "grafana.labels" . | nindent 4 }}
+-{{- with .Values.annotations }}
++  {{- with .Values.annotations }}
+   annotations:
+-{{ toYaml . | indent 4 }}
++    {{- toYaml . | nindent 4 }}
++  {{- end }}
+   name: {{ include "grafana.fullname" . }}-clusterrole
+-{{- end}}
+ {{- if or .Values.sidecar.dashboards.enabled .Values.rbac.extraClusterRoleRules .Values.sidecar.datasources.enabled .Values.sidecar.plugins.enabled .Values.sidecar.alerts.enabled }}
+ rules:
+   {{- if or .Values.sidecar.dashboards.enabled .Values.sidecar.datasources.enabled .Values.sidecar.plugins.enabled .Values.sidecar.alerts.enabled }}

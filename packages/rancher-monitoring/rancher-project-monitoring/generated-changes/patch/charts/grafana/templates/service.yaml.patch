@@ -1,0 +1,27 @@
+--- charts-original/charts/grafana/templates/service.yaml
++++ charts/charts/grafana/templates/service.yaml
+@@ -21,10 +21,13 @@
+   clusterIP: {{ . }}
+   {{- end }}
+   {{- else if eq .Values.service.type "LoadBalancer" }}
+-  type: {{ .Values.service.type }}
++  type: LoadBalancer
+   {{- with .Values.service.loadBalancerIP }}
+   loadBalancerIP: {{ . }}
+   {{- end }}
++  {{- with .Values.service.loadBalancerClass }}
++  loadBalancerClass: {{ . }}
++  {{- end }}
+   {{- with .Values.service.loadBalancerSourceRanges }}
+   loadBalancerSourceRanges:
+     {{- toYaml . | nindent 4 }}
+@@ -36,6 +39,9 @@
+   externalIPs:
+     {{- toYaml . | nindent 4 }}
+   {{- end }}
++  {{- with .Values.service.externalTrafficPolicy }}
++  externalTrafficPolicy: {{ . }}
++  {{- end }}
+   ports:
+     - name: {{ .Values.service.portName }}
+       port: {{ .Values.service.port }}

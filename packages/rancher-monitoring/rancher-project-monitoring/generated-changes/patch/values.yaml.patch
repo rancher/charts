@@ -1,0 +1,556 @@
+--- charts-original/values.yaml
++++ charts/values.yaml
+@@ -49,6 +49,10 @@
+ # scmhash: abc123
+ # myLabel: aakkmd
+ 
++## custom Rules to override "for" and "severity" in defaultRules
++##
++customRules: {}
++
+ ## Create default rules for monitoring the cluster
+ ##
+ defaultRules:
+@@ -74,6 +78,76 @@
+   ## Additional annotations for PrometheusRule alerts
+   additionalRuleAnnotations: {}
+ 
++  ## Additional labels for specific PrometheusRule alert groups
++  additionalRuleGroupLabels:
++    alertmanager: {}
++    etcd: {}
++    configReloaders: {}
++    general: {}
++    k8sContainerCpuUsageSecondsTotal: {}
++    k8sContainerMemoryCache: {}
++    k8sContainerMemoryRss: {}
++    k8sContainerMemorySwap: {}
++    k8sContainerResource: {}
++    k8sPodOwner: {}
++    kubeApiserverAvailability: {}
++    kubeApiserverBurnrate: {}
++    kubeApiserverHistogram: {}
++    kubeApiserverSlos: {}
++    kubeControllerManager: {}
++    kubelet: {}
++    kubeProxy: {}
++    kubePrometheusGeneral: {}
++    kubePrometheusNodeRecording: {}
++    kubernetesApps: {}
++    kubernetesResources: {}
++    kubernetesStorage: {}
++    kubernetesSystem: {}
++    kubeSchedulerAlerting: {}
++    kubeSchedulerRecording: {}
++    kubeStateMetrics: {}
++    network: {}
++    node: {}
++    nodeExporterAlerting: {}
++    nodeExporterRecording: {}
++    prometheus: {}
++    prometheusOperator: {}
++  
++  ## Additional annotations for specific PrometheusRule alerts groups
++  additionalRuleGroupAnnotations:
++    alertmanager: {}
++    etcd: {}
++    configReloaders: {}
++    general: {}
++    k8sContainerCpuUsageSecondsTotal: {}
++    k8sContainerMemoryCache: {}
++    k8sContainerMemoryRss: {}
++    k8sContainerMemorySwap: {}
++    k8sContainerResource: {}
++    k8sPodOwner: {}
++    kubeApiserverAvailability: {}
++    kubeApiserverBurnrate: {}
++    kubeApiserverHistogram: {}
++    kubeApiserverSlos: {}
++    kubeControllerManager: {}
++    kubelet: {}
++    kubeProxy: {}
++    kubePrometheusGeneral: {}
++    kubePrometheusNodeRecording: {}
++    kubernetesApps: {}
++    kubernetesResources: {}
++    kubernetesStorage: {}
++    kubernetesSystem: {}
++    kubeSchedulerAlerting: {}
++    kubeSchedulerRecording: {}
++    kubeStateMetrics: {}
++    network: {}
++    node: {}
++    nodeExporterAlerting: {}
++    nodeExporterRecording: {}
++    prometheus: {}
++    prometheusOperator: {}
++
+   ## Prefix for runbook URLs. Use this to override the first part of the runbookURLs that is common to all rules.
+   runbookUrl: "https://runbooks.prometheus-operator.dev/runbooks"
+ 
+@@ -112,7 +186,7 @@
+     create: true
+ 
+     userRoles:
+-      ## Create default user Roles that the Helm Project Operator will automatically create RoleBindings for
++      ## Create default user ClusterRoles to allow users to interact with Prometheus CRs, ConfigMaps, and Secrets
+       ##
+       ## How does this work?
+       ##
+@@ -126,7 +200,7 @@
+       ## can be configured to use a different set of ClusterRoles as the source of truth for admin, edit, and view permissions.
+       ##
+       create: true
+-      ## Add labels to Roles
++      ## Aggregate default user ClusterRoles into default k8s ClusterRoles
+       aggregateToDefaultRoles: true
+ 
+     pspAnnotations: {}
+@@ -147,6 +221,10 @@
+   # or
+   # - "image-pull-secret"
+ 
++windowsMonitoring:
++  ## Deploys the windows-exporter and Windows-specific dashboards and rules (job name must be 'windows-exporter')
++  enabled: false
++
+ federate:
+   ## enabled indicates whether to add federation to any Project Prometheus Stacks by default
+   ## If not enabled, no federation will be turned on
+@@ -184,6 +262,7 @@
+     create: true
+     name: ""
+     annotations: {}
++    automountServiceAccountToken: true
+ 
+   ## Configure pod disruption budgets for Alertmanager
+   ## ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+@@ -223,6 +302,8 @@
+           - 'severity = info'
+         equal:
+           - 'namespace'
++      - target_matchers:
++          - 'alertname = InfoInhibitor'
+     route:
+       group_by: ['namespace']
+       group_wait: 30s
+@@ -339,8 +420,11 @@
+ 
+     labels: {}
+ 
+-    ## Redirect ingress to an additional defined port on the service
++    ## Override ingress to a different defined port on the service
+     # servicePort: 8081
++    ## Override ingress to a different service then the default, this is useful if you need to
++    ## point to a specific instance of the alertmanager (eg kube-prometheus-stack-alertmanager-0)
++    # serviceName: kube-prometheus-stack-alertmanager-0
+ 
+     ## Hosts must be provided if Ingress is enabled.
+     ##
+@@ -391,11 +475,14 @@
+     ##
+ 
+     ## Additional ports to open for Alertmanager service
++    ##
+     additionalPorts: []
+-    # additionalPorts:
+-    # - name: authenticated
++    # - name: oauth-proxy
+     #   port: 8081
+     #   targetPort: 8081
++    # - name: oauth-metrics
++    #   port: 8082
++    #   targetPort: 8082
+ 
+     externalIPs: []
+     loadBalancerIP: ""
+@@ -462,7 +549,7 @@
+     ##
+     image:
+       repository: rancher/mirrored-prometheus-alertmanager
+-      tag: v0.25.0
++      tag: v0.27.0
+       sha: ""
+ 
+     ## If true then the user will be responsible to provide a secret with alertmanager configuration
+@@ -475,6 +562,10 @@
+     ##
+     secrets: []
+ 
++    ## If false then the user will opt out of automounting API credentials.
++    ##
++    automountServiceAccountToken: true
++
+     ## ConfigMaps is a list of ConfigMaps in the same namespace as the Alertmanager object, which shall be mounted into the Alertmanager Pods.
+     ## The ConfigMaps are mounted into /etc/alertmanager/configmaps/.
+     ##
+@@ -506,6 +597,13 @@
+     # alertmanagerConfiguration:
+     #   name: global-alertmanager-Configuration
+ 
++    ## Defines the strategy used by AlertmanagerConfig objects to match alerts. eg:
++    ##
++    alertmanagerConfigMatcherStrategy: {}
++    ## Example with use OnNamespace strategy
++    # alertmanagerConfigMatcherStrategy:
++    #   type: OnNamespace
++
+     ## Define Log Format
+     # Use logfmt (default) or json logging
+     logFormat: logfmt
+@@ -546,6 +644,13 @@
+     ##
+     routePrefix: /
+ 
++    ## scheme: HTTP scheme to use. Can be used with `tlsConfig` for example if using istio mTLS.
++    scheme: ""
++
++    ## tlsConfig: TLS configuration to use when connect to the endpoint. For example if using istio mTLS.
++    ## Of type: https://github.com/coreos/prometheus-operator/blob/main/Documentation/api.md#tlsconfig
++    tlsConfig: {}
++
+     ## If set to true all actions on the underlying managed objects are not going to be performed, except for delete actions.
+     ##
+     paused: false
+@@ -621,6 +726,8 @@
+       runAsNonRoot: true
+       runAsUser: 1000
+       fsGroup: 2000
++      seccompProfile:
++        type: RuntimeDefault
+ 
+     ## ListenLocal makes the Alertmanager server listen on loopback, so that it does not bind against the Pod IP.
+     ## Note this is only for the Alertmanager UI, not the gossip communication.
+@@ -632,15 +739,19 @@
+     containers: []
+     # containers:
+     # - name: oauth-proxy
+-    #   image: quay.io/oauth2-proxy/oauth2-proxy:v7.3.0
++    #   image: quay.io/oauth2-proxy/oauth2-proxy:v7.5.1
+     #   args:
+     #   - --upstream=http://127.0.0.1:9093
+     #   - --http-address=0.0.0.0:8081
++    #   - --metrics-address=0.0.0.0:8082
+     #   - ...
+     #   ports:
+     #   - containerPort: 8081
+     #     name: oauth-proxy
+     #     protocol: TCP
++    #   - containerPort: 8082
++    #     name: oauth-metrics
++    #     protocol: TCP
+     #   resources: {}
+ 
+     # Additional volumes on the output StatefulSet definition.
+@@ -669,6 +780,18 @@
+     ##
+     clusterAdvertiseAddress: false
+ 
++    ## clusterGossipInterval determines interval between gossip attempts.
++    ## Needs to be specified as GoDuration, a time duration that can be parsed by Go’s time.ParseDuration() (e.g. 45ms, 30s, 1m, 1h20m15s)
++    clusterGossipInterval: ""
++
++    ## clusterPeerTimeout determines timeout for cluster peering.
++    ## Needs to be specified as GoDuration, a time duration that can be parsed by Go’s time.ParseDuration() (e.g. 45ms, 30s, 1m, 1h20m15s)
++    clusterPeerTimeout: ""
++
++    ## clusterPushpullInterval determines interval between pushpull attempts.
++    ## Needs to be specified as GoDuration, a time duration that can be parsed by Go’s time.ParseDuration() (e.g. 45ms, 30s, 1m, 1h20m15s)
++    clusterPushpullInterval: ""
++
+     ## ForceEnableClusterMode ensures Alertmanager does not deactivate the cluster mode when running with a single replica.
+     ## Use case is e.g. spanning an Alertmanager cluster across Kubernetes clusters with a single replica in each.
+     forceEnableClusterMode: false
+@@ -677,6 +800,14 @@
+     ## be considered available. Defaults to 0 (pod will be considered available as soon as it is ready).
+     minReadySeconds: 0
+ 
++    ## Additional configuration which is not covered by the properties above. (passed through tpl)
++    additionalConfig: {}
++
++    ## Additional configuration which is not covered by the properties above.
++    ## Useful, if you need advanced templating inside alertmanagerSpec.
++    ## Otherwise, use alertmanager.alertmanagerSpec.additionalConfig (passed through tpl)
++    additionalConfigString: ""
++
+   ## ExtraSecret can be used to store various data in an extra secret
+   ## (use it for example to store hashed basic auth credentials)
+   extraSecret:
+@@ -708,6 +839,9 @@
+       org_role: Viewer
+     auth.basic:
+       enabled: false
++    dashboards:
++      # Modify this value to change the default dashboard shown on the main Grafana page
++      default_home_dashboard_path: /tmp/dashboards/rancher-default-home.json
+     security:
+       # Required to embed dashboards in Rancher Cluster Overview Dashboard on Cluster Explorer
+       allow_embedding: true
+@@ -744,6 +878,10 @@
+   ##
+   defaultDashboardsTimezone: utc
+ 
++  ## Editable flag for the default dashboards
++  ##
++  defaultDashboardsEditable: true
++
+   adminPassword: prom-operator
+ 
+   ingress:
+@@ -784,23 +922,46 @@
+     #   hosts:
+     #   - grafana.example.com
+ 
++  # # To make Grafana persistent (Using Statefulset)
++  # #
++  # persistence:
++  #   enabled: true
++  #   type: sts
++  #   storageClassName: "storageClassName"
++  #   accessModes:
++  #     - ReadWriteOnce
++  #   size: 20Gi
++  #   finalizers:
++  #     - kubernetes.io/pvc-protection
++
++  serviceAccount:
++    create: true
++    autoMount: true
++
+   sidecar:
+     dashboards:
+       enabled: true
+       label: grafana_dashboard
++      searchNamespace: cattle-dashboards
+       labelValue: "1"
+ 
++      # Support for new table panels, when enabled grafana auto migrates the old table panels to newer table panels
++      enableNewTablePanelSyntax: false
++
+       ## Annotations for Grafana dashboard configmaps
+       ##
+       annotations: {}
+       multicluster:
+         global:
+           enabled: false
++        etcd:
++          enabled: false
+       provider:
+         allowUiUpdates: false
+     datasources:
+       enabled: true
+       defaultDatasourceEnabled: true
++      isDefaultDatasource: true
+ 
+       uid: prometheus
+ 
+@@ -808,6 +969,9 @@
+       ##
+       # url: http://prometheus-stack-prometheus:9090/
+ 
++      ## Prometheus request timeout in seconds
++      # timeout: 30
++
+       # If not defined, will use prometheus.prometheusSpec.scrapeInterval or its default
+       # defaultDatasourceScrapeInterval: 15s
+ 
+@@ -815,6 +979,14 @@
+       ##
+       annotations: {}
+ 
++      ## Set method for HTTP to send query to datasource
++      httpMethod: POST
++
++      ## Create datasource for each Pod of Prometheus StatefulSet;
++      ## this uses headless service `prometheus-operated` which is
++      ## created by Prometheus Operator
++      ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/0fee93e12dc7c2ea1218f19ae25ec6b893460590/pkg/prometheus/statefulset.go#L255-L286
++      createPrometheusReplicasDatasources: false
+       label: grafana_datasource
+       labelValue: "1"
+ 
+@@ -823,6 +995,11 @@
+       exemplarTraceIdDestinations: {}
+         # datasourceUid: Jaeger
+         # traceIdLabelName: trace_id
++      alertmanager:
++        enabled: true
++        uid: alertmanager
++        handleGrafanaManagedAlerts: false
++        implementation: prometheus
+ 
+   extraConfigmapMounts: []
+   # - name: certs-configmap
+@@ -932,14 +1109,6 @@
+     tlsConfig: {}
+     scrapeTimeout: 30s
+ 
+-    ## MetricRelabelConfigs to apply to samples after scraping, but before ingestion.
+-    ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/api.md#relabelconfig
+-    ##
+-    metricRelabelings: []
+-    # - action: keep
+-    #   regex: 'kube_(daemonset|deployment|pod|namespace|node|statefulset).+'
+-    #   sourceLabels: [__name__]
+-
+     ## RelabelConfigs to apply to samples before scraping
+     ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#relabelconfig
+     ##
+@@ -994,6 +1163,10 @@
+     ## To be used with a proxy extraContainer port
+     targetPort: 8081
+ 
++    ## Port for Prometheus Reloader to listen on
++    ##
++    reloaderWebPort: 8080
++
+     ## List of IP addresses at which the Prometheus server service is available
+     ## Ref: https://kubernetes.io/docs/user-guide/services/#external-ips
+     ##
+@@ -1017,12 +1190,16 @@
+     ##
+     type: ClusterIP
+ 
+-    ## Additional port to define in the Service
++    ## Additional ports to open for Prometheus service
++    ##
+     additionalPorts: []
+     # additionalPorts:
+-    # - name: authenticated
++    # - name: oauth-proxy
+     #   port: 8081
+     #   targetPort: 8081
++    # - name: oauth-metrics
++    #   port: 8082
++    #   targetPort: 8082
+ 
+     ## Consider that all endpoints are considered "ready" even if the Pods themselves are not
+     ## Ref: https://kubernetes.io/docs/reference/kubernetes-api/service-resources/service-v1/#ServiceSpec
+@@ -1104,7 +1281,7 @@
+     scheme: ""
+ 
+     ## tlsConfig: TLS configuration to use when scraping the endpoint. For example if using istio mTLS.
+-    ## Of type: https://github.com/coreos/prometheus-operator/blob/main/Documentation/api.md#tlsconfig
++    ## Of type: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#tlsconfig
+     tlsConfig: {}
+ 
+     bearerTokenFile:
+@@ -1183,7 +1360,7 @@
+     ##
+     image:
+       repository: rancher/mirrored-prometheus-prometheus
+-      tag: v2.42.0
++      tag: v2.50.1
+       sha: ""
+ 
+     ## Tolerations for use with node taints
+@@ -1583,6 +1760,8 @@
+       runAsNonRoot: true
+       runAsUser: 1000
+       fsGroup: 2000
++      seccompProfile:
++        type: RuntimeDefault
+ 
+     ## Priority class assigned to the Pods
+     ##
+@@ -1600,7 +1779,23 @@
+       #     secrets: |
+       #       - resourceName: "projects/$PROJECT_ID/secrets/testsecret/versions/latest"
+       #         fileName: "objstore.yaml"
+-      # objectStorageConfigFile: /var/secrets/object-store.yaml
++      ## ObjectStorageConfig configures object storage in Thanos.
++      # objectStorageConfig:
++      #   # use existing secret, if configured, objectStorageConfig.secret will not be used
++      #   existingSecret: {}
++      #     # name: ""
++      #     # key: ""
++      #   # will render objectStorageConfig secret data and configure it to be used by Thanos custom resource,
++      #   # ignored when prometheusspec.thanos.objectStorageConfig.existingSecret is set
++      #   # https://thanos.io/tip/thanos/storage.md/#s3
++      #   secret: {}
++      #     # type: S3
++      #     # config:
++      #     #   bucket: ""
++      #     #   endpoint: ""
++      #     #   region: ""
++      #     #   access_key: ""
++      #     #   secret_key: ""
+ 
+     proxy:
+       image:
+@@ -1650,8 +1845,10 @@
+     ## OverrideHonorTimestamps allows to globally enforce honoring timestamps in all scrape configs.
+     overrideHonorTimestamps: false
+ 
+-    ## IgnoreNamespaceSelectors if set to true will ignore NamespaceSelector settings from the podmonitor and servicemonitor
+-    ## configs, and they will only discover endpoints within their current namespace. Defaults to false.
++    ## When ignoreNamespaceSelectors is set to true, namespaceSelector from all PodMonitor, ServiceMonitor and Probe objects will be ignored,
++    ## they will only discover targets within the namespace of the PodMonitor, ServiceMonitor and Probe object,
++    ## and servicemonitors will be installed in the default service namespace.
++    ## Defaults to false.
+     ignoreNamespaceSelectors: false
+ 
+     ## EnforcedNamespaceLabel enforces adding a namespace label of origin for each alert and metric that is user created.
+@@ -1687,7 +1884,6 @@
+     ## if either value is zero, in which case the non-zero value will be used. If both values are zero, no limit is enforced.
+     enforcedTargetLimit: false
+ 
+-
+     ## Per-scrape limit on number of labels that will be accepted for a sample. If more than this number of labels are present
+     ## post metric-relabeling, the entire scrape will be treated as failed. 0 means no limit. Only valid in Prometheus versions
+     ## 2.27.0 and newer.
+@@ -1820,6 +2016,25 @@
+           ##
+           # serverName: ""
+ 
++    ## MetricRelabelConfigs to apply to samples after scraping, but before ingestion.
++    ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#relabelconfig
++    ##
++    # metricRelabelings: []
++    # - action: keep
++    #   regex: 'kube_(daemonset|deployment|pod|namespace|node|statefulset).+'
++    #   sourceLabels: [__name__]
++
++    ## RelabelConfigs to apply to samples before scraping
++    ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#relabelconfig
++    ##
++    # relabelings: []
++    # - sourceLabels: [__meta_kubernetes_pod_node_name]
++    #   separator: ;
++    #   regex: ^(.*)$
++    #   targetLabel: nodename
++    #   replacement: $1
++    #   action: replace
++
+   additionalPodMonitors: []
+   ## Name of the PodMonitor to create
+   ##
+@@ -1963,13 +2178,16 @@
+     ##
+     type: ClusterIP
+ 
+-  ## If true, create a serviceMonitor for thanosRuler
++  ## Configuration for creating a ServiceMonitor for the ThanosRuler service
+   ##
+   serviceMonitor:
++    ## If true, create a serviceMonitor for thanosRuler
++    ##
++    selfMonitor: true
++
+     ## Scrape interval. If not set, the Prometheus default scrape interval is used.
+     ##
+     interval: ""
+-    selfMonitor: true
+ 
+     ## Additional labels
+     ##
+@@ -2040,8 +2258,7 @@
+     ##
+     image:
+       repository: rancher/mirrored-thanos-thanos
+-      tag: v0.30.2
+-      sha: ""
++      tag: v0.34.1
+ 
+     ## Namespaces to be selected for PrometheusRules discovery.
+     ## If nil, select own namespace. Namespaces to be selected for ServiceMonitor discovery.
