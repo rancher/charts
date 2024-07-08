@@ -1,0 +1,14 @@
+--- charts-original/templates/prometheus/podDisruptionBudget.yaml
++++ charts/templates/prometheus/podDisruptionBudget.yaml
+@@ -16,6 +16,10 @@
+   {{- end  }}
+   selector:
+     matchLabels:
++      {{- if .Values.prometheus.agentMode }}
++      app.kubernetes.io/name: prometheus-agent
++      {{- else }}
+       app.kubernetes.io/name: prometheus
+-      prometheus: {{ template "project-prometheus-stack.prometheus.crname" . }}
++      {{- end }}
++      operator.prometheus.io/name: {{ template "project-prometheus-stack.prometheus.crname" . }}
+ {{- end }}

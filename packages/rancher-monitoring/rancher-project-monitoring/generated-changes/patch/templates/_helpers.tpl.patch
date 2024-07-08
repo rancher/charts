@@ -1,0 +1,33 @@
+--- charts-original/templates/_helpers.tpl
++++ charts/templates/_helpers.tpl
+@@ -5,6 +5,15 @@
+ {{- end -}}
+ {{- end -}}
+ 
++{{- define "monitoring_registry" -}}
++  {{- $temp_registry := (include "system_default_registry" .) -}}
++  {{- if $temp_registry -}}
++    {{- trimSuffix "/" $temp_registry -}}
++  {{- else -}}
++    {{- .Values.global.imageRegistry -}}
++  {{- end -}}
++{{- end -}}
++
+ {{/*
+ https://github.com/helm/helm/issues/4535#issuecomment-477778391
+ Usage: {{ include "call-nested" (list . "SUBCHART_NAME" "TEMPLATE") }}
+@@ -436,3 +445,14 @@
+         kubernetes.io/metadata.name: {{ $ns }}
+ {{- end }}
+ {{- end -}}
++
++{{- define "project-prometheus-stack.operator.admission-webhook.dnsNames" }}
++{{- $fullname := include "project-prometheus-stack.operator.fullname" . }}
++{{- $namespace := include "project-prometheus-stack.namespace" . }}
++{{- $fullname }}
++{{ $fullname }}.{{ $namespace }}.svc
++{{- if .Values.prometheusOperator.admissionWebhooks.deployment.enabled }}
++{{ $fullname }}-webhook
++{{ $fullname }}-webhook.{{ $namespace }}.svc
++{{- end }}
++{{- end }}
