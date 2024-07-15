@@ -1,3 +1,6 @@
+help:
+	./bin/charts-build-scripts --help
+
 pull-scripts:
 	./scripts/pull-scripts
 
