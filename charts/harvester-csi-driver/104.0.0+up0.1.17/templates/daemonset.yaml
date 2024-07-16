@@ -1,0 +1,149 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "harvester-csi-driver.name" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+  {{- include "harvester-csi-driver.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      component: csi-driver
+      {{- include "harvester-csi-driver.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        component: csi-driver
+        {{- include "harvester-csi-driver.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - args:
+            - --v=5
+            - --csi-address=$(ADDRESS)
+            - --kubelet-registration-path={{ .Values.kubeletRootDir }}/harvester-plugins/driver.harvesterhci.io/csi.sock
+          env:
+            - name: ADDRESS
+              value: /csi/csi.sock
+          image: {{ template "system_default_registry" . }}{{ .Values.image.csi.nodeDriverRegistrar.repository }}:{{ .Values.image.csi.nodeDriverRegistrar.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - rm -rf /registration/driver.harvesterhci.io-reg.sock
+                    /csi//*
+          name: node-driver-registrar
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - mountPath: /csi/
+              name: socket-dir
+            - mountPath: /registration
+              name: registration-dir
+        - args:
+            - --nodeid=$(NODE_ID)
+            - --endpoint=$(CSI_ENDPOINT)
+            - --kubeconfig=/var/lib/harvester/cloud-provider-config
+          env:
+            - name: NODE_ID
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+            - name: CSI_ENDPOINT
+              value: unix:///csi/csi.sock
+          image: {{ template "system_default_registry" . }}{{ .Values.image.harvester.csiDriver.repository }}:{{ .Values.image.harvester.csiDriver.tag | default .Chart.AppVersion }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - rm -f /csi//*
+          name: harvester-csi-driver
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities:
+              add:
+                - SYS_ADMIN
+            privileged: true
+          volumeMounts:
+            - name: cloud-config
+              readOnly: true
+              mountPath: /var/lib/harvester
+            - name: kubernetes
+              readOnly: true
+              mountPath: /etc/kubernetes
+            - mountPath: {{ .Values.kubeletRootDir }}/plugins/kubernetes.io/csi
+              mountPropagation: Bidirectional
+              name: kubernetes-csi-dir
+            - mountPath: /csi/
+              name: socket-dir
+            - mountPath: {{ .Values.kubeletRootDir }}/pods
+              mountPropagation: Bidirectional
+              name: pods-mount-dir
+            - mountPath: /dev
+              name: host-dev
+            - mountPath: /sys
+              name: host-sys
+            - mountPath: /rootfs
+              mountPropagation: Bidirectional
+              name: host
+            - mountPath: /lib/modules
+              name: lib-modules
+              readOnly: true
+      hostPID: true
+      serviceAccountName: {{ include "harvester-csi-driver.name" . }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: cloud-config
+        {{- if .Values.cloudConfig.secretName }}
+          secret:
+            secretName: {{ .Values.cloudConfig.secretName }}
+        {{- else }}
+          hostPath:
+            path: {{ .Values.cloudConfig.hostPath }}
+            type: DirectoryOrCreate
+        {{- end }}
+        - hostPath:
+            path: /etc/kubernetes
+            type: DirectoryOrCreate
+          name: kubernetes
+        - hostPath:
+            path: {{ .Values.kubeletRootDir }}/plugins/kubernetes.io/csi
+            type: DirectoryOrCreate
+          name: kubernetes-csi-dir
+        - hostPath:
+            path: {{ .Values.kubeletRootDir }}/plugins_registry
+            type: Directory
+          name: registration-dir
+        - hostPath:
+            path: {{ .Values.kubeletRootDir }}/harvester-plugins/driver.harvesterhci.io
+            type: DirectoryOrCreate
+          name: socket-dir
+        - hostPath:
+            path: {{ .Values.kubeletRootDir }}/pods
+            type: DirectoryOrCreate
+          name: pods-mount-dir
+        - hostPath:
+            path: /dev
+          name: host-dev
+        - hostPath:
+            path: /sys
+          name: host-sys
+        - hostPath:
+            path: /
+          name: host
+        - hostPath:
+            path: /lib/modules
+          name: lib-modules
