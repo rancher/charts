@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "prom2teams.fullname" . }}
+  namespace: {{ include "prom2teams.namespace" . }}
+  labels:
+{{ include "prom2teams.labels" . | indent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: 8089
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: {{ include "prom2teams.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
