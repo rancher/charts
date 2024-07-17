@@ -1,0 +1,68 @@
+{{- if .Values.serviceMonitor.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "grafana.fullname" . }}
+  {{- if .Values.serviceMonitor.namespace }}
+  namespace: {{ tpl .Values.serviceMonitor.namespace . }}
+  {{- else }}
+  namespace: {{ include "grafana.namespace" . }}
+  {{- end }}
+  labels:
+    {{- include "grafana.labels" . | nindent 4 }}
+    {{- with .Values.serviceMonitor.labels }}
+    {{- tpl (toYaml . | nindent 4) $ }}
+    {{- end }}
+spec:
+  endpoints:
+  - port: {{ .Values.service.portName }}
+    {{- with .Values.serviceMonitor.interval }}
+    interval: {{ . }}
+    {{- end }}
+    {{- with .Values.serviceMonitor.scrapeTimeout }}
+    scrapeTimeout: {{ . }}
+    {{- end }}
+    honorLabels: true
+    path: {{ .Values.serviceMonitor.path }}
+    scheme: {{ .Values.serviceMonitor.scheme }}
+    {{- with .Values.serviceMonitor.tlsConfig }}
+    tlsConfig:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    metricRelabelings:
+    {{- if .Values.serviceMonitor.metricRelabelings }}
+    {{- toYaml .Values.serviceMonitor.metricRelabelings | nindent 6 }}
+    {{- end }}
+    {{ if .Values.global.cattle.clusterId }}
+    - sourceLabels: [__address__]
+      targetLabel: cluster_id
+      replacement: {{ .Values.global.cattle.clusterId }}
+    {{- end }}
+    {{ if .Values.global.cattle.clusterName }}
+    - sourceLabels: [__address__]
+      targetLabel: cluster_name
+      replacement: {{ .Values.global.cattle.clusterName }}
+    {{- end }}
+    {{- if .Values.serviceMonitor.relabelings }}
+    {{- with .Values.serviceMonitor.relabelings }}
+    relabelings:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- end }}
+    {{- with .Values.serviceMonitor.metricRelabelings }}
+    metricRelabelings:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  jobLabel: "{{ .Release.Name }}"
+  selector:
+    matchLabels:
+      {{- include "grafana.selectorLabels" . | nindent 6 }}
+  namespaceSelector:
+    matchNames:
+      - {{ include "grafana.namespace" . }}
+  {{- with .Values.serviceMonitor.targetLabels }}
+  targetLabels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
