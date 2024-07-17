@@ -1,0 +1,71 @@
+{{- if .Values.operator.admissionControllers.enabled }}
+{{- if and (.Values.operator.admissionControllers.certificates.certManager.enabled) (.Values.operator.admissionControllers.certificates.certManager.generateSelfSigned) }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.operator.admissionControllers.certificates.secretNames.operator }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  dnsNames:
+  - operator-webhook-service.{{ .Release.Namespace }}.svc
+  - operator-webhook-service.{{ .Release.Namespace }}.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: operator-webhook-selfsigned-issuer
+  secretName: {{ .Values.operator.admissionControllers.certificates.secretNames.operator }}
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: operator-webhook-selfsigned-issuer
+  namespace: {{ .Release.Namespace }}
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.operator.admissionControllers.certificates.secretNames.injector }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  dnsNames:
+  - network-resources-injector-service.{{ .Release.Namespace }}.svc
+  - network-resources-injector-service.{{ .Release.Namespace }}.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: network-resources-injector-selfsigned-issuer
+  secretName: {{ .Values.operator.admissionControllers.certificates.secretNames.injector }}
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: network-resources-injector-selfsigned-issuer
+  namespace: {{ .Release.Namespace }}
+spec:
+  selfSigned: {}
+{{- else if and (not .Values.operator.admissionControllers.certificates.certManager.enabled) (.Values.operator.admissionControllers.certificates.custom.enabled) }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Values.operator.admissionControllers.certificates.secretNames.operator }}
+  namespace: {{ .Release.Namespace }}
+type: Opaque
+data:
+  ca.crt: {{ .Values.operator.admissionControllers.certificates.custom.operator.caCrt | b64enc | b64enc | quote }}
+  tls.crt: {{ .Values.operator.admissionControllers.certificates.custom.operator.tlsCrt | b64enc | quote }}
+  tls.key: {{ .Values.operator.admissionControllers.certificates.custom.operator.tlsKey | b64enc | quote }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Values.operator.admissionControllers.certificates.secretNames.injector }}
+  namespace: {{ .Release.Namespace }}
+type: Opaque
+data:
+  ca.crt: {{ .Values.operator.admissionControllers.certificates.custom.injector.caCrt | b64enc | b64enc | quote }}
+  tls.crt: {{ .Values.operator.admissionControllers.certificates.custom.injector.tlsCrt | b64enc | quote }}
+  tls.key: {{ .Values.operator.admissionControllers.certificates.custom.injector.tlsKey | b64enc | quote }}
+{{- end }}
+{{- end }}
