@@ -1,0 +1,157 @@
+{{- if .Values.ingress.enabled }}
+---
+# S3 Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: '{{ .Chart.Name }}'
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "s3gw.labels" . | indent 4 }}
+  annotations:
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares:
+      '{{ .Release.Namespace }}-cors-header@kubernetescrd'
+    cert-manager.io/cluster-issuer: {{ default .Values.tlsIssuer .Values.customTlsIssuer | quote }}
+spec:
+  tls:
+    - hosts:
+        - '{{ .Values.serviceName }}.{{ .Values.publicDomain }}'
+        - '*.{{ .Values.serviceName }}.{{ .Values.publicDomain }}'
+      secretName: s3gw-ingress-tls
+  rules:
+    - host: '{{ .Values.serviceName }}.{{ .Values.publicDomain }}'
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: '{{ .Values.serviceName }}'
+                port:
+                  number: 80
+    - host: '*.{{ .Values.serviceName }}.{{ .Values.publicDomain }}'
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: '{{ .Values.serviceName }}'
+                port:
+                  number: 80
+---
+# S3 No TLS Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: '{{ .Chart.Name }}-no-tls'
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "s3gw.labels" . | indent 4 }}
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares:
+      '{{ .Release.Namespace }}-cors-header@kubernetescrd'
+spec:
+  rules:
+    - host: '{{ .Values.serviceName }}.{{ .Values.publicDomain }}'
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: '{{ .Values.serviceName }}'
+                port:
+                  number: 80
+    - host: '*.{{ .Values.serviceName }}.{{ .Values.publicDomain }}'
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: '{{ .Values.serviceName }}'
+                port:
+                  number: 80
+{{- if .Values.ui.enabled }}
+---
+# UI Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: '{{ .Chart.Name }}-ui'
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "s3gw.labels" . | indent 4 }}
+  annotations:
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares:
+      '{{ .Release.Namespace }}-cors-header@kubernetescrd'
+    cert-manager.io/cluster-issuer: {{ default .Values.tlsIssuer .Values.customTlsIssuer | quote }}
+spec:
+  tls:
+    - hosts:
+        - '{{ .Values.ui.serviceName }}.{{ .Values.ui.publicDomain }}'
+      secretName: s3gw-ui-ingress-tls
+  rules:
+    - host: '{{ .Values.ui.serviceName }}.{{ .Values.ui.publicDomain }}'
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: '{{ .Values.ui.serviceName }}'
+                port:
+                  number: 80
+---
+# UI No TLS Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: '{{ .Chart.Name }}-ui-no-tls'
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "s3gw.labels" . | indent 4 }}
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares:
+      '{{ .Release.Namespace }}-cors-header@kubernetescrd'
+spec:
+  rules:
+    - host: '{{ .Values.ui.serviceName }}.{{ .Values.ui.publicDomain }}'
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: '{{ .Values.ui.serviceName }}'
+                port:
+                  number: 80
+{{- end }}
+---
+# Middleware for Traefik
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: cors-header
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "s3gw.labels" . | indent 4 }}
+spec:
+  headers:
+    accessControlAllowMethods:
+      - "DELETE"
+      - "GET"
+      - "HEAD"
+      - "POST"
+      - "PUT"
+      - "OPTIONS"
+    accessControlAllowOriginList:
+      - "*"
+    accessControlAllowHeaders:
+      - "*"
+    accessControlExposeHeaders:
+      - "*"
+{{- end }}
