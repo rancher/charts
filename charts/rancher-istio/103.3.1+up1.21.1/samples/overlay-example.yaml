@@ -1,0 +1,37 @@
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  components:
+    ingressGateways:
+    - enabled: true
+      name: ilb-gateway
+      namespace: user-ingressgateway-ns
+      k8s:
+        resources:
+          requests:
+            cpu: 200m
+        service:
+          ports:
+          - name: tcp-citadel-grpc-tls
+            port: 8060
+            targetPort: 8060
+          - name: tcp-dns
+            port: 5353
+        serviceAnnotations:
+          cloud.google.com/load-balancer-type: internal
+    - enabled: true
+      name: other-gateway
+      namespace: cattle-istio-system
+      k8s:
+        resources:
+          requests:
+            cpu: 200m
+        service:
+          ports:
+          - name: tcp-citadel-grpc-tls
+            port: 8060
+            targetPort: 8060
+          - name: tcp-dns
+            port: 5353
+        serviceAnnotations:
+          cloud.google.com/load-balancer-type: internal
