@@ -1,0 +1,82 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ template "helm-project-operator.name" . }}-cleanup
+  namespace: {{ template "helm-project-operator.namespace" . }}
+  labels: {{ include "helm-project-operator.labels" . | nindent 4 }}
+    app: {{ template "helm-project-operator.name" . }}
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-delete-policy": before-hook-creation, hook-succeeded, hook-failed
+spec:
+  template:
+    metadata:
+      name: {{ template "helm-project-operator.name" . }}-cleanup
+      labels: {{ include "helm-project-operator.labels" . | nindent 8 }}
+        app: {{ template "helm-project-operator.name" . }}
+    spec:
+      serviceAccountName: {{ template "helm-project-operator.name" . }}
+{{- if .Values.cleanup.securityContext }}
+      securityContext: {{ toYaml .Values.cleanup.securityContext | nindent 8 }}
+{{- end }}
+      initContainers:
+        - name: add-cleanup-annotations
+          image: {{ template "system_default_registry" . }}{{ .Values.cleanup.image.repository }}:{{ .Values.cleanup.image.tag }}
+          imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+          command:
+          - /bin/sh
+          - -c
+          - >
+            echo "Labeling all ProjectHelmCharts with helm.cattle.io/helm-project-operator-cleanup=true";
+            EXPECTED_HELM_API_VERSION={{ .Values.helmApiVersion }};
+            IFS=$'\n';
+            for namespace in $(kubectl get namespaces -l helm.cattle.io/helm-project-operated=true --no-headers -o=custom-columns=NAME:.metadata.name); do
+              for projectHelmChartAndHelmApiVersion in $(kubectl get projecthelmcharts -n ${namespace} --no-headers -o=custom-columns=NAME:.metadata.name,HELMAPIVERSION:.spec.helmApiVersion); do
+                projectHelmChartAndHelmApiVersion=$(echo ${projectHelmChartAndHelmApiVersion} | xargs);
+                projectHelmChart=$(echo ${projectHelmChartAndHelmApiVersion} | cut -d' ' -f1);
+                helmApiVersion=$(echo ${projectHelmChartAndHelmApiVersion} | cut -d' ' -f2);
+                if [[ ${helmApiVersion} != ${EXPECTED_HELM_API_VERSION} ]]; then
+                  echo "Skipping marking ${namespace}/${projectHelmChart} with cleanup annotation since spec.helmApiVersion: ${helmApiVersion} is not ${EXPECTED_HELM_API_VERSION}";
+                  continue;
+                fi;
+                kubectl label projecthelmcharts -n ${namespace} ${projectHelmChart} helm.cattle.io/helm-project-operator-cleanup=true --overwrite;
+              done;
+            done;
+{{- if .Values.cleanup.resources }}
+          resources: {{ toYaml .Values.cleanup.resources | nindent 12 }}
+{{- end }}
+{{- if .Values.cleanup.containerSecurityContext }}
+          securityContext: {{ toYaml .Values.cleanup.containerSecurityContext | nindent 12 }}
+{{- end }}
+      containers:
+        - name: ensure-subresources-deleted
+          image: {{ template "system_default_registry" . }}{{ .Values.cleanup.image.repository }}:{{ .Values.cleanup.image.tag }}
+          imagePullPolicy: IfNotPresent
+          command:
+          - /bin/sh
+          - -c
+          - >
+            SYSTEM_NAMESPACE={{ .Release.Namespace }}
+            EXPECTED_HELM_API_VERSION={{ .Values.helmApiVersion }};
+            HELM_API_VERSION_TRUNCATED=$(echo ${EXPECTED_HELM_API_VERSION} | cut -d'/' -f0);
+            echo "Ensuring HelmCharts and HelmReleases are deleted from ${SYSTEM_NAMESPACE}...";
+            while [[ "$(kubectl get helmcharts,helmreleases -l helm.cattle.io/helm-api-version=${HELM_API_VERSION_TRUNCATED} -n ${SYSTEM_NAMESPACE} 2>&1)" != "No resources found in ${SYSTEM_NAMESPACE} namespace." ]]; do
+              echo "waiting for HelmCharts and HelmReleases to be deleted from ${SYSTEM_NAMESPACE}... sleeping 3 seconds";
+              sleep 3;
+            done;
+            echo "Successfully deleted all HelmCharts and HelmReleases in ${SYSTEM_NAMESPACE}!";
+{{- if .Values.cleanup.resources }}
+          resources: {{ toYaml .Values.cleanup.resources | nindent 12 }}
+{{- end }}
+{{- if .Values.cleanup.containerSecurityContext }}
+          securityContext: {{ toYaml .Values.cleanup.containerSecurityContext | nindent 12 }}
+{{- end }}
+      restartPolicy: OnFailure
+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
+      {{- if .Values.cleanup.nodeSelector }}
+      {{- toYaml .Values.cleanup.nodeSelector | nindent 8 }}
+      {{- end }}
+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+      {{- if .Values.cleanup.tolerations }}
+      {{- toYaml .Values.cleanup.tolerations | nindent 8 }}
+      {{- end }}
