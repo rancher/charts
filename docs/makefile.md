@@ -51,6 +51,8 @@ Please see [`docs/validation.md`](validation.md) for more information on how CI 
 
 `make standardize`: Takes an arbitrary Helm repository (defined as any repository with a set of Helm charts under `charts/`) and standardizes it to the expected repository structure of these scripts.
 
+`make clean-cache`: Deletes `.charts-build-scripts/.cache`. Only used if `export USE_CACHE=1` is set, which indicates that you are using the experimental caching feature introduced in v0.3.0 of the scripts. Please see [`docs/experimental.md`](experimental.md) for more information.
+
 `BRANCH_VERSION="<2.X>" CHART="<some_chart>" DEBUG="<true || false>" make enforce-lifecycle`: Lists all assets versions and then starts to remove older versions with `make remove` enforcing the rules defined at: [New Assets Lifecycle](../README.md#new-assets-lifecycle).
 If run without specifying `CHART=`, will enforce lifecycle rules in all charts.
 
