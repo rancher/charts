@@ -1,102 +1,118 @@
 --- charts-original/values.yaml
 +++ charts/values.yaml
-@@ -1,4 +1,9 @@
+@@ -1,6 +1,8 @@
  global:
+-  # -- Overrides the Docker registry globally for all images
+-  imageRegistry: null
 +  cattle:
 +    psp:
 +      enabled: false
 +    systemDefaultRegistry: ""
-+
+ 
    # To help compatibility with other charts which use global.imagePullSecrets.
    # Allow either an array of {name: pullSecret} maps (k8s-style), or an array of strings (more common helm-style).
-   # Can be tempalted.
-@@ -85,9 +90,9 @@
+@@ -44,7 +46,7 @@
+ 
+   ## autoMount is deprecated in favor of automountServiceAccountToken
+   # autoMount: false
+-  automountServiceAccountToken: false
++  automountServiceAccountToken: true
+ 
+ replicas: 1
+ 
+@@ -95,12 +97,9 @@
  # schedulerName: "default-scheduler"
  
  image:
--  repository: docker.io/grafana/grafana
+-  # -- The Docker registry
+-  registry: docker.io
+-  # -- Docker image repository
+-  repository: grafana/grafana
 +  repository: rancher/mirrored-grafana-grafana
    # Overrides the Grafana image tag whose default is the chart appVersion
 -  tag: ""
-+  tag: 9.1.5
++  tag: 10.3.3
    sha: ""
    pullPolicy: IfNotPresent
  
-@@ -100,11 +105,13 @@
+@@ -113,15 +112,11 @@
    #   - myRegistrKeySecretName
  
  testFramework:
 -  enabled: true
--  image: docker.io/bats/bats
+-  image:
+-    # -- The Docker registry
+-    registry: docker.io
+-    repository: bats/bats
+-    tag: "v1.4.1"
 +  enabled: false
-+  image: "rancher/mirrored-bats-bats"
-   tag: "v1.4.1"
    imagePullPolicy: IfNotPresent
 -  securityContext: {}
+-  resources: {}
 +  securityContext:
 +    runAsNonRoot: true
 +    runAsUser: 1000
- 
- securityContext:
-   runAsNonRoot: true
-@@ -145,7 +152,7 @@
+   #  limits:
+   #    cpu: 100m
+   #    memory: 128Mi
+@@ -178,9 +173,7 @@
  # priorityClassName:
  
  downloadDashboardsImage:
--  repository: docker.io/curlimages/curl
+-  # -- The Docker registry
+-  registry: docker.io
+-  repository: curlimages/curl
 +  repository: rancher/mirrored-curlimages-curl
    tag: 7.85.0
    sha: ""
    pullPolicy: IfNotPresent
-@@ -235,7 +242,7 @@
-   labels: {}
-   path: /
- 
--  # pathType is only for k8s >= 1.1=
-+  # pathType is only for k8s >= 1.18
-   pathType: Prefix
- 
-   hosts:
-@@ -361,7 +368,7 @@
+@@ -398,9 +391,7 @@
    ## initChownData container image
    ##
    image:
--    repository: docker.io/library/busybox
+-    # -- The Docker registry
+-    registry: docker.io
+-    repository: library/busybox
 +    repository: rancher/mirrored-library-busybox
      tag: "1.31.1"
      sha: ""
      pullPolicy: IfNotPresent
-@@ -794,7 +801,7 @@
+@@ -843,9 +834,7 @@
  ## Requires at least Grafana 5 to work and can't be used together with parameters dashboardProviders, datasources and dashboards
  sidecar:
    image:
--    repository: quay.io/kiwigrid/k8s-sidecar
+-    # -- The Docker registry
+-    registry: quay.io
+-    repository: kiwigrid/k8s-sidecar
 +    repository: rancher/mirrored-kiwigrid-k8s-sidecar
-     tag: 1.24.6
+     tag: 1.26.1
      sha: ""
    imagePullPolicy: IfNotPresent
-@@ -956,10 +963,10 @@
+@@ -1010,10 +999,10 @@
      reloadURL: "http://localhost:3000/api/admin/provisioning/datasources/reload"
      # Absolute path to shell script to execute after a datasource got reloaded
      script: null
 -    skipReload: false
 +    skipReload: true
-     # Deploy the datasource sidecar as an initContainer in addition to a container.
      # This is needed if skipReload is true, to load any datasources defined at startup time.
+     # Deploy the datasources sidecar as an initContainer.
 -    initDatasources: false
 +    initDatasources: true
      # Sets the size limit of the datasource sidecar emptyDir volume
      sizeLimit: {}
    plugins:
-@@ -1066,9 +1073,9 @@
+@@ -1119,12 +1108,10 @@
+     targetMemory: ""
      behavior: {}
    image:
+-    # -- The Docker registry
+-    registry: docker.io
      # image-renderer Image repository
--    repository: docker.io/grafana/grafana-image-renderer
+-    repository: grafana/grafana-image-renderer
 +    repository: rancher/mirrored-grafana-grafana-image-renderer
      # image-renderer Image tag
 -    tag: latest
-+    tag: 3.8.0
++    tag: 3.10.1
      # image-renderer Image sha (optional)
      sha: ""
      # image-renderer ImagePullPolicy

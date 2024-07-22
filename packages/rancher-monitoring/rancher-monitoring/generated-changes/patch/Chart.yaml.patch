@@ -1,31 +1,38 @@
 --- charts-original/Chart.yaml
 +++ charts/Chart.yaml
-@@ -6,97 +6,90 @@
+@@ -4,113 +4,98 @@
+     - name: Chart Source
+       url: https://github.com/prometheus-community/helm-charts
      - name: Upstream Project
-       url: https://github.com/prometheus-operator/kube-prometheus
+-      url: https://github.com/prometheus-operator/kube-prometheus
++       url: https://github.com/prometheus-operator/kube-prometheus
    artifacthub.io/operator: "true"
 +  catalog.cattle.io/auto-install: rancher-monitoring-crd=match
 +  catalog.cattle.io/certified: rancher
 +  catalog.cattle.io/deploys-on-os: windows
 +  catalog.cattle.io/display-name: Monitoring
-+  catalog.cattle.io/kube-version: '>= 1.23.0-0 < 1.29.0-0'
++  catalog.cattle.io/kube-version: '>= 1.26.0-0 < 1.31.0-0'
 +  catalog.cattle.io/namespace: cattle-monitoring-system
 +  catalog.cattle.io/permits-os: linux,windows
 +  catalog.cattle.io/provides-gvr: monitoring.coreos.com.prometheus/v1
-+  catalog.cattle.io/rancher-version: '>= 2.8.0-0 < 2.9.0-0'
++  catalog.cattle.io/rancher-version: '>= 2.9.0-0 < 2.10.0-0'
 +  catalog.cattle.io/release-name: rancher-monitoring
 +  catalog.cattle.io/requests-cpu: 4500m
 +  catalog.cattle.io/requests-memory: 4000Mi
 +  catalog.cattle.io/type: cluster-tool
 +  catalog.cattle.io/ui-component: monitoring
-+  catalog.cattle.io/upstream-version: 45.31.1
++  catalog.cattle.io/upstream-version: 57.0.3
  apiVersion: v2
- appVersion: v0.65.1
+ appVersion: v0.72.0
  dependencies:
+-- condition: crds.enabled
+-  name: crds
+-  repository: ""
+-  version: 0.0.0
  - condition: grafana.enabled
    name: grafana
    repository: file://./charts/grafana
--  version: 6.59.0
+-  version: 7.3.11
  - condition: hardenedKubelet.enabled
    name: hardenedKubelet
    repository: file://./charts/hardenedKubelet
@@ -41,7 +48,7 @@
  - condition: kubeStateMetrics.enabled
    name: kube-state-metrics
    repository: file://./charts/kube-state-metrics
--  version: 5.8.1
+-  version: 5.16.4
  - condition: kubeAdmControllerManager.enabled
    name: kubeAdmControllerManager
    repository: file://./charts/kubeAdmControllerManager
@@ -65,7 +72,11 @@
  - condition: nodeExporter.enabled
    name: prometheus-node-exporter
    repository: file://./charts/prometheus-node-exporter
--  version: 4.20.0
+-  version: 4.30.3
+-- condition: windowsMonitoring.enabled
+-  name: prometheus-windows-exporter
+-  repository: https://prometheus-community.github.io/helm-charts
+-  version: 0.3.*
  - condition: rke2ControllerManager.enabled
    name: rke2ControllerManager
    repository: file://./charts/rke2ControllerManager
@@ -106,15 +117,21 @@
    name: rkeScheduler
    repository: file://./charts/rkeScheduler
 -  version: 0.2.0
--- condition: windowsExporter.enabled
-+- condition: global.cattle.windows.enabled
+ - condition: windowsExporter.enabled
    name: windowsExporter
    repository: file://./charts/windowsExporter
--  version: 0.1.1
+-  version: 0.3.1
  description: kube-prometheus-stack collects Kubernetes manifests, Grafana dashboards,
    and Prometheus rules combined with documentation and scripts to provide easy to
    operate end-to-end Kubernetes cluster monitoring with Prometheus using the Prometheus
-@@ -123,7 +116,7 @@
+   Operator.
+ home: https://github.com/prometheus-operator/kube-prometheus
+-icon: https://raw.githubusercontent.com/prometheus/prometheus.github.io/master/assets/prometheus_logo-cb55bb5c346.png
++icon: file://assets/logos/rancher-monitoring.png
+ keywords:
+ - operator
+ - prometheus
+@@ -133,7 +118,7 @@
    name: Xtigyro
  - email: quentin.bisson@gmail.com
    name: QuentinBisson
