@@ -1,0 +1,129 @@
+operator:
+  tolerations:
+    - key: "node-role.kubernetes.io/master"
+      operator: "Exists"
+      effect: "NoSchedule"
+    - key: "node-role.kubernetes.io/control-plane"
+      operator: "Exists"
+      effect: "NoSchedule"
+    - effect: NoExecute
+      key: node-role.kubernetes.io/etcd
+      operator: Exists
+  nodeSelector: {}
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 1
+          preference:
+            matchExpressions:
+              - key: "node-role.kubernetes.io/master"
+                operator: In
+                values: [""]
+        - weight: 1
+          preference:
+            matchExpressions:
+              - key: "node-role.kubernetes.io/control-plane"
+                operator: In
+                values: [ "" ]
+  nameOverride: ""
+  fullnameOverride: ""
+  resourcePrefix: "rancher.io"
+  cniBinPath: "/opt/cni/bin"
+  clusterType: "kubernetes"
+  admissionControllers:
+    enabled: false
+    certificates:
+      secretNames:
+        operator: "operator-webhook-cert"
+        injector: "network-resources-injector-cert"
+      certManager:
+        # When enabled, makes use of certificates managed by cert-manager.
+        enabled: false
+        # When enabled, certificates are generated via cert-manager and then name will match the name of the secrets
+        # defined above
+        generateSelfSigned: false
+      # If not specified, no secret is created and secrets with the names defined above are expected to exist in the
+      # cluster. In that case, the ca.crt must be base64 encoded twice since it ends up being an env variable.
+      custom:
+        enabled: false
+    #   operator:
+    #     caCrt: |
+    #       -----BEGIN CERTIFICATE-----
+    #       MIIMIICLDCCAdKgAwIBAgIBADAKBggqhkjOPQQDAjB9MQswCQYDVQQGEwJCRTEPMA0G
+    #       ...
+    #       -----END CERTIFICATE-----
+    #     tlsCrt: |
+    #       -----BEGIN CERTIFICATE-----
+    #       MIIMIICLDCCAdKgAwIBAgIBADAKBggqhkjOPQQDAjB9MQswCQYDVQQGEwJCRTEPMA0G
+    #       ...
+    #       -----END CERTIFICATE-----
+    #     tlsKey: |
+    #       -----BEGIN EC PRIVATE KEY-----
+    #       MHcl4wOuDwKQa+upc8GftXE2C//4mKANBC6It01gUaTIpo=
+    #       ...
+    #      -----END EC PRIVATE KEY-----
+    #   injector:
+    #     caCrt: |
+    #       -----BEGIN CERTIFICATE-----
+    #       MIIMIICLDCCAdKgAwIBAgIBADAKBggqhkjOPQQDAjB9MQswCQYDVQQGEwJCRTEPMA0G
+    #       ...
+    #       -----END CERTIFICATE-----
+    #     tlsCrt: |
+    #       -----BEGIN CERTIFICATE-----
+    #       MIIMIICLDCCAdKgAwIBAgIBADAKBggqhkjOPQQDAjB9MQswCQYDVQQGEwJCRTEPMA0G
+    #       ...
+    #       -----END CERTIFICATE-----
+    #     tlsKey: |
+    #       -----BEGIN EC PRIVATE KEY-----
+    #       MHcl4wOuDwKQa+upc8GftXE2C//4mKANBC6It01gUaTIpo=
+    #       ...
+    #      -----END EC PRIVATE KEY-----
+
+sriovOperatorConfig:
+  # deploy sriovOperatorConfig CR with the below values
+  deploy: true
+  # node slectors for sriov-network-config-daemon
+  configDaemonNodeSelector: {feature.node.kubernetes.io/network-sriov.capable: 'true'}
+  # log level for both operator and sriov-network-config-daemon
+  logLevel: 2
+  # disable node draining when configuring SR-IOV, set to true in case of a single node
+  # cluster or any other justifiable reason
+  disableDrain: false
+  # sriov-network-config-daemon configuration mode. either "daemon" or "systemd"
+  configurationMode: daemon
+
+# Image URIs for sriov-network-operator components
+images:
+  operator:
+    repository: rancher/hardened-sriov-network-operator
+    tag: v1.2.0-build20240327
+  sriovConfigDaemon:
+    repository: rancher/hardened-sriov-network-config-daemon
+    tag: v1.2.0-build20240327
+  sriovCni:
+    repository: rancher/hardened-sriov-cni
+    tag: v2.7.0-build20240327
+  ibSriovCni: 
+    repository: rancher/hardened-ib-sriov-cni
+    tag: v1.0.3-build20240327
+  sriovDevicePlugin: 
+    repository: rancher/hardened-sriov-network-device-plugin
+    tag: v3.6.2-build20240327
+  resourcesInjector: 
+    repository: rancher/hardened-sriov-network-resources-injector
+    tag: v1.5-build20240327
+  webhook:
+    repository: rancher/hardened-sriov-network-webhook
+    tag: v1.2.0-build20240327
+
+imagePullSecrets: []
+
+# Example for supportedExtraNICs values ['MyNIC: "8086 1521 1520"']
+supportedExtraNICs: []
+
+global:
+  cattle:
+    systemDefaultRegistry: ""
+  rbac:
+    userRoles:
+      aggregateToDefaultRoles: false
