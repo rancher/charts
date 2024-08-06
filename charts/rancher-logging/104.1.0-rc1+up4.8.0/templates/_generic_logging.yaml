@@ -1,0 +1,33 @@
+{{- define "logging-operator.logging.tpl" -}}
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: Logging
+metadata:
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "logging-operator.labels" . | indent 4 }}
+spec:
+  controlNamespace: {{ .Release.Namespace }}
+{{- end -}}
+
+{{- define "logging-operator.util.merge.logging" -}}
+{{/* Top context to expose fields like `.Release` and `.Values` */}}
+{{- $top := first . -}}
+
+{{/* tpl is the template specific to the logging implementation */}}
+{{- $tpl := fromYaml (include (index . 1) $top) | default (dict ) -}}
+
+{{/* Generic is the shared rancher logging setttings from `_generic_logging.yaml` */}}
+{{- $generic := fromYaml (include (index . 2) $top) | default (dict ) -}}
+
+{{/* values are from the values.yaml */}}
+{{- $values := $top.Values.loggingOverlay | default (dict ) -}}
+
+####### {{$generic}}
+
+{{/* the sources are merge right to left meaning tpl is the highest prcedence and values is the lowest */}}
+{{- toYaml (merge $tpl $values $generic) -}}
+{{- end -}}
+
+{{- define "logging-operator.logging" -}}
+{{- include "logging-operator.util.merge.logging" (append . "logging-operator.logging.tpl") -}}
+{{- end -}}
