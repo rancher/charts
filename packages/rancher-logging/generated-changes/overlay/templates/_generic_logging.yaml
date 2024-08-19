@@ -7,60 +7,6 @@ metadata:
 {{ include "logging-operator.labels" . | indent 4 }}
 spec:
   controlNamespace: {{ .Release.Namespace }}
-  fluentbit:
-    image:
-      repository: {{ template "logging-operator.fluentbitImageRepository" . }}
-      tag: {{ template "logging-operator.fluentbitImageTag" . }}
-    {{- if not .Values.disablePvc }}
-    {{- with .Values.fluentbit.bufferStorage }}
-    bufferStorage: {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .Values.fluentbit.bufferStorageVolume }}
-    bufferStorageVolume: {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- end }}
-    {{- if or .Values.global.cattle.psp.enabled .Values.global.seLinux.enabled }}
-    security:
-    {{- end }}
-    {{- if .Values.global.cattle.psp.enabled }}
-      podSecurityPolicyCreate: true
-      roleBasedAccessControlCreate: true
-    {{- end }}
-    {{- if .Values.global.seLinux.enabled }}
-      securityContext:
-        seLinuxOptions:
-          type: rke_logreader_t
-    {{- end }}
-    {{- if or .Values.fluentbit.inputTail.Buffer_Chunk_Size .Values.fluentbit.inputTail.Buffer_Max_Size .Values.fluentbit.inputTail.Mem_Buf_Limit .Values.fluentbit.inputTail.Multiline_Flush .Values.fluentbit.inputTail.Skip_Long_Lines }}
-    inputTail:
-      {{- if .Values.fluentbit.inputTail.Buffer_Chunk_Size }}
-      Buffer_Chunk_Size: {{ .Values.fluentbit.inputTail.Buffer_Chunk_Size | toString }}
-      {{- end }}
-      {{- if .Values.fluentbit.inputTail.Buffer_Max_Size }}
-      Buffer_Max_Size: {{ .Values.fluentbit.inputTail.Buffer_Max_Size | toString }}
-      {{- end }}
-      {{- if .Values.fluentbit.inputTail.Mem_Buf_Limit }}
-      Mem_Buf_Limit: {{ .Values.fluentbit.inputTail.Mem_Buf_Limit | toString }}
-      {{- end }}
-      {{- if .Values.fluentbit.inputTail.Multiline_Flush }}
-      Multiline_Flush: {{ .Values.fluentbit.inputTail.Multiline_Flush | toString | quote }}
-      {{- end }}
-      {{- if .Values.fluentbit.inputTail.Skip_Long_Lines }}
-      Skip_Long_Lines: {{ .Values.fluentbit.inputTail.Skip_Long_Lines | toString | quote }}
-      {{- end }}
-    {{- end }}
-    {{- with (concat (.Values.tolerations) (.Values.fluentbit.tolerations)) }}
-    tolerations: {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .Values.nodeSelector }}
-    nodeSelector: {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .Values.fluentbit.resources }}
-    resources: {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .Values.fluentbit.metrics }}
-    metrics: {{- toYaml . | nindent 6 }}
-    {{- end }}
   fluentd:
     {{- with .Values.fluentd.logLevel }}
     logLevel: {{ . }}
@@ -81,7 +27,6 @@ spec:
     {{- end }}
     security:
       podSecurityContext:
-        runAsUser: 100
     {{- if .Values.global.cattle.psp.enabled }}
       podSecurityPolicyCreate: true
       roleBasedAccessControlCreate: true
@@ -102,7 +47,7 @@ spec:
     livenessProbe: {{- toYaml . | nindent 6 }}
     {{- end }}
     {{- with .Values.fluentd.metrics }}
-    metrics: {{- toYaml . | nindent 6 }}
+    metrics: {{- toYaml . | indent 6 }}
     {{- end }}
 {{- end -}}
 

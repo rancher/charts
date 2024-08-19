@@ -12,38 +12,29 @@
 -
 -  # -- [Image pull policy](https://kubernetes.io/docs/concepts/containers/images/#updating-images) for updating already existing images on a node.
 +  repository: rancher/mirrored-kube-logging-logging-operator
-+  tag: 4.4.0
++  tag: 4.8.0
    pullPolicy: IfNotPresent
  
  env: []
-@@ -56,7 +51,7 @@
+@@ -119,7 +114,7 @@
+   # -- Logging resources are disabled by default
+   enabled: false
  
-   psp:
-     # -- Must be used with `rbac.enabled` true. If true, creates & uses RBAC resources required in the cluster with [Pod Security Policies](https://kubernetes.io/docs/concepts/policy/pod-security-policy/) enabled.
--    enabled: true
-+    # enabled: false
+-  # -- Reference to the logging system. Each of the loggingRefs can manage a fluentbit daemonset and a fluentd statefulset.
++  # -- Reference to the logging system. Each of the loggingRefs can manage a 1bit daemonset and a fluentd statefulset.
+   loggingRef: ""
  
-     # -- PSP annotations
-     annotations:
-@@ -115,10 +110,14 @@
-   #   cpu: 100m
-   #   memory: 128Mi
- 
--nodeSelector: {}
-+nodeSelector:
-+  kubernetes.io/os: linux
- 
--# -- Node Tolerations
--tolerations: []
-+tolerations:
-+  - key: cattle.io/os
-+    operator: "Equal"
-+    value: "linux"
-+    effect: NoSchedule
- 
- # -- Node Affinity
- affinity: {}
-@@ -267,11 +266,178 @@
+   # -- Disable configuration check before applying new fluentd configuration.
+@@ -244,7 +239,7 @@
+       imagePullSecrets: []
+     pvc:
+       # -- enable pvc for 
+-      enabled: true
++      enabled: false
+       # -- storage class for event tailer pvc
+       accessModes:
+         - ReadWriteOnce
+@@ -306,14 +301,172 @@
    image: fluent/fluent-bit
    pullPolicy: IfNotPresent
    port: 8080
@@ -198,7 +189,7 @@
 +  env: []
 +  logLevel: {}
 +  metrics:
-+    serviceMonitor: false
++    serviceMonitoring: false
 +fluentbit:
 +  inputTail:
 +    Buffer_Chunk_Size: ""
@@ -220,7 +211,14 @@
 +    Merge_Log_Trim: ""
 +    Merge_Parser: ""
 +  metrics:
-+    serviceMonitor: false
++    serviceMonitoring: false
+ 
+ # -- Extra manifests to deploy as an array
+ extraManifests: []
+@@ -324,3 +477,12 @@
+   #     name: extra-manifest
+   #   data:
+   #     extra-data: "value"
 +
 +# DO NOT SET THIS UNLESS YOU KNOW WHAT YOU ARE DOING.
 +# Setting fields on this object can break rancher logging or cause unexpected behavior. It is intended to be used if you
