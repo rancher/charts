@@ -1,0 +1,26 @@
+{{- if .Values.certificates.certManager.enabled -}}
+{{ template "cert-manager.apiversion" . }}
+kind: Certificate
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels: {{ include "gmsa.chartref" . | nindent 4 }}
+spec:
+  dnsNames:
+    - {{ .Release.Name }}.{{ .Release.Namespace }}.svc
+    - {{ .Release.Name }}.{{ .Release.Namespace }}.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: {{ .Release.Name }}
+  secretName: {{ .Values.certificates.secretName }}
+---
+{{ template "cert-manager.apiversion" . }}
+kind: Issuer
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels: {{ include "gmsa.chartref" . | nindent 4 }}
+spec:
+  selfSigned: {}
+{{- end -}}
+

@@ -1,0 +1,42 @@
+certificates:
+  certManager:
+    # Enable cert manager integration. Cert manager should be already installed at the k8s cluster
+    enabled: true
+    version: ""
+  # If cert-manager integration is disabled, upload certs data (ca.crt, tls.crt and tls.key) as k8s secretName in the namespace
+  secretName: gmsa-server-cert
+
+credential:
+  enabled: true
+  domainJoinConfig:
+    dnsName: ""  #DNS Domain Name
+    dnsTreeName: "" #DNS Domain Name Root
+    guid: ""  #GUID
+    machineAccountName: "" #Username of the GMSA account
+    netBiosName: ""  #NETBIOS Domain Name
+    sid: "" #SID of GMSA
+
+image:
+  repository: rancher/mirrored-sigwindowstools-k8s-gmsa-webhook
+  tag: v0.3.0
+  imagePullPolicy: IfNotPresent
+
+global:
+  cattle:
+    systemDefaultRegistry: ""
+  kubectl:
+    repository: rancher/kubectl
+    tag: v1.22.6
+    pullPolicy: IfNotPresent
+
+## SecurityContext holds pod-level security attributes and common container settings.
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+##
+podSecurityContext:
+  runAsNonRoot: false
+  # Currently, required to run as root due to port binding within the container.
+  runAsUser: 0
+securityContext: {}
+
+tolerations: []
+
