@@ -1,0 +1,484 @@
+# Default values for logging-operator.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: rancher/mirrored-kube-logging-logging-operator
+  tag: 4.8.0
+  pullPolicy: IfNotPresent
+
+env: []
+volumes: []
+volumeMounts: []
+
+extraArgs:
+  - -enable-leader-election=true
+imagePullSecrets: []
+
+# -- A name in place of the chart name for `app:` labels.
+nameOverride: ""
+
+# -- A name to substitute for the full names of resources.
+fullnameOverride: ""
+
+# -- A namespace override for the app.
+namespaceOverride: ""
+
+# -- Define annotations for logging-operator pods.
+annotations: {}
+
+# -- Deploy CRDs used by Logging Operator.
+createCustomResource: false
+
+http:
+  # -- HTTP listen port number.
+  port: 8080
+
+  # -- Service definition for query http service.
+  service:
+    type: ClusterIP
+    clusterIP: None
+    # Annotations to query http service
+    annotations: {}
+    # Labels to query http service
+    labels: {}
+
+rbac:
+  # -- Create rbac service account and roles.
+  enabled: true
+
+  # specify service account manually
+  # serviceAccountName: custom
+
+monitoring:
+  serviceMonitor:
+    # -- Create a Prometheus Operator ServiceMonitor object.
+    enabled: false
+
+    additionalLabels: {}
+    metricRelabelings: []
+    relabelings: []
+
+# -- Pod SecurityContext for Logging operator. [More info](https://kubernetes.io/docs/concepts/policy/security-context/)
+## SecurityContext holds pod-level security attributes and common container settings.
+## This defaults to non root user with uid 1000 and gid 2000.	*v1.PodSecurityContext	false
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+podSecurityContext: {}
+#  runAsNonRoot: true
+#  runAsUser: 1000
+#  fsGroup: 2000
+
+# -- Container SecurityContext for Logging operator. [More info](https://kubernetes.io/docs/concepts/policy/security-context/)
+securityContext: {}
+#  allowPrivilegeEscalation: false
+#  readOnlyRootFilesystem: true
+  # capabilities:
+  #   drop: ["ALL"]
+
+# -- Operator priorityClassName.
+priorityClassName: {}
+
+serviceAccount:
+  # -- Define annotations for logging-operator ServiceAccount.
+  annotations: {}
+
+# -- CPU/Memory resource requests/limits
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+
+# -- Node Tolerations
+tolerations: []
+
+# -- Node Affinity
+affinity: {}
+
+# -- Define which Nodes the Pods are scheduled on.
+podLabels: {}
+
+# Logging resources configuration.
+logging:
+
+  # -- Logging resources are disabled by default
+  enabled: false
+
+  # -- Reference to the logging system. Each of the loggingRefs can manage a fluentbit daemonset and a fluentd statefulset.
+  loggingRef: ""
+
+  # -- Disable configuration check before applying new fluentd configuration.
+  flowConfigCheckDisabled: false
+
+  # -- Whether to skip invalid Flow and ClusterFlow resources
+  skipInvalidResources: false
+
+  # -- Override generated config. This is a raw configuration string for troubleshooting purposes.
+  flowConfigOverride: ""
+
+  # -- Flag to disable fluentbit completely
+  fluentbitDisabled: false
+  # -- Fluent-bit configurations https://kube-logging.github.io/docs/configuration/crds/v1beta1/fluentbit_types/
+  fluentbit: {}
+
+  # -- Flag to disable fluentd completely
+  fluentdDisabled: false
+  # -- Fluentd configurations https://kube-logging.github.io/docs/configuration/crds/v1beta1/fluentd_types/
+  fluentd: {}
+  # 20Gi persistent storage is configured for fluentd by default.
+  # Here is an example, on how to override it:
+  #  bufferStorageVolume:
+  #    pvc:
+  #      spec:
+  #        accessModes:
+  #          - ReadWriteOnce
+  #        resources:
+  #          requests:
+  #            storage: 40Gi
+
+  # -- Syslog-NG statefulset configuration
+  syslogNG: {}
+
+  # -- Default flow for unmatched logs. This Flow configuration collects all logs that didn’t match any other Flow.
+  defaultFlow: {}
+
+  # -- GlobalOutput name to flush ERROR events to
+  errorOutputRef: ""
+
+  # -- Global filters to apply on logs before any match or filter mechanism.
+  globalFilters: []
+
+  # -- Limit namespaces to watch Flow and Output custom resources.
+  watchNamespaces: []
+
+  # -- Limit namespaces to watch Flow and Output custom resources.
+  watchNamespaceSelector: {}
+
+  # -- Cluster domain name to be used when templating URLs to services
+  clusterDomain: "cluster.local."
+
+  # -- Namespace for cluster wide configuration resources like ClusterFlow and ClusterOutput. This should be a protected namespace from regular users. Resources like fluentbit and fluentd will run in this namespace as well.
+  controlNamespace: ""
+
+  # -- Allow configuration of cluster resources from any namespace. Mutually exclusive with ControlNamespace restriction of Cluster resources
+  allowClusterResourcesFromAllNamespaces: false
+
+  # -- NodeAgent Configuration
+  nodeAgents: {}
+  #  - name: win-agent
+  #    profile: windows
+  #    nodeAgentFluentbit:
+  #      daemonSet:
+  #        spec:
+  #          template:
+  #            spec:
+  #              containers:
+  #              - image: banzaicloud/fluentbit:1.9.5
+  #                name: fluent-bit
+  #      tls:
+  #        enabled: false
+  #  - name: linux-agent
+  #    profile: linux
+  #    nodeAgentFluentbit:
+  #      metrics:
+  #        prometheusAnnotations: true
+  #        serviceMonitor: false
+  #      tls:
+  #        enabled: false
+
+  # -- configCheck provides possibility for timeout-based configuration checks https://kube-logging.dev/docs/whats-new/#timeout-based-configuration-checks
+  configCheck: {}
+
+  # -- EnableRecreateWorkloadOnImmutableFieldChange enables the operator to recreate the fluentbit daemonset and the fluentd statefulset (and possibly other resource in the future) in case there is a change in an immutable field that otherwise couldn’t be managed with a simple update.
+  enableRecreateWorkloadOnImmutableFieldChange: false
+
+  # -- ClusterFlows to deploy
+  clusterFlows: []
+
+  # -- ClusterOutputs to deploy
+  clusterOutputs: []
+
+  # Send all pod logs to kafka
+  # clusterFlows:
+  #    - name: all
+  #      spec:
+  #        match:
+  #          - select: {}
+  #        globalOutputRefs: ["kafka"]
+  # clusterOutputs:
+  #   - name: kafka
+  #     spec:
+  #       kafka:
+  #         brokers: kafka-headless.kafka.svc.cluster.local:29092
+  #         format:
+  #           type: json
+  #         default_topic: topic
+
+  # EventTailer config
+  eventTailer:
+    enabled: false
+    name: event-tailer
+    image:
+      # -- repository of eventTailer image
+      repository:
+      # -- tag of eventTailer image
+      tag:
+      # -- pullPolicy of eventTailer image
+      pullPolicy:
+      # -- imagePullSecrets of eventTailer image
+      imagePullSecrets: []
+    pvc:
+      # -- enable pvc for 
+      enabled: false
+      # -- storage class for event tailer pvc
+      accessModes:
+        - ReadWriteOnce
+      # -- storage class for event tailer pvc
+      volumeMode: Filesystem
+      # -- storage for event tailer pvc
+      storage: 1Gi
+      # -- storage class for event tailer pvc
+      storageClassName:
+    # -- workloadMetaOverrides
+    workloadMetaOverrides:
+    # -- workloadOverrides
+    workloadOverrides:
+    # -- containerOverrides
+    containerOverrides:
+
+  hostTailer:
+    # -- HostTailer
+    enabled: false
+    # -- name of HostTailer
+    name: hosttailer
+    image:
+      # -- repository of eventTailer image
+      repository:
+      # -- tag of eventTailer image
+      tag:
+      # -- pullPolicy of eventTailer image
+      pullPolicy:
+      # -- imagePullSecrets of eventTailer image
+      imagePullSecrets: []
+    # -- workloadMetaOverrides of HostTailer
+    workloadMetaOverrides:
+    # -- workloadOverrides of HostTailer
+    workloadOverrides:
+    # -- configure fileTailers of HostTailer
+    # example:
+    #   - name: sample-file
+    #     path: /var/log/sample-file
+    #     disabled: false
+    #     buffer_max_size:
+    #     buffer_chunk_size:
+    #     skip_long_lines:
+    #     read_from_head: false
+    #     containerOverrides:
+    #     image:
+    fileTailers: []
+    # -- configure systemdTailers of HostTailer
+    # example:
+    #   - name: system-sample
+    #     disabled: false
+    #     systemdFilter: kubelet.service
+    #     maxEntries: 20
+    #     containerOverrides:
+    #     image:
+    systemdTailers: []
+
+testReceiver:
+  enabled: false
+  image: fluent/fluent-bit
+  pullPolicy: IfNotPresent
+  port: 8080
+  #   args: ["-i", "http", "-p", "port=8080", "-o", "stdout"]
+  # resources:
+  #   limits:
+  #     cpu: 100m
+  #     memory: 50Mi
+  #   requests:
+  #     cpu: 20m
+  #     memory: 25Mi
+  
+  # Service definition for query http service
+  service:
+    type: ClusterIP
+    clusterIP: None
+    # Annotations to query http service
+    annotations: {}
+    # Labels to query http service
+    labels: {}
+
+# Logging CR specific serviceAccount annotations
+loggingServiceAccountAnnotations: {}
+## Syntax ##
+#  <logging-name>:
+#    <key>: <value>
+#
+## Example ##
+#
+#  root:
+#    eks.amazonaws.com/role-arn: <RoleARN>
+#
+## Result - added to the Logging resource ##
+#
+#  spec:
+#    fluentd:
+#      serviceAccount:
+#        metadata:
+#          annotations:
+#            eks.amazonaws.com/role-arn: arn:aws:iam::1234567890:role/my-iam-role
+#
+
+###################################
+# Rancher Logging Operator Values #
+###################################
+
+# Enable debug to use fluent-bit images that allow exec
+debug: false
+
+# Disable persistent volumes for buffers
+disablePvc: true
+
+# If your additional logging sources collect logs from systemd configure the systemd log path here
+systemdLogPath: "/run/log/journal"
+
+global:
+  cattle:
+    systemDefaultRegistry: ""
+    # Uncomment the below two lines to either enable or disable Windows logging. If this chart is
+    # installed via the Rancher UI, it will set this value to "true" if the cluster is a Windows
+    # cluster. In that scenario, if you would like to disable Windows logging on Windows clusters,
+    # set the value below to "false".
+    # windows:
+    #   enabled: true
+    psp:
+      enabled: false
+
+  # Change the "dockerRootDirectory" if the default Docker directory has changed.
+  dockerRootDirectory: ""
+
+  rkeWindowsPathPrefix: "c:\\"
+
+  seLinux:
+    enabled: false
+
+images:
+  config_reloader:
+    repository: rancher/mirrored-jimmidyson-configmap-reload
+    tag: v0.4.0
+  fluentbit:
+    repository: rancher/mirrored-fluent-fluent-bit
+    tag: 2.2.0
+  nodeagent_fluentbit:
+    os: "windows"
+    repository: rancher/fluent-bit
+    tag: 2.2.0
+  fluentbit_debug:
+    repository: rancher/mirrored-fluent-fluent-bit
+    tag: 2.2.0-debug
+  fluentd:
+    repository: rancher/mirrored-kube-logging-fluentd
+    tag: v1.16-4.8-full
+
+additionalLoggingSources:
+  rke:
+    enabled: false
+    fluentbit:
+      log_level: "info"
+      mem_buffer_limit: "5MB"
+  rke2:
+    enabled: false
+    stripUnderscores: false
+  k3s:
+    enabled: false
+    container_engine: "systemd"
+    stripUnderscores: false
+  aks:
+    enabled: false
+  eks:
+    enabled: false
+  gke:
+    enabled: false
+  kubeAudit:
+    auditFilename: ""
+    enabled: false
+    pathPrefix: ""
+    fluentbit:
+      logTag: kube-audit
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        value: "true"
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/etcd
+        value: "true"
+        effect: NoExecute
+
+# configures node agent options for windows node agents
+nodeAgents:
+  tls:
+    enabled: false
+
+# These settings apply to every Logging CR, including vendor Logging CRs enabled in "additionalLoggingSources".
+# Changing these affects every Logging CR installed.
+fluentd:
+  bufferStorageVolume: {}
+  livenessProbe:
+    tcpSocket:
+      port: 24240
+    initialDelaySeconds: 30
+    periodSeconds: 15
+  nodeSelector: {}
+  resources: {}
+  tolerations: {}
+  env: []
+  logLevel: {}
+fluentbit:
+  inputTail:
+    Buffer_Chunk_Size: ""
+    Buffer_Max_Size: ""
+    Mem_Buf_Limit: ""
+    Multiline_Flush: ""
+    Skip_Long_Lines: ""
+  resources: {}
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      value: "true"
+      effect: NoSchedule
+    - key: node-role.kubernetes.io/etcd
+      value: "true"
+      effect: NoExecute
+  filterKubernetes:
+    Merge_Log: ""
+    Merge_Log_Key: ""
+    Merge_Log_Trim: ""
+    Merge_Parser: ""
+
+# -- Extra manifests to deploy as an array
+extraManifests: []
+  # - apiVersion: v1
+  #   kind: ConfigMap
+  #   metadata:
+  #   labels:
+  #     name: extra-manifest
+  #   data:
+  #     extra-data: "value"
+
+# DO NOT SET THIS UNLESS YOU KNOW WHAT YOU ARE DOING.
+# Setting fields on this object can break rancher logging or cause unexpected behavior. It is intended to be used if you
+# need to configure functionality not exposed by rancher logging. It is highly recommended you check the `app-readme.md`
+# for the functionality you need before modifying this object.
+
+# this object will be merged with every logging CR created by this chart. Any fields that collide with fields from the
+# settings above will be overridden. Any fields that collide with fields set in the files in `templates/loggings` will
+# be ignored.
