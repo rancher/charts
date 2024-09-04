@@ -12,37 +12,35 @@
 +  repository: rancher/mirrored-prometheus-node-exporter
    # Overrides the image tag whose default is {{ printf "v%s" .Chart.AppVersion }}
 -  tag: ""
-+  tag: v1.3.1
++  tag: v1.8.2
    pullPolicy: IfNotPresent
    digest: ""
  
-@@ -19,6 +20,11 @@
+@@ -19,6 +20,9 @@
  revisionHistoryLimit: 10
  
  global:
 +  cattle:
-+    psp:
-+      enable: true
 +    systemDefaultRegistry: ""
 +
    # To help compatibility with other charts which use global.imagePullSecrets.
    # Allow either an array of {name: pullSecret} maps (k8s-style), or an array of strings (more common helm-style).
    # global:
-@@ -43,8 +49,8 @@
+@@ -43,8 +47,8 @@
    env: {}
      # VARIABLE: value
    image:
 -    registry: quay.io
 -    repository: brancz/kube-rbac-proxy
 +    registry: docker.io
-+    repository: rancher/mirrored-kube-rbac-proxy
-     tag: v0.15.0
++    repository: rancher/mirrored-brancz-kube-rbac-proxy
+     tag: v0.18.0
      sha: ""
      pullPolicy: IfNotPresent
-@@ -81,8 +87,8 @@
- service:
+@@ -88,8 +92,8 @@
    enabled: true
    type: ClusterIP
+   clusterIP: ""
 -  port: 9100
 -  targetPort: 9100
 +  port: 9796
@@ -50,17 +48,7 @@
    nodePort:
    portName: metrics
    listenOnAllInterfaces: true
-@@ -299,9 +305,6 @@
-   ## If true, create & use RBAC resources
-   ##
-   create: true
--  ## If true, create & use Pod Security Policy resources
--  ## https://kubernetes.io/docs/concepts/policy/pod-security-policy/
--  pspEnabled: true
-   pspAnnotations: {}
- 
- # for deployments that have node_exporter deployed outside of the cluster, list
-@@ -384,6 +387,8 @@
+@@ -392,6 +396,8 @@
  tolerations:
    - effect: NoSchedule
      operator: Exists

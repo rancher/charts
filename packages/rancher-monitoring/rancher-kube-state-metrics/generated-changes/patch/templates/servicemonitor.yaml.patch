@@ -1,34 +1,33 @@
 --- charts-original/templates/servicemonitor.yaml
 +++ charts/templates/servicemonitor.yaml
-@@ -55,9 +55,19 @@
-     {{- if .Values.prometheus.monitor.honorLabels }}
+@@ -55,8 +55,18 @@
+     {{- if or .Values.prometheus.monitor.http.honorLabels .Values.prometheus.monitor.honorLabels }}
        honorLabels: true
      {{- end }}
--    {{- if .Values.prometheus.monitor.metricRelabelings }}
+-    {{- if or .Values.prometheus.monitor.http.metricRelabelings .Values.prometheus.monitor.metricRelabelings }}
        metricRelabelings:
-+      {{- if .Values.prometheus.monitor.metricRelabelings }}
-         {{- toYaml .Values.prometheus.monitor.metricRelabelings | nindent 8 }}
-+      {{- end }}
-+      {{ if .Values.global.cattle.clusterId }}
++    {{ if .Values.global.cattle.clusterId }}
 +      - sourceLabels: [__address__]
 +        targetLabel: cluster_id
 +        replacement: {{ .Values.global.cattle.clusterId }}
-+      {{- end }}
-+      {{ if .Values.global.cattle.clusterName }}
++    {{- end }}
++    {{ if .Values.global.cattle.clusterName }}
 +      - sourceLabels: [__address__]
 +        targetLabel: cluster_name
 +        replacement: {{ .Values.global.cattle.clusterName }}
++    {{- end }}
++    {{- if or .Values.prometheus.monitor.http.metricRelabelings .Values.prometheus.monitor.metricRelabelings }}
+         {{- toYaml (.Values.prometheus.monitor.http.metricRelabelings | default .Values.prometheus.monitor.metricRelabelings) | nindent 8 }}
      {{- end }}
-     {{- if .Values.prometheus.monitor.relabelings }}
-       relabelings:
+     {{- if or .Values.prometheus.monitor.http.relabelings .Values.prometheus.monitor.relabelings }}
 @@ -94,10 +104,6 @@
-     {{- if .Values.prometheus.monitor.honorLabels }}
+     {{- if or .Values.prometheus.monitor.metrics.honorLabels .Values.prometheus.monitor.honorLabels }}
        honorLabels: true
      {{- end }}
--    {{- if .Values.prometheus.monitor.metricRelabelings }}
+-    {{- if or .Values.prometheus.monitor.metrics.metricRelabelings .Values.prometheus.monitor.metricRelabelings }}
 -      metricRelabelings:
--        {{- toYaml .Values.prometheus.monitor.metricRelabelings | nindent 8 }}
+-        {{- toYaml (.Values.prometheus.monitor.metrics.metricRelabelings | default .Values.prometheus.monitor.metricRelabelings) | nindent 8 }}
 -    {{- end }}
-     {{- if .Values.prometheus.monitor.relabelings }}
+     {{- if or .Values.prometheus.monitor.metrics.relabelings .Values.prometheus.monitor.relabelings }}
        relabelings:
-         {{- toYaml .Values.prometheus.monitor.relabelings | nindent 8 }}
+         {{- toYaml (.Values.prometheus.monitor.metrics.relabelings | default .Values.prometheus.monitor.relabelings) | nindent 8 }}
