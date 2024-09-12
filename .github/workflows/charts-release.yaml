@@ -26,19 +26,3 @@ jobs:
 
       - name: Validate Charts Release
         run: sudo make validate-release-charts BRANCH=${{ github.event.pull_request.base.ref }} GH_TOKEN=${{ secrets.GITHUB_TOKEN }} PR_NUMBER=${{ github.event.pull_request.number }}
-
-  # This job must be run only in the last active release branch
-  git-pages:
-    name: Check charts.rancher.io index.yaml
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout base branch
-        uses: actions/checkout@v4
-
-      - name: Checkout PR
-        run: gh pr checkout ${{ github.event.pull_request.number }}
-        env:
-            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Check charts.rancher.io index.yaml
-        run: make compare-index-files BRANCH=${{ github.event.pull_request.base.ref }}
