@@ -17,7 +17,7 @@ validate:
 	@./scripts/pull-scripts
 	@./bin/charts-build-scripts validate $(if $(filter true,$(remote)),--remote) $(if $(filter true,$(local)),--local)
 
-TARGETS := prepare patch clean clean-cache charts list index unzip zip standardize template regsync check-images check-rc enforce-lifecycle lifecycle-status auto-forward-port validate-charts-release
+TARGETS := prepare patch clean clean-cache charts list index unzip zip standardize template regsync check-images check-rc enforce-lifecycle lifecycle-status auto-forward-port validate-release-charts
 
 $(TARGETS):
 	@./scripts/pull-scripts
