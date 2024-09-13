@@ -13,27 +13,18 @@ jobs:
     steps:
       - name: Checkout base branch
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
 
       - name: Wait for GitHub Pages update
         run: sleep 300  # 5 minutes is more than enough time for GitHub Pages to update
-
-      - name: Checkout PR
-        run: gh pr checkout ${{ github.event.pull_request.number }}
-        env:
-            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check charts.rancher.io index.yaml
         run: make compare-index-files BRANCH=${{ github.event.pull_request.base.ref }}
 
       - name: Notify Slack on Failure
         if: failure()
-        uses: slackapi/slack-github-action@v1.27.0
-        with:
-          channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
-          slack-message:  |
-            GitHub Pages integrity check failed: ${{ job.status }}
-            Pull Request Number: ${{ github.event.pull_request.number }}
-            Pull Request URL: ${{ github.event.pull_request.html_url }}
-            @Nicholas Paolillo
-        env:
-            SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data '{
+            "data": "GitHub Pages integrity check failed\nPull Request: ${{ github.event.pull_request.html_url }}\n"
+          }' ${{ secrets.SLACK_WEBHOOK_URL }}
