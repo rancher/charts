@@ -1,0 +1,39 @@
+name: Git-Pages
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - release-v2.9
+# This job must be run only in the last active release branch
+jobs:
+  git-pages:
+    name: Check charts.rancher.io index.yaml
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout base branch
+        uses: actions/checkout@v4
+
+      - name: Wait for GitHub Pages update
+        run: sleep 10  # 10 seconds to purposefully fail so we can test this action
+
+      - name: Checkout PR
+        run: gh pr checkout ${{ github.event.pull_request.number }}
+        env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check charts.rancher.io index.yaml
+        run: make compare-index-files BRANCH=${{ github.event.pull_request.base.ref }}
+
+      - name: Notify Slack on Failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
+          slack-message:  |
+            GitHub Pages integrity check failed: ${{ job.status }}
+            Pull Request Number: ${{ github.event.pull_request.number }}
+            Pull Request URL: ${{ github.event.pull_request.html_url }}
+            @Nicholas Paolillo
+        env:
+            SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
