@@ -1,0 +1,47 @@
+{{- if and .Values.global.rbac.create .Values.global.rbac.userRoles.create .Values.grafana.enabled }}
+{{- if .Values.grafana.defaultDashboardsEnabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: monitoring-dashboard-admin
+  namespace: {{ .Values.grafana.defaultDashboards.namespace }}
+  labels: {{ include "kube-prometheus-stack.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: monitoring-dashboard-edit
+  namespace: {{ .Values.grafana.defaultDashboards.namespace }}
+  labels: {{ include "kube-prometheus-stack.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: monitoring-dashboard-view
+  namespace: {{ .Values.grafana.defaultDashboards.namespace }}
+  labels: {{ include "kube-prometheus-stack.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - 'get'
+  - 'list'
+  - 'watch'
+{{- end }}
+{{- end }}
