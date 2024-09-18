@@ -1,0 +1,41 @@
+{{- if and (.Values.operator.enableAdmissionController) (.Values.cert_manager) -}}
+{{- if not (.Capabilities.APIVersions.Has "cert-manager.io/v1") -}}
+{{- required "cert-manager is required but not found" "" -}}
+{{- end -}}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: sriov-network-operator-selfsigned-issuer
+  namespace: {{ .Release.Namespace }}
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: operator-webhook-service
+  namespace: {{ .Release.Namespace }}
+spec:
+  secretName: operator-webhook-service
+  dnsNames:
+  - operator-webhook-service.{{ .Release.Namespace }}.svc
+  issuerRef:
+    name: sriov-network-operator-selfsigned-issuer
+  privateKey:
+    rotationPolicy: Always
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: network-resources-injector-service
+  namespace: {{ .Release.Namespace }}
+spec:
+  secretName: network-resources-injector-secret
+  dnsNames:
+  - network-resources-injector-service.{{ .Release.Namespace }}.svc
+  issuerRef:
+    name: sriov-network-operator-selfsigned-issuer
+  privateKey:
+    rotationPolicy: Always
+{{- end -}}
+
