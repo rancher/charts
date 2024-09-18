@@ -1,0 +1,17 @@
+{{ if .Values.sriovOperatorConfig.deploy }}
+apiVersion: sriovnetwork.openshift.io/v1
+kind: SriovOperatorConfig
+metadata:
+  name: default
+  namespace: {{ .Release.Namespace }}
+spec:
+  enableInjector: {{ .Values.operator.admissionControllers.enabled }}
+  enableOperatorWebhook: {{ .Values.operator.admissionControllers.enabled }}
+  {{- with .Values.sriovOperatorConfig.configDaemonNodeSelector }}
+  configDaemonNodeSelector:
+    {{- range $k, $v := .}}{{printf "%s: \"%s\"" $k $v | nindent 4 }}{{ end }}
+  {{- end }}
+  logLevel: {{ .Values.sriovOperatorConfig.logLevel }}
+  disableDrain: {{ .Values.sriovOperatorConfig.disableDrain }}
+  configurationMode: {{ .Values.sriovOperatorConfig.configurationMode }}
+{{ end }}
