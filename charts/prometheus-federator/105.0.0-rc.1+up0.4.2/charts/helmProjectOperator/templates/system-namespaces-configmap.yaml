@@ -1,0 +1,62 @@
+{{- if .Values.systemNamespacesConfigMap.create }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "helm-project-operator.name" . }}-system-namespaces
+  namespace: {{ template "helm-project-operator.namespace" . }}
+  labels: {{ include "helm-project-operator.labels" . | nindent 4 }}
+data:
+  system-namespaces.json: |-
+    {
+{{- if .Values.projectReleaseNamespaces.enabled }}
+{{- if .Values.projectReleaseNamespaces.labelValue }}
+      "projectReleaseLabelValue": {{ .Values.projectReleaseNamespaces.labelValue | quote }},
+{{- else if .Values.global.cattle.systemProjectId }}
+      "projectReleaseLabelValue": {{ .Values.global.cattle.systemProjectId | quote }},
+{{- else }}
+      "projectReleaseLabelValue": "",
+{{- end }}
+{{- else }}
+      "projectReleaseLabelValue": "",
+{{- end }}
+{{- if not .Values.projectReleaseNamespaces.enabled }}
+      "systemProjectLabelValues": {{ append .Values.otherSystemProjectLabelValues .Values.global.cattle.systemProjectId | toJson }}
+{{- else if and (ne (len .Values.global.cattle.systemProjectId) 0) (ne (len .Values.projectReleaseNamespaces.labelValue) 0) (ne .Values.projectReleaseNamespaces.labelValue .Values.global.cattle.systemProjectId) }}
+      "systemProjectLabelValues": {{ append .Values.otherSystemProjectLabelValues .Values.global.cattle.systemProjectId | toJson }}
+{{- else if len .Values.otherSystemProjectLabelValues }}
+      "systemProjectLabelValues": {{ .Values.otherSystemProjectLabelValues | toJson }}
+{{- else }}
+      "systemProjectLabelValues": []
+{{- end }}
+    }
+---
+{{- if (and .Values.systemNamespacesConfigMap.rbac.enabled .Values.systemNamespacesConfigMap.rbac.subjects) }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ template "helm-project-operator.name" . }}-system-namespaces
+  namespace: {{ template "helm-project-operator.namespace" . }}
+  labels: {{ include "helm-project-operator.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  resourceNames:
+  - "{{ template "helm-project-operator.name" . }}-system-namespaces"
+  verbs:
+  - 'get'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ template "helm-project-operator.name" . }}-system-namespaces
+  namespace: {{ template "helm-project-operator.namespace" . }}
+  labels: {{ include "helm-project-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ template "helm-project-operator.name" . }}-system-namespaces
+subjects: {{ .Values.systemNamespacesConfigMap.rbac.subjects | toYaml | nindent 2 }}
+{{- end }}
+{{- end }}
