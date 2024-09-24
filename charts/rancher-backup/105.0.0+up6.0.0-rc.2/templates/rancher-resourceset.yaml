@@ -1,0 +1,13 @@
+apiVersion: resources.cattle.io/v1
+kind: ResourceSet
+metadata:
+  name: rancher-resource-set
+controllerReferences:
+  - apiVersion: "apps/v1"
+    resource: "deployments"
+    name: "rancher"
+    namespace: "cattle-system"
+resourceSelectors:
+{{- range $path, $_ := .Files.Glob "files/default-resourceset-contents/*.yaml" -}}
+  {{- $.Files.Get $path | nindent 2 -}}
+{{- end -}}
