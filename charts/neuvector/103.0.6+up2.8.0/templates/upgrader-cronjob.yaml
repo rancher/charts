@@ -1,0 +1,84 @@
+{{- if and .Values.controller.enabled .Values.internal.autoGenerateCert -}}
+{{- if (semverCompare ">=1.21-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: batch/v1
+{{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: batch/v1beta1
+{{- else }}
+apiVersion: batch/v2alpha1
+{{- end }}
+kind: CronJob
+metadata:
+  name: neuvector-cert-upgrader-pod
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    cert-upgrader-uid: ""
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+spec:
+{{- if .Values.controller.certupgrader.schedule }}
+  schedule: {{ .Values.controller.certupgrader.schedule | quote }}
+{{- else }}
+  schedule: "0 0 1 1 *"
+  suspend: true
+{{- end }}
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  successfulJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: {{ .Values.controller.certupgrader.timeout }}
+      parallelism: 1
+      completions: 1
+      backoffLimit: 6
+      template:
+        metadata:
+          labels:
+            app: neuvector-cert-upgrader-pod
+            release: {{ .Release.Name }}
+            {{- with .Values.controller.certupgrader.podLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.controller.certupgrader.podAnnotations }}
+          annotations:
+          {{- toYaml . | nindent 12 }}
+          {{- end }}
+        spec:
+        {{- if .Values.imagePullSecrets }}
+          imagePullSecrets:
+            - name: {{ .Values.imagePullSecrets }}
+        {{- end }}
+        {{- if .Values.controller.certupgrader.nodeSelector }}
+          nodeSelector:
+{{ toYaml .Values.controller.certupgrader.nodeSelector | indent 12 }}
+        {{- end }}
+        {{- if .Values.controller.certupgrader.priorityClassName }}
+          priorityClassName: {{ .Values.controller.certupgrader.priorityClassName }}
+        {{- end }}
+        {{- if .Values.leastPrivilege }}
+          serviceAccountName: cert-upgrader
+          serviceAccount: cert-upgrader
+        {{- else }}
+          serviceAccountName: {{ .Values.serviceAccount }}
+          serviceAccount: {{ .Values.serviceAccount }}
+        {{- end }}
+          restartPolicy: Never
+          {{- if .Values.controller.certupgrader.runAsUser }}
+          securityContext:
+            runAsUser: {{ .Values.controller.certupgrader.runAsUser }}
+          {{- end }}
+          containers:
+            - name: neuvector-cert-upgrader-pod
+              image: {{ include "neuvector.controller.image" . | quote }}
+              imagePullPolicy: {{ .Values.controller.certupgrader.imagePullPolicy }}
+              command: 
+                - /usr/local/bin/upgrader
+                - upgrader-job
+              {{- if and .Values.internal.autoRotateCert }}
+                - --enable-rotation
+              {{- end }}
+              env:
+              {{- with .Values.controller.certupgrader.env }}
+{{- toYaml . | nindent 14 }}
+              {{- end }}
+{{- end }}
