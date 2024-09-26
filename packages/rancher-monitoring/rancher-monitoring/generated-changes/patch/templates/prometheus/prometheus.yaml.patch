@@ -1,6 +1,6 @@
 --- charts-original/templates/prometheus/prometheus.yaml
 +++ charts/templates/prometheus/prometheus.yaml
-@@ -32,7 +32,7 @@
+@@ -44,7 +44,7 @@
  {{ toYaml .Values.prometheus.prometheusSpec.apiserverConfig | indent 4}}
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.image }}
@@ -9,7 +9,7 @@
    {{- if and .Values.prometheus.prometheusSpec.image.tag .Values.prometheus.prometheusSpec.image.sha }}
    image: "{{ $registry }}/{{ .Values.prometheus.prometheusSpec.image.repository }}:{{ .Values.prometheus.prometheusSpec.image.tag }}@sha256:{{ .Values.prometheus.prometheusSpec.image.sha }}"
    {{- else if .Values.prometheus.prometheusSpec.image.sha }}
-@@ -69,11 +69,13 @@
+@@ -81,11 +81,13 @@
    externalUrl: "{{ tpl .Values.prometheus.prometheusSpec.externalUrl . }}"
  {{- else if and .Values.prometheus.ingress.enabled .Values.prometheus.ingress.hosts }}
    externalUrl: "http://{{ tpl (index .Values.prometheus.ingress.hosts 0) . }}{{ .Values.prometheus.prometheusSpec.routePrefix }}"
@@ -24,7 +24,7 @@
  {{ toYaml .Values.prometheus.prometheusSpec.nodeSelector | indent 4 }}
  {{- end }}
    paused: {{ .Values.prometheus.prometheusSpec.paused }}
-@@ -262,8 +264,8 @@
+@@ -294,8 +296,8 @@
                - {key: prometheus, operator: In, values: [{{ template "kube-prometheus-stack.prometheus.crname" . }}]}
  {{- end }}
  {{- end }}
@@ -34,7 +34,7 @@
  {{ toYaml .Values.prometheus.prometheusSpec.tolerations | indent 4 }}
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.topologySpreadConstraints }}
-@@ -310,7 +312,7 @@
+@@ -344,7 +346,7 @@
  {{- end }}
  {{- if .Values.prometheus.prometheusSpec.containers }}
    containers:
