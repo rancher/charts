@@ -1,0 +1,71 @@
+--- charts-original/values.yaml
++++ charts/values.yaml
+@@ -3,16 +3,16 @@
+ # Declare variables to be passed into your templates.
+ 
+ image:
+-  registry: ghcr.io
+-  repository: prometheus-community/windows-exporter
++  registry: docker.io
++  repository: rancher/mirrored-prometheus-windows-exporter
+   # Overrides the image tag whose default is {{ printf "v%s" .Chart.AppVersion }}
+-  tag: ""
++  tag: "0.25.1"
+   pullPolicy: IfNotPresent
+   digest: ""
+ 
+ config: |-
+   collectors:
+-    enabled: '[defaults],memory,container'
++    enabled: '[defaults],tcp,memory,container'
+ 
+ imagePullSecrets: []
+ # - name: "image-pull-secret"
+@@ -32,15 +32,14 @@
+   #   - pullSecret1
+   #   - pullSecret2
+   imagePullSecrets: []
+-  #
+-  # Allow parent charts to override registry hostname
+-  imageRegistry: ""
++  cattle:
++    systemDefaultRegistry: ""
+ 
+ service:
+   type: ClusterIP
+-  port: 9182
++  port: 9796
+   nodePort:
+-  portName: metrics
++  portName: windows-metrics
+   annotations: {}
+ 
+ # Additional environment variables that will be passed to the daemonset
+@@ -50,15 +49,15 @@
+ 
+ prometheus:
+   monitor:
+-    enabled: false
++    enabled: true
+     additionalLabels: {}
+     namespace: ""
+ 
+-    jobLabel: ""
++    jobLabel: "component"
+ 
+     # List of pod labels to add to windows exporter metrics
+     # https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#servicemonitor
+-    podTargetLabels: []
++    podTargetLabels: ["component"]
+ 
+     scheme: http
+     basicAuth: {}
+@@ -228,8 +227,6 @@
+     hostProcess: true
+     runAsUserName: "NT AUTHORITY\\system"
+ 
+-containerSecurityContext: {}
+-
+ rbac:
+   ## If true, create & use RBAC resources
+   ##
