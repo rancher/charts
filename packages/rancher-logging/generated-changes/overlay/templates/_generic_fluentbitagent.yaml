@@ -71,10 +71,16 @@ spec:
 {{/* values are from the values.yaml */}}
 {{- $values := $top.Values.fluentbitAgentOverlay | default (dict ) -}}
 
+{{/* figure out which logger we are working on */}}
+{{- $logger := (index . 1) | replace "logging-operator.logging." "" -}}
+
+{{/* ovalues are the logger specific overlay values */}}
+{{- $ovalues := (dig $logger dict $top.Values.fluentbitAgentOverlays) -}}
+
 ####### {{$generic}}
 
 {{/* the sources are merge right to left meaning tpl is the highest prcedence and values is the lowest */}}
-{{- toYaml (merge $tpl $values $generic) -}}
+{{- toYaml (merge $tpl $ovalues $values $generic) -}}
 {{- end -}}
 
 {{- define "logging-operator.fluentbitagent" -}}
