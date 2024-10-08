@@ -1,6 +1,6 @@
 --- charts-original/README.md
 +++ charts/README.md
-@@ -38,290 +38,13 @@
+@@ -38,303 +38,13 @@
  
  As a replacement for PSPs, [Pod Security Admission](https://kubernetes.io/docs/concepts/security/pod-security-admission/) should be used. Please consult the Longhorn docs for more details on how to configure your chart release namespaces to work with the new Pod Security Admission and apply Pod Security Standards.
  
@@ -45,6 +45,8 @@
 -| global.cattle.windowsCluster.enabled | bool | `false` | Setting that allows Longhorn to run on a Rancher Windows cluster. |
 -| global.cattle.windowsCluster.nodeSelector | object | `{"kubernetes.io/os":"linux"}` | Node selector for Linux nodes that can run user-deployed Longhorn components. |
 -| global.cattle.windowsCluster.tolerations | list | `[{"effect":"NoSchedule","key":"cattle.io/os","operator":"Equal","value":"linux"}]` | Toleration for Linux nodes that can run user-deployed Longhorn components. |
+-| global.nodeSelector | object | `{}` | Node selector for nodes allowed to run user-deployed components such as Longhorn Manager, Longhorn UI, and Longhorn Driver Deployer. |
+-| global.tolerations | list | `[]` | Toleration for nodes allowed to run user-deployed components such as Longhorn Manager, Longhorn UI, and Longhorn Driver Deployer. |
 -
 -### Network Policies
 -
@@ -58,15 +60,15 @@
 -| Key | Type | Default | Description |
 -|-----|------|---------|-------------|
 -| image.csi.attacher.repository | string | `"longhornio/csi-attacher"` | Repository for the CSI attacher image. When unspecified, Longhorn uses the default value. |
--| image.csi.attacher.tag | string | `"v4.5.1"` | Tag for the CSI attacher image. When unspecified, Longhorn uses the default value. |
+-| image.csi.attacher.tag | string | `"v4.7.0"` | Tag for the CSI attacher image. When unspecified, Longhorn uses the default value. |
 -| image.csi.livenessProbe.repository | string | `"longhornio/livenessprobe"` | Repository for the CSI liveness probe image. When unspecified, Longhorn uses the default value. |
--| image.csi.livenessProbe.tag | string | `"v2.12.0"` | Tag for the CSI liveness probe image. When unspecified, Longhorn uses the default value. |
+-| image.csi.livenessProbe.tag | string | `"v2.14.0"` | Tag for the CSI liveness probe image. When unspecified, Longhorn uses the default value. |
 -| image.csi.nodeDriverRegistrar.repository | string | `"longhornio/csi-node-driver-registrar"` | Repository for the CSI Node Driver Registrar image. When unspecified, Longhorn uses the default value. |
--| image.csi.nodeDriverRegistrar.tag | string | `"v2.9.2"` | Tag for the CSI Node Driver Registrar image. When unspecified, Longhorn uses the default value. |
+-| image.csi.nodeDriverRegistrar.tag | string | `"v2.12.0"` | Tag for the CSI Node Driver Registrar image. When unspecified, Longhorn uses the default value. |
 -| image.csi.provisioner.repository | string | `"longhornio/csi-provisioner"` | Repository for the CSI Provisioner image. When unspecified, Longhorn uses the default value. |
 -| image.csi.provisioner.tag | string | `"v3.6.4"` | Tag for the CSI Provisioner image. When unspecified, Longhorn uses the default value. |
 -| image.csi.resizer.repository | string | `"longhornio/csi-resizer"` | Repository for the CSI Resizer image. When unspecified, Longhorn uses the default value. |
--| image.csi.resizer.tag | string | `"v1.10.1"` | Tag for the CSI Resizer image. When unspecified, Longhorn uses the default value. |
+-| image.csi.resizer.tag | string | `"v1.12.0"` | Tag for the CSI Resizer image. When unspecified, Longhorn uses the default value. |
 -| image.csi.snapshotter.repository | string | `"longhornio/csi-snapshotter"` | Repository for the CSI Snapshotter image. When unspecified, Longhorn uses the default value. |
 -| image.csi.snapshotter.tag | string | `"v6.3.4"` | Tag for the CSI Snapshotter image. When unspecified, Longhorn uses the default value. |
 -| image.longhorn.backingImageManager.repository | string | `"longhornio/backing-image-manager"` | Repository for the Backing Image Manager image. When unspecified, Longhorn uses the default value. |
@@ -80,11 +82,11 @@
 -| image.longhorn.shareManager.repository | string | `"longhornio/longhorn-share-manager"` | Repository for the Longhorn Share Manager image. |
 -| image.longhorn.shareManager.tag | string | `"v1.6.1"` | Specify Longhorn share manager image tag |
 -| image.longhorn.supportBundleKit.repository | string | `"longhornio/support-bundle-kit"` | Repository for the Longhorn Support Bundle Manager image. |
--| image.longhorn.supportBundleKit.tag | string | `"v0.0.37"` | Tag for the Longhorn Support Bundle Manager image. |
+-| image.longhorn.supportBundleKit.tag | string | `"v0.0.43"` | Tag for the Longhorn Support Bundle Manager image. |
 -| image.longhorn.ui.repository | string | `"longhornio/longhorn-ui"` | Repository for the Longhorn UI image. |
 -| image.longhorn.ui.tag | string | `"v1.6.1"` | Specify Longhorn ui image tag |
 -| image.openshift.oauthProxy.repository | string | `"longhornio/openshift-origin-oauth-proxy"` | Repository for the OAuth Proxy image. This setting applies only to OpenShift users. |
--| image.openshift.oauthProxy.tag | float | `4.14` | Tag for the OAuth Proxy image. This setting applies only to OpenShift users. Specify OCP/OKD version 4.1 or later. The latest stable version is 4.14. |
+-| image.openshift.oauthProxy.tag | float | `4.15` | Tag for the OAuth Proxy image. This setting applies only to OpenShift users. Specify OCP/OKD version 4.1 or later. The latest stable version is 4.15. |
 -| image.pullPolicy | string | `"IfNotPresent"` | Image pull policy that applies to all user-deployed Longhorn components, such as Longhorn Manager, Longhorn driver, and Longhorn UI. |
 -
 -### Service Settings
@@ -139,7 +141,7 @@
 -| longhornManager.nodeSelector | object | `{}` | Node selector for Longhorn Manager. Specify the nodes allowed to run Longhorn Manager. |
 -| longhornManager.priorityClass | string | `"longhorn-critical"` | PriorityClass for Longhorn Manager. |
 -| longhornManager.serviceAnnotations | object | `{}` | Annotation for the Longhorn Manager service. |
--| longhornManager.tolerations | list | `[]` | Toleration for Longhorn Manager on nodes allowed to run Longhorn Manager. |
+-| longhornManager.tolerations | list | `[]` | Toleration for Longhorn Manager on nodes allowed to run Longhorn components. |
 -
 -### Longhorn Driver Settings
 -
@@ -188,6 +190,18 @@
 -| privateRegistry.registryUrl | URL of a private registry. When unspecified, Longhorn uses the default system registry. |
 -| privateRegistry.registryUser | User account used for authenticating with a private registry. |
 -
+-### Metrics Settings
+-
+-| Key | Type | Default | Description |
+-|-----|------|---------|-------------|
+-| metrics.serviceMonitor.additionalLabels | object | `{}` | Additional labels for the Prometheus ServiceMonitor resource. |
+-| metrics.serviceMonitor.annotations | object | `{}` | Annotations for the Prometheus ServiceMonitor resource. |
+-| metrics.serviceMonitor.enabled | bool | `false` | Setting that allows the creation of a Prometheus ServiceMonitor resource for Longhorn Manager components. |
+-| metrics.serviceMonitor.interval | string | `""` | Interval at which Prometheus scrapes the metrics from the target. |
+-| metrics.serviceMonitor.metricRelabelings | list | `[]` | Configures the relabeling rules to apply to the samples before ingestion. See the [Prometheus Operator documentation](https://prometheus-operator.dev/docs/api-reference/api/#monitoring.coreos.com/v1.Endpoint) for formatting details. |
+-| metrics.serviceMonitor.relabelings | list | `[]` | Configures the relabeling rules to apply the target’s metadata labels. See the [Prometheus Operator documentation](https://prometheus-operator.dev/docs/api-reference/api/#monitoring.coreos.com/v1.Endpoint) for formatting details. |
+-| metrics.serviceMonitor.scrapeTimeout | string | `""` | Timeout after which Prometheus considers the scrape to be failed. |
+-
 -### OS/Kubernetes Distro Settings
 -
 -#### OpenShift Settings
@@ -208,7 +222,6 @@
 -| annotations | `{}` | Annotation for the Longhorn Manager DaemonSet pods. This setting is optional. |
 -| enableGoCoverDir | `false` | Setting that allows Longhorn to generate code coverage profiles. |
 -| enablePSP | `false` | Setting that allows you to enable pod security policies (PSPs) that allow privileged Longhorn pods to start. This setting applies only to clusters running Kubernetes 1.25 and earlier, and with the built-in Pod Security admission controller enabled. |
--| metrics.serviceMonitor.enabled | `false` | Setting that allows the creation of a Prometheus ServiceMonitor resource for Longhorn Manager components. |
 -| namespaceOverride | `""` | Specify override namespace, specifically this is useful for using longhorn as sub-chart and its release namespace is not the `longhorn-system`. |
 -| preUpgradeChecker.jobEnabled | `true` | Setting that allows Longhorn to perform pre-upgrade checks. Disable this setting when installing Longhorn using Argo CD or other GitOps solutions. |
 -| preUpgradeChecker.upgradeVersionCheck | `true` | Setting that allows Longhorn to perform upgrade version checks after starting the Longhorn Manager DaemonSet Pods. Disabling this setting also disables `preUpgradeChecker.jobEnabled`. Longhorn recommends keeping this setting enabled. |
