@@ -462,3 +462,11 @@ global:
 {{ $fullname }}-webhook.{{ $namespace }}.svc
 {{- end }}
 {{- end }}
+
+{{ - define "rke2-ingress-nginx.namespace" -}}
+  {{- if .Values.rke2IngressNginx.namespaceOverride -}}
+    {{- .Values.rke2IngressNginx.namespaceOverride -}}
+  {{- else -}}
+    {{- print "kube-system" -}}
+  {{- end -}}
+{{- end }}
