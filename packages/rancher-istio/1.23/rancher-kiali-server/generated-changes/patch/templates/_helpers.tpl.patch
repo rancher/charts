@@ -1,0 +1,49 @@
+--- charts-original/templates/_helpers.tpl
++++ charts/templates/_helpers.tpl
+@@ -46,8 +46,15 @@
+ Selector labels
+ */}}
+ {{- define "kiali-server.selectorLabels" -}}
++{{- $releaseName := .Release.Name -}}
++{{- $fullName := include "kiali-server.fullname" . -}}
++{{- $deployment := (lookup "apps/v1" "Deployment" .Release.Namespace $fullName) -}}
+ app.kubernetes.io/name: kiali
+-app.kubernetes.io/instance: {{ include "kiali-server.fullname" . }}
++{{- if (and .Release.IsUpgrade $deployment)}}
++app.kubernetes.io/instance: {{ (get (($deployment).metadata.labels) "app.kubernetes.io/instance") | default $fullName }}
++{{- else }}
++app.kubernetes.io/instance: {{ $fullName }}
++{{- end }}
+ {{- end }}
+ 
+ {{/*
+@@ -168,6 +175,29 @@
+ {{- end }}
+ {{- end }}
+ 
++{{- define "system_default_registry" -}}
++{{- if .Values.global.cattle.systemDefaultRegistry -}}
++{{- printf "%s/" .Values.global.cattle.systemDefaultRegistry -}}
++{{- else -}}
++{{- "" -}}
++{{- end -}}
++{{- end -}}
++
++{{/*
++Windows cluster will add default taint for linux nodes,
++add below linux tolerations to workloads could be scheduled to those linux nodes
++*/}}
++{{- define "linux-node-tolerations" -}}
++- key: "cattle.io/os"
++  value: "linux"
++  effect: "NoSchedule"
++  operator: "Equal"
++{{- end -}}
++
++{{- define "linux-node-selector" -}}
++kubernetes.io/os: linux
++{{- end -}}
++
+ {{/*
+ Autodetect remote cluster secrets if enabled - looks for secrets in the same namespace where Kiali is installed.
+ Returns a JSON dict whose keys are the cluster names and values are the cluster secret data.
