@@ -18,18 +18,11 @@ This chart installs the following components:
 
 | Source | Kubernetes distribution | scan profile                                                                                                       | Kubernetes versions |
 |--------|-------------------------|--------------------------------------------------------------------------------------------------------------------|---------------------|
-| CIS    | any                     | [cis-1.7](https://github.com/rancher/security-scan/tree/master/package/cfg/cis-1.7)                                | v1.25               |
 | CIS    | any                     | [cis-1.8](https://github.com/rancher/security-scan/tree/master/package/cfg/cis-1.8)                                | v1.26+              |
-| CIS    | rke                     | [rke-cis-1.7-permissive](https://github.com/rancher/security-scan/tree/master/package/cfg/rke-cis-1.7-permissive)  | rke1-v1.25          |
-| CIS    | rke                     | [rke-cis-1.7-hardened](https://github.com/rancher/security-scan/tree/master/package/cfg/rke-cis-1.7-hardened)      | rke1-v1.25          |
 | CIS    | rke                     | [rke-cis-1.8-permissive](https://github.com/rancher/security-scan/tree/master/package/cfg/rke-cis-1.8-permissive)  | rke1-v1.26+         |
 | CIS    | rke                     | [rke-cis-1.8-hardened](https://github.com/rancher/security-scan/tree/master/package/cfg/rke-cis-1.8-hardened)      | rke1-v1.26+         |
-| CIS    | rke2                    | [rke2-cis-1.7-permissive](https://github.com/rancher/security-scan/tree/master/package/cfg/rke2-cis-1.7-permissive)| rke2-v1.25          |
-| CIS    | rke2                    | [rke2-cis-1.7-hardened](https://github.com/rancher/security-scan/tree/master/package/cfg/rke2-cis-1.7-hardened)    | rke2-v1.25          |
 | CIS    | rke2                    | [rke2-cis-1.8-permissive](https://github.com/rancher/security-scan/tree/master/package/cfg/rke2-cis-1.8-permissive)| rke2-v1.26+         |
 | CIS    | rke2                    | [rke2-cis-1.8-hardened](https://github.com/rancher/security-scan/tree/master/package/cfg/rke2-cis-1.8-hardened)    | rke2-v1.26+         |
-| CIS    | k3s                     | [k3s-cis-1.7-permissive](https://github.com/rancher/security-scan/tree/master/package/cfg/k3s-cis-1.7-permissive)  | k3s-v1.25           |
-| CIS    | k3s                     | [k3s-cis-1.7-hardened](https://github.com/rancher/security-scan/tree/master/package/cfg/k3s-cis-1.7-hardened)      | k3s-v1.25           |
 | CIS    | k3s                     | [k3s-cis-1.8-permissive](https://github.com/rancher/security-scan/tree/master/package/cfg/k3s-cis-1.8-permissive)  | k3s-v1.26+          |
 | CIS    | k3s                     | [k3s-cis-1.8-hardened](https://github.com/rancher/security-scan/tree/master/package/cfg/k3s-cis-1.8-hardened)      | k3s-v1.26+          |
 | CIS    | eks                     | eks-1.2.0                                                                                                          | eks                 |
