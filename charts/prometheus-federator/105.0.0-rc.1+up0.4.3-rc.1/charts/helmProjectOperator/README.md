@@ -21,7 +21,7 @@ Generally, the best way to think about the ProjectHelmChart model is by comparin
 ### Configuring the Helm release created by a ProjectHelmChart
 
 The `spec.values` of this ProjectHelmChart resources will correspond to the `values.yaml` override to be supplied to the underlying Helm chart deployed by the operator on the user's behalf; to see the underlying chart's `values.yaml` spec, either:
-- View to the chart's definition located at [`rancher/helm-project-operator` under `charts/example-chart`](https://github.com/rancher/helm-project-operator/blob/main/charts/example-chart) (where the chart version will be tied to the version of this operator)
+- View to the chart's definition located at [`rancher/helm-project-operator` under `charts/project-operator-example`](https://github.com/rancher/helm-project-operator/blob/main/charts/project-operator-example) (where the chart version will be tied to the version of this operator)
 - Look for the ConfigMap named `dummy.cattle.io.v1alpha1` that is automatically created in each Project Registration Namespace, which will contain both the `values.yaml` and `questions.yaml` that was used to configure the chart (which was embedded directly into the `helm-project-operator` binary).
 
 ### Namespaces
@@ -60,7 +60,7 @@ If the `roleRef` matches, the Helm Project Operator will filter the `subjects` o
 - `helm.cattle.io/project-helm-chart-role: {{ .Release.Name }}`
 - `helm.cattle.io/project-helm-chart-role-aggregate-from: <admin|edit|view>`
 
-By default, the `example-chart` (the underlying chart deployed by Helm Project Operator) does not create any default roles; however, if a Cluster Admin would like to assign additional permissions to certain users, they can either directly assign RoleBindings in the Project Release Namespace to certain users or created Roles with the above two labels on them to allow Project Owners to control assigning those RBAC roles to users in their Project Registration namespaces.
+By default, the `project-operator-example` (the underlying chart deployed by Helm Project Operator) does not create any default roles; however, if a Cluster Admin would like to assign additional permissions to certain users, they can either directly assign RoleBindings in the Project Release Namespace to certain users or created Roles with the above two labels on them to allow Project Owners to control assigning those RBAC roles to users in their Project Registration namespaces.
 
 ### Advanced Helm Project Operator Configuration
 
