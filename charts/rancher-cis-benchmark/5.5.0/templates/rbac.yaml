@@ -1,0 +1,219 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: rancher-cis-benchmark
+    app.kubernetes.io/instance: release-name
+  name: cis-operator-clusterrole
+rules:
+- apiGroups:
+  - "cis.cattle.io"
+  resources:
+  - "*"
+  verbs:
+  - "*"
+- apiGroups:
+  - ""
+  resources:
+  - "pods"
+  - "services"
+  - "configmaps"
+  - "nodes"
+  - "serviceaccounts"
+  verbs:
+  - "get"
+  - "list"
+  - "create"
+  - "update"
+  - "watch"
+  - "patch"
+- apiGroups:
+  - "rbac.authorization.k8s.io"
+  resources:
+  - "rolebindings"
+  - "clusterrolebindings"
+  - "clusterroles"
+  verbs:
+  - "get"
+  - "list"
+- apiGroups:
+  - "batch"
+  resources:
+  - "jobs"
+  verbs:
+  - "list"
+  - "create"
+  - "patch"
+  - "update"
+  - "watch"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: rancher-cis-benchmark
+    app.kubernetes.io/instance: release-name
+  name: cis-scan-ns
+rules:
+{{- if .Values.global.cattle.psp.enabled }}
+- apiGroups:
+  - "*"
+  resources:
+  - "podsecuritypolicies"
+  verbs: 
+  - "get"
+  - "list"
+  - "watch"
+{{- end }}
+- apiGroups:
+  - ""
+  resources:
+  - "namespaces"
+  - "nodes"
+  - "pods"
+  - "serviceaccounts"
+  - "services"
+  - "replicationcontrollers"
+  verbs:
+  - "get"
+  - "list"
+  - "watch"
+- apiGroups: 
+  - "rbac.authorization.k8s.io"
+  resources:
+  - "rolebindings"
+  - "clusterrolebindings"
+  - "clusterroles"
+  verbs:
+  - "get"
+  - "list"
+- apiGroups:
+   - "batch"
+  resources:
+   - "jobs"
+   - "cronjobs"
+  verbs:
+   - "list"
+- apiGroups:
+    - "apps"
+  resources:
+    - "daemonsets"
+    - "deployments"
+    - "replicasets"
+    - "statefulsets"
+  verbs:
+    - "list"
+- apiGroups:
+    - "autoscaling"
+  resources:
+    - "horizontalpodautoscalers"
+  verbs:
+    - "list"
+- apiGroups:
+    - "networking.k8s.io"
+  resources:
+    - "networkpolicies"
+  verbs:
+    - "get"
+    - "list"
+    - "watch"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cis-operator-role
+  labels:
+    app.kubernetes.io/name: rancher-cis-benchmark
+    app.kubernetes.io/instance: release-name
+  namespace: {{ template "cis.namespace" . }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - "services"
+  verbs:
+  - "watch"
+  - "list"
+  - "get"
+  - "patch"
+- apiGroups:
+  - "batch"
+  resources:
+  - "jobs"
+  verbs:
+  - "watch"
+  - "list"
+  - "get"
+  - "delete"
+- apiGroups:
+  - ""
+  resources:
+  - "configmaps"
+  - "pods"
+  - "secrets"
+  verbs:
+  - "*"
+- apiGroups:
+  - "apps"
+  resources:
+  - "daemonsets"
+  verbs:
+  - "*"
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - prometheusrules
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: rancher-cis-benchmark
+    app.kubernetes.io/instance: release-name
+  name: cis-operator-clusterrolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cis-operator-clusterrole
+subjects:
+- kind: ServiceAccount
+  name: cis-operator-serviceaccount
+  namespace: {{ template "cis.namespace" . }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cis-scan-ns
+  labels:
+    app.kubernetes.io/name: rancher-cis-benchmark
+    app.kubernetes.io/instance: release-name
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cis-scan-ns
+subjects:
+- kind: ServiceAccount
+  name: cis-serviceaccount
+  namespace: {{ template "cis.namespace" . }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: rancher-cis-benchmark
+    app.kubernetes.io/instance: release-name
+  name: cis-operator-rolebinding
+  namespace: {{ template "cis.namespace" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cis-operator-role
+subjects:
+- kind: ServiceAccount
+  name: cis-serviceaccount
+  namespace: {{ template "cis.namespace" . }}
+- kind: ServiceAccount
+  name: cis-operator-serviceaccount
+  namespace: {{ template "cis.namespace" . }}

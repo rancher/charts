@@ -1,0 +1,59 @@
+{{- if .Values.global.cattle.psp.enabled }}
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: cis-psp
+spec:
+  allowPrivilegeEscalation: true
+  allowedCapabilities:
+  - '*'
+  fsGroup:
+    rule: RunAsAny
+  hostIPC: true
+  hostNetwork: true
+  hostPID: true
+  hostPorts:
+  - max: 65535
+    min: 0
+  privileged: true
+  runAsUser:
+    rule: RunAsAny
+  seLinux:
+    rule: RunAsAny
+  supplementalGroups:
+    rule: RunAsAny
+  volumes:
+  - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cis-psp-role
+  namespace: {{ template "cis.namespace" . }}
+rules:
+- apiGroups:
+  - policy
+  resourceNames:
+  - cis-psp
+  resources:
+  - podsecuritypolicies
+  verbs:
+  - use
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cis-psp-rolebinding
+  namespace: {{ template "cis.namespace" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cis-psp-role
+subjects:
+- kind: ServiceAccount
+  name: cis-serviceaccount
+  namespace: {{ template "cis.namespace" . }}
+- kind: ServiceAccount
+  name: cis-operator-serviceaccount
+  namespace: {{ template "cis.namespace" . }}
+{{- end }}

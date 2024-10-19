@@ -1,0 +1,148 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: clusterscans.cis.cattle.io
+spec:
+  group: cis.cattle.io
+  names:
+    kind: ClusterScan
+    plural: clusterscans
+  scope: Cluster
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    additionalPrinterColumns:
+    - jsonPath: .status.lastRunScanProfileName
+      name: ClusterScanProfile
+      type: string
+    - jsonPath: .status.summary.total
+      name: Total
+      type: string
+    - jsonPath: .status.summary.pass
+      name: Pass
+      type: string
+    - jsonPath: .status.summary.fail
+      name: Fail
+      type: string
+    - jsonPath: .status.summary.skip
+      name: Skip
+      type: string
+    - jsonPath: .status.summary.warn
+      name: Warn
+      type: string
+    - jsonPath: .status.summary.notApplicable
+      name: Not Applicable
+      type: string
+    - jsonPath: .status.lastRunTimestamp
+      name: LastRunTimestamp
+      type: string
+    - jsonPath: .spec.scheduledScanConfig.cronSchedule
+      name: CronSchedule
+      type: string
+    subresources:
+      status: {}
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              scanProfileName:
+                nullable: true
+                type: string
+              scheduledScanConfig:
+                nullable: true
+                properties:
+                  cronSchedule:
+                    nullable: true
+                    type: string
+                  retentionCount:
+                    type: integer
+                  scanAlertRule:
+                    nullable: true
+                    properties:
+                      alertOnComplete:
+                        type: boolean
+                      alertOnFailure:
+                        type: boolean
+                    type: object
+                type: object
+              scoreWarning:
+                enum:
+                - pass
+                - fail
+                nullable: true
+                type: string
+            type: object
+          status:
+            properties:
+              NextScanAt:
+                nullable: true
+                type: string
+              ScanAlertingRuleName:
+                nullable: true
+                type: string
+              conditions:
+                items:
+                  properties:
+                    lastTransitionTime:
+                      nullable: true
+                      type: string
+                    lastUpdateTime:
+                      nullable: true
+                      type: string
+                    message:
+                      nullable: true
+                      type: string
+                    reason:
+                      nullable: true
+                      type: string
+                    status:
+                      nullable: true
+                      type: string
+                    type:
+                      nullable: true
+                      type: string
+                  type: object
+                nullable: true
+                type: array
+              display:
+                nullable: true
+                properties:
+                  error:
+                    type: boolean
+                  message:
+                    nullable: true
+                    type: string
+                  state:
+                    nullable: true
+                    type: string
+                  transitioning:
+                    type: boolean
+                type: object
+              lastRunScanProfileName:
+                nullable: true
+                type: string
+              lastRunTimestamp:
+                nullable: true
+                type: string
+              observedGeneration:
+                type: integer
+              summary:
+                nullable: true
+                properties:
+                  fail:
+                    type: integer
+                  notApplicable:
+                    type: integer
+                  pass:
+                    type: integer
+                  skip:
+                    type: integer
+                  total:
+                    type: integer
+                  warn:
+                    type: integer
+                type: object
+            type: object
+        type: object
