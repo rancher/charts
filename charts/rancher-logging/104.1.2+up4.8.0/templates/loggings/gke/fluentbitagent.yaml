@@ -1,0 +1,17 @@
+{{- define "logging-operator.fluentbitagent.gke" -}}
+{{- $logPath := "/var/log/kube-proxy.log" -}}
+metadata:
+  name: {{ .Release.Name }}-gke
+spec:
+  disableKubernetesFilter: true
+  extraVolumeMounts:
+    - source: {{ $logPath }}
+      destination: {{ $logPath }}
+      readOnly: true
+  inputTail:
+    Tag: "gke"
+    Path: {{ $logPath }}
+{{- end -}}
+{{- if .Values.additionalLoggingSources.gke.enabled }}
+{{- include "logging-operator.fluentbitagent" (list . "logging-operator.fluentbitagent.gke") -}}
+{{- end }}

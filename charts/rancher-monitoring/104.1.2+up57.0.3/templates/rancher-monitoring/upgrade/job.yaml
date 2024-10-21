@@ -1,0 +1,46 @@
+{{- if .Values.upgrade.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ template "kube-prometheus-stack.fullname" . }}-upgrade
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  labels:
+    app: {{ template "kube-prometheus-stack.fullname" . }}-upgrade
+  annotations:
+    "helm.sh/hook": pre-upgrade, pre-rollback
+    "helm.sh/hook-delete-policy": before-hook-creation, hook-succeeded, hook-failed
+    "helm.sh/hook-weight": "2"
+spec:
+  template:
+    metadata:
+      name: {{ template "kube-prometheus-stack.fullname" . }}-upgrade
+      labels:
+        app: {{ template "kube-prometheus-stack.fullname" . }}-upgrade
+    spec:
+      serviceAccountName: {{ template "kube-prometheus-stack.fullname" . }}-upgrade
+      securityContext:
+        runAsNonRoot: false
+        runAsUser: 0
+      restartPolicy: Never
+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+      containers:
+        - name: run-scripts
+          image: {{ template "system_default_registry" . }}{{ .Values.upgrade.image.repository }}:{{ .Values.upgrade.image.tag }}
+          imagePullPolicy: {{ $.Values.global.kubectl.pullPolicy }}
+          command:
+          - /bin/sh
+          - -c
+          - >
+            for s in $(find /etc/scripts -type f); do 
+              echo "Running $s...";
+              cat $s | bash
+            done;
+          volumeMounts:
+            - name: upgrade
+              mountPath: /etc/scripts
+      volumes:
+      - name: upgrade
+        configMap:
+          name: {{ template "kube-prometheus-stack.fullname" . }}-upgrade
+{{- end }}
