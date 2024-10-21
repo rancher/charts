@@ -1,16 +1,21 @@
 --- charts-original/templates/prometheus/rules-1.14/kubernetes-system-kubelet.yaml
 +++ charts/templates/prometheus/rules-1.14/kubernetes-system-kubelet.yaml
-@@ -125,7 +125,7 @@
+@@ -184,11 +184,8 @@
          description: Kubelet Pod startup 99th percentile latency is {{`{{`}} $value {{`}}`}} seconds on node {{`{{`}} $labels.node {{`}}`}}.
          runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubeletpodstartuplatencyhigh
          summary: Kubelet Pod startup latency is too high.
--      expr: histogram_quantile(0.99, sum(rate(kubelet_pod_worker_duration_seconds_bucket{job="kubelet", metrics_path="/metrics"}[5m])) by (cluster, instance, le)) * on(cluster, instance) group_left(node) kubelet_node_name{job="kubelet", metrics_path="/metrics"} > 60
+-      expr: histogram_quantile(0.99, sum(rate(kubelet_pod_worker_duration_seconds_bucket{job="kubelet", metrics_path="/metrics"}[5m])) by ({{ range $.Values.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster, instance, le)) * on ({{ range $.Values.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster, instance) group_left(node) kubelet_node_name{job="kubelet", metrics_path="/metrics"} > 60
+-      for: {{ dig "KubeletPodStartUpLatencyHigh" "for" "15m" .Values.customRules }}
+-      {{- with .Values.defaultRules.keepFiringFor }}
+-      keep_firing_for: "{{ . }}"
+-      {{- end }}
 +      expr: histogram_quantile(0.99, sum(rate(kubelet_pod_worker_duration_seconds_bucket{job="{{ include "exporter.kubelet.jobName" . }}", metrics_path="/metrics"}[5m])) by (cluster, instance, le)) * on(cluster, instance) group_left(node) kubelet_node_name{job="{{ include "exporter.kubelet.jobName" . }}", metrics_path="/metrics"} > 60
-       for: 15m
++      for: 15m
        labels:
-         severity: warning
-@@ -231,7 +231,7 @@
-         {{ toYaml .Values.defaultRules.additionalRuleLabels | nindent 8 }}
+         severity: {{ dig "KubeletPodStartUpLatencyHigh" "severity" "warning" .Values.customRules }}
+       {{- if or .Values.defaultRules.additionalRuleLabels .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+@@ -352,7 +349,7 @@
+         {{- end }}
        {{- end }}
  {{- end }}
 -{{- if .Values.prometheusOperator.kubeletService.enabled }}
@@ -18,12 +23,17 @@
  {{- if not (.Values.defaultRules.disabled.KubeletDown | default false) }}
      - alert: KubeletDown
        annotations:
-@@ -241,7 +241,7 @@
+@@ -365,11 +362,8 @@
          description: Kubelet has disappeared from Prometheus target discovery.
          runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubeletdown
          summary: Target disappeared from Prometheus target discovery.
 -      expr: absent(up{job="kubelet", metrics_path="/metrics"} == 1)
+-      for: {{ dig "KubeletDown" "for" "15m" .Values.customRules }}
+-      {{- with .Values.defaultRules.keepFiringFor }}
+-      keep_firing_for: "{{ . }}"
+-      {{- end }}
 +      expr: absent(up{job="{{ include "exporter.kubelet.jobName" . }}", metrics_path="/metrics"} == 1)
-       for: 15m
++      for: 15m
        labels:
-         severity: critical
+         severity: {{ dig "KubeletDown" "severity" "critical" .Values.customRules }}
+       {{- if or .Values.defaultRules.additionalRuleLabels .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}

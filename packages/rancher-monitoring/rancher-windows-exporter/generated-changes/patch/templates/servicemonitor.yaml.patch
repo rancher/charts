@@ -1,0 +1,54 @@
+--- charts-original/templates/servicemonitor.yaml
++++ charts/templates/servicemonitor.yaml
+@@ -5,7 +5,7 @@
+   name: {{ include "prometheus-windows-exporter.fullname" . }}
+   namespace: {{ include "prometheus-windows-exporter.monitor-namespace" . }}
+   labels:
+-    {{- include "prometheus-windows-exporter.labels" . | nindent 4 }}
++    {{- include "windowsExporter.labels" . | nindent 4 }}
+     {{- with .Values.prometheus.monitor.additionalLabels }}
+     {{- toYaml . | nindent 4 }}
+     {{- end }}
+@@ -21,7 +21,7 @@
+     {{- with .Values.prometheus.monitor.selectorOverride }}
+       {{- toYaml . | nindent 6 }}
+     {{- else }}
+-      {{- include "prometheus-windows-exporter.selectorLabels" . | nindent 6 }}
++      {{- include "windowsExporter.labels" . | nindent 6 }}
+     {{- end }}
+   {{- with .Values.prometheus.monitor.attachMetadata }}
+   attachMetadata:
+@@ -50,12 +50,26 @@
+       {{- with .Values.prometheus.monitor.scrapeTimeout }}
+       scrapeTimeout: {{ . }}
+       {{- end }}
+-      {{- with .Values.prometheus.monitor.relabelings }}
+-      relabelings:
+-        {{- toYaml . | nindent 8 }}
+-      {{- end }}
+-      {{- with .Values.prometheus.monitor.metricRelabelings }}
+       metricRelabelings:
+-        {{- toYaml . | nindent 8 }}
+-      {{- end }}
++{{- include "windowsExporter.renamedMetricsRelabeling" . | nindent 6 -}}
++      - sourceLabels: [__name__]
++        regex: 'wmi_(.*)'
++        replacement: 'windows_$1'
++        targetLabel: __name__
++      - sourceLabels: [volume, nic]
++        regex: (.*);(.*)
++        separator: ''
++        targetLabel: device
++        action: replace
++        replacement: $1$2
++      - sourceLabels: [__name__]
++        regex: windows_cs_logical_processors
++        replacement: 'system'
++        targetLabel: mode
++      relabelings:
++      - separator: ':'
++        sourceLabels:
++        - __meta_kubernetes_pod_host_ip
++        - __meta_kubernetes_pod_container_port_number
++        targetLabel: instance
+ {{- end }}
