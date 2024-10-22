@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.4
   name: bundledeployments.fleet.cattle.io
 spec:
   group: fleet.cattle.io
@@ -275,7 +275,6 @@ spec:
                     helm:
                       description: Helm options for the deployment, like the chart
                         name, repo and values.
-                      nullable: true
                       properties:
                         atomic:
                           description: Atomic sets the --atomic flag when Helm is
@@ -622,7 +621,6 @@ spec:
                     helm:
                       description: Helm options for the deployment, like the chart
                         name, repo and values.
-                      nullable: true
                       properties:
                         atomic:
                           description: Atomic sets the --atomic flag when Helm is
@@ -908,6 +906,12 @@ spec:
                         type: string
                       delete:
                         type: boolean
+                      exist:
+                        description: Exist is true if the resource exists but is not
+                          owned by us. This can happen if a resource was adopted by
+                          another bundle whereas the first bundle still exists and
+                          due to that reports that it does not own it.
+                        type: boolean
                       kind:
                         nullable: true
                         type: string
@@ -974,6 +978,7 @@ spec:
                 ready:
                   type: boolean
                 release:
+                  description: Release is the Helm release ID
                   nullable: true
                   type: string
                 resources:
@@ -1019,7 +1024,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.4
   name: bundlenamespacemappings.fleet.cattle.io
 spec:
   group: fleet.cattle.io
@@ -1199,7 +1204,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.4
   name: bundles.fleet.cattle.io
 spec:
   group: fleet.cattle.io
@@ -1224,7 +1229,6 @@ spec:
             options.
 
             It will be deployed as a Helm chart to target clusters.
-
 
 
             When a GitRepo is scanned it will produce one or more bundles. Bundles
@@ -1449,7 +1453,6 @@ spec:
                 helm:
                   description: Helm options for the deployment, like the chart name,
                     repo and values.
-                  nullable: true
                   properties:
                     atomic:
                       description: Atomic sets the --atomic flag when Helm is performing
@@ -2294,7 +2297,6 @@ spec:
                       helm:
                         description: Helm options for the deployment, like the chart
                           name, repo and values.
-                        nullable: true
                         properties:
                           atomic:
                             description: Atomic sets the --atomic flag when Helm is
@@ -2734,6 +2736,14 @@ spec:
                                         type: string
                                       delete:
                                         type: boolean
+                                      exist:
+                                        description: Exist is true if the resource
+                                          exists but is not owned by us. This can
+                                          happen if a resource was adopted by another
+                                          bundle whereas the first bundle still exists
+                                          and due to that reports that it does not
+                                          own it.
+                                        type: boolean
                                       kind:
                                         nullable: true
                                         type: string
@@ -2950,6 +2960,13 @@ spec:
                                   type: string
                                 delete:
                                   type: boolean
+                                exist:
+                                  description: Exist is true if the resource exists
+                                    but is not owned by us. This can happen if a resource
+                                    was adopted by another bundle whereas the first
+                                    bundle still exists and due to that reports that
+                                    it does not own it.
+                                  type: boolean
                                 kind:
                                   nullable: true
                                   type: string
@@ -3077,7 +3094,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.4
   name: clustergroups.fleet.cattle.io
 spec:
   group: fleet.cattle.io
@@ -3382,6 +3399,13 @@ spec:
                                   type: string
                                 delete:
                                   type: boolean
+                                exist:
+                                  description: Exist is true if the resource exists
+                                    but is not owned by us. This can happen if a resource
+                                    was adopted by another bundle whereas the first
+                                    bundle still exists and due to that reports that
+                                    it does not own it.
+                                  type: boolean
                                 kind:
                                   nullable: true
                                   type: string
@@ -3497,7 +3521,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.4
   name: clusterregistrations.fleet.cattle.io
 spec:
   group: fleet.cattle.io
@@ -3601,7 +3625,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.4
   name: clusterregistrationtokens.fleet.cattle.io
 spec:
   group: fleet.cattle.io
@@ -3680,7 +3704,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.4
   name: clusters.fleet.cattle.io
 spec:
   group: fleet.cattle.io
@@ -3709,7 +3733,7 @@ spec:
 
             Clusters to which Fleet deploys manifests are referred to as downstream
 
-            clusters. In the single cluster use case, the Fleet manager Kubernetes
+            clusters. In the single cluster use case, the Fleet Kubernetes
 
             cluster is both the manager and downstream cluster at the same time.'
           properties:
@@ -4152,8 +4176,8 @@ spec:
                                       Also, matchLabelKeys cannot be set when labelSelector
                                       isn''t set.
 
-                                      This is an alpha field and requires enabling
-                                      MatchLabelKeysInPodAffinity feature gate.'
+                                      This is a beta field and requires enabling MatchLabelKeysInPodAffinity
+                                      feature gate (enabled by default).'
                                     items:
                                       type: string
                                     type: array
@@ -4184,8 +4208,8 @@ spec:
                                       Also, mismatchLabelKeys cannot be set when labelSelector
                                       isn''t set.
 
-                                      This is an alpha field and requires enabling
-                                      MatchLabelKeysInPodAffinity feature gate.'
+                                      This is a beta field and requires enabling MatchLabelKeysInPodAffinity
+                                      feature gate (enabled by default).'
                                     items:
                                       type: string
                                     type: array
@@ -4437,8 +4461,8 @@ spec:
                                   Also, matchLabelKeys cannot be set when labelSelector
                                   isn''t set.
 
-                                  This is an alpha field and requires enabling MatchLabelKeysInPodAffinity
-                                  feature gate.'
+                                  This is a beta field and requires enabling MatchLabelKeysInPodAffinity
+                                  feature gate (enabled by default).'
                                 items:
                                   type: string
                                 type: array
@@ -4468,8 +4492,8 @@ spec:
                                   Also, mismatchLabelKeys cannot be set when labelSelector
                                   isn''t set.
 
-                                  This is an alpha field and requires enabling MatchLabelKeysInPodAffinity
-                                  feature gate.'
+                                  This is a beta field and requires enabling MatchLabelKeysInPodAffinity
+                                  feature gate (enabled by default).'
                                 items:
                                   type: string
                                 type: array
@@ -4711,8 +4735,8 @@ spec:
                                       Also, matchLabelKeys cannot be set when labelSelector
                                       isn''t set.
 
-                                      This is an alpha field and requires enabling
-                                      MatchLabelKeysInPodAffinity feature gate.'
+                                      This is a beta field and requires enabling MatchLabelKeysInPodAffinity
+                                      feature gate (enabled by default).'
                                     items:
                                       type: string
                                     type: array
@@ -4743,8 +4767,8 @@ spec:
                                       Also, mismatchLabelKeys cannot be set when labelSelector
                                       isn''t set.
 
-                                      This is an alpha field and requires enabling
-                                      MatchLabelKeysInPodAffinity feature gate.'
+                                      This is a beta field and requires enabling MatchLabelKeysInPodAffinity
+                                      feature gate (enabled by default).'
                                     items:
                                       type: string
                                     type: array
@@ -4996,8 +5020,8 @@ spec:
                                   Also, matchLabelKeys cannot be set when labelSelector
                                   isn''t set.
 
-                                  This is an alpha field and requires enabling MatchLabelKeysInPodAffinity
-                                  feature gate.'
+                                  This is a beta field and requires enabling MatchLabelKeysInPodAffinity
+                                  feature gate (enabled by default).'
                                 items:
                                   type: string
                                 type: array
@@ -5027,8 +5051,8 @@ spec:
                                   Also, mismatchLabelKeys cannot be set when labelSelector
                                   isn''t set.
 
-                                  This is an alpha field and requires enabling MatchLabelKeysInPodAffinity
-                                  feature gate.'
+                                  This is a beta field and requires enabling MatchLabelKeysInPodAffinity
+                                  feature gate (enabled by default).'
                                 items:
                                   type: string
                                 type: array
@@ -5197,13 +5221,7 @@ spec:
 
                                   almost certainly wrong.
 
-                                  TODO: Add other useful fields. apiVersion, kind,
-                                  uid?
-
-                                  More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-
-                                  TODO: Drop `kubebuilder:default` when controller-gen
-                                  doesn''t need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.'
+                                  More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
                                 type: string
                               optional:
                                 description: Specify whether the ConfigMap or its
@@ -5278,13 +5296,7 @@ spec:
 
                                   almost certainly wrong.
 
-                                  TODO: Add other useful fields. apiVersion, kind,
-                                  uid?
-
-                                  More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-
-                                  TODO: Drop `kubebuilder:default` when controller-gen
-                                  doesn''t need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.'
+                                  More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
                                 type: string
                               optional:
                                 description: Specify whether the Secret or its key
@@ -5317,11 +5329,9 @@ spec:
                         that are used by this container.
 
 
-
                         This is an alpha field and requires enabling the
 
                         DynamicResourceAllocation feature gate.
-
 
 
                         This field is immutable. It can only be set for containers.'
@@ -5336,6 +5346,15 @@ spec:
                               available
 
                               inside a container.'
+                            type: string
+                          request:
+                            description: 'Request is the name chosen for a request
+                              in the referenced claim.
+
+                              If empty, everything from the claim is made available,
+                              otherwise
+
+                              only the result of this request.'
                             type: string
                         required:
                           - name
@@ -5776,6 +5795,13 @@ spec:
                                   type: string
                                 delete:
                                   type: boolean
+                                exist:
+                                  description: Exist is true if the resource exists
+                                    but is not owned by us. This can happen if a resource
+                                    was adopted by another bundle whereas the first
+                                    bundle still exists and due to that reports that
+                                    it does not own it.
+                                  type: boolean
                                 kind:
                                   nullable: true
                                   type: string
@@ -5891,7 +5917,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.4
   name: contents.fleet.cattle.io
 spec:
   group: fleet.cattle.io
@@ -5959,7 +5985,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.4
   name: gitreporestrictions.fleet.cattle.io
 spec:
   group: fleet.cattle.io
@@ -6065,7 +6091,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.4
   name: gitrepos.fleet.cattle.io
 spec:
   group: fleet.cattle.io
@@ -6201,12 +6227,10 @@ spec:
                     authorEmail:
                       description: AuthorEmail gives the email to provide when making
                         a commit
-                      nullable: true
                       type: string
                     authorName:
                       description: AuthorName gives the name to provide when making
                         a commit
-                      nullable: true
                       type: string
                     messageTemplate:
                       description: 'MessageTemplate provides a template for the commit
@@ -6214,7 +6238,6 @@ spec:
 
                         into which will be interpolated the details of the change
                         made.'
-                      nullable: true
                       type: string
                   type: object
                 imageScanInterval:
@@ -6439,7 +6462,6 @@ spec:
                 commit:
                   description: Commit is the Git commit hash from the last git job
                     run.
-                  nullable: true
                   type: string
                 conditions:
                   description: 'Conditions is a list of Wrangler conditions that describe
@@ -6738,6 +6760,13 @@ spec:
                                   type: string
                                 delete:
                                   type: boolean
+                                exist:
+                                  description: Exist is true if the resource exists
+                                    but is not owned by us. This can happen if a resource
+                                    was adopted by another bundle whereas the first
+                                    bundle still exists and due to that reports that
+                                    it does not own it.
+                                  type: boolean
                                 kind:
                                   nullable: true
                                   type: string
@@ -6847,6 +6876,10 @@ spec:
                     spec.forceSyncGeneration is set
                   format: int64
                   type: integer
+                webhookCommit:
+                  description: WebhookCommit is the latest Git commit hash received
+                    from a webhook
+                  type: string
               type: object
           type: object
       served: true
@@ -6858,7 +6891,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.4
   name: imagescans.fleet.cattle.io
 spec:
   group: fleet.cattle.io
@@ -6984,12 +7017,7 @@ spec:
 
                         almost certainly wrong.
 
-                        TODO: Add other useful fields. apiVersion, kind, uid?
-
-                        More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-
-                        TODO: Drop `kubebuilder:default` when controller-gen doesn''t
-                        need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.'
+                        More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
                       type: string
                   type: object
                   x-kubernetes-map-type: atomic
@@ -7004,6 +7032,9 @@ spec:
                     to replace fields
                   nullable: true
                   type: string
+              required:
+                - image
+                - interval
               type: object
             status:
               properties:
