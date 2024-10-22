@@ -9,7 +9,7 @@ spec:
   selector:
     matchLabels:
       name: {{ .Release.Name }}-rke-aggregator
-  template:
+  template:gi
     metadata:
       name: "{{ .Release.Name }}-rke-aggregator"
       namespace: "{{ .Release.Namespace }}"
@@ -19,6 +19,8 @@ spec:
       containers:
         - name: fluentbit
           image: "{{ template "logging-operator.fluentbitImage" . }}"
+          resources:
+            {{- toYaml .Values.additionalLoggingSources.rke.daemonSetResources | nindent 12 }}
           volumeMounts:
             - mountPath: /var/lib/rancher/rke/log/
               name: indir
