@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "harvester-csi-driver.name" . }}-controllers
+  namespace: {{ .Release.Namespace }}
+  labels:
+  {{- include "harvester-csi-driver.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicasCount }}
+  selector:
+    matchLabels:
+      component: csi-controllers
+      {{- include "harvester-csi-driver.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        component: csi-controllers
+        {{- include "harvester-csi-driver.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - args:
+            - --v=5
+            - --csi-address=$(ADDRESS)
+            - --timeout=1m50s
+            - --leader-election
+            - --leader-election-namespace=$(POD_NAMESPACE)
+          env:
+            - name: ADDRESS
+              value: /csi/csi.sock
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+          image: {{ template "system_default_registry" . }}{{ .Values.image.csi.resizer.repository }}:{{ .Values.image.csi.resizer.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          name: csi-resizer
+          volumeMounts:
+            - mountPath: /csi/
+              name: socket-dir
+        - args:
+            - --v=5
+            - --csi-address=$(ADDRESS)
+            - --timeout=1m50s
+            - --leader-election
+            - --leader-election-namespace=$(POD_NAMESPACE)
+            - --default-fstype=ext4
+          env:
+            - name: ADDRESS
+              value: /csi/csi.sock
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+          image: {{ template "system_default_registry" . }}{{ .Values.image.csi.provisioner.repository }}:{{ .Values.image.csi.provisioner.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          name: csi-provisioner
+          volumeMounts:
+            - mountPath: /csi/
+              name: socket-dir
+        - args:
+            - --v=5
+            - --csi-address=$(ADDRESS)
+            - --timeout=1m50s
+            - --leader-election
+            - --leader-election-namespace=$(POD_NAMESPACE)
+          env:
+            - name: ADDRESS
+              value: /csi/csi.sock
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+          image: {{ template "system_default_registry" . }}{{ .Values.image.csi.attacher.repository }}:{{ .Values.image.csi.attacher.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          name: csi-attacher
+          volumeMounts:
+            - mountPath: /csi/
+              name: socket-dir
+      serviceAccountName: {{ include "harvester-csi-driver.name" . }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - hostPath:
+            path: {{ .Values.kubeletRootDir }}/harvester-plugins/driver.harvesterhci.io
+            type: DirectoryOrCreate
+          name: socket-dir
