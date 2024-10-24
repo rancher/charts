@@ -35,3 +35,4 @@ This chart installs the following components:
 | CIS    | eks                     | eks-1.2.0                                                                                                          | eks                 |
 | CIS    | aks                     | aks-1.0                                                                                                            | aks                 |
 | CIS    | gke                     | gke-1.2.0                                                                                                          | gke                 |
+| CIS    | gke                     | gke-1.6.0                                                                                                          | gke-1.29+            |
