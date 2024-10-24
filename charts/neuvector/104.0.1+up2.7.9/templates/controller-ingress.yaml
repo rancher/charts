@@ -1,0 +1,219 @@
+{{- if .Values.controller.enabled }}
+{{- if .Values.controller.ingress.enabled }}
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: neuvector-restapi-ingress
+  namespace: {{ .Release.Namespace }}
+{{- with .Values.controller.ingress.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+{{- if .Values.controller.ingress.ingressClassName }}
+  ingressClassName: {{ .Values.controller.ingress.ingressClassName | quote }}
+{{ end }}
+{{- if .Values.controller.ingress.tls }}
+  tls:
+  - hosts:
+    - {{ .Values.controller.ingress.host }}
+{{- if .Values.controller.ingress.secretName }}
+    secretName: {{ .Values.controller.ingress.secretName }}
+{{- end }}
+{{- end }}
+  rules:
+  - host: {{ .Values.controller.ingress.host }}
+    http:
+      paths:
+      - path: {{ .Values.controller.ingress.path }}
+        pathType: Prefix
+        backend:
+          service:
+            name: neuvector-svc-controller-api
+            port:
+              number: 10443
+{{- else }}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: neuvector-restapi-ingress
+  namespace: {{ .Release.Namespace }}
+{{- with .Values.controller.ingress.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+{{- if .Values.controller.ingress.tls }}
+  tls:
+  - hosts:
+    - {{ .Values.controller.ingress.host }}
+{{- if .Values.controller.ingress.secretName }}
+    secretName: {{ .Values.controller.ingress.secretName }}
+{{- end }}
+{{- end }}
+  rules:
+  - host: {{ .Values.controller.ingress.host }}
+    http:
+      paths:
+      - path: {{ .Values.controller.ingress.path }}
+        backend:
+          serviceName: neuvector-svc-controller-api
+          servicePort: 10443
+{{- end }}
+{{- end }}
+{{- if .Values.controller.federation.mastersvc.ingress.enabled }}
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: neuvector-mastersvc-ingress
+  namespace: {{ .Release.Namespace }}
+{{- with .Values.controller.federation.mastersvc.ingress.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+{{- if .Values.controller.federation.mastersvc.ingress.ingressClassName }}
+  ingressClassName: {{ .Values.controller.federation.mastersvc.ingress.ingressClassName | quote }}
+{{ end }}
+{{- if .Values.controller.federation.mastersvc.ingress.tls }}
+  tls:
+  - hosts:
+    - {{ .Values.controller.federation.mastersvc.ingress.host }}
+{{- if .Values.controller.federation.mastersvc.ingress.secretName }}
+    secretName: {{ .Values.controller.federation.mastersvc.ingress.secretName }}
+{{- end }}
+{{- end }}
+  rules:
+  - host: {{ .Values.controller.federation.mastersvc.ingress.host }}
+    http:
+      paths:
+      - path: {{ .Values.controller.federation.mastersvc.ingress.path }}
+        pathType: Prefix
+        backend:
+          service:
+            name: neuvector-svc-controller-fed-master
+            port:
+              number: 11443
+{{- else }}
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: neuvector-mastersvc-ingress
+  namespace: {{ .Release.Namespace }}
+{{- with .Values.controller.federation.mastersvc.ingress.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+{{- if .Values.controller.federation.mastersvc.ingress.tls }}
+  tls:
+  - hosts:
+    - {{ .Values.controller.federation.mastersvc.ingress.host }}
+{{- if .Values.controller.federation.mastersvc.ingress.secretName }}
+    secretName: {{ .Values.controller.federation.mastersvc.ingress.secretName }}
+{{- end }}
+{{- end }}
+  rules:
+  - host: {{ .Values.controller.federation.mastersvc.ingress.host }}
+    http:
+      paths:
+      - path: {{ .Values.controller.federation.mastersvc.ingress.path }}
+        backend:
+          serviceName: neuvector-svc-controller-fed-master
+          servicePort: 11443
+{{- end }}
+{{- end }}
+{{- if .Values.controller.federation.managedsvc.ingress.enabled }}
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: neuvector-managedsvc-ingress
+  namespace: {{ .Release.Namespace }}
+{{- with .Values.controller.federation.managedsvc.ingress.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+{{- if .Values.controller.federation.managedsvc.ingress.ingressClassName }}
+  ingressClassName: {{ .Values.controller.federation.managedsvc.ingress.ingressClassName | quote }}
+{{ end }}
+{{- if .Values.controller.federation.managedsvc.ingress.tls }}
+  tls:
+  - hosts:
+    - {{ .Values.controller.federation.managedsvc.ingress.host }}
+{{- if .Values.controller.federation.managedsvc.ingress.secretName }}
+    secretName: {{ .Values.controller.federation.managedsvc.ingress.secretName }}
+{{- end }}
+{{- end }}
+  rules:
+  - host: {{ .Values.controller.federation.managedsvc.ingress.host }}
+    http:
+      paths:
+      - path: {{ .Values.controller.federation.managedsvc.ingress.path }}
+        pathType: Prefix
+        backend:
+          service:
+            name: neuvector-svc-controller-fed-managed
+            port:
+              number: 10443
+{{- else }}
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: neuvector-managedsvc-ingress
+  namespace: {{ .Release.Namespace }}
+{{- with .Values.controller.federation.managedsvc.ingress.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+{{- if .Values.controller.federation.managedsvc.ingress.tls }}
+  tls:
+  - hosts:
+    - {{ .Values.controller.federation.managedsvc.ingress.host }}
+{{- if .Values.controller.federation.managedsvc.ingress.secretName }}
+    secretName: {{ .Values.controller.federation.managedsvc.ingress.secretName }}
+{{- end }}
+{{- end }}
+  rules:
+  - host: {{ .Values.controller.federation.managedsvc.ingress.host }}
+    http:
+      paths:
+      - path: {{ .Values.controller.federation.managedsvc.ingress.path }}
+        backend:
+          serviceName: neuvector-svc-controller-fed-managed
+          servicePort: 10443
+{{- end }}
+{{- end }}
+{{- end -}}

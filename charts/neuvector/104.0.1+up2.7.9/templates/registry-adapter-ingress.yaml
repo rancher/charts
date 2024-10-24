@@ -1,0 +1,109 @@
+{{- if .Values.cve.adapter.enabled -}}
+
+{{- if .Values.cve.adapter.ingress.enabled }}
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: neuvector-registry-adapter-ingress
+  namespace: {{ .Release.Namespace }}
+{{- with .Values.cve.adapter.ingress.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+{{- if .Values.cve.adapter.ingress.ingressClassName }}
+  ingressClassName: {{ .Values.cve.adapter.ingress.ingressClassName | quote }}
+{{ end }}
+{{- if .Values.cve.adapter.ingress.tls }}
+  tls:
+  - hosts:
+    - {{ .Values.cve.adapter.ingress.host }}
+{{- if .Values.cve.adapter.ingress.secretName }}
+    secretName: {{ .Values.cve.adapter.ingress.secretName }}
+{{- end }}
+{{- end }}
+  rules:
+  - host: {{ .Values.cve.adapter.ingress.host }}
+    http:
+      paths:
+      - path: {{ .Values.cve.adapter.ingress.path }}
+        pathType: Prefix
+        backend:
+          service:
+            name: neuvector-service-registry-adapter
+            port:
+              number: 9443
+{{- else }}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: neuvector-registry-adapter-ingress
+  namespace: {{ .Release.Namespace }}
+{{- with .Values.cve.adapter.ingress.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+{{- if .Values.cve.adapter.ingress.tls }}
+  tls:
+  - hosts:
+    - {{ .Values.cve.adapter.ingress.host }}
+{{- if .Values.cve.adapter.ingress.secretName }}
+    secretName: {{ .Values.cve.adapter.ingress.secretName }}
+{{- end }}
+{{- end }}
+  rules:
+  - host: {{ .Values.cve.adapter.ingress.host }}
+    http:
+      paths:
+      - path: {{ .Values.cve.adapter.ingress.path }}
+        backend:
+          serviceName: neuvector-service-webui
+          servicePort: 9443
+{{- end }}
+{{- end }}
+
+---
+
+{{- if and .Values.openshift .Values.cve.adapter.route.enabled }}
+{{- if (semverCompare ">=1.9-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: route.openshift.io/v1
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: Route
+metadata:
+  name: neuvector-route-registry-adapter
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+{{- if .Values.cve.adapter.route.host }}
+  host: {{ .Values.cve.adapter.route.host }}
+{{- end }}
+  to:
+    kind: Service
+    name: neuvector-service-registry-adapter
+  port:
+    targetPort: registry-adapter
+  tls:
+    termination: {{ .Values.cve.adapter.route.termination }}
+{{- if or (eq .Values.cve.adapter.route.termination "reencrypt") (eq .Values.cve.adapter.route.termination "edge") }}
+{{- with .Values.cve.adapter.route.tls }}
+{{ toYaml . | indent 4 }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- end }}
