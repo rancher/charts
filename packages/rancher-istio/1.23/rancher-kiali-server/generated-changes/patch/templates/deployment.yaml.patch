@@ -1,16 +1,6 @@
 --- charts-original/templates/deployment.yaml
 +++ charts/templates/deployment.yaml
-@@ -6,6 +6,9 @@
-   namespace: {{ .Release.Namespace }}
-   labels:
-     {{- include "kiali-server.labels" . | nindent 4 }}
-+  annotations:
-+    "helm.sh/hook": post-install, post-upgrade
-+    "helm.sh/hook-weight": "-4"
- spec:
- {{- if not .Values.deployment.hpa.spec }}
-   replicas: {{ .Values.deployment.replicas }}
-@@ -64,7 +67,7 @@
+@@ -64,7 +64,7 @@
        {{- end }}
        {{- end }}
        containers:
@@ -19,7 +9,7 @@
          imagePullPolicy: {{ .Values.deployment.image_pull_policy | default "Always" }}
          name: {{ include "kiali-server.fullname" . }}
          command:
-@@ -126,6 +129,11 @@
+@@ -126,6 +126,11 @@
          - name: LOG_SAMPLER_RATE
            value: "{{ .Values.deployment.logger.sampler_rate }}"
          volumeMounts:
@@ -31,7 +21,7 @@
          - name: {{ include "kiali-server.fullname" . }}-configuration
            mountPath: "/kiali-configuration"
          - name: {{ include "kiali-server.fullname" . }}-cert
-@@ -153,6 +161,14 @@
+@@ -153,6 +158,14 @@
          {{- toYaml .Values.deployment.resources | nindent 10 }}
          {{- end }}
        volumes:
@@ -46,7 +36,7 @@
        - name: {{ include "kiali-server.fullname" . }}-configuration
          configMap:
            name: {{ include "kiali-server.fullname" . }}
-@@ -213,12 +229,12 @@
+@@ -213,12 +226,12 @@
          {{- toYaml .Values.deployment.affinity.pod_anti | nindent 10 }}
          {{- end }}
        {{- end }}
