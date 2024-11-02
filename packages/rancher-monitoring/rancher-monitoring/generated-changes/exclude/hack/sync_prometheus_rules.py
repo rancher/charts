@@ -29,11 +29,11 @@ def change_style(style, representer):
 
 refs = {
     # https://github.com/prometheus-operator/kube-prometheus
-    'ref.kube-prometheus': 'b5b59bc0b45508b85647eb7a84b96dc167be15f1',
+    'ref.kube-prometheus': '69d9636b64192418d64912c032f5437361e88ea5',
     # https://github.com/kubernetes-monitoring/kubernetes-mixin
-    'ref.kubernetes-mixin': 'de834e9a291b49396125768f041e2078763f48b5',
+    'ref.kubernetes-mixin': '0348e09edc3961a29a55f199d1bf0060c847a608',
     # https://github.com/etcd-io/etcd
-    'ref.etcd': '1c22e7b36bc5d8543f1646212f2960f9fe503b8c',
+    'ref.etcd': '18eb5c6881d43064f4559034bf12c3ef6ce89e4b',
 }
 
 # Source files list
@@ -42,13 +42,20 @@ charts = [
         'git': 'https://github.com/prometheus-operator/kube-prometheus.git',
         'branch': refs['ref.kube-prometheus'],
         'source': 'main.libsonnet',
-        'cwd': 'jsonnet/kube-prometheus',
+        'cwd': '',
         'destination': '../templates/prometheus/rules-1.14',
         'min_kubernetes': '1.14.0-0',
         'mixin': """
         local kp =
-          (import 'main.libsonnet') + {
+          (import 'jsonnet/kube-prometheus/main.libsonnet') + {
             values+:: {
+              nodeExporter+: {
+                mixin+: {
+                  _config+: {
+                    fsSelector: '$.Values.defaultRules.node.fsSelector',
+                  },
+                },
+              },
               common+: {
                 namespace: 'monitoring',
               },
@@ -99,8 +106,18 @@ charts = [
         'cwd': 'contrib/mixin',
         'destination': '../templates/prometheus/rules-1.14',
         'min_kubernetes': '1.14.0-0',
+        # Override the default etcd_instance_labels to get proper aggregation for etcd instances in k8s clusters (#2720)
+        # see https://github.com/etcd-io/etcd/blob/1c22e7b36bc5d8543f1646212f2960f9fe503b8c/contrib/mixin/config.libsonnet#L13
         'mixin': """
-        local kp = { prometheusAlerts+:: {}, prometheusRules+:: {}} + (import "mixin.libsonnet");
+        local kp =
+            { prometheusAlerts+:: {}, prometheusRules+:: {}} +
+            (import "mixin.libsonnet") +
+            {'_config': {
+                'etcd_selector': 'job=~".*etcd.*"',
+                'etcd_instance_labels': 'instance, pod',
+                'scrape_interval_seconds': 30,
+                'clusterLabel': 'job',
+            }};
 
         kp.prometheusAlerts + kp.prometheusRules
         """
@@ -113,8 +130,12 @@ condition_map = {
     'config-reloaders': ' .Values.defaultRules.rules.configReloaders',
     'etcd': ' .Values.kubeEtcd.enabled .Values.defaultRules.rules.etcd',
     'general.rules': ' .Values.defaultRules.rules.general',
+    'k8s.rules.container_cpu_limits': ' .Values.defaultRules.rules.k8sContainerCpuLimits',
+    'k8s.rules.container_cpu_requests': ' .Values.defaultRules.rules.k8sContainerCpuRequests',
     'k8s.rules.container_cpu_usage_seconds_total': ' .Values.defaultRules.rules.k8sContainerCpuUsageSecondsTotal',
     'k8s.rules.container_memory_cache': ' .Values.defaultRules.rules.k8sContainerMemoryCache',
+    'k8s.rules.container_memory_limits': ' .Values.defaultRules.rules.k8sContainerMemoryLimits',
+    'k8s.rules.container_memory_requests': ' .Values.defaultRules.rules.k8sContainerMemoryRequests',
     'k8s.rules.container_memory_rss': ' .Values.defaultRules.rules.k8sContainerMemoryRss',
     'k8s.rules.container_memory_swap': ' .Values.defaultRules.rules.k8sContainerMemorySwap',
     'k8s.rules.container_memory_working_set_bytes': ' .Values.defaultRules.rules.k8sContainerMemoryWorkingSetBytes',
@@ -196,7 +217,10 @@ replacement_map = {
         'init': ''},
     '(namespace, job, handler': {
         'replacement': '(cluster, namespace, job, handler',
-        'init': ''}
+        'init': ''},
+    '$.Values.defaultRules.node.fsSelector': {
+        'replacement': '{{ $.Values.defaultRules.node.fsSelector }}',
+        'init': ''},
 }
 
 # standard header
@@ -343,7 +367,7 @@ def add_custom_labels(rules_str, group, indent=4, label_indent=2):
     # should only be added if there are .Values defaultRules.additionalRuleLabels defined
     rule_seperator = "\n" + " " * indent + "-.*"
     label_seperator = "\n" + " " * indent + "  labels:"
-    section_seperator = "\n" + " " * indent + "  \S"
+    section_seperator = "\n" + " " * indent + "  \\S"
     section_seperator_len = len(section_seperator)-1
     rules_positions = re.finditer(rule_seperator,rules_str)
 
