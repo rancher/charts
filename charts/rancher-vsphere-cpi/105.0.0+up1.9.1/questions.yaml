@@ -1,0 +1,110 @@
+questions:
+  - variable: vCenter.host
+    label: vCenter Host
+    description: IP address or FQDN of the vCenter
+    type: string
+    required: true
+    group: vCenter
+
+  - variable: vCenter.datacenters
+    description: Comma-separated list of paths to data centers. E.g "<dc1-path>, <dc2-path>, ..."
+    label: Data Centers
+    type: string
+    required: true
+    group: vCenter
+
+  - variable: vCenter.credentialsSecret.generate
+    label: Generate Credential's Secret
+    description: Generates a secret with the vSphere credentials (If the option to generate it is enabled, credentials will be visible in the API to authorized users)
+    type: boolean
+    default: true
+    required: true
+    group: vCenter
+    show_subquestion_if: true
+    subquestions:
+      - variable: vCenter.username
+        label: Username
+        description: Username for vCenter
+        type: string
+        group: vCenter
+      - variable: vCenter.password
+        label: Password
+        description: Password for vCenter
+        type: password
+        group: vCenter
+
+  - variable: vCenter.credentialsSecret.name
+    label: Credential's Secret Name
+    description: Name of the secret with the vSphere credentials (Will not be visible in the API. More info in the README)
+    default: "vsphere-cpi-creds"
+    type: string
+    group: vCenter
+    show_if: "vCenter.credentialsSecret.generate=false"
+
+  - variable: vCenter.labels.generate
+    label: Define vSphere Tags
+    description: "vSphere Tags used to determine the zone and region of a Kubernetes node. This labels will be propagated to NodeLabels."
+    type: boolean
+    default: false
+    required: true
+    group: vCenter
+    show_subquestion_if: true
+    subquestions:
+      - variable: vCenter.labels.region
+        label: Region
+        description: vSphere tag which will used to define regions. e.g. eu-central
+        type: string
+        group: vCenter
+      - variable: vCenter.labels.zone
+        label: Zone
+        description: vSphere tag which will used to define availability zones
+        type: string
+        group: vCenter
+
+  - variable: global.ipFamily
+    label: Node Address IP Family
+    description: "The IP families of the address(es) to be assigned to the Node. The first selected family will be the Primary. Separate multiple families with a comma. Valid options are 'ipv4' and 'ipv6'."
+    type: string
+    default: "ipv4"
+    required: false
+    group: Global
+
+  - variable: nodesEnable
+    label: Node address selection filters
+    description: "Define the way that IP addresses are selected to be assigned to the Kubernetes Node"
+    type: boolean
+    default: false
+    required: false
+    group: Nodes
+    show_subquestion_if: true
+    subquestions:
+      - variable: nodes.internalNetworkSubnetCidr
+        label: Internal Network CIDR
+        description: "The vSphere cloud provider will select the first address that falls within the provided subnet and assign that value to the Internal IP for the node."
+        type: string
+        group: Nodes
+      - variable: nodes.externalNetworkSubnetCidr
+        label: External Network CIDR
+        description: "The vSphere cloud provider will select the first address that falls within the provided subnet and assign that value to the External IP for the node."
+        type: string
+        group: Nodes
+      - variable: nodes.internalVmNetworkName
+        label: Internal VM Network Name
+        description: "The vSphere cloud provider will select the first address found in the VM network matching the provided name and assign that value to the Internal IP for the node."
+        type: string
+        group: Nodes
+      - variable: nodes.externalVmNetworkName
+        label: External VM Network Name
+        description: "The vSphere cloud provider will select the first address found in the VM network matching the provided name and assign that value to the External IP for the node."
+        type: string
+        group: Nodes
+      - variable: nodes.excludeInternalNetworkSubnetCidr
+        label: Exclude Internal Network CIDR
+        description: "The vSphere cloud provider will never select addresses for the Internal IP that fall within the provided subnet ranges. This configuration has the highest precedence."
+        type: string
+        group: Nodes
+      - variable: nodes.excludeExternalNetworkSubnetCidr
+        label: Exclude External Network CIDR
+        description: "The vSphere cloud provider will never select addresses for the External IP that fall within the provided subnet ranges. This configuration has the highest precedence."
+        type: string
+        group: Nodes
