@@ -1,0 +1,53 @@
+{{- if .Values.rancherMonitoring.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels: {{ include "kube-prometheus-stack.labels" . | nindent 4 }}
+  name: monitoring-fleet-controller
+  namespace: cattle-fleet-system
+spec:
+  endpoints:
+  - port: metrics
+    metricRelabelings:
+    {{ if .Values.global.cattle.clusterId }}
+      - sourceLabels: [__address__]
+        targetLabel: cluster_id
+        replacement: {{ .Values.global.cattle.clusterId }}
+    {{- end }}
+    {{ if .Values.global.cattle.clusterName}}
+      - sourceLabels: [__address__]
+        targetLabel: cluster_name
+        replacement: {{ .Values.global.cattle.clusterName }}
+    {{- end }}
+  jobLabel: fleet
+  selector:
+    matchLabels:
+      app: fleet-controller
+{{- end }}
+---
+{{- if .Values.rancherMonitoring.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels: {{ include "kube-prometheus-stack.labels" . | nindent 4 }}
+  name: monitoring-gitops-controller
+  namespace: cattle-fleet-system
+spec:
+  endpoints:
+  - port: metrics
+    metricRelabelings:
+    {{ if .Values.global.cattle.clusterId }}
+      - sourceLabels: [__address__]
+        targetLabel: cluster_id
+        replacement: {{ .Values.global.cattle.clusterId }}
+    {{- end }}
+    {{ if .Values.global.cattle.clusterName}}
+      - sourceLabels: [__address__]
+        targetLabel: cluster_name
+        replacement: {{ .Values.global.cattle.clusterName }}
+    {{- end }}
+  jobLabel: gitops
+  selector:
+    matchLabels:
+      app: gitjob
+{{- end }}
