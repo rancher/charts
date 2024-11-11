@@ -1,0 +1,30 @@
+name: Git-Pages
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - release-v2.10
+# This job must be run only in the last active release branch
+jobs:
+  git-pages:
+    name: Check charts.rancher.io index.yaml
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+
+      - name: Wait for GitHub Pages update
+        run: sleep 900  # 15 minutes is more than enough time for GitHub Pages to update
+
+      - name: Check charts.rancher.io index.yaml
+        run: make compare-index-files BRANCH=${{ github.event.pull_request.base.ref }}
+
+      - name: Notify Slack on Failure
+        if: failure()
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data '{
+            "data": "charts.rancher.io/index.yaml is not up-to-date with github.com/rancher/charts/index.yaml\nPull Request: ${{ github.event.pull_request.html_url }}\nLast active branch: ${{ github.event.pull_request.base.ref }}"
+          }' ${{ secrets.SLACK_WEBHOOK_URL }}
