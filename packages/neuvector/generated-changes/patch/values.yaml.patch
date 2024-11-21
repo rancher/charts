@@ -2,7 +2,7 @@
 +++ charts/values.yaml
 @@ -7,56 +7,16 @@
  registry: docker.io
- tag: 5.3.3
+ tag: 5.4.1
  oem:
 -imagePullSecrets:
 -psp: false
@@ -59,20 +59,20 @@
 +    systemDefaultRegistry: ""
 +    psp:
 +      enabled: false # PSP enablement should default to false
- autoGenerateCert: true
+ # Set a bootstrap password. If leave empty, default admin password used.
+ bootstrapPassword: ""
  
- defaultValidityPeriod: 365
-@@ -76,7 +36,8 @@
+@@ -81,7 +41,8 @@
        maxSurge: 1
        maxUnavailable: 0
    image:
 -    repository: neuvector/controller
 +    repository: rancher/mirrored-neuvector-controller
-+    tag: 5.3.3
++    tag: 5.4.1
      hash:
    replicas: 3
    disruptionbudget: 0
-@@ -126,7 +87,7 @@
+@@ -132,7 +93,7 @@
          #  -----BEGIN PRIVATE KEY-----
          #  -----END PRIVATE KEY-----
    ranchersso: # required for rancher authentication
@@ -81,36 +81,47 @@
    pvc:
      enabled: false
      existingClaim: false
-@@ -288,7 +249,8 @@
+@@ -313,16 +274,17 @@
+       # key2: value2
+     runAsUser: # MUST be set for Rancher hardened cluster
+   prime:
+-    enabled: false
++    enabled: true
+     image:
+-      repository: neuvector/compliance-config
++      repository: rancher/mirrored-neuvector-compliance-config
+       tag: latest
+       hash:
+ enforcer:
    # If false, enforcer will not be installed
    enabled: true
    image:
 -    repository: neuvector/enforcer
 +    repository: rancher/mirrored-neuvector-enforcer
-+    tag: 5.3.3
++    tag: 5.4.1
      hash:
    updateStrategy:
      type: RollingUpdate
-@@ -320,7 +282,8 @@
+@@ -354,7 +316,8 @@
    # If false, manager will not be installed
    enabled: true
    image:
 -    repository: neuvector/manager
 +    repository: rancher/mirrored-neuvector-manager
-+    tag: 5.3.3
++    tag: 5.4.1
      hash:
    priorityClassName:
    env:
-@@ -398,7 +361,7 @@
+@@ -443,7 +406,7 @@
    adapter:
      enabled: false
      image:
 -      repository: neuvector/registry-adapter
 +      repository: rancher/mirrored-neuvector-registry-adapter
-       tag: 0.1.2
+       tag: 0.1.3
        hash:
      priorityClassName:
-@@ -483,7 +446,7 @@
+@@ -534,7 +497,7 @@
      cacert: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
      image:
        registry: ""
@@ -119,7 +130,7 @@
        tag: latest
        hash:
      schedule: "0 0 * * *"
-@@ -514,7 +477,7 @@
+@@ -565,7 +528,7 @@
          maxUnavailable: 0
      image:
        registry: ""

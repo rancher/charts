@@ -1,31 +1,24 @@
 --- charts-original/templates/controller-deployment.yaml
 +++ charts/templates/controller-deployment.yaml
-@@ -87,23 +87,7 @@
+@@ -90,7 +90,7 @@
+       {{- if or .Values.internal.certmanager.enabled .Values.controller.internal.certificate.secret }}
+       {{- else if and .Values.internal.autoGenerateCert (not $pre540) }}
+         - name: init
+-          image: {{ include "neuvector.controller.image" . | quote }}
++          image: {{ template "system_default_registry" . }}{{ .Values.controller.image.repository }}:{{ .Values.controller.image.tag }}
+           command: ["/usr/local/bin/upgrader", "create-upgrader-job" ]
+           imagePullPolicy: {{ .Values.controller.certupgrader.imagePullPolicy }}
+           env:
+@@ -117,7 +117,7 @@
        {{- end }}
        containers:
          - name: neuvector-controller-pod
--          {{- if .Values.global.azure.enabled }}
--          image: "{{ .Values.global.azure.images.controller.registry }}/{{ .Values.global.azure.images.controller.image }}:{{ .Values.global.azure.images.controller.tag }}"
--          {{- else }}
--          {{- if eq .Values.registry "registry.neuvector.com" }}
--          {{- if .Values.oem }}
--          image: "{{ .Values.registry }}/{{ .Values.oem }}/controller:{{ .Values.tag }}"
--          {{- else }}
--          image: "{{ .Values.registry }}/controller:{{ .Values.tag }}"
--          {{- end }}
--          {{- else }}
--          {{- if .Values.controller.image.hash }}
--          image: "{{ .Values.registry }}/{{ .Values.controller.image.repository }}@{{ .Values.controller.image.hash }}"
--          {{- else }}
--          image: "{{ .Values.registry }}/{{ .Values.controller.image.repository }}:{{ .Values.tag }}"
--          {{- end }}
--          {{- end }}
--          {{- end }}
+-          image: {{ include "neuvector.controller.image" . | quote }}
 +          image: {{ template "system_default_registry" . }}{{ .Values.controller.image.repository }}:{{ .Values.controller.image.tag }}
            {{- if $pre530 }}
            securityContext:
              privileged: true
-@@ -145,18 +129,6 @@
+@@ -159,18 +159,6 @@
              - name: CTRL_PERSIST_CONFIG
                value: "1"
            {{- end }}
@@ -37,10 +30,10 @@
 -            - name: CSP_ENV
 -              value: "azure"
 -          {{- end }}
--          {{- if or .Values.global.aws.enabled .Values.global.azure.enabled }}
+-          {{- if .Values.global.azure.enabled }}
 -            - name: NO_DEFAULT_ADMIN
 -              value: "1"
 -          {{- end }}
-           {{- with .Values.controller.env }}
- {{- toYaml . | nindent 12 }}
-           {{- end }}
+           {{- if .Values.controller.searchRegistries }}
+             - name: CTRL_SEARCH_REGISTRIES
+               value: "{{ .Values.controller.searchRegistries }}"
