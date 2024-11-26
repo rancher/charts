@@ -1,0 +1,49 @@
+name: Build
+
+on:
+  pull_request:
+    branches:
+      - dev-v*
+      - release-v*
+
+jobs:
+  build:
+    name: Validate
+    runs-on: org-${{ github.repository_owner_id }}-linux-k8s
+    steps:
+      - name: Checkout base branch
+        uses: actions/checkout@v4
+
+      - name: Checkout PR
+        run: gh pr checkout ${{ github.event.pull_request.number }}
+        env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout into branch
+        run: git checkout -b staging-pr-workflow
+
+      - name: Pull scripts
+        run: make pull-scripts
+
+      - name: Check release.yaml
+        run: make check-release-yaml
+
+      - name: Validate
+        run: |
+          if [[ "${{ github.ref }}" == refs/heads/release-v* ]]; then
+            echo "Validating remote release branch"
+            make validate remote=true
+          else
+            echo "Validating local branch"
+            make validate
+          fi
+
+      - name: Check container images
+        run: make check-images
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Check RC images and charts
+        run: make check-rc
+        if: contains(github.base_ref, 'release-v')
