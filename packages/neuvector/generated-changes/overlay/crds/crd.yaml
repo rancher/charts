@@ -12,7 +12,6 @@ metadata:
   labels:
     chart: {{ template "neuvector.chart" . }}
     release: {{ .Release.Name }}
-    heritage: Helm
 spec:
   group: neuvector.com
   names:
@@ -182,6 +181,12 @@ spec:
                     - basic
                     - zero-drift
                     type: string
+                  mode:
+                    enum:
+                    - Discover
+                    - Monitor
+                    - Protect
+                    type: string
                 type: object
               target:
                 properties:
@@ -215,6 +220,14 @@ spec:
                         type: string
                       original_name:
                         type: string
+                      mon_metric:
+                        type: boolean
+                      grp_sess_cur:
+                        type: integer
+                      grp_sess_rate:
+                        type: integer
+                      grp_band_width:
+                        type: integer
                     required:
                     - name
                     type: object
@@ -278,7 +291,6 @@ metadata:
   labels:
     chart: {{ template "neuvector.chart" . }}
     release: {{ .Release.Name }}
-    heritage: Helm
 spec:
   group: neuvector.com
   names:
@@ -448,6 +460,12 @@ spec:
                     - basic
                     - zero-drift
                     type: string
+                  mode:
+                    enum:
+                    - Discover
+                    - Monitor
+                    - Protect
+                    type: string
                 type: object
               target:
                 properties:
@@ -481,6 +499,14 @@ spec:
                         type: string
                       original_name:
                         type: string
+                      mon_metric:
+                        type: boolean
+                      grp_sess_cur:
+                        type: integer
+                      grp_sess_rate:
+                        type: integer
+                      grp_band_width:
+                        type: integer
                     required:
                     - name
                     type: object
@@ -544,7 +570,6 @@ metadata:
   labels:
     chart: {{ template "neuvector.chart" . }}
     release: {{ .Release.Name }}
-    heritage: Helm
 spec:
   group: neuvector.com
   names:
@@ -630,7 +655,6 @@ metadata:
   labels:
     chart: {{ template "neuvector.chart" . }}
     release: {{ .Release.Name }}
-    heritage: Helm
 spec:
   group: neuvector.com
   names:
@@ -757,7 +781,6 @@ metadata:
   labels:
     chart: {{ template "neuvector.chart" . }}
     release: {{ .Release.Name }}
-    heritage: Helm
 spec:
   group: neuvector.com
   names:
@@ -843,7 +866,6 @@ metadata:
   labels:
     chart: {{ template "neuvector.chart" . }}
     release: {{ .Release.Name }}
-    heritage: Helm
 spec:
   group: neuvector.com
   names:
@@ -900,7 +922,6 @@ metadata:
   labels:
     chart: {{ template "neuvector.chart" . }}
     release: {{ .Release.Name }}
-    heritage: Helm
 spec:
   group: neuvector.com
   names:
@@ -953,23 +974,4 @@ spec:
             type: object
         type: object
 {{- end }}
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: neuvector-svc-crd-webhook
-  namespace: {{ .Release.Namespace }}
-  labels:
-    chart: {{ template "neuvector.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: Helm
-spec:
-  ports:
-    - port: 443
-      targetPort: 30443
-      protocol: TCP
-      name: crd-webhook
-  type: {{ .Values.crdwebhook.type }}
-  selector:
-    app: neuvector-controller-pod
 {{- end }}
