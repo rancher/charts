@@ -181,6 +181,12 @@ spec:
                     - basic
                     - zero-drift
                     type: string
+                  mode:
+                    enum:
+                    - Discover
+                    - Monitor
+                    - Protect
+                    type: string
                 type: object
               target:
                 properties:
@@ -453,6 +459,12 @@ spec:
                     - shield
                     - basic
                     - zero-drift
+                    type: string
+                  mode:
+                    enum:
+                    - Discover
+                    - Monitor
+                    - Protect
                     type: string
                 type: object
               target:
@@ -962,22 +974,4 @@ spec:
             type: object
         type: object
 {{- end }}
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: neuvector-svc-crd-webhook
-  namespace: {{ .Release.Namespace }}
-  labels:
-    chart: {{ template "neuvector.chart" . }}
-    release: {{ .Release.Name }}
-spec:
-  ports:
-    - port: 443
-      targetPort: 30443
-      protocol: TCP
-      name: crd-webhook
-  type: {{ .Values.crdwebhook.type }}
-  selector:
-    app: neuvector-controller-pod
 {{- end }}
