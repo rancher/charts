@@ -2,6 +2,10 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 global:
+  # -- Toleration for nodes allowed to run user-deployed components such as Longhorn Manager, Longhorn UI, and Longhorn Driver Deployer.
+  tolerations: []
+  # -- Node selector for nodes allowed to run user-deployed components such as Longhorn Manager, Longhorn UI, and Longhorn Driver Deployer.
+  nodeSelector: {}
   cattle:
     # -- Default system registry.
     systemDefaultRegistry: ""
@@ -35,43 +39,43 @@ image:
       # -- Repository for the Longhorn Engine image.
       repository: longhornio/longhorn-engine
       # -- Specify Longhorn engine image tag
-      tag: v1.6.2
+      tag: v1.6.3
     manager:
       # -- Repository for the Longhorn Manager image.
       repository: longhornio/longhorn-manager
       # -- Specify Longhorn manager image tag
-      tag: v1.6.2
+      tag: v1.6.3
     ui:
       # -- Repository for the Longhorn UI image.
       repository: longhornio/longhorn-ui
       # -- Specify Longhorn ui image tag
-      tag: v1.6.2
+      tag: v1.6.3
     instanceManager:
       # -- Repository for the Longhorn Instance Manager image.
       repository: longhornio/longhorn-instance-manager
       # -- Specify Longhorn instance manager image tag
-      tag: v1.6.2
+      tag: v1.6.3
     shareManager:
       # -- Repository for the Longhorn Share Manager image.
       repository: longhornio/longhorn-share-manager
       # -- Specify Longhorn share manager image tag
-      tag: v1.6.2
+      tag: v1.6.3
     backingImageManager:
       # -- Repository for the Backing Image Manager image. When unspecified, Longhorn uses the default value.
       repository: longhornio/backing-image-manager
       # -- Specify Longhorn backing image manager image tag
-      tag: v1.6.2
+      tag: v1.6.3
     supportBundleKit:
       # -- Repository for the Longhorn Support Bundle Manager image.
       repository: longhornio/support-bundle-kit
       # -- Tag for the Longhorn Support Bundle Manager image.
-      tag: v0.0.37
+      tag: v0.0.43
   csi:
     attacher:
       # -- Repository for the CSI attacher image. When unspecified, Longhorn uses the default value.
       repository: longhornio/csi-attacher
       # -- Tag for the CSI attacher image. When unspecified, Longhorn uses the default value.
-      tag: v4.5.1
+      tag: v4.7.0
     provisioner:
       # -- Repository for the CSI Provisioner image. When unspecified, Longhorn uses the default value.
       repository: longhornio/csi-provisioner
@@ -81,12 +85,12 @@ image:
       # -- Repository for the CSI Node Driver Registrar image. When unspecified, Longhorn uses the default value.
       repository: longhornio/csi-node-driver-registrar
       # -- Tag for the CSI Node Driver Registrar image. When unspecified, Longhorn uses the default value.
-      tag: v2.9.2
+      tag: v2.12.0
     resizer:
       # -- Repository for the CSI Resizer image. When unspecified, Longhorn uses the default value.
       repository: longhornio/csi-resizer
       # -- Tag for the CSI Resizer image. When unspecified, Longhorn uses the default value.
-      tag: v1.10.1
+      tag: v1.12.0
     snapshotter:
       # -- Repository for the CSI Snapshotter image. When unspecified, Longhorn uses the default value.
       repository: longhornio/csi-snapshotter
@@ -96,13 +100,13 @@ image:
       # -- Repository for the CSI liveness probe image. When unspecified, Longhorn uses the default value.
       repository: longhornio/livenessprobe
       # -- Tag for the CSI liveness probe image. When unspecified, Longhorn uses the default value.
-      tag: v2.12.0
+      tag: v2.14.0
   openshift:
     oauthProxy:
       # -- Repository for the OAuth Proxy image. This setting applies only to OpenShift users.
       repository: longhornio/openshift-origin-oauth-proxy
-      # -- Tag for the OAuth Proxy image. This setting applies only to OpenShift users. Specify OCP/OKD version 4.1 or later. The latest stable version is 4.14.
-      tag: 4.14
+      # -- Tag for the OAuth Proxy image. This setting applies only to OpenShift users. Specify OCP/OKD version 4.1 or later. The latest stable version is 4.15.
+      tag: 4.15
   # -- Image pull policy that applies to all user-deployed Longhorn components, such as Longhorn Manager, Longhorn driver, and Longhorn UI.
   pullPolicy: IfNotPresent
 
@@ -341,7 +345,7 @@ longhornManager:
     format: plain
   # -- PriorityClass for Longhorn Manager.
   priorityClass: *defaultPriorityClassNameRef
-  # -- Toleration for Longhorn Manager on nodes allowed to run Longhorn Manager.
+  # -- Toleration for Longhorn Manager on nodes allowed to run Longhorn components.
   tolerations: []
   ## If you want to set tolerations for Longhorn Manager DaemonSet, delete the `[]` in the line above
   ## and uncomment this example block
@@ -467,6 +471,22 @@ metrics:
   serviceMonitor:
     # -- Setting that allows the creation of a Prometheus ServiceMonitor resource for Longhorn Manager components.
     enabled: false
+    # -- Additional labels for the Prometheus ServiceMonitor resource.
+    additionalLabels: {}
+    # -- Annotations for the Prometheus ServiceMonitor resource.
+    annotations: {}
+    # -- Interval at which Prometheus scrapes the metrics from the target.
+    interval: ""
+    # -- Timeout after which Prometheus considers the scrape to be failed.
+    scrapeTimeout: ""
+    # -- Configures the relabeling rules to apply the target’s metadata labels. See the [Prometheus Operator
+    # documentation](https://prometheus-operator.dev/docs/api-reference/api/#monitoring.coreos.com/v1.Endpoint) for
+    # formatting details.
+    relabelings: []
+    # -- Configures the relabeling rules to apply to the samples before ingestion. See the [Prometheus Operator
+    # documentation](https://prometheus-operator.dev/docs/api-reference/api/#monitoring.coreos.com/v1.Endpoint) for
+    # formatting details.
+    metricRelabelings: []
 
 ## openshift settings
 openshift:
