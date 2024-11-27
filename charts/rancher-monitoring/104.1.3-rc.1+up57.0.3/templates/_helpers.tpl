@@ -458,7 +458,7 @@ global:
 {{- end }}
 {{- end }}
 
-{{ - define "rke2-ingress-nginx.namespace" -}}
+{{- define "rke2-ingress-nginx.namespace" -}}
   {{- if .Values.rke2IngressNginx.namespaceOverride -}}
     {{- .Values.rke2IngressNginx.namespaceOverride -}}
   {{- else -}}
