@@ -13,7 +13,13 @@ jobs:
     container: registry.suse.com/bci/bci-base:latest
     steps:
       - name: install dependencies
-        run: zypper install -y docker jq git
+        run: zypper --non-interactive install docker jq git make go awk
+      - name: install gh
+        run: |
+          mkdir -p /tmp/gh
+          curl -fsL https://github.com/cli/cli/releases/download/v2.63.2/gh_2.63.2_linux_amd64.tar.gz | tar xvzf - --strip-components=1 -C /tmp/gh
+          mv /tmp/gh/bin/gh /usr/bin/gh
+          chmod +x /usr/bin/gh
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Git safe directory
@@ -36,6 +42,13 @@ jobs:
 
       - name: Check release.yaml
         run: make check-release-yaml
+
+      - name: Release PR Chekpoints
+        run: |
+          if [[ "${{ github.ref }}" == refs/heads/release-v* ]]; then
+            make validate-release-charts BRANCH=${{ github.event.pull_request.base.ref }} GH_TOKEN=${{ secrets.GITHUB_TOKEN }} PR_NUMBER=${{ github.event.pull_request.number }}
+            echo "Validating remote release branch"
+          fi
 
       - name: Validate
         run: |
