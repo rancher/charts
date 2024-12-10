@@ -1,0 +1,64 @@
+questions:
+############ Storage Parameters ##############
+- variable: usedrivesAndPartitions
+  show_if: "deviceConfig=Consume Unused||onpremStorage=Automatically scan disks"
+  label: "Use unmounted drives and partitions"
+  descrition: "Use unmounted disks even if they have a partition or filesystem on it. PX will never use a drive or partition that is mounted."
+  type: boolean
+  default: false
+  group: "Storage Parameters"
+
+- variable: maxStorageNodes
+  show_if: "environment=Cloud&&deviceConfig=Create Using a Spec"
+  description: "Max storage nodes per availability zone"
+  label: "Max storage nodes (Optional)"
+  type: int
+  group: "Storage Parameters"
+
+################################### Registry settings options ################################
+- variable: customRegistry
+  label: "Use a custom container registry?"
+  type: boolean
+  default: false
+  group: "Container Registry Parameters"
+
+- variable: registrySecret
+  show_if: "customRegistry=true"
+  description: "Specify a custom Kubernetes secret that will be used to authenticate with a container registry. Must be defined in kube-system namespace. (example: regcred)"
+  type: string
+  label: "Registry Kubernetes Secret"
+  group: "Container Registry Parameters"
+- variable: customRegistryURL
+  show_if: "customRegistry=true"
+  description: "Specify a custom container registry server (including repository) that will be used instead of index.docker.io to download Docker images. (example: dockerhub.acme.net:5443 or myregistry.com/myrepository/)"
+  label: "Custom Registry URL"
+  type: string
+  group: "Container Registry Parameters"
+
+################################## Optional features ############################
+# TODO: Once we have a stable CSI release, we will default this to enabled
+#- variable: csi
+#  description: "Select if you want to enable CSI (Container Storage Interface). CSI is still in ALPHA."
+#  type: boolean
+#  label: "Enable CSI"
+#  default: false
+#  required: false
+#  group: "Advanced parameters"
+
+- variable: envVars
+  label: "Environment variables"
+  description: "Enter your environment variables separated by semicolons (example: API_SERVER=http://lighthouse-new.portworx.com;MYENV1=val1;MYENV2=val2). These environment variables will be exported to Portworx."
+  type: string
+  group: "Advanced parameters"
+
+- variable: imageVersion
+  default: "2.11.4"
+  type: string
+  label: Portworx version to be deployed.
+  group: "Advanced parameters"
+
+- variable: clusterName
+  type: string
+  label: Portworx cluster name
+  default: mycluster
+  group: "Advanced parameters"

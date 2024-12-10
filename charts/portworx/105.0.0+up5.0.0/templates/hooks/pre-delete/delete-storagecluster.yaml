@@ -1,0 +1,41 @@
+{{- if .Values.deployCluster }}
+{{- $customRegistryURL := .Values.customRegistryURL | default "none" }}
+{{- $registrySecret := .Values.registrySecret | default "none" }}
+{{- $clusterName := .Values.clusterName }}
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: {{ template "px.getDeploymentNamespace" . }}
+  name: px-hook-delete-storagecluster
+  labels:
+    heritage: {{.Release.Service | quote }}
+    release: {{.Release.Name | quote }}
+    chart: "{{.Chart.Name}}-{{.Chart.Version}}"
+    app.kubernetes.io/managed-by: {{.Release.Service | quote }}
+    app.kubernetes.io/instance: {{.Release.Name | quote }}
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      {{- if not (eq $registrySecret "none") }}
+      imagePullSecrets:
+        - name: {{ $registrySecret }}
+      {{- end }}
+      serviceAccountName: {{ template "px.hookServiceAccount" . }}
+      restartPolicy: Never
+      containers:
+        - name: delete-storagecluster
+          {{- if eq $customRegistryURL "none" }}
+          image: "bitnami/kubectl:{{ template "px.kubectlImageTag" . }}"
+          {{- else}}
+          image: "{{ $customRegistryURL }}/bitnami/kubectl:{{ template "px.kubectlImageTag" . }}"
+          {{- end}}
+          command: ['/bin/sh',
+                    '-c',
+                    'kubectl -n {{ template "px.getDeploymentNamespace" . }} delete storagecluster {{ $clusterName }} --ignore-not-found']
+{{- end }}

@@ -1,0 +1,29 @@
+--- charts-original/templates/storage-cluster.yaml
++++ charts/templates/storage-cluster.yaml
+@@ -83,7 +83,7 @@
+     app.kubernetes.io/managed-by: {{.Release.Service | quote }}
+     app.kubernetes.io/instance: {{.Release.Name | quote }}
+ spec:
+-  image: portworx/oci-monitor:{{ required "A valid Image tag is required in the SemVer format" .Values.imageVersion }}
++  image: {{ required "A valid image repo for is required" .Values.images.oci-monitor.repository }}:{{ required "A valid Image tag is required in the SemVer format" .Values.images.oci-monitor.tag }}
+   imagePullPolicy: Always
+   {{- if not (eq $customRegistryURL "none") }}
+   customImageRegistry: {{ $customRegistryURL }}
+@@ -352,7 +352,7 @@
+     {{- if (and (.Values.stork.enabled) (eq .Values.stork.enabled true))}}
+     enabled: true
+     {{- if .Values.stork.storkVersion }}
+-    image: {{ template "px.getStorkImage" . }}:{{ required "A valid Image tag is required in the SemVer format" .Values.stork.storkVersion }}
++    image: {{ required "A valid image repo for is required" .Values.images.stork.repository }}:{{ required "A valid Image tag is required in the SemVer format" .Values.images.stork.tag }}
+     {{- end }}
+ 
+     {{- with .Values.stork.env }}
+@@ -493,7 +493,7 @@
+   autopilot:
+     enabled: true
+     {{- if ne .Values.autopilot.image ""}}
+-    image: {{.Values.autopilot.image}}
++    image: {{ required "A valid image repo for is required" .Values.images.autopilot.repository }}:{{ required "A valid Image tag is required in the SemVer format" .Values.images.autopilot.tag }}
+     {{- end }}
+     {{- if eq .Values.autopilot.lockImage true}}
+     lockImage: true
