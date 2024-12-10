@@ -9,11 +9,20 @@ on:
 jobs:
   build:
     name: Validate
-    runs-on: org-${{ github.repository_owner_id }}-linux-k8s
+    runs-on: org-${{ github.repository_owner_id }}-amd64-k8s
+    container: registry.suse.com/bci/bci-base:latest
     steps:
+      - name: install dependencies
+        run: zypper install -y docker jq git
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Git safe directory
+        run: git config --global --add safe.directory "$PWD"
+      - name: Set up PATH
+        run: echo $PATH >> $GITHUB_PATH
+
       - name: Checkout base branch
         uses: actions/checkout@v4
-
       - name: Checkout PR
         run: gh pr checkout ${{ github.event.pull_request.number }}
         env:
