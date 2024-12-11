@@ -12,10 +12,11 @@ jobs:
     runs-on: org-${{ github.repository_owner_id }}-amd64-k8s
     container: registry.suse.com/bci/bci-base:latest
     steps:
-      - name: install dependencies
+      - name: Install Dependencies
+        continue-on-error: false
         env:
           GH_VERSION: 2.63.2
-          YQ_VERSION: "v4.16.1"
+          YQ_VERSION: "v4.44.2"
         run: |
           echo "installing docker jq git make go awk through zypper"
           zypper --non-interactive install docker jq git make go awk
@@ -29,6 +30,8 @@ jobs:
           echo "installing yq"
           curl -fsL https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64 -o /usr/bin/yq
           chmod +x /usr/bin/yq
+          echo "yq version:"
+          yq --version
 
       - name: Load Secrets from Vault
         uses: rancher-eio/read-vault-secrets@main
@@ -38,21 +41,20 @@ jobs:
             secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKERHUB_USERNAME;
             secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKERHUB_TOKEN;
 
-      - name: Git safe directory
-        run: |
-          git config --global --add safe.directory "$PWD"
-          echo $PATH >> $GITHUB_PATH
-
       - name: actions/checkout@v4
         uses: actions/checkout@v4
 
-      - name: Checkout PR
-        run: gh pr checkout ${{ github.event.pull_request.number }}
+      - name: Git Checkout PR and into new branch
         env:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Checkout into new branch (staging-pr-workflow)
-        run: git checkout -b staging-pr-workflow
+        run: |
+          echo  "git global configuration"
+          git config --global --add safe.directory "$PWD"
+          echo $PATH >> $GITHUB_PATH
+          echo "checkout the PR"
+          gh pr checkout ${{ github.event.pull_request.number }}
+          echo "checkout into a new branch for safety"
+          git checkout -b staging-pr-workflow
 
       - name: Pull scripts
         run: make pull-scripts
@@ -61,17 +63,14 @@ jobs:
         run: make check-release-yaml
         continue-on-error: false
 
-
       - name: Release PR Chekpoints
         if: contains(github.base_ref, 'release-v')
         run: make validate-release-charts BRANCH=${{ github.event.pull_request.base.ref }} GH_TOKEN=${{ secrets.GITHUB_TOKEN }} PR_NUMBER=${{ github.event.pull_request.number }}
         continue-on-error: false
 
-
       - name: Validate index.yaml Vs assets/ dir
         run: |
-          echo "github.base_ref"
-          echo "${{ github.base_ref }}"
+          echo "github.base_ref: ${{ github.base_ref }}"
           if [[ "${{ github.base_ref }}" == *release-v* ]]; then
             echo "Validating remote release branch"
             make validate remote=true
@@ -82,14 +81,14 @@ jobs:
         continue-on-error: false
 
 
-      - name: Check container images
+      - name: Check Images
         run: make check-images
         env:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         continue-on-error: false
 
 
-      - name: Check RC images and charts
+      - name: Check RC
         if: contains(github.base_ref, 'release-v')
         run: make check-rc
         continue-on-error: false
