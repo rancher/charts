@@ -13,7 +13,7 @@ jobs:
     container: registry.suse.com/bci/bci-base:latest
     steps:
       - name: install dependencies
-        run: zypper --non-interactive install docker jq git make go awk
+        run: zypper --non-interactive install docker jq git make go awk yq
       - name: install gh
         env:
           GH_VERSION: 2.63.2
@@ -22,21 +22,21 @@ jobs:
           curl -fsL https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.tar.gz | tar xvzf - --strip-components=1 -C /tmp/gh
           mv /tmp/gh/bin/gh /usr/bin/gh
           chmod +x /usr/bin/gh
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Git safe directory
-        run: git config --global --add safe.directory "$PWD"
-      - name: Set up PATH
-        run: echo $PATH >> $GITHUB_PATH
 
-      - name: Checkout base branch
+      - name: Git safe directory
+        run: |
+          git config --global --add safe.directory "$PWD"
+          echo $PATH >> $GITHUB_PATH
+
+      - name: actions/checkout@v4
         uses: actions/checkout@v4
+
       - name: Checkout PR
         run: gh pr checkout ${{ github.event.pull_request.number }}
         env:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Checkout into branch
+      - name: Checkout into new branch (staging-pr-workflow)
         run: git checkout -b staging-pr-workflow
 
       - name: Pull scripts
@@ -44,16 +44,19 @@ jobs:
 
       - name: Check release.yaml
         run: make check-release-yaml
+        continue-on-error: false
+
 
       - name: Release PR Chekpoints
-        run: |
-          if [[ "${{ github.ref }}" == refs/heads/release-v* ]]; then
-            make validate-release-charts BRANCH=${{ github.event.pull_request.base.ref }} GH_TOKEN=${{ secrets.GITHUB_TOKEN }} PR_NUMBER=${{ github.event.pull_request.number }}
-            echo "Validating remote release branch"
-          fi
+        if: contains(github.base_ref, 'release-v')
+        run: make validate-release-charts BRANCH=${{ github.event.pull_request.base.ref }} GH_TOKEN=${{ secrets.GITHUB_TOKEN }} PR_NUMBER=${{ github.event.pull_request.number }}
+        continue-on-error: false
 
-      - name: Validate
+
+      - name: Validate index.yaml Vs assets/ dir
         run: |
+          echo "github.ref"
+          echo "${{ github.ref }}"
           if [[ "${{ github.ref }}" == refs/heads/release-v* ]]; then
             echo "Validating remote release branch"
             make validate remote=true
@@ -61,13 +64,18 @@ jobs:
             echo "Validating local branch"
             make validate
           fi
+        continue-on-error: false
+
 
       - name: Check container images
         run: make check-images
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        continue-on-error: false
+
 
       - name: Check RC images and charts
-        run: make check-rc
         if: contains(github.base_ref, 'release-v')
+        run: make check-rc
+        continue-on-error: false
