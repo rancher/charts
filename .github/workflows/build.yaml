@@ -34,17 +34,19 @@ jobs:
           yq --version
 
       - name: Load Secrets from Vault
-        uses: rancher-eio/read-vault-secrets@main
         continue-on-error: true
+        uses: rancher-eio/read-vault-secrets@main
         with:
           secrets: |
             secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKERHUB_USERNAME;
             secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKERHUB_TOKEN;
 
       - name: actions/checkout@v4
+        continue-on-error: false
         uses: actions/checkout@v4
 
       - name: Git Checkout PR and into new branch
+        continue-on-error: false
         env:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -57,18 +59,20 @@ jobs:
           git checkout -b staging-pr-workflow
 
       - name: Pull scripts
+        continue-on-error: false
         run: make pull-scripts
 
-      - name: Check release.yaml
-        run: make check-release-yaml
+      - name: Check release.yaml format with yq
         continue-on-error: false
+        run: make check-release-yaml
 
-      - name: Release PR Chekpoints
+      - name: Release PR Validation Chekpoints
+        continue-on-error: false
         if: contains(github.base_ref, 'release-v')
         run: make validate-release-charts BRANCH=${{ github.event.pull_request.base.ref }} GH_TOKEN=${{ secrets.GITHUB_TOKEN }} PR_NUMBER=${{ github.event.pull_request.number }}
-        continue-on-error: false
 
       - name: Validate index.yaml Vs assets/ dir
+        continue-on-error: false
         run: |
           echo "github.base_ref: ${{ github.base_ref }}"
           if [[ "${{ github.base_ref }}" == *release-v* ]]; then
@@ -78,17 +82,15 @@ jobs:
             echo "Validating local branch"
             make validate
           fi
-        continue-on-error: false
-
 
       - name: Check Images
-        run: make check-images
-        env:
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         continue-on-error: false
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: make check-images
 
-
-      - name: Check RC
+      - name: Check RC's
+        continue-on-error: false
         if: contains(github.base_ref, 'release-v')
         run: make check-rc
-        continue-on-error: false
