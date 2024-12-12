@@ -17,16 +17,17 @@ jobs:
 
       - name: Log Event Payload
         run: |
-         echo "Raw Payload: ${{ github.event.inputs.eventPayload }}"
-         echo "test: ${{  github.event.inputs.chart  }}; ${{  github.event.inputs.branch  }}"
+         echo "Payload: ${{  github.event.inputs.chart  }}; ${{  github.event.inputs.branch  }}"
 
       - name: Parse JSON Payload
         id: parse_payload
         run: |
-          echo '${{ github.event.inputs.eventPayload }}' | jq -r '.chart, .branch' | {
+          echo '${{ github.event.inputs.chart }}' | jq -r '.chart' | {
             read chart
-            read branch
             echo "CHART=$chart" >> $GITHUB_ENV
+          }
+          echo '${{ github.event.inputs.branch }}' | jq -r '.branch' | {
+            read branch
             echo "BRANCH=$branch" >> $GITHUB_ENV
           }
 
