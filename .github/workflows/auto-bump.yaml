@@ -1,0 +1,36 @@
+name: Auto Chart Bump
+
+on:
+  workflow_call:
+    inputs:
+      eventPayload:
+        description: "Payload data from upstream repository"
+        required: true
+        type: string
+
+jobs:
+  process-event:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Log Event Payload
+        run: |
+         echo "Raw Payload: ${{ github.event.inputs.payload }}"
+         echo "Payload: ${{ fromJson(github.event.inputs.payload) }}"
+
+      - name: Parse JSON Payload
+        id: parse_payload
+        run: |
+          echo ${{ github.event.inputs.payload }} | jq -r '.package, .branch' | {
+            read package
+            read branch
+            echo "PACKAGE=$package" >> $GITHUB_ENV
+            echo "BRANCH=$branch" >> $GITHUB_ENV
+          }
+
+      - name: make chart-bump
+        run: |
+          echo "make chart-bump package=${{ env.PACKAGE }} branch=${{ env.BRANCH }}"
+          make chart-bump package="${{ env.PACKAGE }}" branch="${{ env.BRANCH }}"
