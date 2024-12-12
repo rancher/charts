@@ -17,22 +17,22 @@ jobs:
 
       - name: Log Event Payload
         run: |
-         echo "Raw Payload: ${{ github.event.inputs.payload }}"
+         echo "Raw Payload: ${{ github.event.inputs.eventPayload }}"
 
       - name: Parse JSON Payload
         id: parse_payload
         run: |
-          echo '${{ github.event.inputs.payload }}' | jq -r '.package, .branch' | {
-            read package
+          echo '${{ github.event.inputs.eventPayload }}' | jq -r '.chart, .branch' | {
+            read chart
             read branch
-            echo "PACKAGE=$package" >> $GITHUB_ENV
+            echo "CHART=$chart" >> $GITHUB_ENV
             echo "BRANCH=$branch" >> $GITHUB_ENV
           }
 
       - name: make chart-bump
         run: |
-          echo "make chart-bump package=${{ env.PACKAGE }} branch=${{ env.BRANCH }}"
-          make chart-bump package="${{ env.PACKAGE }}" branch="${{ env.BRANCH }}"
+          echo "make chart-bump package=${{ env.CHART }} branch=${{ env.BRANCH }}"
+          make chart-bump package="${{ env.CHART }}" branch="${{ env.BRANCH }}"
 
       - name: Configure Git for Commit
         run: |
@@ -42,10 +42,10 @@ jobs:
       - name: Git Add, Commit, Push Changes
         run: |
           git add .
-          git commit -m "Auto bump chart version for ${PACKAGE}"
+          git commit -m "Auto bump chart version for ${env.CHART}"
           git push origin ${{ env.BRANCH }}
 
       - name: Create Pull Request
         run: |
           gh auth login --with-token < ${{ secrets.GITHUB_TOKEN }}
-        gh pr create --base ${{ env.BRANCH }} --head ${{ github.sha }} --title "[${env.BRANCH}] auto bump: ${PACKAGE}" --body "This PR auto-bumps the chart version for ${PACKAGE}"
+        gh pr create --base ${{ env.BRANCH }} --head ${{ github.sha }} --title "[${env.BRANCH}] auto bump: ${env.CHART}" --body "This PR auto-bumps the chart version for ${env.CHART}"

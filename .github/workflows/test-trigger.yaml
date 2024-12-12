@@ -3,15 +3,18 @@ name: trigger-test
 on:
   workflow_dispatch:
     inputs:
-      payload:
-        description: "Mock payload for testing"
+      chart:
+        description: "Chart name"
         required: true
-        default: '{"package": "example-chart", "branch": "main"}'
+        default: "example-chart"
+      branch:
+        description: "Branch name (only dev branches)"
+        required: true
+        default: "dev-v2.10"
 
 
 jobs:
   auto-bump:
     uses: ./.github/workflows/auto-bump.yaml
     with:
-      eventPayload: ${{ github.event.inputs.payload }}
-
+      eventPayload: '{"chart": "${{ github.event.inputs.chart }}", "branch": "${{ github.event.inputs.branch }}"}'
