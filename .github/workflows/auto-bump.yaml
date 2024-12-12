@@ -25,10 +25,22 @@ jobs:
           echo "CHART=${{ github.event.inputs.chart }}" >> $GITHUB_ENV
           echo "BRANCH=${{ github.event.inputs.branch }}" >> $GITHUB_ENV
 
+      - name: Checkout to new branch
+        run: |
+          git checkout -b "auto-bump_${{ env.CHART }}"
+
       - name: make chart-bump
         run: |
           echo "make chart-bump package=${{ env.CHART }} branch=${{ env.BRANCH }}"
           make chart-bump package="${{ env.CHART }}" branch="${{ env.BRANCH }}"
+
+      - name: Git status
+        run: |
+          git status
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No bump detected"
+            exit 1
+          fi
 
       - name: Configure Git for Commit
         run: |
@@ -44,5 +56,4 @@ jobs:
       - name: Create Pull Request
         run: |
           gh auth login --with-token < ${{ secrets.GITHUB_TOKEN }}
-          gh pr create --base ${{ env.BRANCH }} --head ${{ github.sha }} --title "[${{ env.BRANCH }}] auto bump: ${{ env.CHART }}" --body "This PR auto-bumps the chart version for ${{ env.CHART }}"
-
+          gh pr create --base ${{ env.BRANCH }} --head "auto-bump_${{ env.CHART }}" --title "[${{ env.BRANCH }}] auto bump: ${{ env.CHART }}" --body "This PR auto-bumps the chart version for ${{ env.CHART }}"
