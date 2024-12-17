@@ -1,0 +1,97 @@
+{{- $customRegistryURL := .Values.customRegistryURL | default "none" }}
+{{- $registrySecret := .Values.registrySecret | default "none" }}
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: {{ template "px.getDeploymentNamespace" . }}
+  name: px-hook-retain-daemonset-resources
+  labels:
+    heritage: {{.Release.Service | quote }}
+    release: {{.Release.Name | quote }}
+    chart: "{{.Chart.Name}}-{{.Chart.Version}}"
+    app.kubernetes.io/managed-by: {{.Release.Service | quote }}
+    app.kubernetes.io/instance: {{.Release.Name | quote }}
+  annotations:
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  template:
+    spec:
+      {{- if not (eq $registrySecret "none") }}
+      imagePullSecrets:
+        - name: {{ $registrySecret }}
+      {{- end }}
+      serviceAccountName: {{ template "px.hookServiceAccount" . }}
+      restartPolicy: Never
+      containers:
+        - name: retain-px-daemonset
+          {{- if eq $customRegistryURL "none" }}
+          image: "bitnami/kubectl:{{ template "px.kubectlImageTag" . }}"
+          {{- else}}
+          image: "{{ $customRegistryURL }}/bitnami/kubectl:{{ template "px.kubectlImageTag" . }}"
+          {{- end}}
+          command: ['/bin/sh',
+                    '-c',
+                    'kubectl -n kube-system annotate DaemonSet portworx-api helm.sh/resource-policy=keep --overwrite;
+                     kubectl -n kube-system annotate DaemonSet portworx helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate Service stork-service helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate Service prometheus helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate Service portworx-service helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate Service autopilot helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate Service grafana helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate Service alertmanager-portworx helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate Service px-csi-service helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate Service portworx-api helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate Deployment stork-scheduler helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate Deployment px-csi-ext helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate Deployment autopilot helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate Deployment grafana helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate Deployment stork helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate Deployment prometheus-operator helm.sh/resource-policy=keep --overwrite || true;
+
+                     kubectl -n kube-system annotate RoleBinding px-role-binding helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate Role px-role helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl annotate ClusterRoleBinding stork-scheduler-role-binding helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl annotate ClusterRoleBinding stork-role-binding helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl annotate ClusterRoleBinding node-role-binding helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl annotate ClusterRoleBinding prometheus helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl annotate ClusterRoleBinding px-csi-role-binding helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl annotate ClusterRoleBinding autopilot-role-binding helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl annotate ClusterRoleBinding prometheus-operator helm.sh/resource-policy=keep --overwrite || true;
+
+                     kubectl annotate ClusterRole stork-scheduler-role helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl annotate ClusterRole autopilot-role helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl annotate ClusterRole prometheus helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl annotate ClusterRole prometheus-operator helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl annotate ClusterRole node-get-put-list-role helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl annotate ClusterRole px-csi-role helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl annotate ClusterRole stork-role helm.sh/resource-policy=keep --overwrite || true;
+
+                     kubectl annotate StorageClass stork-snapshot-sc helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl annotate StorageClass portworx-shared-sc helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl annotate StorageClass portworx-db2-sc helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl annotate StorageClass portworx-null-sc helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl annotate StorageClass portworx-db-sc helm.sh/resource-policy=keep --overwrite || true;
+
+                     kubectl -n kube-system annotate ConfigMap grafana-dashboard-config helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate ConfigMap autopilot-config helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate ConfigMap grafana-dashboards helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate ConfigMap grafana-source-config helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate ConfigMap stork-config helm.sh/resource-policy=keep --overwrite || true;
+
+                     kubectl -n kube-system annotate ServiceAccount stork-scheduler-account helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate ServiceAccount px-account helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate ServiceAccount prometheus-operator helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate ServiceAccount px-csi-account helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate ServiceAccount stork-account helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate ServiceAccount prometheus helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate ServiceAccount autopilot-account helm.sh/resource-policy=keep --overwrite || true;
+
+                     kubectl -n kube-system annotate Alertmanager portworx helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl annotate CSIDriver pxd.portworx.com helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate Prometheus prometheus helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate PrometheusRule prometheus-portworx-rules-portworx.rules.yaml helm.sh/resource-policy=keep --overwrite || true;
+                     kubectl -n kube-system annotate ServiceMonitor portworx-prometheus-sm helm.sh/resource-policy=keep --overwrite || true;
+                     ']

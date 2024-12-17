@@ -1,0 +1,191 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: storagenodes.core.libopenstorage.org
+spec:
+  group: core.libopenstorage.org
+  names:
+    kind: StorageNode
+    listKind: StorageNodeList
+    plural: storagenodes
+    singular: storagenode
+    shortNames:
+    - sn
+  scope: Namespaced
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    subresources:
+      status: {}
+    additionalPrinterColumns:
+    - name: ID
+      type: string
+      description: The corresponding Kubernetes node name for the storage node
+      jsonPath: .status.nodeUid
+    - name: Status
+      type: string
+      description: The status of the storage node
+      jsonPath: .status.phase
+    - name: Version
+      type: string
+      description: The version of the storage node
+      jsonPath: .spec.version
+    - name: Age
+      type: date
+      description: The age of the storage cluster
+      jsonPath: .metadata.creationTimestamp
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            description: The desired behavior of the storage node. Currently changing the spec does
+              not affect the actual storage node in the cluster. Eventually spec in StorageNode will
+              override the spec from StorageCluster so that configuration can be overridden at node
+              level.
+            properties:
+              version:
+                type: string
+                description: Version of the storage driver on the node.
+              cloudStorage:
+                type: object
+                description: Details of storage on the node for cloud environments.
+                properties:
+                  driveConfigs:
+                    type: array
+                    description: List of cloud drive configs for the storage node.
+                    items:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                          description: Type of cloud drive.
+                        sizeInGiB:
+                          type: integer
+                          format: int64
+                          minimum: 0
+                          description: Size of cloud drive in GiB.
+                        iops:
+                          type: integer
+                          format: int64
+                          minimum: 0
+                          description: IOPS required from the cloud drive.
+                        options:
+                          type: object
+                          x-kubernetes-preserve-unknown-fields: true
+                          description: Additional options for the cloud drive.
+          status:
+            type: object
+            description: Most recently observed status of the storage node. The data may not be up
+              to date.
+            properties:
+              nodeUid:
+                type: string
+                description: Unique ID of the storage node.
+              phase:
+                type: string
+                description: Phase of the StorageNode is a simple, high-level summary of where
+                  the StorageNode is in its lifecycle. The condition array contains more detailed
+                  information about the state of the node.
+              network:
+                type: object
+                description: Contains network information used by the storage node
+                properties:
+                  dataIP:
+                    type: string
+                    description: IP address used by the storage driver for data traffic.
+                  mgmtIP:
+                    type: string
+                    description: IP address used by the storage driver for management traffic.
+              storage:
+                type: object
+                description: Contains details of the status of storage for the node
+                properties:
+                  totalSize:
+                    type: string
+                    description: Cumulative total size of all storage pools on the node.
+                  usedSize:
+                    type: string
+                    description: Cumulative used size of all storage pools on the node.
+              conditions:
+                type: array
+                description: Contains details for the current condition of this storage node.
+                items:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      description: Type of the condition.
+                    status:
+                      type: string
+                      description: Status of the condition.
+                    reason:
+                      type: string
+                      description: Reason is a unique one-word reason about the current state
+                        of the cluster.
+                    message:
+                      type: string
+                      description: Message is the human readable message indicating details about the
+                        current state of the cluster.
+                    lastTransitionTime:
+                      type: string
+                      format: date-time
+                      description: Time at which the condition changed.
+              checks:
+                type: array
+                description: Contains list of pre or post flight checks that are performed by the Operator
+                items:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      description: Type of the check.
+                    reason:
+                      type: string
+                      description: Reason for success or failure of the check
+                    success:
+                      type: boolean
+                      description: If true, the check was successful
+                    result:
+                      type: string
+                      description: Result of the check fatal, warning, success
+              geography:
+                type: object
+                description: Contains topology information for the storage node.
+                properties:
+                  region:
+                    type: string
+                    description: Region in which the storage node is placed.
+                  zone:
+                    type: string
+                    description: Zone in which the storage node is placed.
+                  rack:
+                    type: string
+                    description: Rack on which the storage node is placed.
+              operatingSystem:
+                type: string
+                description: Operating system of the underlying host.
+              kernelVersion:
+                type: string
+                description: Kernel version of the underlying host.
+              nodeAttributes:
+                type: object
+                description: Attributes of the storage node.
+                properties:
+                  storage:
+                    type: boolean
+                    description: Indicates whether the node is a storage node or not.
+                  kvdb:
+                    type: boolean
+                    description: Indicates whether the node is a kvdb node or not.
+  - name: v1alpha1
+    served: false
+    storage: false
+    subresources:
+      status: {}
+    schema:
+      openAPIV3Schema:
+        type: object
+        x-kubernetes-preserve-unknown-fields: true

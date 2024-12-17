@@ -1,0 +1,103 @@
+{{- if .Values.deployOperator }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: portworx-operator
+  namespace: {{ template "px.getDeploymentNamespace" . }}
+{{- if (semverCompare "<1.25" (.Capabilities.KubeVersion.GitVersion | regexFind "^v\\d+\\.\\d+\\.\\d+"| trimPrefix "v"))}}
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: px-operator
+spec:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  volumes:
+    - secret
+  runAsUser:
+    rule: 'RunAsAny'
+  seLinux:
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'RunAsAny'
+  fsGroup:
+    rule: 'RunAsAny'
+{{- end }}
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: portworx-operator
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+  {{- if (semverCompare "<1.25" (.Capabilities.KubeVersion.GitVersion | regexFind "^v\\d+\\.\\d+\\.\\d+"| trimPrefix "v"))}}
+  - apiGroups: ["policy"]
+    resources: ["podsecuritypolicies"]
+    resourceNames: ["px-operator"]
+    verbs: ["use"]
+  {{- end }}
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: portworx-operator
+subjects:
+  - kind: ServiceAccount
+    name: portworx-operator
+    namespace: {{ template "px.getDeploymentNamespace" . }}
+roleRef:
+  kind: ClusterRole
+  name: portworx-operator
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portworx-operator
+  namespace: {{ template "px.getDeploymentNamespace" . }}
+spec:
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  replicas: 1
+  selector:
+    matchLabels:
+      name: portworx-operator
+  template:
+    metadata:
+      labels:
+        name: portworx-operator
+    spec:
+      containers:
+        - name: portworx-operator
+          imagePullPolicy: Always
+          image: {{ required "A valid image repo for is required" .Values.images.operator.repository }}:{{ required "A valid Image tag is required in the SemVer format" .Values.images.operator.tag }}
+          command:
+            - /operator
+            - --verbose
+            - --driver=portworx
+            - --leader-elect=true
+          env:
+            - name: OPERATOR_NAME
+              value: portworx-operator
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: "name"
+                    operator: In
+                    values:
+                      - portworx-operator
+              topologyKey: "kubernetes.io/hostname"
+      serviceAccountName: portworx-operator
+{{- end }}

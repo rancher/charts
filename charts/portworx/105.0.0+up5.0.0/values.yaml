@@ -1,0 +1,275 @@
+# Please uncomment and specify values for these options as per your requirements.
+
+deployOperator: true                    # Deploy the Portworx operator
+deployCluster: true                     # Deploy the Portworx cluster
+
+imageVersion: 3.2.0                    # Version of the PX Image.
+pxOperatorImageVersion: 24.1.3         # Version of the PX operator image.
+
+openshiftInstall: false                 # Defaults to false for installing Portworx on Openshift .
+isTargetOSCoreOS: false                 # Is your target OS CoreOS? Defaults to false.
+pksInstall: false                       # installation on PKS (Pivotal Container Service)
+EKSInstall: false                     # installation on EKS.
+GKEInstall: false                     # installation on GKE.
+AKSInstall: false                      # installation on AKS
+OKEInstall: false                      # installation on OKE
+etcdEndPoint:                         # The ETCD endpoint. Should be in the format etcd:http://<your-etcd-endpoint>:2379. If there are multiple etcd endpoints they need to be ";" seperated.
+                                      # the default value is empty since it requires to be explicity set using either the --set option of -f values.yaml.
+clusterName: mycluster                # This is the default. please change it to your cluster name.
+usefileSystemDrive: false             # true/false Instructs PX to use an unmounted Drive even if it has a filesystem.
+usedrivesAndPartitions: false         # Defaults to false. Change to true and PX will use unmounted drives and partitions.
+drives: none                          # NOTE: This is a ";" seperated list of drives. For eg: "/dev/sda;/dev/sdb;/dev/sdc" or
+                                      # "type=gp2,size=200;type=gp3,size=500". Defaults to use -A switch.
+provider:                             # If we are using cloudstorage, it specifies the cloud provider name, such as: pure, azure, aws, gce, vsphere.
+
+journalDevice:
+cacheDevices:                         # Specifies the list of cache devices Portworx should use. If there are multiple devices they need to be ";" seperated.
+
+maxStorageNodesPerZone: 0             # The maximum number of storage nodes desired per zone, in case of cloud drive provisioning
+
+maxStorageNodes: 0                     # Specifies the maximum number of storage nodes. If this number is reached, and a new node is added, Portworx doesn't provision drives for the new node.
+                                      # Instead, Portworx starts the node as a compute-only node. As a best practice, it is recommended to use the maxStorageNodesPerZone field.
+
+systemMetadataDevice:                 # Indicates the cloud device Portworx uses for metadata. For performance, specify a system metadata device when using Portworx with the internal KVDB.
+
+
+secretType: k8s                       # Defaults to k8s, but can be kvdb/k8s/aws-kms/vault/ibm-kp. It is autopopulated to ibm-kp
+                                      # if the environment is IKS.
+
+dataInterface: none                   # Name of the interface <ethX>
+managementInterface: none             # Name of the interface <ethX>
+serviceType: none                     # Kubernetes service type for services deployed by the Operator. Direct Values like
+                                      # 'LoadBalancer', 'NodePort' will change all services. To change the types of specific
+                                      # services, value can be specified as 'portworx-service:LoadBalancer;portworx-api:ClusterIP'
+
+runtimeOptions:                       # A collection of key-value pairs that overwrites the runtime options. ex num_io_threads=10;-c=px-cluster
+featureGates:                         # A collection of key-value pairs specifying which Portworx features should be enabled or disabled.
+
+security: 
+  enabled: false                      # Enables or disables Security at any given time.
+  auth:
+    guestAccess: Enabled              # Determines how the guest role will be updated in your cluster. The options are Enabled, Disabled, or Managed. 
+    selfSigned:                      
+      tokenLifetime:                  # The length operator-generated tokens will be alive until being refreshed.
+      issuer:                         # The issuer name to be used when configuring PX-Security. This field maps to the PORTWORX_AUTH_JWT_ISSUER environment variable in the Portworx Daemonset.
+      sharedSecret:                   # The Kubernetes secret name for retrieving and storing your shared secret.
+
+resources:                            # Configure Portworx container usage such as memory and CPU usage
+  # requests:
+  #   memory: "64Mi"
+  #   cpu: "250m"
+
+customMetadata:                       # Configure custom labels and annotation for specific pod and services
+                                      # Pass labels and annotation with ";" sperated list. Example: application=my-app;environment=production
+  annotations:                        # Currently, custom annotations are supported on following types of components:
+    pod:
+      storage: ""
+    service:
+      portworxApi: ""
+      portworxService: ""
+      portworxKVDBService: ""
+  labels:                             # Currently, custom labels are only supported on the portworx-api service
+    service: 
+      portworxApi: ""
+
+
+envVars: none                         # DEPRECATED: Use envs section to set env variables
+                                      # NOTE: This is a ";" seperated list of environment variables.
+                                      # For eg: MYENV1=myvalue1;MYENV2=myvalue2
+
+envs:                                 # Add environment variables to the Portworx container in all Kubernetes supported formats
+  # - name: AWS_CA_BUNDLE
+  #   value: "/etc/pwx/objectstore-cert/objectstore.pem"
+  # - name: AWS_ACCESS_KEY_ID
+  #   valueFrom:
+  #     secretKeyRef:
+  #       name: aws-creds
+  #       key: access-key
+
+miscArgs: none                        # Miscellaneous arguments that will be passed to portworx verbatim. Only use this if there is
+                                      # no equivalent way to specify these options directly via a StorageCluster spec field.
+
+disableStorageClass: false            # Instructs Operator to not install the default Portworx StorageClasses.
+
+stork:                                # Use Stork https://docs.portworx.com/portworx-backup-on-prem/concepts/stork for hyperconvergence.
+  enabled: true
+  storkVersion:                       # version of Stork. For eg: 2.7.0, when it's empty Portworx operator will pick up
+                                      # version according to Portworx version.
+                                      
+  args:                               # Pass arguments to Stork container. Example: verbose=true;webhook-controller=false
+  volumes:                            # Add volumes to Stork container. Refer the top level volumes for schema.
+  env:                                # A list of Kubernetes like environment variables passed to Stork.
+
+customRegistryURL:
+registrySecret:
+licenseSecret:
+
+monitoring:
+  prometheus:                         
+    enabled: false                    # Enable prometheus
+    exportMetrics: false              # Expose the Portworx metrics to an external or operator deployed Prometheus.
+    alertManager: false               # Enable prometheus alert manager
+    resources:                        # Configure Prometheus resource usage such as memory and CPU usage
+      # requests:
+      #   memory: "64Mi"
+      #   cpu: "250m"
+      # limits:
+      #   memory: "128Mi"
+      #   cpu: "500m"
+    replicas: 1                        # Number of prometheus replicas that will be deployed. Default is 1
+    retention: "24h"                     # Time period for which prometheus retains historical matrics. default is 24h.
+    retentionSize: ""                 # Maximum amount of disk space that Prometheus can use to store historical metrics. Example: "10GiB","50MiB"
+    storage:                          # storage type that Prometheus will use for storing data
+      # volumeClaimTemplate:
+      #   spec:
+      #     storageClassName: px-csi-db
+      #     accessModes: ["ReadWriteOnce"]
+      #     resources:
+      #       requests:
+      #         storage: 2Gi
+      #
+    volumes:                          # Additional volumes for the prometheus statefulSet
+    # - name: additional-volume
+    #   emptyDir: {}
+    volumeMounts:                     # Additional VolumeMounts for the Prometheus StatefulSet
+    # - mountPath: /test
+    #   name: additional-volume
+    securityContext:                  # Enable prometheus container run as a non-root user.
+      runAsNonRoot: false
+  telemetry: true                    # Enable telemetry
+  grafana: false                      # Enable grafana
+
+
+deployOnMaster:  false                # For POC only
+
+csi: 
+  enabled: true                      # Enable CSI
+  topology: 
+    enabled: false                    # Enable CSI topology feature gate
+  installSnapshotController: false    # Enable CSI Snapshot Controller
+
+autopilot: 
+  enabled: true                      # Enable AutoPilot
+  image: ""                           # Autopilot image
+  lockImage: false                    # Enables locking Autopilot to the given image. 
+                                      # When set to false, the Portworx Operator will overwrite the Autopilot image to a recommended image for given Portworx version.
+
+  args:                               # overrides the default Autopilot arguments or adds new arguments.Example: min_poll_interval=4;log-level=info
+  env:                                # A list of Kubernetes like environment variables passed to Autopilot
+  # - name: PX_SHARED_SECRET
+  #   valueFrom:
+  #     secretKeyRef:
+  #       key: apps-secret
+  #       name: px-system-secrets
+  volumes:                             # Add volumes to autopilot container. Refer the top level volumes for schema.
+  providers:
+  # - name: ""                          # Name is the unique name for the provider
+  #   type: ""                          # Type is the type of data provider. For instance, prometheus
+  #   params: ""                        # Pass params to provider. Example: url=http://datadog:9090;auth=foobar
+
+
+internalKVDB: true                   # internal KVDB
+kvdbDevice: none                      # specify a separate device to store KVDB data, only used when internalKVDB is set to true
+
+etcd:                                 # DEPRECATED: Use kvdb.authSecretName for configuring secure etcd
+  credentials: none:none              # Username and password for ETCD authentication in the form user:password
+  certPath: none                      # Base path where the certificates are placed. (example: if the certificates ca,crt and the key are in /etc/pwx/etcdcerts the value should be provided as /etc/pwx/etcdcerts)
+  ca: none                            # Location of CA file for ETCD authentication. Should be /path/to/server.ca
+  cert: none                          # Location of certificate for ETCD authentication. Should be /path/to/server.crt
+  key: none                           # Location of certificate key for ETCD authentication Should be /path/to/servery.key
+
+consul:                               # DEPRECATED: Use kvdb.authSecretName for configuring secure consul
+  token: none                         # ACL token value used for Consul authentication. (example: 398073a8-5091-4d9c-871a-bbbeb030d1f6)
+
+kvdb:
+  authSecretName: none                # Refer https://docs.portworx.com/portworx-enterprise/operations/kvdb-for-portworx/external-kvdb#secure-your-etcd-communication to
+                                      # create a kvdb secret and specify the name of the secret here
+
+volumes:                              # Add volumes to Portworx container. Supported volume types: Host, Secret, ConfigMap
+  # - name: objectstore-cert
+  #   mountPath: /etc/pwx/objectstore-cert
+  #   mountPropagation: None|HostToContainer|Bidirectional  
+  #   readOnly: true
+  #   secret:
+  #     secretName: objectstore-cert
+  #     items:
+  #     - key: objectstore.pem
+  #       path: objectstore.pem
+
+tolerations:                          # Add tolerations
+  # - key: "key"
+  #   operator: "Equal|Exists"
+  #   value: "value"
+  #   effect: "NoSchedule|PreferNoSchedule|NoExecute(1.6 only)"
+
+
+nodeAffinity:
+  # requiredDuringSchedulingIgnoredDuringExecution:
+  #   nodeSelectorTerms:
+  #   - matchExpressions:
+  #     - key: px-schedule
+  #       operator: NotIn
+  #       values:
+  #       - "false"
+
+nodesConfiguration:                           # override certain cluster level configuration for individual or group of nodes.
+# - selector:                                 # Selector for the node(s) to which the configuration in this section will be applied
+#     nodeName:                               # Name of the node to which this configuration will be applied. Node name takes precedence over selector.labelSelector
+#     labelSelector:                          # selector for nodes to which this configuration will be applied.
+#   network:                                  # Specify network configuration for the selected nodes, similar to the one specified at cluster level.
+#                                             # If this network configuration is empty, then cluster level (dataInterface,managementInterface) values are used.
+#     dataInterface:
+#     mgmtInterface:
+#   storage:                                  # Specify storage configuration for the selected nodes, similar to the one specified at cluster level. If some of the config is left empty,
+#                                             # the cluster level storage values are passed to the nodes.
+#   env:                                     # Specify extra environment variables for the selected nodes. Cluster level environment variables are combined with these and sent to the selected nodes.
+#                                             # If same variable is present at cluster level, then the node level variable takes precedence.
+#   - name: AWS_CA_BUNDLE
+#     value: "/etc/pwx/objectstore-cert/objectstore.pem"
+#   - name: AWS_ACCESS_KEY_ID
+#     valueFrom:
+#       secretKeyRef:
+#         name: aws-creds
+#         key: access-key   
+#   runtimeOptions:                           # Specify runtime options for the selected nodes. If specified, cluster level options are ignored and only these runtime options are passed to the nodes.    
+
+
+serviceAccount:
+  hook:
+    create: true
+    name:
+
+clusterToken:
+  create: false                                # Create cluster token
+  secretName: px-vol-encryption                # Name of kubernetes secret to be created. Requires clusterToken.create to be true.
+  serviceAccountName: px-create-cluster-token  # Service account name to use for post-install hook to create cluster token
+
+#requirePxEnabledTag: true               # if set to true, portworx will only install on nodes with px/enabled: true label. Not required in most scenarios.
+
+deleteStrategy:                           # Optional: Delete strategy for the portworx cluster
+  type:                                   # Valid values: Uninstall, UninstallAndWipe
+
+updateStrategy:   
+  type:                                   # portworx supports the following update strategies- RollingUpdate and OnDelete
+
+  # maxUnavailable and minReadySeconds applicable only on selecting type RollingUpdate
+  maxUnavailable:                         # Similarly to how Kubernetes rolling update strategies work, this field specifies how many nodes can be down at any given time.
+  minReadySeconds:                        # During rolling updates, this flag will wait for all pods to be ready for at least minReadySeconds before updating the next batch of pods,
+                                          # where the size of the pod batch is specified through the spec.updateStrategy.rollingUpdate.maxUnavailable flag.
+
+  autoUpdateComponents:                   # Indicates the update strategy for the component images
+                                          # valid values None,Once,Always
+
+images:
+  oci-monitor:
+    repository: portworx/oci-monitor
+    tag: 3.2.0
+  operator:
+    repository: portworx/px-operator
+    tag: 24.1.3
+  stork:
+    repository: openstorage/stork
+    tag: 24.3.2
+  autopilot:
+    repository: portworx/autopilot
+    tag: 1.3.15
