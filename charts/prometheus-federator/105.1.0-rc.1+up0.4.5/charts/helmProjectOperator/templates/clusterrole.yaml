@@ -1,0 +1,57 @@
+{{- if and .Values.global.rbac.create .Values.global.rbac.userRoles.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "helm-project-operator.name" . }}-admin
+  labels: {{ include "helm-project-operator.labels" . | nindent 4 }}
+  {{- if .Values.global.rbac.userRoles.aggregateToDefaultRoles }}
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+  {{- end }}
+rules:
+- apiGroups:
+  - helm.cattle.io
+  resources:
+  - projecthelmcharts
+  - projecthelmcharts/finalizers
+  - projecthelmcharts/status
+  verbs:
+  - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "helm-project-operator.name" . }}-edit
+  labels: {{ include "helm-project-operator.labels" . | nindent 4 }}
+  {{- if .Values.global.rbac.userRoles.aggregateToDefaultRoles }}
+    rbac.authorization.k8s.io/aggregate-to-edit: "true"
+  {{- end }}
+rules:
+- apiGroups:
+  - helm.cattle.io
+  resources:
+  - projecthelmcharts
+  - projecthelmcharts/status
+  verbs:
+  - 'get'
+  - 'list'
+  - 'watch'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "helm-project-operator.name" . }}-view
+  labels: {{ include "helm-project-operator.labels" . | nindent 4 }}
+  {{- if .Values.global.rbac.userRoles.aggregateToDefaultRoles }}
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
+  {{- end }}
+rules:
+- apiGroups:
+  - helm.cattle.io
+  resources:
+  - projecthelmcharts
+  - projecthelmcharts/status
+  verbs:
+  - 'get'
+  - 'list'
+  - 'watch'
+{{- end }}
