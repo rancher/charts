@@ -1,0 +1,699 @@
+---
+# Source: rancher-logging/templates/loggings/k3s/daemonset.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: "rancher-logging-k3s-journald-aggregator"
+  namespace: "default"
+---
+# Source: rancher-logging/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rancher-logging
+  namespace: default
+  labels:
+    app.kubernetes.io/name: rancher-logging
+    helm.sh/chart: rancher-logging-105.1.0-rc.1_up4.10.0
+    app.kubernetes.io/instance: rancher-logging
+    app.kubernetes.io/version: "4.10.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: rancher-logging/templates/loggings/k3s/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rancher-logging-k3s
+  labels:
+    app.kubernetes.io/name: rancher-logging
+    helm.sh/chart: rancher-logging-105.1.0-rc.1_up4.10.0
+    app.kubernetes.io/instance: rancher-logging
+    app.kubernetes.io/version: "4.10.0"
+    app.kubernetes.io/managed-by: Helm
+data:
+  fluent-bit.conf: |
+    [SERVICE]
+        Flush             1
+        Grace             5
+        Daemon            Off
+        Log_Level         info
+        Coro_Stack_Size   24576
+        Parsers_File      parsers.conf
+
+    [INPUT]
+        Name              systemd
+        Tag               k3s
+        Path              /run/log/journal
+        Systemd_Filter    _SYSTEMD_UNIT=k3s.service
+        Systemd_Filter    _SYSTEMD_UNIT=k3s-agent.service
+
+    [FILTER]
+        Name              parser
+        Match             *
+        Key_Name          MESSAGE
+        Parser            klog
+        Reserve_Data      On
+
+    [FILTER]
+        Name              parser
+        Match             *
+        Key_Name          MESSAGE
+        Parser            rancher
+        Reserve_Data      On
+
+    [FILTER]
+        Name              parser
+        Match             *
+        Key_Name          MESSAGE
+        Parser            etcd
+        Reserve_Data      On
+
+    [OUTPUT]
+        Name              forward
+        Match             *
+        Host              rancher-logging-root-fluentd.default.svc
+        Port              24240
+        Retry_Limit       False
+  parsers.conf: |
+    [PARSER]
+        Name              klog
+        Format            regex
+        Regex             ^(?<level>[IWEF])(?<timestamp>\d{4} \d{2}:\d{2}:\d{2}).\d{6} +?(?<thread_id>\d+) (?<filename>.+):(?<linenumber>\d+)] (?<message>.+)
+        Time_Key          timestamp
+        Time_Format       %m%d %T
+    
+    [PARSER]
+        Name              rancher
+        Format            regex
+        Regex             ^time="(?<timestamp>.+)" level=(?<level>.+) msg="(?<msg>.+)"$
+        Time_Key          timestamp
+        Time_Format       %FT%H:%M:%S
+    [PARSER]
+        Name              etcd
+        Format            json
+        Time_Key          timestamp
+        Time_Format       %FT%H:%M:%S.%L
+---
+# Source: rancher-logging/templates/clusterrole.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rancher-logging
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - persistentvolumeclaims
+  - pods
+  - secrets
+  - serviceaccounts
+  - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - endpoints
+  - namespaces
+  - nodes
+  - nodes/proxy
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  - events.k8s.io
+  resources:
+  - events
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  - replicasets
+  - statefulsets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apps
+  - extensions
+  resources:
+  - daemonsets
+  - deployments
+  - statefulsets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - '*'
+- apiGroups:
+  - events.k8s.io
+  resources:
+  - events
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - extensions
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - extensions
+  - policy
+  resources:
+  - podsecuritypolicies
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - use
+  - watch
+- apiGroups:
+  - logging-extensions.banzaicloud.io
+  resources:
+  - eventtailers
+  - hosttailers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - logging-extensions.banzaicloud.io
+  resources:
+  - eventtailers/status
+  - hosttailers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - logging.banzaicloud.io
+  resources:
+  - clusterflows
+  - clusteroutputs
+  - flows
+  - fluentbitagents
+  - fluentdconfigs
+  - loggingroutes
+  - loggings
+  - nodeagents
+  - outputs
+  - syslogngclusterflows
+  - syslogngclusteroutputs
+  - syslogngconfigs
+  - syslogngflows
+  - syslogngoutputs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - logging.banzaicloud.io
+  resources:
+  - clusterflows/status
+  - clusteroutputs/status
+  - flows/status
+  - fluentbitagents/status
+  - fluentdconfigs/status
+  - loggingroutes/status
+  - loggings/status
+  - nodeagents/status
+  - outputs/status
+  - syslogngclusterflows/status
+  - syslogngclusteroutputs/status
+  - syslogngconfigs/status
+  - syslogngflows/status
+  - syslogngoutputs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - logging.banzaicloud.io
+  resources:
+  - loggings/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - prometheusrules
+  - servicemonitors
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterrolebindings
+  - clusterroles
+  - rolebindings
+  - roles
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+---
+# Source: rancher-logging/templates/userrole.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rancher-logging-edit
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+    rbac.authorization.k8s.io/aggregate-to-edit: "true"
+rules:
+- apiGroups:
+  - logging.banzaicloud.io
+  resources:
+  - flows
+  - outputs
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - logging.banzaicloud.io
+  resources:
+  - syslogngflows
+  - syslogngoutputs
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
+---
+# Source: rancher-logging/templates/userroles.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: "logging-admin"
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+rules:
+  - apiGroups:
+      - "logging.banzaicloud.io"
+    resources:
+      - flows
+      - outputs
+    verbs:
+      - "*"
+---
+# Source: rancher-logging/templates/userroles.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: "logging-view"
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
+    rbac.authorization.k8s.io/aggregate-to-edit: "true"
+rules:
+  - apiGroups:
+      - "logging.banzaicloud.io"
+    resources:
+      - flows
+      - outputs
+      - clusterflows
+      - clusteroutputs
+    verbs:
+      - get
+      - list
+      - watch
+---
+# Source: rancher-logging/templates/clusterrolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rancher-logging
+  labels:
+    app.kubernetes.io/name: rancher-logging
+    helm.sh/chart: rancher-logging-105.1.0-rc.1_up4.10.0
+    app.kubernetes.io/instance: rancher-logging
+    app.kubernetes.io/version: "4.10.0"
+    app.kubernetes.io/managed-by: Helm
+subjects:
+  - kind: ServiceAccount
+    name: rancher-logging
+    namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rancher-logging
+---
+# Source: rancher-logging/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: rancher-logging
+  namespace: default
+  labels:
+    app.kubernetes.io/name: rancher-logging
+    helm.sh/chart: rancher-logging-105.1.0-rc.1_up4.10.0
+    app.kubernetes.io/instance: rancher-logging
+    app.kubernetes.io/version: "4.10.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: rancher-logging
+    app.kubernetes.io/instance: rancher-logging
+---
+# Source: rancher-logging/templates/loggings/k3s/daemonset.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: "rancher-logging-k3s-journald-aggregator"
+  namespace: "default"
+spec:
+  selector:
+    matchLabels:
+      name: rancher-logging-k3s-journald-aggregator
+  template:
+    metadata:
+      annotations:
+        checksum/config: fd3004c5910d8ff23c965512dac5824dd4499a5d1500650814f5eea9c1fc7323
+      name: "rancher-logging-k3s-journald-aggregator"
+      namespace: "default"
+      labels:
+        name: rancher-logging-k3s-journald-aggregator
+    spec:
+      containers:
+        - name: fluentbit
+          image: "rancher/mirrored-fluent-fluent-bit:3.1.8"
+          volumeMounts:
+            - mountPath: /fluent-bit/etc/
+              name: config
+            - mountPath: /run/log/journal
+              name: journal
+              readOnly: true
+            - mountPath: /etc/machine-id
+              name: machine-id
+              readOnly: true
+      serviceAccountName: "rancher-logging-k3s-journald-aggregator"
+      volumes:
+        - name: config
+          configMap:
+            name: "rancher-logging-k3s"
+        - name: journal
+          hostPath:
+            path: /run/log/journal
+        - name: machine-id
+          hostPath:
+            path: /etc/machine-id
+---
+# Source: rancher-logging/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rancher-logging
+  namespace: default
+  labels:
+    app.kubernetes.io/name: rancher-logging
+    helm.sh/chart: rancher-logging-105.1.0-rc.1_up4.10.0
+    app.kubernetes.io/instance: rancher-logging
+    app.kubernetes.io/version: "4.10.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: rancher-logging
+      app.kubernetes.io/instance: rancher-logging
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: rancher-logging
+        app.kubernetes.io/instance: rancher-logging
+    spec:
+      containers:
+        - name: rancher-logging
+          image: "rancher/mirrored-kube-logging-logging-operator:4.10.0"
+          args:
+            - -enable-leader-election=true
+          imagePullPolicy: IfNotPresent
+          resources:
+            {}
+          ports:
+            - name: http
+              containerPort: 8080
+      serviceAccountName: rancher-logging
+---
+# Source: rancher-logging/templates/validate-install-crd.yaml
+#
+---
+# Source: rancher-logging/templates/validate-install.yaml
+#
+---
+# Source: rancher-logging/templates/validate-psp-install.yaml
+#
+---
+# Source: rancher-logging/templates/loggings/aks/fluentbitagent.yaml
+####### map[apiVersion:logging.banzaicloud.io/v1beta1 kind:FluentbitAgent metadata:map[labels:map[app.kubernetes.io/instance:rancher-logging app.kubernetes.io/managed-by:Helm app.kubernetes.io/name:rancher-logging app.kubernetes.io/version:4.10.0 helm.sh/chart:rancher-logging-105.1.0-rc.1_up4.10.0] namespace:default] spec:map[image:map[repository:rancher/mirrored-fluent-fluent-bit tag:3.1.8] metrics:map[prometheusRules:false serviceMonitor:false] tolerations:[map[effect:NoSchedule key:node-role.kubernetes.io/control-plane value:true] map[effect:NoExecute key:node-role.kubernetes.io/etcd value:true]]]]
+
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: FluentbitAgent
+metadata:
+  labels:
+    app.kubernetes.io/instance: rancher-logging
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: rancher-logging
+    app.kubernetes.io/version: 4.10.0
+    helm.sh/chart: rancher-logging-105.1.0-rc.1_up4.10.0
+  name: rancher-logging-aks
+  namespace: default
+spec:
+  disableKubernetesFilter: true
+  extraVolumeMounts:
+  - destination: /var/log/azure/kubelet-status.log
+    readOnly: true
+    source: /var/log/azure/kubelet-status.log
+  image:
+    repository: rancher/mirrored-fluent-fluent-bit
+    tag: 3.1.8
+  inputTail:
+    Path: /var/log/azure/kubelet-status.log
+    Tag: aks
+  loggingRef: aks-logging
+  metrics:
+    prometheusRules: false
+    serviceMonitor: false
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 250m
+      memory: 64Mi
+  tolerations:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/control-plane
+    value: "true"
+  - effect: NoExecute
+    key: node-role.kubernetes.io/etcd
+    value: "true"
+---
+# Source: rancher-logging/templates/loggings/root/fluentbitagent.yaml
+####### map[apiVersion:logging.banzaicloud.io/v1beta1 kind:FluentbitAgent metadata:map[labels:map[app.kubernetes.io/instance:rancher-logging app.kubernetes.io/managed-by:Helm app.kubernetes.io/name:rancher-logging app.kubernetes.io/version:4.10.0 helm.sh/chart:rancher-logging-105.1.0-rc.1_up4.10.0] namespace:default] spec:map[image:map[repository:rancher/mirrored-fluent-fluent-bit tag:3.1.8] metrics:map[prometheusRules:false serviceMonitor:false] tolerations:[map[effect:NoSchedule key:node-role.kubernetes.io/control-plane value:true] map[effect:NoExecute key:node-role.kubernetes.io/etcd value:true]]]]
+
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: FluentbitAgent
+metadata:
+  labels:
+    app.kubernetes.io/instance: rancher-logging
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: rancher-logging
+    app.kubernetes.io/version: 4.10.0
+    helm.sh/chart: rancher-logging-105.1.0-rc.1_up4.10.0
+  name: rancher-logging-root
+  namespace: default
+spec:
+  image:
+    repository: rancher/mirrored-fluent-fluent-bit
+    tag: 3.1.8
+  metrics:
+    prometheusRules: false
+    serviceMonitor: false
+  tolerations:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/control-plane
+    value: "true"
+  - effect: NoExecute
+    key: node-role.kubernetes.io/etcd
+    value: "true"
+---
+# Source: rancher-logging/templates/loggings/aks/logging.yaml
+####### map[apiVersion:logging.banzaicloud.io/v1beta1 kind:Logging metadata:map[labels:map[app.kubernetes.io/instance:rancher-logging app.kubernetes.io/managed-by:Helm app.kubernetes.io/name:rancher-logging app.kubernetes.io/version:4.10.0 helm.sh/chart:rancher-logging-105.1.0-rc.1_up4.10.0] namespace:default] spec:map[controlNamespace:default fluentd:map[configReloaderImage:map[repository:rancher/mirrored-kube-logging-config-reloader tag:v0.0.6] disablePvc:true image:map[repository:rancher/mirrored-kube-logging-fluentd tag:v1.16-4.10-full] livenessProbe:map[initialDelaySeconds:30 periodSeconds:15 tcpSocket:map[port:24240]] metrics:map[prometheusRules:false serviceMonitor:false] security:map[podSecurityContext:<nil>]]]]
+
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: Logging
+metadata:
+  labels:
+    app.kubernetes.io/instance: rancher-logging
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: rancher-logging
+    app.kubernetes.io/version: 4.10.0
+    helm.sh/chart: rancher-logging-105.1.0-rc.1_up4.10.0
+  name: rancher-logging-aks
+  namespace: default
+spec:
+  controlNamespace: default
+  fluentd:
+    configReloaderImage:
+      repository: rancher/mirrored-kube-logging-config-reloader
+      tag: v0.0.6
+    disablePvc: true
+    image:
+      repository: rancher/mirrored-kube-logging-fluentd
+      tag: v1.16-4.10-full
+    livenessProbe:
+      initialDelaySeconds: 30
+      periodSeconds: 15
+      tcpSocket:
+        port: 24240
+    metrics:
+      prometheusRules: false
+      serviceMonitor: false
+    resources:
+      limits:
+        cpu: 500m
+        memory: 128Mi
+      requests:
+        cpu: 250m
+        memory: 64Mi
+    scaling:
+      replicas: 3
+    security:
+      podSecurityContext: null
+  loggingRef: aks-logging
+---
+# Source: rancher-logging/templates/loggings/root/logging.yaml
+####### map[apiVersion:logging.banzaicloud.io/v1beta1 kind:Logging metadata:map[labels:map[app.kubernetes.io/instance:rancher-logging app.kubernetes.io/managed-by:Helm app.kubernetes.io/name:rancher-logging app.kubernetes.io/version:4.10.0 helm.sh/chart:rancher-logging-105.1.0-rc.1_up4.10.0] namespace:default] spec:map[controlNamespace:default fluentd:map[configReloaderImage:map[repository:rancher/mirrored-kube-logging-config-reloader tag:v0.0.6] disablePvc:true image:map[repository:rancher/mirrored-kube-logging-fluentd tag:v1.16-4.10-full] livenessProbe:map[initialDelaySeconds:30 periodSeconds:15 tcpSocket:map[port:24240]] metrics:map[prometheusRules:false serviceMonitor:false] security:map[podSecurityContext:<nil>]]]]
+
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: Logging
+metadata:
+  labels:
+    app.kubernetes.io/instance: rancher-logging
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: rancher-logging
+    app.kubernetes.io/version: 4.10.0
+    helm.sh/chart: rancher-logging-105.1.0-rc.1_up4.10.0
+  name: rancher-logging-root
+  namespace: default
+spec:
+  controlNamespace: default
+  fluentd:
+    configReloaderImage:
+      repository: rancher/mirrored-kube-logging-config-reloader
+      tag: v0.0.6
+    disablePvc: true
+    image:
+      repository: rancher/mirrored-kube-logging-fluentd
+      tag: v1.16-4.10-full
+    livenessProbe:
+      initialDelaySeconds: 30
+      periodSeconds: 15
+      tcpSocket:
+        port: 24240
+    metrics:
+      prometheusRules: false
+      serviceMonitor: false
+    security:
+      podSecurityContext: null

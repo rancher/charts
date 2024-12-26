@@ -1,0 +1,43 @@
+Possibly useful for rancher logging improvements
+
+drink: {{ .Values.favorite.drink | default "tea" | quote }}
+
+
+ {{ if eq .Values.favorite.drink "coffee" }}
+    mug: "true"
+  {{ end }}
+
+
+
+Note that we removed the if conditional from the previous exercise because it is now unnecessary - the block after with only executes if the value of PIPELINE is not empty.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-configmap
+data:
+  myvalue: "Hello World"
+  {{- with .Values.favorite }}
+  drink: {{ .drink | default "tea" | quote }}
+  food: {{ .food | upper | quote }}
+  {{- end }}
+
+
+
+****** Make this generic. Using a helper function? Dynamic value to specify the cloud? Uses with to prevent repetition?
+
+
+
+Or, we can use $ for accessing the object Release.Name from the parent scope. $ is mapped to the root scope when template execution begins and it does not change during template execution. The following would work as well:
+
+  {{- with .Values.favorite }}
+  drink: {{ .drink | default "tea" | quote }}
+  food: {{ .food | upper | quote }}
+  release: {{ $.Release.Name }}
+  {{- end }}
+
+
+data:
+  myvalue: "Hello World"
+  {{- range $key, $val := .Values.favorite }}
+  {{ $key }}: {{ $val | quote }}
+  {{- end }}
