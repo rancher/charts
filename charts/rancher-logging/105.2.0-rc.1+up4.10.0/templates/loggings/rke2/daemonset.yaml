@@ -1,4 +1,5 @@
 {{- if .Values.additionalLoggingSources.rke2.enabled }}
+{{- $individualValues := .Values.additionalLoggingSources.rke2.fluentbit -}}
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -20,6 +21,7 @@ spec:
       containers:
         - name: fluentbit
           image: "{{ template "logging-operator.fluentbitImage" . }}"
+          {{- include "logging-operator.individualFluentbit" $individualValues | nindent 10 }}
           {{- if .Values.global.seLinux.enabled }}
           securityContext:
             seLinuxOptions:
