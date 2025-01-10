@@ -42,6 +42,19 @@ jobs:
             exit 1
           fi
 
+      - name: Read App Secrets
+        uses: rancher-eio/read-vault-secrets@main
+        with:
+          secrets: |
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY
+      - name: Create App Token
+        uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ env.APP_ID }}
+          private-key: ${{ env.PRIVATE_KEY }}
+
       - name: Configure Git for Commit
         run: |
           git config --global user.name "GitHub Actions"
@@ -54,6 +67,7 @@ jobs:
           git push origin ${{ env.BRANCH }}
 
       - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          gh auth login --with-token < ${{ secrets.GITHUB_TOKEN }}
           gh pr create --base ${{ env.BRANCH }} --head "auto-bump_${{ env.CHART }}" --title "[${{ env.BRANCH }}] auto bump: ${{ env.CHART }}" --body $'This PR auto-bumps the chart version for ${{ env.CHART }}.\n---\n## Review Checklist: \n- [ ] CRDs\n- [ ] templates folder if any\n- [ ] Version'
