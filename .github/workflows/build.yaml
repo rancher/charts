@@ -23,7 +23,6 @@ jobs:
         run: |
           echo "installing docker, jq, git, make, go, awk and patch through zypper"
           zypper --non-interactive install docker jq git make go awk patch
-
           echo "installing gh"
           mkdir -p /tmp/gh
           curl -fsL https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.tar.gz | tar xvzf - --strip-components=1 -C /tmp/gh
@@ -41,8 +40,17 @@ jobs:
         uses: rancher-eio/read-vault-secrets@main
         with:
           secrets: |
-            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKER_USERNAME;
-            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKER_PASSWORD;
+            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKER_USERNAME ;
+            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKER_PASSWORD ;
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY ;
+
+      - name: Create App Token
+        uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ env.APP_ID }}
+          private-key: ${{ env.PRIVATE_KEY }}
 
       - name: actions/checkout@v4
         continue-on-error: false
@@ -51,7 +59,7 @@ jobs:
       - name: Git Checkout PR and into new branch
         continue-on-error: false
         env:
-            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           echo  "git global configuration"
           git config --global --add safe.directory "$PWD"
@@ -72,7 +80,9 @@ jobs:
       - name: Release PR Validation Chekpoints
         continue-on-error: false
         if: contains(github.base_ref, 'release-v')
-        run: make validate-release-charts BRANCH=${{ github.event.pull_request.base.ref }} GH_TOKEN=${{ secrets.GITHUB_TOKEN }} PR_NUMBER=${{ github.event.pull_request.number }}
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: make validate-release-charts BRANCH=${{ github.event.pull_request.base.ref }} GH_TOKEN=${{ env.GH_TOKEN }} PR_NUMBER=${{ github.event.pull_request.number }}
 
       - name: Validate index.yaml Vs assets/ dir
         continue-on-error: false
