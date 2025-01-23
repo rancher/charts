@@ -1,0 +1,18 @@
+{{- if .Values.storageClass.enabled -}}
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+ name: {{ .Values.storageClass.name | quote }}
+ annotations:
+  storageclass.kubernetes.io/is-default-class: {{ .Values.storageClass.isDefault | quote }}
+provisioner: csi.vsphere.vmware.com
+reclaimPolicy: {{ .Values.storageClass.reclaimPolicy }}
+allowVolumeExpansion: {{ .Values.storageClass.allowVolumeExpansion }}
+parameters:
+  {{- if .Values.storageClass.datastoreURL  }}
+  datastoreURL: {{ .Values.storageClass.datastoreURL | quote }}
+  {{- end }}
+  {{- if .Values.storageClass.storagePolicyName }}
+  storagepolicyname: {{ .Values.storageClass.storagePolicyName | quote }}
+  {{- end }}
+{{- end -}}
