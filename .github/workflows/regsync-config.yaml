@@ -32,11 +32,28 @@ jobs:
     needs: onLabelAndApproval
     if: needs.onLabelAndApproval.outputs.is_approved == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
     steps:
+      - name: Read App Secrets
+        uses: rancher-eio/read-vault-secrets@main
+        with:
+          secrets: |
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY
+
+      - name: Create App Token
+        uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ env.APP_ID }}
+          private-key: ${{ env.PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.PUSH_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Set-up Ruby 3.2
         uses: ruby/setup-ruby@v1
@@ -44,8 +61,9 @@ jobs:
           ruby-version: '3.2' # Not needed with a .ruby-version file
 
       - name: Generate RegSync
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          echo ${{ secrets.PUSH_TOKEN }} | gh auth login --with-token
           gh pr checkout ${{ github.event.pull_request.number }}
           git config --global user.email "${{ secrets.USER_GITHUB }}"
           git config --global user.name "rancherbot"
