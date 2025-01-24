@@ -46,26 +46,26 @@ jobs:
             secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY ;
 
       - name: Create App Token
+        continue-on-error: true
         uses: actions/create-github-app-token@v1
         id: app-token
         with:
           app-id: ${{ env.APP_ID }}
           private-key: ${{ env.PRIVATE_KEY }}
 
-      - name: actions/checkout@v4
-        continue-on-error: false
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Git Checkout PR and into new branch
         continue-on-error: false
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          echo  "git global configuration"
+          echo "git global configuration"
           git config --global --add safe.directory "$PWD"
           echo $PATH >> $GITHUB_PATH
+          echo "fetch the pull request"
+          git fetch origin pull/${{ github.event.pull_request.number }}/head:pr-${{ github.event.pull_request.number }}
           echo "checkout the PR"
-          gh pr checkout ${{ github.event.pull_request.number }}
+          git checkout pr-${{ github.event.pull_request.number }}
           echo "checkout into a new branch for safety"
           git checkout -b staging-pr-workflow
 
