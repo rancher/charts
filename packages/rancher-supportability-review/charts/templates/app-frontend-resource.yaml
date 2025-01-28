@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sr-bundle-app-frontend-deployment
+  namespace: sr-operator-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      sr-app: app-frontend
+  template:
+    metadata:
+      labels:
+        sr-app: app-frontend
+    spec:
+      containers:
+      - image: {{ .Values.image.appFrontend.repository }}:{{ .Values.image.appFrontend.tag }}
+        imagePullPolicy: Always
+        name: app-frontend
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "100m"
+            ephemeral-storage: "10Gi"
+          limits:
+            memory: "1Gi"
+            cpu: "100m"
+            ephemeral-storage: "10Gi"
+      nodeSelector:
+        kubernetes.io/os: linux
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sr-bundle-app-frontend-service
+  namespace: sr-operator-system
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    sr-app: app-frontend

@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sr-bundle-db-deployment
+  namespace: sr-operator-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      sr-app: db
+  template:
+    metadata:
+      labels:
+        sr-app: db
+    spec:
+      containers:
+      - args:
+        - --maxmemory
+        - 1gb
+        - --maxmemory-policy
+        - noeviction
+        image: redis:7.4.1
+        name: redis
+        ports:
+        - containerPort: 6379
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "100m"
+            ephemeral-storage: "10Gi"
+          limits:
+            memory: "1Gi"
+            cpu: "100m"
+            ephemeral-storage: "10Gi"
+      nodeSelector:
+        kubernetes.io/os: linux
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sr-bundle-db-service
+  namespace: sr-operator-system
+spec:
+  ports:
+  - port: 6379
+    protocol: TCP
+    targetPort: 6379
+  selector:
+    sr-app: db
