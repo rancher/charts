@@ -1,8 +1,11 @@
 {{- define "logging-operator.logging.eks" -}}
+{{- $individualValues := .Values.additionalLoggingSources.eks -}}
 metadata:
   name: {{ .Release.Name }}-eks
 spec:
+  {{- include "logging-operator.individualLoggingRef" $individualValues | nindent 2 }}
   fluentd:
+    {{- include "logging-operator.individualFluentd" $individualValues | nindent 4 }}
     {{- if .Values.loggingServiceAccountAnnotations.eks -}}
     serviceAccount:
       metadata:

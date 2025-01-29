@@ -195,3 +195,37 @@ Formats the cluster domain as a suffix, e.g.:
 {{- printf ".%s" .Values.clusterDomain -}}
 {{- end -}}
 {{- end -}}
+
+{{/* Implements logic to add the loggingRef field to custom loggings based on the cluster type */}}
+{{- define "logging-operator.individualLoggingRef" -}}
+{{- with .loggingRef -}}
+loggingRef: {{ . }}
+{{- end -}}
+{{- end -}}
+
+{{/* Implements logic to add fluentd spec fields to custom loggings based on the cluster type */}}
+{{- define "logging-operator.individualFluentd" -}}
+{{- if .fluentd -}}
+{{- if .fluentd.scaling -}}
+scaling: 
+    replicas: {{ .fluentd.scaling.replicas }}
+{{- end }}
+{{- with .fluentd.resources }}
+resources: {{ toYaml . | nindent 2 }}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/* Implements logic to add fluentbit loggingRef field to custom loggings based on the cluster type */}}
+{{- define "logging-operator.individualFluentbitLoggingRef" -}}
+{{- with .loggingRef -}}
+loggingRef: {{ . }}
+{{- end -}}
+{{- end -}}
+
+{{/* Implements logic to add fluentbit spec fields to custom fluentBitAgents based on the cluster type */}}
+{{- define "logging-operator.individualFluentbit" -}}
+{{- with .resources }}
+resources: {{ toYaml . | nindent 2 }}
+{{- end -}}
+{{- end -}}
