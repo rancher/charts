@@ -1,5 +1,6 @@
 {{- if .Values.additionalLoggingSources.rke.enabled }}
 {{- $containers := printf "%s/containers/" (default "/var/lib/docker" .Values.global.dockerRootDirectory) }}
+{{- $individualValues := .Values.additionalLoggingSources.rke.fluentbit -}}
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -19,6 +20,7 @@ spec:
       containers:
         - name: fluentbit
           image: "{{ template "logging-operator.fluentbitImage" . }}"
+          {{- include "logging-operator.individualFluentbit" $individualValues | nindent 10 }}
           volumeMounts:
             - mountPath: /var/lib/rancher/rke/log/
               name: indir
