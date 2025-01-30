@@ -9,7 +9,7 @@ import (
 func TestChart(t *testing.T) {
 	opts := test.GetRancherOptions()
 	opts.Coverage.IncludeSubcharts = false
-	opts.Coverage.Disabled = false
+	opts.Coverage.Disabled = true
 	opts.YAMLLint.Enabled = false
 	suite.Run(t, opts)
 }

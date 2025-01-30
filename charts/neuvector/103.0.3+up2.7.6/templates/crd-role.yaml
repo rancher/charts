@@ -1,0 +1,417 @@
+{{- if not .Values.leastPrivilege -}}
+{{- $oc4 := and .Values.openshift (semverCompare ">=1.12-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) -}}
+{{- $oc3 := and .Values.openshift (not $oc4) (semverCompare ">=1.9-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) -}}
+# ClusterRole for NeuVector to operate CRD
+{{- if $oc3 }}
+apiVersion: authorization.openshift.io/v1
+{{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: rbac.authorization.k8s.io/v1
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: ClusterRole
+metadata:
+  name: neuvector-binding-customresourcedefinition
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+rules:
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - update
+  - watch
+  - create
+  - get
+
+---
+
+# ClusterRoleBinding for NeuVector to operate CRD
+{{- if $oc3 }}
+apiVersion: authorization.openshift.io/v1
+{{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: rbac.authorization.k8s.io/v1
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: ClusterRoleBinding
+metadata:
+  name: neuvector-binding-customresourcedefinition
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+roleRef:
+{{- if not $oc3 }}
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+{{- end }}
+  name: neuvector-binding-customresourcedefinition
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.serviceAccount }}
+  namespace: {{ .Release.Namespace }}
+{{- if $oc3 }}
+userNames:
+- system:serviceaccount:{{ .Release.Namespace }}:{{ .Values.serviceAccount }}
+{{- end }}
+
+---
+
+# ClusterRole for NeuVector to manage network/process CRD rules
+{{- if $oc3 }}
+apiVersion: authorization.openshift.io/v1
+{{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: rbac.authorization.k8s.io/v1
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: ClusterRole
+metadata:
+  name: neuvector-binding-nvsecurityrules
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+rules:
+- apiGroups:
+  - neuvector.com
+  resources:
+  - nvsecurityrules
+  - nvclustersecurityrules
+  verbs:
+  - get
+  - list
+  - delete
+
+---
+
+# ClusterRoleBinding for NeuVector to manage network/process CRD rules
+{{- if $oc3 }}
+apiVersion: authorization.openshift.io/v1
+{{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: rbac.authorization.k8s.io/v1
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: ClusterRoleBinding
+metadata:
+  name: neuvector-binding-nvsecurityrules
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+roleRef:
+{{- if not $oc3 }}
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+{{- end }}
+  name: neuvector-binding-nvsecurityrules
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.serviceAccount }}
+  namespace: {{ .Release.Namespace }}
+{{- if $oc3 }}
+userNames:
+- system:serviceaccount:{{ .Release.Namespace }}:{{ .Values.serviceAccount }}
+{{- end }}
+
+---
+
+# ClusterRole for NeuVector to manage dlp CRD rules
+{{- if $oc3 }}
+apiVersion: authorization.openshift.io/v1
+{{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: rbac.authorization.k8s.io/v1
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: ClusterRole
+metadata:
+  name: neuvector-binding-nvdlpsecurityrules
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+rules:
+- apiGroups:
+  - neuvector.com
+  resources:
+  - nvdlpsecurityrules
+  verbs:
+  - get
+  - list
+  - delete
+
+---
+
+# ClusterRole for NeuVector to manage admission control CRD rules
+{{- if $oc3 }}
+apiVersion: authorization.openshift.io/v1
+{{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: rbac.authorization.k8s.io/v1
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: ClusterRole
+metadata:
+  name: neuvector-binding-nvadmissioncontrolsecurityrules
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+rules:
+- apiGroups:
+  - neuvector.com
+  resources:
+  - nvadmissioncontrolsecurityrules
+  verbs:
+  - get
+  - list
+  - delete
+
+---
+
+# ClusterRoleBinding for NeuVector to manage admission control CRD rules
+{{- if $oc3 }}
+apiVersion: authorization.openshift.io/v1
+{{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: rbac.authorization.k8s.io/v1
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: ClusterRoleBinding
+metadata:
+  name: neuvector-binding-nvdlpsecurityrules
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+roleRef:
+{{- if not $oc3 }}
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+{{- end }}
+  name: neuvector-binding-nvdlpsecurityrules
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.serviceAccount }}
+  namespace: {{ .Release.Namespace }}
+{{- if $oc3 }}
+userNames:
+- system:serviceaccount:{{ .Release.Namespace }}:{{ .Values.serviceAccount }}
+{{- end }}
+
+---
+
+# ClusterRoleBinding for NeuVector to manage admission control CRD rules
+{{- if $oc3 }}
+apiVersion: authorization.openshift.io/v1
+{{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: rbac.authorization.k8s.io/v1
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: ClusterRoleBinding
+metadata:
+  name: neuvector-binding-nvadmissioncontrolsecurityrules
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+roleRef:
+{{- if not $oc3 }}
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+{{- end }}
+  name: neuvector-binding-nvadmissioncontrolsecurityrules
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.serviceAccount }}
+  namespace: {{ .Release.Namespace }}
+{{- if $oc3 }}
+userNames:
+- system:serviceaccount:{{ .Release.Namespace }}:{{ .Values.serviceAccount }}
+{{- end }}
+
+---
+
+# ClusterRole for NeuVector to manage waf CRD rules
+{{- if $oc3 }}
+apiVersion: authorization.openshift.io/v1
+{{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: rbac.authorization.k8s.io/v1
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: ClusterRole
+metadata:
+  name: neuvector-binding-nvwafsecurityrules
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+rules:
+- apiGroups:
+  - neuvector.com
+  resources:
+  - nvwafsecurityrules
+  verbs:
+  - get
+  - list
+  - delete
+
+---
+
+# ClusterRoleBinding for NeuVector to manage waf CRD rules
+{{- if $oc3 }}
+apiVersion: authorization.openshift.io/v1
+{{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: rbac.authorization.k8s.io/v1
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: ClusterRoleBinding
+metadata:
+  name: neuvector-binding-nvwafsecurityrules
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+roleRef:
+{{- if not $oc3 }}
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+{{- end }}
+  name: neuvector-binding-nvwafsecurityrules
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.serviceAccount }}
+  namespace: {{ .Release.Namespace }}
+{{- if $oc3 }}
+userNames:
+- system:serviceaccount:{{ .Release.Namespace }}:{{ .Values.serviceAccount }}
+{{- end }}
+
+---
+
+# ClusterRole for NeuVector to manage compliance CRD profiles
+{{- if $oc3 }}
+apiVersion: authorization.openshift.io/v1
+{{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: rbac.authorization.k8s.io/v1
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: ClusterRole
+metadata:
+  name: neuvector-binding-nvcomplianceprofiles
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+rules:
+- apiGroups:
+  - neuvector.com
+  resources:
+  - nvcomplianceprofiles
+  verbs:
+  - get
+  - list
+  - delete
+
+---
+
+# ClusterRoleBinding for NeuVector to manage compliance CRD profiles
+{{- if $oc3 }}
+apiVersion: authorization.openshift.io/v1
+{{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: rbac.authorization.k8s.io/v1
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: ClusterRoleBinding
+metadata:
+  name: neuvector-binding-nvcomplianceprofiles
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+roleRef:
+{{- if not $oc3 }}
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+{{- end }}
+  name: neuvector-binding-nvcomplianceprofiles
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.serviceAccount }}
+  namespace: {{ .Release.Namespace }}
+{{- if $oc3 }}
+userNames:
+- system:serviceaccount:{{ .Release.Namespace }}:{{ .Values.serviceAccount }}
+{{- end }}
+
+---
+
+# ClusterRole for NeuVector to manage vulnerability CRD profiles
+{{- if $oc3 }}
+apiVersion: authorization.openshift.io/v1
+{{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: rbac.authorization.k8s.io/v1
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: ClusterRole
+metadata:
+  name: neuvector-binding-nvvulnerabilityprofiles
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+rules:
+- apiGroups:
+  - neuvector.com
+  resources:
+  - nvvulnerabilityprofiles
+  verbs:
+  - get
+  - list
+  - delete
+
+---
+
+# ClusterRoleBinding for NeuVector to manage vulnerability CRD profiles
+{{- if $oc3 }}
+apiVersion: authorization.openshift.io/v1
+{{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: rbac.authorization.k8s.io/v1
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: ClusterRoleBinding
+metadata:
+  name: neuvector-binding-nvvulnerabilityprofiles
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+roleRef:
+{{- if not $oc3 }}
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+{{- end }}
+  name: neuvector-binding-nvvulnerabilityprofiles
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.serviceAccount }}
+  namespace: {{ .Release.Namespace }}
+{{- if $oc3 }}
+userNames:
+- system:serviceaccount:{{ .Release.Namespace }}:{{ .Values.serviceAccount }}
+{{- end }}
+
+{{- end }}

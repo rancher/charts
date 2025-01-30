@@ -35,6 +35,10 @@ spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       serviceAccountName: {{ template "pushProxy.client.name" . }}
+      {{- if .Values.global.imagePullSecretName }}
+      imagePullSecrets:
+      - name: {{ .Values.global.imagePullSecretName }}
+      {{- end }}
       containers:
       - name: pushprox-client
         image: {{ template "system_default_registry" . }}{{ .Values.clients.image.repository }}:{{ .Values.clients.image.tag }}

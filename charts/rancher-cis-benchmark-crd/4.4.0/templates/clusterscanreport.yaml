@@ -1,0 +1,39 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: clusterscanreports.cis.cattle.io
+spec:
+  group: cis.cattle.io
+  names:
+    kind: ClusterScanReport
+    plural: clusterscanreports
+  scope: Cluster
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    additionalPrinterColumns:
+    - jsonPath: .spec.lastRunTimestamp
+      name: LastRunTimestamp
+      type: string
+    - jsonPath: .spec.benchmarkVersion
+      name: BenchmarkVersion
+      type: string
+    subresources:
+      status: {}
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              benchmarkVersion:
+                nullable: true
+                type: string
+              lastRunTimestamp:
+                nullable: true
+                type: string
+              reportJSON:
+                nullable: true
+                type: string
+            type: object
+        type: object

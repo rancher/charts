@@ -1,0 +1,27 @@
+{{- if not .Values.controller.pvc.existingClaim -}}
+{{- if and .Values.controller.enabled .Values.controller.pvc.enabled -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: neuvector-data
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+spec:
+  accessModes:
+{{ toYaml .Values.controller.pvc.accessModes | indent 4 }}
+  volumeMode: Filesystem
+{{- if .Values.controller.pvc.storageClass }}
+  storageClassName: {{ .Values.controller.pvc.storageClass }}
+{{- end }}
+  resources:
+    requests:
+{{- if .Values.controller.pvc.capacity }}
+      storage: {{ .Values.controller.pvc.capacity }}
+{{- else }}
+      storage: 1Gi
+{{- end }}
+{{- end }}
+{{- end }}

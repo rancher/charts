@@ -1,0 +1,59 @@
+# Default values for neuvector.
+# This is a YAML-formatted file.
+# Declare variables to be passed into the templates.
+
+global:
+  cattle:
+    systemDefaultRegistry: ""
+
+registry: docker.io
+oem: ''
+leastPrivilege: false
+
+exporter:
+  # If false, exporter will not be installed
+  enabled: true
+  image:
+    repository: rancher/mirrored-neuvector-prometheus-exporter
+    tag: 5.3.2
+  # changes this to a readonly user !
+  CTRL_USERNAME: admin
+  CTRL_PASSWORD: admin
+  ctrlSercretName: ''
+  enforcerStats:
+    enabled: false
+  ctrlSecretName: ''
+  apiSvc: neuvector-svc-controller-api:10443
+  podLabels: {}
+  securityContext: {}
+  containerSecurityContext: {}
+
+  svc:
+    enabled: true
+    type: ClusterIP
+    loadBalancerIP: ''
+    annotations: {}
+      # service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+      # service.beta.kubernetes.io/azure-load-balancer-internal-subnet: "apps-subnet"
+
+  grafanaDashboard:
+    enabled: false
+    namespace: "" # Release namespace, if empty
+    labels: {}
+    # annotations: {}
+      # k8s-sidecar-target-directory: /tmp/dashboards/neuvector
+
+  serviceMonitor:
+    enabled: false
+    # labels for the ServiceMonitor.
+    labels: {}
+    # annotations for the ServiceMonitor.
+    annotations: {}
+    # Scrape interval. If not set, the Prometheus default scrape interval is used.
+    interval: ""
+    # MetricRelabelConfigs to apply to samples after scraping, but before ingestion.
+    # ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#relabelconfig
+    metricRelabelings: []
+    # RelabelConfigs to apply to samples before scraping
+    # ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#relabelconfig
+    relabelings: []

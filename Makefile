@@ -1,3 +1,6 @@
+help:
+	./bin/charts-build-scripts --help
+
 pull-scripts:
 	./scripts/pull-scripts
 
@@ -10,7 +13,11 @@ forward-port:
 check-release-yaml:
 	./scripts/check-release-yaml
 
-TARGETS := prepare patch clean clean-cache charts list index unzip zip standardize validate template regsync check-images check-rc icon
+validate:
+	@./scripts/pull-scripts
+	@./bin/charts-build-scripts validate $(if $(filter true,$(remote)),--remote) $(if $(filter true,$(local)),--local)
+
+TARGETS := prepare patch clean clean-cache charts list index unzip zip standardize template regsync check-images check-rc enforce-lifecycle lifecycle-status auto-forward-port
 
 $(TARGETS):
 	@./scripts/pull-scripts

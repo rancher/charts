@@ -1,0 +1,69 @@
+# Default values for prom2teams.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+global:
+  cattle:
+    psp:
+      enabled: false
+    systemDefaultRegistry: ""
+  namespaceOverride: ""
+
+nameOverride: "prom2teams"
+fullnameOverride: ""
+
+replicaCount: 1
+
+image:
+  repository: rancher/mirrored-idealista-prom2teams
+  tag: 4.2.1
+  pullPolicy: IfNotPresent
+
+resources:
+ requests:
+   cpu: 100m
+   memory: 128Mi
+ limits:
+   cpu: 200m
+   memory: 200Mi
+
+service:
+  type: ClusterIP
+  port: 8089
+
+prom2teams:
+  host: 0.0.0.0
+  port: 8089
+  connector: the-connector-url
+  connectors: {}
+  # group_alerts_by can be one of
+  # ("name" | "description" | "instance" | "severity" | "status" | "summary" | "fingerprint" | "runbook_url")
+  group_alerts_by:
+  # loglevel can be one of (DEBUG | INFO | WARNING | ERROR | CRITICAL)
+  loglevel: INFO
+  templatepath: /opt/prom2teams/helmconfig/teams.j2
+  config: /opt/prom2teams/helmconfig/config.ini
+  extraEnv: {}
+
+# Security Context properties
+securityContext:
+  # enabled is a flag to enable Security Context
+  enabled: true
+  # runAsUser is the user ID used to run the container
+  runAsUser: 101
+  # runAsGroup is the primary group ID used to run all processes within any container of the pod
+  runAsGroup: 101
+  # fsGroup is the group ID associated with the container
+  fsGroup: 101
+  # readOnlyRootFilesystem is a flag to enable readOnlyRootFilesystem for the Hazelcast security context
+  readOnlyRootFilesystem: true
+
+## Node labels for pod assignment
+## Ref: https://kubernetes.io/docs/user-guide/node-selection/
+##
+nodeSelector: {}
+
+## List of node taints to tolerate (requires Kubernetes >= 1.6)
+tolerations: []
+
+affinity: {}
