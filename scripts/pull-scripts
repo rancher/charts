@@ -1,46 +1,64 @@
 #!/bin/bash
-set -e
+set -e # Exit immediately if a command exits with a non-zero status.
 
-cd $(dirname $0)
+cd $(dirname $0) # Move to the directory of the script
+source ./version # Source the version file to set environment variables
 
-source ./version
-
+# Check if the charts-build-scripts binary exists in the ../bin directory
 if ls ../bin/charts-build-scripts 1>/dev/null 2>/dev/null; then
-    CURRENT_SCRIPT_VERSION=$(../bin/charts-build-scripts --version | cut -d' ' -f3)
+    # Use awk to split the version output correctly and extract the version number
+    CURRENT_SCRIPT_VERSION="v$(../bin/charts-build-scripts --version | awk '{print $3}')"
+    echo "Current version: ${CURRENT_SCRIPT_VERSION}, Expected version: ${CHARTS_BUILD_SCRIPT_VERSION}"
+    # Exit if the current version matches the expected version
     if [[ "${CURRENT_SCRIPT_VERSION}" == "${CHARTS_BUILD_SCRIPT_VERSION}" ]]; then
         exit 0
     fi
 fi
 
-echo "Pulling in charts-build-scripts version ${CHARTS_BUILD_SCRIPTS_REPO}@${CHARTS_BUILD_SCRIPT_VERSION}"
+echo "Downloading charts-build-scripts version ${CHARTS_BUILD_SCRIPTS_REPO}@${CHARTS_BUILD_SCRIPT_VERSION}"
 
+# Remove existing ../bin directory and change to the parent dir.
 rm -rf ../bin
 cd ..
 
-mkdir -p bin
-ARCH=$(go version | cut -d' ' -f4 | cut -d'/' -f1)
-if [[ ${ARCH} == "linux" ]]; then
-    BINARY_NAME=charts-build-scripts
-else
-    BINARY_NAME=charts-build-scripts-${ARCH}
-fi
-curl -s -L ${CHARTS_BUILD_SCRIPTS_REPO%.git}/releases/download/${CHARTS_BUILD_SCRIPT_VERSION}/${BINARY_NAME} --output bin/charts-build-scripts
-if ! [[ -f bin/charts-build-scripts ]] || [[ $(cat bin/charts-build-scripts) == "Not Found" ]]; then 
-    rm bin/charts-build-scripts; 
-    
-    # Fall back to old process
-    echo "Building binary locally..."
-    rm -rf charts-build-scripts
-    git clone --depth 1 --branch $CHARTS_BUILD_SCRIPT_VERSION $CHARTS_BUILD_SCRIPTS_REPO charts-build-scripts 2>/dev/null
+mkdir -p bin # Re-create bin dir
 
-    cd charts-build-scripts
-    VERSION_OVERRIDE=${CHARTS_BUILD_SCRIPT_VERSION} ./scripts/build
-    mv bin ..
-    cd ..
-    rm -rf charts-build-scripts
+# Extract the OS and architecture from the go version command output
+OS=$(go version | cut -d' ' -f4 | cut -d'/' -f1)
+ARCH=$(go version | cut -d' ' -f4 | cut -d'/' -f2)
+
+# Determine the binary name based on the OS and architecture
+if [[ "$OS" == "windows" ]]; then
+    BINARY_NAME="charts-build-scripts_${OS}_${ARCH}.exe"
 else
-    echo "${BINARY_NAME} => ./bin/charts-build-scripts"
+    BINARY_NAME="charts-build-scripts_${OS}_${ARCH}"
 fi
+
+# Download the binary from the charts-build-scripts repository
+curl -s -L ${CHARTS_BUILD_SCRIPTS_REPO%.git}/releases/download/${CHARTS_BUILD_SCRIPT_VERSION}/${BINARY_NAME} --output bin/charts-build-scripts
+
+# If the binary is not found or contains "Not Found", Fall back to binary name format from old release scheme
+if ! [[ -f bin/charts-build-scripts ]] || [[ $(cat bin/charts-build-scripts) == "Not Found" ]]; then
+    echo "Falling back to old binary name format..."
+    rm bin/charts-build-scripts; # Remove the not found old binary
+    # Determine the fallback binary name.
+    if [[ ${OS} == "linux" ]]; then
+        BINARY_NAME=charts-build-scripts
+    else
+        BINARY_NAME=charts-build-scripts-${OS}
+    fi
+    # Attempt to download the binary using the fallback name.
+    curl -s -L ${CHARTS_BUILD_SCRIPTS_REPO%.git}/releases/download/${CHARTS_BUILD_SCRIPT_VERSION}/${BINARY_NAME} --output bin/charts-build-scripts
+fi
+
+# If falling back to old binary name format did not work, fail
+if ! [[ -f bin/charts-build-scripts ]] || [[ $(cat bin/charts-build-scripts) == "Not Found" ]]; then
+    echo "Failed to find charts-build-scripts binary"
+    rm bin/charts-build-scripts;
+    exit 1
+fi
+
+echo "${BINARY_NAME} => ./bin/charts-build-scripts"
 
 chmod +x ./bin/charts-build-scripts
 ./bin/charts-build-scripts --version

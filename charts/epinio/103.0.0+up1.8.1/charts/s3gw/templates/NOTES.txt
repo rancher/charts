@@ -1,0 +1,16 @@
+Thank you for installing {{ .Chart.Name }} {{ printf "v%s" .Chart.Version }}
+
+The S3 endpoint is available at:
+
+{{ printf "%s.%s" .Values.serviceName .Values.publicDomain | indent 4 }}
+{{ if .Values.ui.enabled}}
+and the web interface is available at:
+
+{{ printf "%s.%s" .Values.ui.serviceName .Values.ui.publicDomain | indent 4 }}
+{{- end }}
+{{ if and (not .Values.useExistingSecret) (empty .Values.accessKey) }}
+An access key has been generated: {{ include "s3gw.defaultAccessKey" . | quote }}
+{{- end }}
+{{- if and (not .Values.useExistingSecret) (empty .Values.secretKey) }}
+A secret key has been generated: {{ include "s3gw.defaultSecretKey" . | quote }}
+{{ end }}

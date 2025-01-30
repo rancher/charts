@@ -1,0 +1,59 @@
+--- charts-original/templates/deployment.yaml
++++ charts/templates/deployment.yaml
+@@ -64,7 +64,7 @@
+       {{- end }}
+       {{- end }}
+       containers:
+-      - image: "{{ .Values.deployment.image_name }}{{ if .Values.deployment.image_digest }}@{{ .Values.deployment.image_digest }}{{ end }}:{{ .Values.deployment.image_version }}"
++      - image: "{{ template "system_default_registry" . }}{{ .Values.deployment.repository }}{{ if .Values.deployment.image_digest }}@{{ .Values.deployment.image_digest }}{{ end }}:{{ .Values.deployment.tag }}"
+         imagePullPolicy: {{ .Values.deployment.image_pull_policy | default "Always" }}
+         name: {{ include "kiali-server.fullname" . }}
+         command:
+@@ -126,6 +126,11 @@
+         - name: LOG_SAMPLER_RATE
+           value: "{{ .Values.deployment.logger.sampler_rate }}"
+         volumeMounts:
++        {{- if .Values.web_root_override }}
++        - name: kiali-console
++          subPath: env.js
++          mountPath: /opt/kiali/console/env.js
++        {{- end }}
+         - name: {{ include "kiali-server.fullname" . }}-configuration
+           mountPath: "/kiali-configuration"
+         - name: {{ include "kiali-server.fullname" . }}-cert
+@@ -153,6 +158,14 @@
+         {{- toYaml .Values.deployment.resources | nindent 10 }}
+         {{- end }}
+       volumes:
++      {{- if .Values.web_root_override }}
++      - name: kiali-console
++        configMap:
++          name: kiali-console
++          items:
++          - key: env.js
++            path: env.js
++      {{- end }}
+       - name: {{ include "kiali-server.fullname" . }}-configuration
+         configMap:
+           name: {{ include "kiali-server.fullname" . }}
+@@ -213,12 +226,12 @@
+         {{- toYaml .Values.deployment.affinity.pod_anti | nindent 10 }}
+         {{- end }}
+       {{- end }}
+-      {{- if .Values.deployment.tolerations }}
+-      tolerations:
+-      {{- toYaml .Values.deployment.tolerations | nindent 8 }}
+-      {{- end }}
+-      {{- if .Values.deployment.node_selector }}
+-      nodeSelector:
+-      {{- toYaml .Values.deployment.node_selector | nindent 8 }}
+-      {{- end }}
++      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
++{{- if .Values.deployment.tolerations }}
++{{ toYaml .Values.deployment.tolerations | indent 8 }}
++{{- end }}
++      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
++{{- if .Values.deployment.node_selector }}
++{{ toYaml .Values.deployment.node_selector | indent 8 }}
++{{- end }}
+ ...

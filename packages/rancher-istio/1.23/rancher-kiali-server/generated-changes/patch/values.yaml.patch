@@ -1,0 +1,39 @@
+--- charts-original/values.yaml
++++ charts/values.yaml
+@@ -13,6 +13,8 @@
+ # do this, a PR would be welcome.
+ kiali_route_url: ""
+ 
++# rancher specific override that allows proxy access to kiali url
++web_root_override: true
+ #
+ # Settings that mimic the Kiali CR which are placed in the ConfigMap.
+ # Note that only those values used by the Helm Chart will be here.
+@@ -56,10 +58,10 @@
+     api_version: "autoscaling/v2"
+     spec: {}
+   image_digest: "" # use "sha256" if image_version is a sha256 hash (do NOT prefix this value with a "@")
+-  image_name: quay.io/kiali/kiali
++  repository: rancher/mirrored-kiali-kiali
+   image_pull_policy: "Always"
+   image_pull_secrets: []
+-  image_version: v1.89.3 # version like "v1.39" (see: https://quay.io/repository/kiali/kiali?tab=tags) or a digest hash
++  tag: v1.89.3 # version like "v1.39" (see: https://quay.io/repository/kiali/kiali?tab=tags) or a digest hash
+   ingress:
+     additional_labels: {}
+     class_name: "nginx"
+@@ -123,3 +125,13 @@
+       enabled: true
+       port: 9090
+   web_root: ""
++
++# Common settings used among istio subcharts.
++global:
++  # Specify rancher clusterId of external tracing config
++  # https://github.com/istio/istio.io/issues/4146#issuecomment-493543032
++  cattle:
++    systemDefaultRegistry: ""
++    clusterId:
++    psp:
++      enabled: false
+\ No newline at end of file

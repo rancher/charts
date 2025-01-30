@@ -1,0 +1,88 @@
+{{- if and .Values.rbac (not .Values.leastPrivilege) -}}
+{{- $oc4 := and .Values.openshift (semverCompare ">=1.12-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) -}}
+{{- $oc3 := and .Values.openshift (not $oc4) (semverCompare ">=1.9-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) -}}
+
+{{- if $oc3 }}
+apiVersion: authorization.openshift.io/v1
+{{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: rbac.authorization.k8s.io/v1
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: RoleBinding
+metadata:
+  name: neuvector-admin
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+roleRef:
+{{- if not $oc3 }}
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+{{- end }}
+  name: admin
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.serviceAccount }}
+  namespace: {{ .Release.Namespace }}
+{{- if $oc3 }}
+userNames:
+- system:serviceaccount:{{ .Release.Namespace }}:{{ .Values.serviceAccount }}
+{{- end }}
+
+---
+
+{{- if $oc3 }}
+apiVersion: authorization.openshift.io/v1
+{{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: rbac.authorization.k8s.io/v1
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: RoleBinding
+metadata:
+  name: neuvector-binding-secret
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+roleRef:
+{{- if not $oc3 }}
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+{{- end }}
+  name: neuvector-binding-secret
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.serviceAccount }}
+  namespace: {{ .Release.Namespace }}
+{{- if $oc3 }}
+userNames:
+- system:serviceaccount:{{ .Release.Namespace }}:{{ .Values.serviceAccount }}
+{{- end }}
+
+---
+
+{{- if $oc4 }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: system:openshift:scc:privileged
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:openshift:scc:privileged
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.serviceAccount }}
+  namespace: {{ .Release.Namespace }}
+{{- end }}
+{{- end }}

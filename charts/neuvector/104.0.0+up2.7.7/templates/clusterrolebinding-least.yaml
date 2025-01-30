@@ -1,0 +1,150 @@
+{{- if and .Values.rbac .Values.leastPrivilege -}}
+{{- $oc4 := and .Values.openshift (semverCompare ">=1.12-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) -}}
+{{- $oc3 := and .Values.openshift (not $oc4) (semverCompare ">=1.9-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) -}}
+
+{{- if $oc3 }}
+apiVersion: authorization.openshift.io/v1
+{{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: rbac.authorization.k8s.io/v1
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: ClusterRoleBinding
+metadata:
+  name: neuvector-binding-app
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+roleRef:
+{{- if not $oc3 }}
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+{{- end }}
+  name: neuvector-binding-app
+subjects:
+- kind: ServiceAccount
+  name: controller
+  namespace: {{ .Release.Namespace }}
+{{- if $oc3 }}
+userNames:
+- system:serviceaccount:{{ .Release.Namespace }}:controller
+{{- end }}
+
+---
+
+{{- if $oc3 }}
+apiVersion: authorization.openshift.io/v1
+{{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: rbac.authorization.k8s.io/v1
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: ClusterRoleBinding
+metadata:
+  name: neuvector-binding-rbac
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+roleRef:
+{{- if not $oc3 }}
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+{{- end }}
+  name: neuvector-binding-rbac
+subjects:
+- kind: ServiceAccount
+  name: controller
+  namespace: {{ .Release.Namespace }}
+{{- if $oc3 }}
+userNames:
+- system:serviceaccount:{{ .Release.Namespace }}:controller
+{{- end }}
+
+---
+
+{{- if $oc3 }}
+apiVersion: authorization.openshift.io/v1
+{{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: rbac.authorization.k8s.io/v1
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: ClusterRoleBinding
+metadata:
+  name: neuvector-binding-admission
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+roleRef:
+{{- if not $oc3 }}
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+{{- end }}
+  name: neuvector-binding-admission
+subjects:
+- kind: ServiceAccount
+  name: controller
+  namespace: {{ .Release.Namespace }}
+{{- if $oc3 }}
+userNames:
+- system:serviceaccount:{{ .Release.Namespace }}:controller
+{{- end }}
+
+---
+
+{{- if $oc3 }}
+apiVersion: authorization.openshift.io/v1
+{{- else if (semverCompare ">=1.8-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: rbac.authorization.k8s.io/v1
+{{- else }}
+apiVersion: v1
+{{- end }}
+kind: ClusterRoleBinding
+metadata:
+  name: neuvector-binding-view
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+roleRef:
+{{- if not $oc3 }}
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+{{- end }}
+  name: view
+subjects:
+- kind: ServiceAccount
+  name: controller
+  namespace: {{ .Release.Namespace }}
+{{- if $oc3 }}
+userNames:
+- system:serviceaccount:{{ .Release.Namespace }}:controller
+{{- end }}
+
+---
+
+{{- if $oc4 }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: neuvector-binding-co
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: neuvector-binding-co
+subjects:
+- kind: ServiceAccount
+  name: controller
+  namespace: {{ .Release.Namespace }}
+- kind: ServiceAccount
+  name: enforcer
+  namespace: {{ .Release.Namespace }}
+{{- end }}
+{{- end }}
