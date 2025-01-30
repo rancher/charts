@@ -1,0 +1,56 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: '{{ .Release.Name }}-pvc'
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "s3gw.labels" . | indent 4 }}
+spec:
+  storageClassName: {{ .Values.storageClass.name }}
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.storageSize }}
+{{- if (or .Values.storageClass.create .Values.storageClass.local) }}
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: {{ .Values.storageClass.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "s3gw.labels" . | indent 4 }}
+volumeBindingMode: Immediate
+{{- if .Values.storageClass.local }}
+provisioner: kubernetes.io/no-provisioner
+{{- else }}
+provisioner: driver.longhorn.io
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+parameters:
+  fsType: ext4
+  numberOfReplicas: "1"
+  staleReplicaTimeout: "2880"
+  fromBackup: ""
+{{- end }}
+{{- if .Values.storageClass.local }}
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: '{{ .Release.Name }}.{{ .Release.Namespace }}-local-pv'
+  labels:
+{{ include "s3gw.labels" . | indent 4 }}
+    type: local
+spec:
+  storageClassName: {{ .Values.storageClass.name }}
+  capacity:
+    storage: {{ .Values.storageSize }}
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: {{ .Values.storageClass.localPath }}
+{{- end }}
+{{- end }}

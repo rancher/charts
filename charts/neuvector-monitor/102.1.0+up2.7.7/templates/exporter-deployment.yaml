@@ -1,0 +1,75 @@
+{{- if .Values.exporter.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neuvector-prometheus-exporter-pod
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neuvector-prometheus-exporter-pod
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8068"
+        prometheus.io/scrape: "true"
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+      labels:
+        app: neuvector-prometheus-exporter-pod
+        release: {{ .Release.Name }}
+      {{- with .Values.exporter.podLabels }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+    {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecrets }}
+    {{- end }}
+    {{- if .Values.leastPrivilege }}
+      serviceAccountName: basic
+      serviceAccount: basic
+    {{- end }}
+      {{- with .Values.exporter.securityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: neuvector-prometheus-exporter-pod
+          {{ if eq .Values.registry "registry.neuvector.com" }}
+          {{ if .Values.oem }}
+          image: "{{ .Values.registry }}/{{ .Values.oem }}/prometheus-exporter:{{ .Values.exporter.image.tag }}"
+          {{- else }}
+          image: "{{ .Values.registry }}/prometheus-exporter:{{ .Values.exporter.image.tag }}"
+          {{- end }}
+          {{- else }}
+          image: {{ template "system_default_registry" . }}{{ .Values.exporter.image.repository }}:{{ .Values.exporter.image.tag }}
+          {{- end }}
+          imagePullPolicy: Always
+          {{- with .Values.exporter.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            - name: CTRL_API_SERVICE
+              value: {{ .Values.exporter.apiSvc }}
+            - name: EXPORTER_PORT
+              value: "8068"
+            {{- if .Values.exporter.enforcerStats.enabled }}
+            - name: ENFORCER_STATS
+              value: "{{.Values.exporter.enforcerStats.enabled | default "false"}}"
+            {{- end }}
+          envFrom:
+            - secretRef:
+            {{- if .Values.exporter.ctrlSecretName }}
+                name: {{ .Values.exporter.ctrlSecretName }}
+            {{ else }}
+                name: neuvector-prometheus-exporter-pod-secret
+            {{- end }}
+      restartPolicy: Always
+{{- end }}

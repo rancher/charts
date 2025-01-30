@@ -1,0 +1,41 @@
+{{- if and .Values.serviceMonitor .Values.clients }}{{- if and .Values.serviceMonitor.enabled .Values.clients.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels: {{ include "windowsExporter.labels" . | nindent 4 }}
+  name: {{ template "windowsExporter.name" . }}
+  namespace: {{ template "windowsExporter.namespace" . }}
+spec:
+  selector:
+    matchLabels: {{ include "windowsExporter.labels" . | nindent 6 }}
+  namespaceSelector:
+    matchNames:
+    - {{ template "windowsExporter.namespace" . }}
+  jobLabel: component
+  podTargetLabels:
+  - component
+  endpoints:
+  - port: windows-metrics
+    metricRelabelings:
+{{- include "windowsExporter.renamedMetricsRelabeling" . | nindent 4 -}}
+    - sourceLabels: [__name__]
+      regex: 'wmi_(.*)'
+      replacement: 'windows_$1'
+      targetLabel: __name__
+    - sourceLabels: [volume, nic]
+      regex: (.*);(.*)
+      separator: ''
+      targetLabel: device
+      action: replace
+      replacement: $1$2
+    - sourceLabels: [__name__]
+      regex: windows_cs_logical_processors
+      replacement: 'system'
+      targetLabel: mode
+    relabelings:
+    - separator: ':'
+      sourceLabels:
+      - __meta_kubernetes_pod_host_ip
+      - __meta_kubernetes_pod_container_port_number
+      targetLabel: instance
+{{- end }}{{- end }}

@@ -1,0 +1,29 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "sriov-network-operator.fullname" . }}
+  labels:
+  {{- include "sriov-network-operator.labels" . | nindent 4 }}
+roleRef:
+  kind: ClusterRole
+  name: {{ include "sriov-network-operator.fullname" . }}
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    namespace: {{ .Release.Namespace }}
+    name: {{ include "sriov-network-operator.fullname" . }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: sriov-network-config-daemon
+  labels:
+  {{- include "sriov-network-operator.labels" . | nindent 4 }}
+roleRef:
+  kind: ClusterRole
+  name: sriov-network-config-daemon
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    namespace: {{ .Release.Namespace }}
+    name: sriov-network-config-daemon

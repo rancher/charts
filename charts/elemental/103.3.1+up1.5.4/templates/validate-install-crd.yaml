@@ -1,0 +1,25 @@
+{{ if gt (len (lookup "rbac.authorization.k8s.io/v1" "ClusterRole" "" "")) 0 }}
+  {{ $apis := dict
+    "elemental.cattle.io/v1beta1/MachineInventory" "machineinventories"
+    "elemental.cattle.io/v1beta1/MachineInventorySelector" "machineinventoryselectors"
+    "elemental.cattle.io/v1beta1/MachineInventorySelectorTemplate" "machineinventoryselectortemplates"
+    "elemental.cattle.io/v1beta1/MachineRegistration" "machineregistrations"
+    "elemental.cattle.io/v1beta1/ManagedOSImage" "managedosimages"
+    "elemental.cattle.io/v1beta1/ManagedOSVersionChannel" "managedosversionchannels"
+    "elemental.cattle.io/v1beta1/ManagedOSVersion" "managedosversions"
+    "elemental.cattle.io/v1beta1/SeedImage" "seedimages"
+  }}
+  {{- range $api, $crd := $apis -}}
+    {{- if not ($.Capabilities.APIVersions.Has $api) -}}
+      {{- required "Required CRDs are missing. Please install the corresponding CRD chart before installing this chart." "" -}}
+    {{- end -}}
+    {{- $crdobj := lookup "apiextensions.k8s.io/v1" "CustomResourceDefinition" "" (print $crd ".elemental.cattle.io") -}}
+    {{- if not $crdobj -}}
+      {{- print "Cannot lookup " $crd ".elemental.cattle.io crd object" | fail -}}
+    {{- end -}}
+    {{- $crdrelease := index $crdobj.metadata.annotations "meta.helm.sh/release-name" -}}
+    {{- if eq $crdrelease $.Release.Name -}}
+      {{- required "Elemental CRDs should be moved to the new elemental-operator-crds chart before upgrading this operator." "" -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}

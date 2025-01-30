@@ -1,14 +1,17 @@
 --- charts-original/templates/image-renderer-deployment.yaml
 +++ charts/templates/image-renderer-deployment.yaml
-@@ -66,9 +66,9 @@
+@@ -65,11 +65,11 @@
+       {{- end }}
        containers:
          - name: {{ .Chart.Name }}-image-renderer
+-          {{- $registry := .Values.global.imageRegistry | default .Values.imageRenderer.image.registry -}}
++          {{- $registry := include "system_default_registry" | default .Values.imageRenderer.image.registry -}}
            {{- if .Values.imageRenderer.image.sha }}
--          image: "{{ .Values.imageRenderer.image.repository }}:{{ .Values.imageRenderer.image.tag }}@sha256:{{ .Values.imageRenderer.image.sha }}"
-+          image: "{{ template "system_default_registry" . }}{{ .Values.imageRenderer.image.repository }}:{{ .Values.imageRenderer.image.tag }}@sha256:{{ .Values.imageRenderer.image.sha }}"
+-          image: "{{ $registry }}/{{ .Values.imageRenderer.image.repository }}:{{ .Values.imageRenderer.image.tag }}@sha256:{{ .Values.imageRenderer.image.sha }}"
++          image: "{{ $registry }}{{ .Values.imageRenderer.image.repository }}:{{ .Values.imageRenderer.image.tag }}@sha256:{{ .Values.imageRenderer.image.sha }}"
            {{- else }}
--          image: "{{ .Values.imageRenderer.image.repository }}:{{ .Values.imageRenderer.image.tag }}"
-+          image: "{{ template "system_default_registry" . }}{{ .Values.imageRenderer.image.repository }}:{{ .Values.imageRenderer.image.tag }}"
+-          image: "{{ $registry }}/{{ .Values.imageRenderer.image.repository }}:{{ .Values.imageRenderer.image.tag }}"
++          image: "{{ $registry }}{{ .Values.imageRenderer.image.repository }}:{{ .Values.imageRenderer.image.tag }}"
            {{- end }}
            imagePullPolicy: {{ .Values.imageRenderer.image.pullPolicy }}
            {{- if .Values.imageRenderer.command }}
