@@ -1,0 +1,95 @@
+name: Close and Delete Old Pull Requests
+
+on:
+  workflow_dispatch: # Add this for manual triggering
+
+jobs:
+  cleanup:
+    runs-on: org-${{ github.repository_owner_id }}-amd64-k8s
+    container: registry.suse.com/bci/bci-base:latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Install Dependencies
+        continue-on-error: false
+        env:
+            GH_VERSION: 2.63.2
+        run: |
+            echo "installing jq, git, awk and through zypper"
+            zypper --non-interactive install jq git awk
+            echo "installing gh"
+            mkdir -p /tmp/gh
+            curl -fsL https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.tar.gz | tar xvzf - --strip-components=1 -C /tmp/gh
+            mv /tmp/gh/bin/gh /usr/bin/gh
+            chmod +x /usr/bin/gh
+
+      - name: Load Secrets from Vault
+        continue-on-error: false
+        uses: rancher-eio/read-vault-secrets@main
+        with:
+          secrets: |
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY ;
+
+      - name: Create App Token
+        continue-on-error: false
+        uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ env.APP_ID }}
+          private-key: ${{ env.PRIVATE_KEY }}
+
+      - name: Run script to close old PRs
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+          DAYS_BEFORE_CLOSE: 90 # 3 months
+          DAYS_BEFORE_WARNING: 30 # 1 month
+        run: |
+          #!/bin/bash
+
+          # Function to calculate date difference in days
+          date_diff() {
+              date -d "$1" +%s | awk '{print ('"$(date +%s)"' - $1)/86400}'
+          }
+
+
+          # Fetch open PRs
+          prs=$(gh pr list --state open --json "number,createdAt,updatedAt,title,url,headRefName" --limit 1000)
+
+          echo "Open PRs:"
+          echo "$prs" | jq -r '.[] | "\(.number) - \(.updatedAt) - \(.title)"'
+
+          echo " "
+
+          echo "Inactive PRs to warn:"
+          echo "$prs" | jq -r '.[] | "\(.number) \(.updatedAt) \(.title)"' | while read number updated_at title; do
+            days_diff=$(date_diff "$updated_at")
+
+            if awk "BEGIN {exit !($days_diff >= $DAYS_BEFORE_WARNING && $days_diff < $DAYS_BEFORE_CLOSE)}"; then
+              echo "PR: $number - inactive for $days_diff days: \"$title\" (Warning)"
+              echo "https://github.com/rancher/charts/pull/$number"
+              echo " "
+
+              comment_body=$(printf "### Warning\n- This pull request has been inactive for more than 30 days.\n- It will be closed if it is not merged until 3 months after creation.\n- automatic message.")
+              gh pr comment "4871" --body "$comment_body"
+            fi
+          done
+
+          echo " "
+
+          echo "Very Old PRs to close:"
+          echo "$prs" | jq -r '.[] | "\(.number) \(.createdAt) \(.title)"' | while read number createdAt title ; do
+            days_diff=$(date_diff "$createdAt")
+
+            if (( $(awk -v d1="$days_diff" -v d2="$DAYS_BEFORE_CLOSE" 'BEGIN {print (d1 >= d2)}') )); then
+              echo "PR: $number - created $days_diff days: \"$title\" ago"
+              echo "https://github.com/rancher/charts/pull/$number"
+              echo " "
+              close_message=$(printf "\n- Closing Pull Request.\n- Not merged until 3 months after creation.\n- automatic message.")
+              gh pr close "3552" --comment "$close_message"
+            fi
+          done
+
+          echo "Finished"
