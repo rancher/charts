@@ -1,7 +1,7 @@
-name: Close and Delete Old Pull Requests
+name: Close/Warn Old/Inactive Pull Requests
 
 on:
-  workflow_dispatch: # Add this for manual triggering
+  workflow_dispatch:
 
 jobs:
   cleanup:
@@ -43,14 +43,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Git Checkout PR and into new branch
+      - name: Git Setup
         continue-on-error: false
         run: |
           echo "git global configuration"
           git config --global --add safe.directory "$PWD"
           echo $PATH >> $GITHUB_PATH
 
-      - name: Run script to close old PRs
+      - name: RUN
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           REPO: ${{ github.repository }}
@@ -99,7 +99,7 @@ jobs:
               echo "https://github.com/rancher/charts/pull/$number"
               echo " "
               close_message=$(printf "\n- Closing Pull Request.\n- Not merged until 3 months after creation.\n- automatic message.")
-              gh pr close "3552" --comment "$close_message"
+              gh pr close "$number" --comment "$close_message"
             fi
           done
 
