@@ -38,8 +38,11 @@ jobs:
           echo "make chart-bump package=${{ env.CHART }} branch=${{ env.BRANCH }}"
           last_line=$(make chart-bump package="${{ env.CHART }}" branch="${{ env.BRANCH }}" | tail -n 1)
           echo "new_version=$last_line" >> $GITHUB_ENV
-          echo "new_versoin: ${{ env.new_version }}"
+          echo "new_version (in make step): $last_line" # For debugging in this step
 
+      - name: Echo new_version (separate step)
+        run: |
+          echo "new_version (in echo step): ${{ env.new_version }}"
 
       - name: Git status
         run: |
@@ -77,4 +80,4 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          gh pr create --base ${{ env.BRANCH }} --head "auto-bump_${{ env.CHART }}" --title "[${{ env.BRANCH }}] auto: ${{ env.CHART }} ${{ env.new_version }}" --body-file './github/auto_bump_template.md'
+          gh pr create --base ${{ env.BRANCH }} --head "auto-bump_${{ env.CHART }}" --title "[${{ env.BRANCH }}] auto: ${{ env.CHART }} ${{ env.new_version }}" --body-file '.github/auto_bump_template.md'
