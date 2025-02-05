@@ -36,7 +36,9 @@ jobs:
       - name: make chart-bump
         run: |
           echo "make chart-bump package=${{ env.CHART }} branch=${{ env.BRANCH }}"
-          make chart-bump package="${{ env.CHART }}" branch="${{ env.BRANCH }}"
+          last_line=$(make chart-bump package="${{ env.CHART }}" branch="${{ env.BRANCH }}" | tail -n 1)
+          echo "new_version=$last_line" >> $GITHUB_ENV
+
 
       - name: Git status
         run: |
@@ -67,11 +69,11 @@ jobs:
       - name: Git Add, Commit, Push Changes
         run: |
           git add .
-          git commit -m "Auto bump chart version for ${{ env.CHART }}"
+          git commit -m "auto bump chart: ${{ env.CHART }} version: ${{ env.new_version }}"
           git push origin "auto-bump_${{ env.CHART }}"
 
       - name: Create Pull Request
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          gh pr create --base ${{ env.BRANCH }} --head "auto-bump_${{ env.CHART }}" --title "[${{ env.BRANCH }}] auto bump: ${{ env.CHART }}" --body $'This PR auto-bumps the chart version for ${{ env.CHART }}.\n---\n## Review Checklist: \n- [ ] CRDs\n- [ ] templates folder if any\n- [ ] Version \n##### Checkpoints for Chart Bumps \n'\nrelease.yaml`: \n- [ ] Each chart version in release.yaml DOES NOT modify an already released chart. If so, stop and modify the versions so that it releases a net-new chart.\n- [ ] Each chart version in release.yaml IS exactly 1 more patch or minor version than the last released chart version. If not, stop and modify the versions so that it releases a net-new chart.\n\n`Chart.yaml and index.yaml`: \n- [ ] The `index.yaml` file has an entry for your new chart version. \n- [ ] The `index.yaml` entries for each chart matches the `Chart.yaml` for each chart. \n- [ ] Each chart has ALL required annotations \n- kube-version annotation \n- rancher-version annotation \n- permits-os annotation (indicates Windows and/or Linux) \n`
+          gh pr create --base ${{ env.BRANCH }} --head "auto-bump_${{ env.CHART }}" --title "[${{ env.BRANCH }}] auto bump: ${{ env.CHART }} - ${{ env.new_version }}" --body $'This PR auto-bumps the chart version for ${{ env.CHART }} - ${{ env.new_version }}.\n---\n## Review Checklist: \n- [ ] CRDs\n- [ ] templates folder if any\n- [ ] Version \n##### Checkpoints for Chart Bumps \n'\nrelease.yaml`: \n- [ ] Each chart version in release.yaml DOES NOT modify an already released chart. If so, stop and modify the versions so that it releases a net-new chart.\n- [ ] Each chart version in release.yaml IS exactly 1 more patch or minor version than the last released chart version. If not, stop and modify the versions so that it releases a net-new chart.\n\n`Chart.yaml and index.yaml`: \n- [ ] The `index.yaml` file has an entry for your new chart version. \n- [ ] The `index.yaml` entries for each chart matches the `Chart.yaml` for each chart. \n- [ ] Each chart has ALL required annotations \n- kube-version annotation \n- rancher-version annotation \n- permits-os annotation (indicates Windows and/or Linux) \n`
