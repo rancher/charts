@@ -38,7 +38,7 @@ jobs:
           echo "make chart-bump package=${{ env.CHART }} branch=${{ env.BRANCH }}"
           last_line=$(make chart-bump package="${{ env.CHART }}" branch="${{ env.BRANCH }}" | tail -n 1)
           echo "new_version=$last_line" >> $GITHUB_ENV
-          echo "${{ env.new_version }}"
+          echo "new_versoin: ${{ env.new_version }}"
 
 
       - name: Git status
@@ -77,23 +77,4 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          gh pr create --base <span class="math-inline">\{\{ env\.BRANCH \}\} \-\-head "auto\-bump\_</span>{{ env.CHART }}" --title "[${{ env.BRANCH }}] auto bump: ${{ env.CHART }} - ${{ env.new_version }}" --body <<EOF
-          This PR auto-bumps the chart version for ${{ env.CHART }} - ${{ env.new_version }}.
-          ---
-          ## Review Checklist:
-          - [ ] CRDs
-          - [ ] templates folder if any
-          - [ ] Version
-          ##### Checkpoints for Chart Bumps
-          `release.yaml`:
-          - [ ] Each chart version in release.yaml DOES NOT modify an already released chart. If so, stop and modify the versions so that it releases a net-new chart.
-          - [ ] Each chart version in release.yaml IS exactly 1 more patch or minor version than the last released chart version. If not, stop and modify the versions so that it releases a net-new chart.
-
-          `Chart.yaml and index.yaml`:
-          - [ ] The `index.yaml` file has an entry for your new chart version.
-          - [ ] The `index.yaml` entries for each chart matches the `Chart.yaml` for each chart.
-          - [ ] Each chart has ALL required annotations
-          - kube-version annotation
-          - rancher-version annotation
-          - permits-os annotation (indicates Windows and/or Linux)
-          EOF
+          gh pr create --base ${{ env.BRANCH }} --head "auto-bump_${{ env.CHART }}" --title "[${{ env.BRANCH }}] auto: ${{ env.CHART }} ${{ env.new_version }}" --body-file './github/auto_bump_template.md'
