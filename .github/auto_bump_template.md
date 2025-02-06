@@ -1,6 +1,5 @@
 # Auto chart-bump
 
----
 
 ## Review Checklist:
 - [ ] CRDs (if any)
