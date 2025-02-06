@@ -1,0 +1,83 @@
+name: Auto Chart Bump
+
+on:
+  workflow_call:
+    inputs:
+      eventPayload:
+        description: "Payload data from upstream repository"
+        required: true
+        type: string
+
+
+jobs:
+  process-event:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Log Event Payload
+        run: |
+         echo "Payload: ${{  github.event.inputs.chart  }}; ${{  github.event.inputs.branch  }}"
+
+      - name: Parse JSON Payload
+        id: parse_payload
+        run: |
+          echo "CHART=${{ github.event.inputs.chart }}" >> $GITHUB_ENV
+          echo "BRANCH=${{ github.event.inputs.branch }}" >> $GITHUB_ENV
+
+      - name: Checkout to new branch
+        run: |
+          git checkout -b "auto-bump_${{ env.CHART }}"
+
+      - name: make chart-bump
+        run: |
+          echo "make chart-bump package=${{ env.CHART }} branch=${{ env.BRANCH }}"
+          last_line=$(make chart-bump package="${{ env.CHART }}" branch="${{ env.BRANCH }}" | tail -n 1)
+          echo "new_version=$last_line" >> $GITHUB_ENV
+          echo "new_version (in make step): $last_line" # For debugging in this step
+
+      - name: Echo new_version (separate step)
+        run: |
+          echo "new_version (in echo step): ${{ env.new_version }}"
+
+      - name: Git status
+        run: |
+          git status
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No bump detected"
+            exit 1
+          fi
+
+      - name: Read App Secrets
+        uses: rancher-eio/read-vault-secrets@main
+        with:
+          secrets: |
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY
+      - name: Create App Token
+        uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ env.APP_ID }}
+          private-key: ${{ env.PRIVATE_KEY }}
+
+      - name: Configure Git for Commit
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+
+      - name: Git Add, Commit, Push Changes
+        run: |
+          git add .
+          git commit -m "auto bump chart: ${{ env.CHART }} version: ${{ env.new_version }}"
+          git push origin "auto-bump_${{ env.CHART }}"
+
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          gh pr create --base ${{ env.BRANCH }} --head "auto-bump_${{ env.CHART }}" --title "[${{ env.BRANCH }}] auto: ${{ env.CHART }} ${{ env.new_version }}" --body-file '.github/auto_bump_template.md'
