@@ -20,7 +20,7 @@ spec:
       containers:
         - name: fluentbit
           image: "{{ template "logging-operator.fluentbitImage" . }}"
-          {{- include "logging-operator.individualFluentbit" $individualValues | nindent 10 }}
+          {{- include "logging-operator.individualFluentbit" $individualValues | indent 10 }}
           volumeMounts:
             - mountPath: /var/lib/rancher/rke/log/
               name: indir
@@ -57,6 +57,9 @@ spec:
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . }}
       {{- end }}
 ---
 apiVersion: v1
