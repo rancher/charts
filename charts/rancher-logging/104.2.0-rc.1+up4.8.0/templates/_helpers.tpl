@@ -206,9 +206,9 @@ loggingRef: {{ . }}
 {{/* Implements logic to add fluentd spec fields to custom loggings based on the cluster type */}}
 {{- define "logging-operator.individualFluentd" -}}
 {{- if .fluentd -}}
-{{- with .fluentd.scaling.replicas -}}
+{{- if .fluentd.scaling -}}
 scaling: 
-    replicas: {{ . }}
+    replicas: {{ .fluentd.scaling.replicas }}
 {{- end }}
 {{- with .fluentd.resources }}
 resources: {{ toYaml . | nindent 2 }}
