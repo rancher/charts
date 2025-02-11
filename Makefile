@@ -25,7 +25,7 @@ chart-bump:
 	@./scripts/pull-scripts
 	@./bin/charts-build-scripts chart-bump --package="$(package)" --branch="$(branch)"
 
-TARGETS := prepare patch clean clean-cache charts list index unzip zip standardize template regsync check-images check-rc enforce-lifecycle lifecycle-status auto-forward-port
+TARGETS := prepare patch clean clean-cache charts list index unzip zip standardize template regsync check-images check-rc enforce-lifecycle lifecycle-status auto-forward-port icon
 
 $(TARGETS):
 	@./scripts/pull-scripts
