@@ -29,10 +29,6 @@ jobs:
           echo "CHART=${{ github.event.inputs.chart }}" >> $GITHUB_ENV
           echo "BRANCH=${{ github.event.inputs.branch }}" >> $GITHUB_ENV
 
-      - name: Checkout to new branch
-        run: |
-          git checkout -b "auto-bump_${{ env.CHART }}"
-
       - name: make chart-bump
         run: |
           echo "make chart-bump package=${{ env.CHART }} branch=${{ env.BRANCH }}"
@@ -69,12 +65,6 @@ jobs:
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
-
-      - name: Git Add, Commit, Push Changes
-        run: |
-          git add .
-          git commit -m "auto bump chart: ${{ env.CHART }} version: ${{ env.new_version }}"
-          git push origin "auto-bump_${{ env.CHART }}"
 
       - name: Create Pull Request
         env:
