@@ -8,7 +8,6 @@ on:
         required: true
         type: string
 
-
 jobs:
   process-event:
     runs-on: ubuntu-latest
@@ -16,7 +15,7 @@ jobs:
       contents: write
       id-token: write
     steps:
-      - name: Checkout Code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Log Event Payload
@@ -29,7 +28,7 @@ jobs:
           echo "CHART=${{ github.event.inputs.chart }}" >> $GITHUB_ENV
           echo "BRANCH=${{ github.event.inputs.branch }}" >> $GITHUB_ENV
 
-      - name: Configure Git for Commit
+      - name: Setup Git
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
@@ -41,7 +40,7 @@ jobs:
           echo "new_version=$last_line" >> $GITHUB_ENV
           echo "new_version (in make step): $last_line" # For debugging in this step
 
-      - name: Echo new_version (separate step)
+      - name: Debug new_version (to bump)
         run: |
           echo "new_version (in echo step): ${{ env.new_version }}"
 
@@ -50,7 +49,8 @@ jobs:
         with:
           secrets: |
             secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
-            secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY ;
+
       - name: Create App Token
         uses: actions/create-github-app-token@v1
         id: app-token
