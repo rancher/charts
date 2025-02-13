@@ -81,14 +81,14 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          set -x
           make pull-scripts
-          last_line=$(make regsync | tail -n 1 | tr -d '\r') # Capture and remove any carriage returns
+          make regsync 2>&1 | tee output.log  # Capture output and save to file
+          last_line=$(tail -n 1 output.log | tr -d '\r') # Read last line from file
           last_line=$(echo "$last_line" | tr -d '\n')  # Remove any newlines
 
-          echo "changes=$last_line" >> $GITHUB_OUTPUT # Correct way to set output, the previous one will be deprecated soon
+          echo "changes=$last_line" >> $GITHUB_OUTPUT # Correct way to set output
 
-          echo "Last line: $last_line" # For debugging
+          cat output.log # Print the log file content for debugging in GHA
 
           if [[ "$last_line" == "YES" ]]; then
             echo "Changes detected. Continuing workflow."
