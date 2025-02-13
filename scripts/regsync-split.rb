@@ -9,7 +9,8 @@ pwd = Pathname(Dir.pwd)
 regsync = YAML.load((pwd + "regsync.yaml").read)
 
 regsync["sync"].sum do |sync|
-  sync["tags"]["allow"].count
+  allow_tags = sync.dig("tags", "allow") || []
+  allow_tags.count
 end.then do |sum|
   puts "total tags to consider: #{sum}"
 end
