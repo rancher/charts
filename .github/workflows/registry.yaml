@@ -1,8 +1,8 @@
-# Generate-Regsync-Config action will run for every PR into release-v2.9 branch only after an approval is given
+# Prime Sync action will run for every PR into release-v2.* branch only after an approval is given
 # It will run make target to generate regsync file and add a commit to the PR updating the regsync file.
 # It will then install and run regsync client and do the prime image mirroring.
 
-name: Generate-Regsync-Config
+name: Prime Sync
 
 on:
   pull_request:
@@ -37,13 +37,15 @@ jobs:
       id-token: write
     steps:
       - name: Read App Secrets
+        continue-on-error: false
         uses: rancher-eio/read-vault-secrets@main
         with:
           secrets: |
             secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
-            secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY ;
 
       - name: Create App Token
+        continue-on-error: false
         uses: actions/create-github-app-token@v1
         id: app-token
         with:
@@ -51,43 +53,62 @@ jobs:
           private-key: ${{ env.PRIVATE_KEY }}
 
       - name: Checkout
+        continue-on-error: false
         uses: actions/checkout@v4
         with:
           token: ${{ steps.app-token.outputs.token }}
 
       - name: Set-up Ruby 3.2
+        continue-on-error: false
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.2' # Not needed with a .ruby-version file
 
+      - name: Install Skopeo
+        continue-on-error: false
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y skopeo
+
+      - name: Git Setup
+        continue-on-error: false
+        run: |
+          git config --global user.email "${{ secrets.USER_GITHUB }}"
+          git config --global user.name "rancherbot"
+          git fetch origin ${{ github.event.pull_request.head.ref }}
+          git checkout ${{ github.event.pull_request.head.ref }}
+
       - name: Generate RegSync
+        continue-on-error: false
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          gh pr checkout ${{ github.event.pull_request.number }}
-          git config --global user.email "${{ secrets.USER_GITHUB }}"
-          git config --global user.name "rancherbot"
           make pull-scripts
-          make regsync
+          make regsync 2>&1 | tee output.log  # Capture output and save to file
+          last_line=$(tail -n 1 output.log | tr -d '\r') # Read last line from file
+          last_line=$(echo "$last_line" | tr -d '\n')  # Remove any newlines
 
-      - name: Check for modifications in regsync.yaml
-        id: check_changes
-        run: |
-            git diff --quiet regsync.yaml || echo "::set-output name=changed::true"
+          echo "changes=$last_line" >> $GITHUB_OUTPUT # Correct way to set output
 
-      - name: Commit files
-        if: steps.check_changes.outputs.changed == 'true'
-        run: |
-            git add regsync.yaml
-            git commit -m "Updating resync.yaml"
-            git push
+          cat output.log # Print the log file content for debugging in GHA
 
-      - name: No changes in regsync.yaml
-        if: steps.check_changes.outputs.changed != 'true'
+          if [[ "$last_line" == "YES" ]]; then
+            echo "Changes detected. Continuing workflow."
+          elif [[ "$last_line" == "NO" ]]; then
+            echo "No changes detected. Skipping workflow."
+            exit 0 # Graceful exit to prevent error
+          else
+            echo "Unexpected output from make regsync: $last_line"
+            exit 1 # Error exit to stop the workflow
+          fi
+
+      - name: Push
+        continue-on-error: false
         run: |
-            echo "regsync.yaml is the same"
+            git push origin ${{ github.event.pull_request.head.ref }}
 
       - name: Install Regsync
+        continue-on-error: false
         run: |
           curl --silent --fail --location --output regsync https://github.com/regclient/regclient/releases/download/v0.5.1/regsync-linux-amd64
           chmod +x regsync
