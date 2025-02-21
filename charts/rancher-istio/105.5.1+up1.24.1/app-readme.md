@@ -4,7 +4,7 @@ Our [Istio](https://istio.io/) installer wraps the istioctl binary commands in a
 * **[Kiali](https://kiali.io/)**: Used for graphing traffic flow throughout the mesh
 * **[Jaeger](https://www.jaegertracing.io/)**: A quick start, all-in-one installation used for tracing distributed system. This is not production qualified, please refer to jaeger documentation to determine which installation you may need instead.
 
-For more information on how to use the feature, refer to our [docs](https://rancher.com/docs/rancher/v2.x/en/istio/v2.5/).
+For more information on how to use the feature, refer to our [docs](https://ranchermanager.docs.rancher.com/integrations-in-rancher/istio).
 
 ## Upgrading to Kubernetes v1.25+
 

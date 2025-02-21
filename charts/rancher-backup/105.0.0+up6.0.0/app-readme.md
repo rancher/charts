@@ -2,7 +2,7 @@
 
 This chart enables ability to capture backups of the Rancher application and restore from these backups. This chart can be used to migrate Rancher from one Kubernetes cluster to a different Kubernetes cluster.
 
-For more information on how to use the feature, refer to our [docs](https://ranchermanager.docs.rancher.com/pages-for-subheaders/backup-restore-and-disaster-recovery).
+For more information on how to use the feature, refer to our [docs](https://ranchermanager.docs.rancher.com/how-to-guides/new-user-guides/backup-restore-and-disaster-recovery).
 
 This chart installs the following components:
 
