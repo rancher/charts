@@ -46,7 +46,10 @@ spec:
             - name: CERT_CA_NAMESPACE
               value: {{ include "remotedialer-proxy.namespace" . }}
             - name: SECRET
-              value: {{ .Values.service.secret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "api-extension.name" . }}
+                  key: data
             - name: HTTPS_PORT
               value: {{ .Values.service.httpsPort | quote }}
             - name: PROXY_PORT
