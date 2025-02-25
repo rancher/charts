@@ -1,8 +1,8 @@
 # Rancher Logging
 
-This chart is based off of the upstream [Banzai Logging Operator](https://banzaicloud.com/docs/one-eye/logging-operator/) chart. The chart deploys a logging operator and CRDs, which allows users to configure complex logging pipelines with a few simple custom resources. There are two levels of logging, which allow you to collect all logs in a cluster or from a single namespace.
+This chart is based off of the upstream [Logging Operator](https://github.com/kube-logging/logging-operator) chart. The chart deploys a logging operator and CRDs, which allows users to configure complex logging pipelines with a few simple custom resources. There are two levels of logging, which allow you to collect all logs in a cluster or from a single namespace.
 
-For more information on how to use the feature, refer to our [docs](https://rancher.com/docs/rancher/v2.x/en/logging/v2.7/).
+For more information on how to use the feature, refer to our [docs](https://ranchermanager.docs.rancher.com/v2.9/integrations-in-rancher/logging).
 
 ## Upgrading to Kubernetes v1.25+
 
