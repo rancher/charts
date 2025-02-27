@@ -1,0 +1,131 @@
+{{- if .Values.upgrade.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ template "kube-prometheus-stack.fullname" . }}-upgrade
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  labels:
+    app: {{ template "kube-prometheus-stack.fullname" . }}-upgrade
+  annotations:
+    "helm.sh/hook": pre-upgrade, pre-rollback
+    "helm.sh/hook-delete-policy": before-hook-creation, hook-succeeded
+    "helm.sh/hook-weight": "1"
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - daemonsets
+  - statefulsets
+  verbs:
+  - 'list'
+  - 'delete'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ template "kube-prometheus-stack.fullname" . }}-upgrade
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  labels:
+    app: {{ template "kube-prometheus-stack.fullname" . }}-upgrade
+  annotations:
+    "helm.sh/hook": pre-upgrade, pre-rollback
+    "helm.sh/hook-delete-policy": before-hook-creation, hook-succeeded, hook-failed
+    "helm.sh/hook-weight": "1"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ template "kube-prometheus-stack.fullname" . }}-upgrade
+subjects:
+- kind: ServiceAccount
+  name: {{ template "kube-prometheus-stack.fullname" . }}-upgrade
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "kube-prometheus-stack.fullname" . }}-upgrade
+  labels:
+    app: {{ template "kube-prometheus-stack.fullname" . }}-upgrade
+  annotations:
+    "helm.sh/hook": pre-upgrade, pre-rollback
+    "helm.sh/hook-delete-policy": before-hook-creation, hook-succeeded, hook-failed
+    "helm.sh/hook-weight": "1"
+rules:
+{{- if .Values.global.cattle.psp.enabled }}
+- apiGroups: ['policy']
+  resources: ['podsecuritypolicies']
+  verbs:     ['use']
+  resourceNames:
+  - {{ template "kube-prometheus-stack.fullname" . }}-upgrade
+{{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ template "kube-prometheus-stack.fullname" . }}-upgrade
+  labels:
+    app: {{ template "kube-prometheus-stack.fullname" . }}-upgrade
+  annotations:
+    "helm.sh/hook": pre-upgrade, pre-rollback
+    "helm.sh/hook-delete-policy": before-hook-creation, hook-succeeded, hook-failed
+    "helm.sh/hook-weight": "1"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ template "kube-prometheus-stack.fullname" . }}-upgrade
+subjects:
+- kind: ServiceAccount
+  name: {{ template "kube-prometheus-stack.fullname" . }}-upgrade
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ template "kube-prometheus-stack.fullname" . }}-upgrade
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  labels:
+    app: {{ template "kube-prometheus-stack.fullname" . }}-upgrade
+  annotations:
+    "helm.sh/hook": pre-upgrade, pre-rollback
+    "helm.sh/hook-delete-policy": before-hook-creation, hook-succeeded, hook-failed
+    "helm.sh/hook-weight": "1"
+---
+{{- if .Values.global.cattle.psp.enabled }}
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: {{ template "kube-prometheus-stack.fullname" . }}-upgrade
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  labels:
+    app: {{ template "kube-prometheus-stack.fullname" . }}-upgrade
+  annotations:
+    "helm.sh/hook": pre-upgrade, pre-rollback
+    "helm.sh/hook-delete-policy": before-hook-creation, hook-succeeded, hook-failed
+    "helm.sh/hook-weight": "1"
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    rule: 'RunAsAny'
+  seLinux:
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1
+        max: 65535
+  fsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1
+        max: 65535
+  readOnlyRootFilesystem: false
+  volumes:
+    - 'configMap'
+    - 'secret'
+{{- end }}
+{{- end }}
