@@ -1,0 +1,14 @@
+## Note: If you add another entry to this ConfigMap, make sure a corresponding env var is set
+## in the deployment of the operator to ensure that a Helm upgrade will force the operator
+## to reload the values in the ConfigMap and redeploy
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "helm-project-operator.name" . }}-config
+  namespace: {{ template "helm-project-operator.namespace" . }}
+  labels: {{ include "helm-project-operator.labels" . | nindent 4 }}
+data:
+  hardened.yaml: |-
+{{ .Values.hardenedNamespaces.configuration | toYaml | indent 4 }}
+  values.yaml: |-
+{{ .Values.valuesOverride | toYaml | indent 4 }}
