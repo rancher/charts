@@ -1,0 +1,308 @@
+{{- template "applyVersionOverrides" . -}}
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: vsphere-csi-controller
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "labels" . | nindent 4 }}
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 0
+  selector:
+    matchLabels:
+      app: vsphere-csi-controller
+  template:
+    metadata:
+      labels:
+        app: vsphere-csi-controller
+        role: vsphere-csi
+        {{- include "labels" . | nindent 8 }}
+      {{- with .Values.csiController.podLabels }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: vsphere-csi-controller
+      {{- if .Values.csiController.nodeSelector }}
+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
+      {{- with .Values.csiController.nodeSelector }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- else }}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              # RKE node selector label
+              - key: node-role.kubernetes.io/controlplane
+                operator: In
+                values:
+                - "true"
+              # Rancher node selector label
+              - key: kubernetes.io/os
+                operator: NotIn
+                values:
+                - "windows"
+            - matchExpressions:
+              # RKE2 node selector label
+              - key: node-role.kubernetes.io/control-plane
+                operator: In
+                values:
+                - "true"
+              # Rancher node selector label
+              - key: kubernetes.io/os
+                operator: NotIn
+                values:
+                - "windows"
+      {{- end }}
+      {{- if .Values.csiController.tolerations }}
+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+      {{- with .Values.csiController.tolerations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- else }}
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+        # Rancher specific change: These tolerations are added to account for RKE1 and RKE2 taints
+        - key: node-role.kubernetes.io/controlplane
+          effect: NoSchedule
+          value: "true"
+        - key: node-role.kubernetes.io/control-plane
+          effect: NoSchedule
+          operator: Exists
+        - key: node-role.kubernetes.io/etcd
+          effect: NoExecute
+          operator: Exists
+      {{- end }}
+      dnsPolicy: "Default"
+      containers:
+        - name: csi-attacher
+          image: "{{ template "system_default_registry" . }}{{ .Values.csiController.image.csiAttacher.repository }}:{{ .Values.csiController.image.csiAttacher.tag }}"
+          imagePullPolicy: {{ .Values.csiController.image.csiAttacher.imagePullPolicy | quote }}
+          args:
+            - "--v=4"
+            - "--timeout=300s"
+            - "--csi-address=$(ADDRESS)"
+            - "--leader-election"
+            - "--kube-api-qps=100"
+            - "--kube-api-burst=100"
+            {{- range .Values.csiController.image.csiAttacher.additionalArgs }}
+            - {{ . | quote }}
+            {{- end }}
+          env:
+            - name: ADDRESS
+              value: /csi/csi.sock
+          {{- with .Values.csiController.image.csiAttacher.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - mountPath: /csi
+              name: socket-dir
+{{- if .Values.csiController.csiResizer.enabled }}
+        - name: csi-resizer
+          image: "{{ template "system_default_registry" . }}{{ .Values.csiController.image.csiResizer.repository }}:{{ .Values.csiController.image.csiResizer.tag }}"
+          imagePullPolicy: {{ .Values.csiController.image.csiResizer.imagePullPolicy | quote }}
+          args:
+            - "--v=4"
+            - "--timeout=300s"
+            - "--handle-volume-inuse-error=false"
+            - "--csi-address=$(ADDRESS)"
+            - "--kube-api-qps=100"
+            - "--kube-api-burst=100"
+            - "--leader-election"
+            {{- range .Values.csiController.image.csiResizer.additionalArgs }}
+            - {{ . | quote }}
+            {{- end }}
+          env:
+            - name: ADDRESS
+              value: /csi/csi.sock
+          {{- with .Values.csiController.image.csiResizer.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - mountPath: /csi
+              name: socket-dir
+{{- end }}
+{{- if .Values.blockVolumeSnapshot.enabled }}
+        - name: csi-snapshotter
+          image: "{{ template "system_default_registry" . }}{{ .Values.csiController.image.csiSnapshotter.repository }}:{{ .Values.csiController.image.csiSnapshotter.tag }}"
+          imagePullPolicy: {{ .Values.csiController.image.csiSnapshotter.imagePullPolicy | quote }}
+          args:
+            - "--v=4"
+            - "--kube-api-qps=100"
+            - "--kube-api-burst=100"
+            - "--timeout=300s"
+            - "--csi-address=$(ADDRESS)"
+            - "--leader-election"
+            - "--leader-election-lease-duration=120s"
+            - "--leader-election-renew-deadline=60s"
+            - "--leader-election-retry-period=30s"
+            {{- range .Values.csiController.image.csiSnapshotter.additionalArgs }}
+            - {{ . | quote }}
+            {{- end }}
+          env:
+            - name: ADDRESS
+              value: /csi/csi.sock
+          {{- with .Values.csiController.image.csiSnapshotter.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - mountPath: /csi
+              name: socket-dir
+{{- end }}
+        - name: vsphere-csi-controller
+          image: "{{ template "system_default_registry" . }}{{ .Values.csiController.image.repository }}:{{ .Values.csiController.image.tag }}"
+          imagePullPolicy: {{ .Values.csiController.image.imagePullPolicy | quote }}
+          args:
+            - "--fss-name=internal-feature-states.csi.vsphere.vmware.com"
+            - "--fss-namespace=$(CSI_NAMESPACE)"
+            {{- if semverCompare "< 1.24" $.Capabilities.KubeVersion.Version }}
+            - "--use-gocsi=false"
+            {{- end }}
+            {{- range .Values.csiController.image.additionalArgs }}
+            - {{ . | quote }}
+            {{- end }}
+          env:
+            - name: CSI_ENDPOINT
+              value: unix:///csi/csi.sock
+            - name: X_CSI_MODE
+              value: "controller"
+            - name: X_CSI_SPEC_DISABLE_LEN_CHECK
+              value: "true"
+            - name: X_CSI_SERIAL_VOL_ACCESS_TIMEOUT
+              value: 3m
+            - name: VSPHERE_CSI_CONFIG
+              value: "/etc/cloud/csi-vsphere.conf"
+            - name: LOGGER_LEVEL
+              value: "PRODUCTION" # Options: DEVELOPMENT, PRODUCTION
+            - name: INCLUSTER_CLIENT_QPS
+              value: "100"
+            - name: INCLUSTER_CLIENT_BURST
+              value: "100"
+            - name: CSI_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          {{- with .Values.csiController.image.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - mountPath: /etc/cloud
+              name: vsphere-config-volume
+              readOnly: true
+            - mountPath: /csi
+              name: socket-dir
+          ports:
+            - name: healthz
+              containerPort: 9808
+              protocol: TCP
+            - name: prometheus
+              containerPort: 2112
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: healthz
+            initialDelaySeconds: 10
+            timeoutSeconds: 3
+            periodSeconds: 5
+            failureThreshold: 3
+        - name: liveness-probe
+          image: "{{ template "system_default_registry" . }}{{ .Values.csiController.image.livenessProbe.repository }}:{{ .Values.csiController.image.livenessProbe.tag }}"
+          imagePullPolicy: {{ .Values.csiController.image.livenessProbe.imagePullPolicy | quote }}
+          args:
+            - "--v=4"
+            - "--csi-address=/csi/csi.sock"
+            {{- range .Values.csiController.image.livenessProbe.additionalArgs }}
+            - {{ . | quote }}
+            {{- end }}
+          {{- with .Values.csiController.image.livenessProbe.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /csi
+        - name: vsphere-syncer
+          image: "{{ template "system_default_registry" . }}{{ .Values.csiController.image.vsphereSyncer.repository }}:{{ .Values.csiController.image.vsphereSyncer.tag }}"
+          imagePullPolicy: {{ .Values.csiController.image.vsphereSyncer.imagePullPolicy | quote }}
+          args:
+            - "--leader-election"
+            - "--fss-name=internal-feature-states.csi.vsphere.vmware.com"
+            - "--fss-namespace=$(CSI_NAMESPACE)"
+            {{- range .Values.csiController.image.vsphereSyncer.additionalArgs }}
+            - {{ . | quote }}
+            {{- end }}
+          ports:
+            - containerPort: 2113
+              name: prometheus
+              protocol: TCP
+          env:
+            - name: FULL_SYNC_INTERVAL_MINUTES
+              value: "30"
+            - name: VSPHERE_CSI_CONFIG
+              value: "/etc/cloud/csi-vsphere.conf"
+            - name: LOGGER_LEVEL
+              value: "PRODUCTION" # Options: DEVELOPMENT, PRODUCTION
+            - name: INCLUSTER_CLIENT_QPS
+              value: "100"
+            - name: INCLUSTER_CLIENT_BURST
+              value: "100"
+            - name: CSI_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          {{- with .Values.csiController.image.vsphereSyncer.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - mountPath: /etc/cloud
+              name: vsphere-config-volume
+              readOnly: true
+        - name: csi-provisioner
+          image: "{{ template "system_default_registry" . }}{{ .Values.csiController.image.csiProvisioner.repository }}:{{ .Values.csiController.image.csiProvisioner.tag }}"
+          imagePullPolicy: {{ .Values.csiController.image.csiProvisioner.imagePullPolicy | quote }}
+          args:
+            - "--v=4"
+            - "--timeout=300s"
+            - "--csi-address=$(ADDRESS)"
+            - "--kube-api-qps=100"
+            - "--kube-api-burst=100"
+            - "--leader-election"
+            - "--default-fstype=ext4"
+            {{- if .Values.topology.enabled }}
+            # needed only for topology aware setup
+            - "--feature-gates=Topology=true"
+            - "--strict-topology"
+            {{- end }}
+            {{- range .Values.csiController.image.csiProvisioner.additionalArgs }}
+            - {{ . | quote }}
+            {{- end }}
+          env:
+            - name: ADDRESS
+              value: /csi/csi.sock
+          {{- with .Values.csiController.image.csiProvisioner.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - mountPath: /csi
+              name: socket-dir
+      volumes:
+      - name: vsphere-config-volume
+        secret:
+          secretName: {{ .Values.vCenter.configSecret.name }}
+      - name: socket-dir
+        emptyDir: {}
