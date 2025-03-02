@@ -1,0 +1,209 @@
+{{- template "applyVersionOverrides" . -}}
+kind: DaemonSet
+apiVersion: apps/v1
+metadata:
+  name: vsphere-csi-node
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: vsphere-csi-node
+  updateStrategy:
+    type: "RollingUpdate"
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: vsphere-csi-node
+        role: vsphere-csi
+        {{- include "labels" . | nindent 8 }}
+      {{- with .Values.csiNode.podLabels }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- if .Values.csiNode.nodeSelector }}
+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
+      {{- with .Values.csiNode.nodeSelector }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- else }}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              # Rancher node selector label
+              - key: kubernetes.io/os
+                operator: NotIn
+                values:
+                - "windows"
+      {{- end }}
+      {{- if .Values.csiNode.tolerations }}
+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+      {{- with .Values.csiNode.tolerations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- else }}
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+        # Rancher specific change: These tolerations are added to account for RKE1 and RKE2 taints
+        - key: node-role.kubernetes.io/controlplane
+          effect: NoSchedule
+          value: "true"
+        - key: node-role.kubernetes.io/control-plane
+          effect: NoSchedule
+          operator: Exists
+        - key: node-role.kubernetes.io/etcd
+          effect: NoExecute
+          operator: Exists
+      {{- end }}
+      serviceAccountName: vsphere-csi-node
+      hostNetwork: true
+      dnsPolicy: "ClusterFirstWithHostNet"
+      containers:
+        - name: node-driver-registrar
+          image: "{{ template "system_default_registry" . }}{{ .Values.csiNode.image.nodeDriverRegistrar.repository }}:{{ .Values.csiNode.image.nodeDriverRegistrar.tag }}"
+          imagePullPolicy: {{ .Values.csiNode.image.nodeDriverRegistrar.imagePullPolicy | quote }}
+          args:
+            - "--v=5"
+            - "--csi-address=$(ADDRESS)"
+            - "--kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)"
+            {{- range .Values.csiNode.image.nodeDriverRegistrar.additionalArgs }}
+            - {{ . | quote }}
+            {{- end }}
+          env:
+            - name: ADDRESS
+              value: /csi/csi.sock
+            - name: DRIVER_REG_SOCK_PATH
+              value: {{ .Values.csiNode.prefixPath }}/var/lib/kubelet/plugins/csi.vsphere.vmware.com/csi.sock
+          {{- with .Values.csiNode.image.nodeDriverRegistrar.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: /csi
+            - name: registration-dir
+              mountPath: /registration
+          livenessProbe:
+            exec:
+              command:
+              - /csi-node-driver-registrar
+              - --kubelet-registration-path={{ .Values.csiNode.prefixPath }}/var/lib/kubelet/plugins/csi.vsphere.vmware.com/csi.sock
+              - --mode=kubelet-registration-probe
+            initialDelaySeconds: 3
+        - name: vsphere-csi-node
+          image: "{{ template "system_default_registry" . }}{{ .Values.csiNode.image.repository }}:{{ .Values.csiNode.image.tag }}"
+          imagePullPolicy: {{ .Values.csiNode.image.imagePullPolicy | quote }}
+          args:
+            - "--fss-name=internal-feature-states.csi.vsphere.vmware.com"
+            - "--fss-namespace=$(CSI_NAMESPACE)"
+            {{- if semverCompare "< 1.24" $.Capabilities.KubeVersion.Version }}
+            - "--use-gocsi=false"
+            {{- end }}
+            {{- range .Values.csiNode.image.additionalArgs }}
+            - {{ . | quote }}
+            {{- end }}
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: CSI_ENDPOINT
+              value: unix:///csi/csi.sock
+            - name: MAX_VOLUMES_PER_NODE
+              value: "59" # Maximum number of volumes that controller can publish to the node. If value is not set or zero Kubernetes decide how many volumes can be published by the controller to the node.
+            - name: X_CSI_MODE
+              value: "node"
+            - name: X_CSI_SPEC_REQ_VALIDATION
+              value: "false"
+            - name: X_CSI_SPEC_DISABLE_LEN_CHECK
+              value: "true"
+            - name: LOGGER_LEVEL
+              value: "PRODUCTION" # Options: DEVELOPMENT, PRODUCTION
+            - name: CSI_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: NODEGETINFO_WATCH_TIMEOUT_MINUTES
+              value: "1"
+          {{- with .Values.csiNode.image.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            privileged: true
+            capabilities:
+              add: ["SYS_ADMIN"]
+            allowPrivilegeEscalation: true
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: /csi
+            - name: pods-mount-dir
+              mountPath: {{ .Values.csiNode.prefixPath }}/var/lib/kubelet
+              # needed so that any mounts setup inside this container are
+              # propagated back to the host machine.
+              mountPropagation: "Bidirectional"
+            - name: device-dir
+              mountPath: /dev
+            - name: blocks-dir
+              mountPath: /sys/block
+            - name: sys-devices-dir
+              mountPath: /sys/devices
+          ports:
+            - name: healthz
+              containerPort: 9808
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: healthz
+            initialDelaySeconds: 10
+            timeoutSeconds: 5
+            periodSeconds: 5
+            failureThreshold: 3
+        - name: liveness-probe
+          image: "{{ template "system_default_registry" . }}{{ .Values.csiNode.image.livenessProbe.repository }}:{{ .Values.csiNode.image.livenessProbe.tag }}"
+          imagePullPolicy: {{ .Values.csiNode.image.livenessProbe.imagePullPolicy | quote }}
+          args:
+            - "--v=4"
+            - "--csi-address=/csi/csi.sock"
+            {{- range .Values.csiNode.image.livenessProbe.additionalArgs }}
+            - {{ . | quote }}
+            {{- end }}
+          {{- with .Values.csiNode.image.livenessProbe.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: /csi
+      volumes:
+        - name: registration-dir
+          hostPath:
+            path: {{ .Values.csiNode.prefixPath }}/var/lib/kubelet/plugins_registry
+            type: Directory
+        - name: plugin-dir
+          hostPath:
+            path: {{ .Values.csiNode.prefixPath }}/var/lib/kubelet/plugins/csi.vsphere.vmware.com
+            type: DirectoryOrCreate
+        - name: pods-mount-dir
+          hostPath:
+            path: {{ .Values.csiNode.prefixPath }}/var/lib/kubelet
+            type: Directory
+        - name: device-dir
+          hostPath:
+            path: /dev
+        - name: blocks-dir
+          hostPath:
+            path: /sys/block
+            type: Directory
+        - name: sys-devices-dir
+          hostPath:
+            path: /sys/devices
+            type: Directory

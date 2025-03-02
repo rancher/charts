@@ -1,0 +1,167 @@
+{{- if .Values.csiWindowsSupport.enabled }}
+{{- template "applyVersionOverrides" . -}}
+kind: DaemonSet
+apiVersion: apps/v1
+metadata:
+  name: vsphere-csi-node-windows
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: vsphere-csi-node-windows
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: vsphere-csi-node-windows
+        role: vsphere-csi-windows
+    spec:
+      nodeSelector:
+        kubernetes.io/os: windows
+      {{- if .Values.csiNode.tolerations }}
+      tolerations:
+      {{- with .Values.csiNode.tolerations }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+      {{- else }}
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+          # Rancher specific change: These tolerations are added to account for RKE1 and RKE2 taints
+        - key: node-role.kubernetes.io/controlplane
+          effect: NoSchedule
+          value: "true"
+        - key: node-role.kubernetes.io/control-plane
+          effect: NoSchedule
+          operator: Exists
+        - key: node-role.kubernetes.io/etcd
+          effect: NoExecute
+          operator: Exists
+      {{- end }}
+      serviceAccountName: vsphere-csi-node
+      containers:
+        - name: node-driver-registrar
+          image: "{{ template "system_default_registry" . }}{{ .Values.csiNode.image.nodeDriverRegistrar.repository }}:{{ .Values.csiNode.image.nodeDriverRegistrar.tag }}"
+          args:
+            - "--v=5"
+            - "--csi-address=$(ADDRESS)"
+            - "--kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)"
+            {{- if semverCompare "< 1.24" $.Capabilities.KubeVersion.Version }}
+            - "--health-port=9809"
+            {{- end }}
+          env:
+            - name: ADDRESS
+              value: 'unix://C:\\csi\\csi.sock'
+            - name: DRIVER_REG_SOCK_PATH
+              value: '{{ .Values.csiNode.prefixPathWindows | default "C:" }}\\var\\lib\\kubelet\\plugins\\csi.vsphere.vmware.com\\csi.sock'
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: /csi
+            - name: registration-dir
+              mountPath: /registration
+          livenessProbe:
+            exec:
+              command:
+                - /csi-node-driver-registrar.exe
+                - --kubelet-registration-path=C:\\var\\lib\\kubelet\\plugins\\csi.vsphere.vmware.com\\csi.sock
+                - --mode=kubelet-registration-probe
+            initialDelaySeconds: 3
+        - name: vsphere-csi-node
+          image: "{{ template "system_default_registry" . }}{{ .Values.csiNode.image.repository }}:{{ .Values.csiNode.image.tag }}"
+          args:
+            - "--fss-name=internal-feature-states.csi.vsphere.vmware.com"
+            - "--fss-namespace=$(CSI_NAMESPACE)"
+          imagePullPolicy: "Always"
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+            - name: CSI_ENDPOINT
+              value: 'unix://C:\\csi\\csi.sock'
+            - name: MAX_VOLUMES_PER_NODE
+              value: "0" # Maximum number of volumes that controller can publish to the node. If value is not set or zero Kubernetes decide how many volumes can be published by the controller to the node.
+            - name: X_CSI_MODE
+              value: node
+            - name: X_CSI_SPEC_REQ_VALIDATION
+              value: 'false'
+            - name: X_CSI_SPEC_DISABLE_LEN_CHECK
+              value: "true"
+            - name: LOGGER_LEVEL
+              value: "PRODUCTION" # Options: DEVELOPMENT, PRODUCTION
+            - name: X_CSI_LOG_LEVEL
+              value: DEBUG
+            - name: CSI_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: NODEGETINFO_WATCH_TIMEOUT_MINUTES
+              value: "1"
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: 'C:\csi'
+            - name: pods-mount-dir
+              mountPath: 'C:\var\lib\kubelet'
+            - name: csi-proxy-volume-v1
+              mountPath: \\.\pipe\csi-proxy-volume-v1
+            - name: csi-proxy-filesystem-v1
+              mountPath: \\.\pipe\csi-proxy-filesystem-v1
+            - name: csi-proxy-disk-v1
+              mountPath: \\.\pipe\csi-proxy-disk-v1
+            - name: csi-proxy-system-v1alpha1
+              mountPath: \\.\pipe\csi-proxy-system-v1alpha1
+          ports:
+            - name: healthz
+              containerPort: 9808
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: healthz
+            initialDelaySeconds: 10
+            timeoutSeconds: 5
+            periodSeconds: 5
+            failureThreshold: 3
+        - name: liveness-probe
+          image: "{{ template "system_default_registry" . }}{{ .Values.csiNode.image.livenessProbe.repository }}:{{ .Values.csiNode.image.livenessProbe.tag }}"
+          args:
+            - "--v=4"
+            - "--csi-address=/csi/csi.sock"
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: /csi
+      volumes:
+        - name: registration-dir
+          hostPath:
+            path: 'C:\var\lib\kubelet\plugins_registry\'
+            type: Directory
+        - name: plugin-dir
+          hostPath:
+            path: 'C:\var\lib\kubelet\plugins\csi.vsphere.vmware.com\'
+            type: DirectoryOrCreate
+        - name: pods-mount-dir
+          hostPath:
+            path: \var\lib\kubelet
+            type: Directory
+        - name: csi-proxy-disk-v1
+          hostPath:
+            path: \\.\pipe\csi-proxy-disk-v1
+            type: ''
+        - name: csi-proxy-volume-v1
+          hostPath:
+            path: \\.\pipe\csi-proxy-volume-v1
+            type: ''
+        - name: csi-proxy-filesystem-v1
+          hostPath:
+            path: \\.\pipe\csi-proxy-filesystem-v1
+            type: ''
+        - name: csi-proxy-system-v1alpha1
+          hostPath:
+            path: \\.\pipe\csi-proxy-system-v1alpha1
+            type: ''
+{{ end }}
