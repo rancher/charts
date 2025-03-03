@@ -5,17 +5,18 @@ cd $(dirname $0) # Move to the directory of the script
 source ./version # Source the version file to set environment variables
 
 # Check if the charts-build-scripts binary exists in the ../bin directory
+echo "Check if charts-build-scripts binary is present on the target version"
 if ls ../bin/charts-build-scripts 1>/dev/null 2>/dev/null; then
-    # Use awk to split the version output correctly and extract the version number
     CURRENT_SCRIPT_VERSION="v$(../bin/charts-build-scripts --version | awk '{print $3}')"
+    echo "Current version: ${CURRENT_SCRIPT_VERSION}"
+    echo "Expected version: ${CHARTS_BUILD_SCRIPT_VERSION}"
 
     # If the version is "latest", fetch the latest release version
     if [[ "${CHARTS_BUILD_SCRIPT_VERSION}" == "latest" ]]; then
-        CHARTS_BUILD_SCRIPT_VERSION=$(curl --silent "https://api.github.com/repos/rancher/charts-build-scripts/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        CHARTS_BUILD_SCRIPT_VERSION=$(curl --silent "https://api.github.com/repos/rancher/charts-build-scripts/releases/latest" | jq -r '.tag_name')
         echo "Resolved latest version to ${CHARTS_BUILD_SCRIPT_VERSION}"
     fi
 
-    echo "Current version: ${CURRENT_SCRIPT_VERSION}, Expected version: ${CHARTS_BUILD_SCRIPT_VERSION}"
     # Exit if the current version matches the expected version
     if [[ "${CURRENT_SCRIPT_VERSION}" == "${CHARTS_BUILD_SCRIPT_VERSION}" ]]; then
         echo "target version already present"
@@ -25,21 +26,27 @@ fi
 
 # If the version is "latest", fetch the latest release version
 if [[ "${CHARTS_BUILD_SCRIPT_VERSION}" == "latest" ]]; then
-    CHARTS_BUILD_SCRIPT_VERSION=$(curl --silent "https://api.github.com/repos/rancher/charts-build-scripts/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+    echo "Expected the latest version!"
+    CHARTS_BUILD_SCRIPT_VERSION=$(curl --silent "https://api.github.com/repos/rancher/charts-build-scripts/releases/latest" | jq -r '.tag_name')
     echo "Resolved latest version to ${CHARTS_BUILD_SCRIPT_VERSION}"
 fi
 
 echo "Downloading charts-build-scripts version ${CHARTS_BUILD_SCRIPTS_REPO}@${CHARTS_BUILD_SCRIPT_VERSION}"
 
 # Remove existing ../bin directory and change to the parent dir.
+echo "remove existing ../bin directory"
 rm -rf ../bin
 cd ..
 
+echo "re-create ../bin directory"
 mkdir -p bin # Re-create bin dir
 
 # Extract the OS and architecture from the go version command output
 OS=$(go version | cut -d' ' -f4 | cut -d'/' -f1)
 ARCH=$(go version | cut -d' ' -f4 | cut -d'/' -f2)
+echo "OS: $OS"
+echo "ARCH: $ARCH"
+
 
 # Determine the binary name based on the OS and architecture
 if [[ "$OS" == "windows" ]]; then
@@ -47,31 +54,24 @@ if [[ "$OS" == "windows" ]]; then
 else
     BINARY_NAME="charts-build-scripts_${OS}_${ARCH}"
 fi
+echo "BINARY_NAME: $BINARY_NAME"
 
 # Download the binary from the charts-build-scripts repository
-curl -s -L ${CHARTS_BUILD_SCRIPTS_REPO%.git}/releases/download/${CHARTS_BUILD_SCRIPT_VERSION}/${BINARY_NAME} --output bin/charts-build-scripts
-
-# If the binary is not found or contains "Not Found", Fall back to binary name format from old release scheme
-if ! [[ -f bin/charts-build-scripts ]] || [[ $(cat bin/charts-build-scripts) == "Not Found" ]]; then
-    echo "Falling back to old binary name format..."
-    rm bin/charts-build-scripts; # Remove the not found old binary
-    # Determine the fallback binary name.
-    if [[ ${OS} == "linux" ]]; then
-        BINARY_NAME=charts-build-scripts
-    else
-        BINARY_NAME=charts-build-scripts-${OS}
-    fi
-    # Attempt to download the binary using the fallback name.
-    curl -s -L ${CHARTS_BUILD_SCRIPTS_REPO%.git}/releases/download/${CHARTS_BUILD_SCRIPT_VERSION}/${BINARY_NAME} --output bin/charts-build-scripts
-fi
-
-# If falling back to old binary name format did not work, fail
-if ! [[ -f bin/charts-build-scripts ]] || [[ $(cat bin/charts-build-scripts) == "Not Found" ]]; then
-    echo "Failed to find charts-build-scripts binary"
-    rm bin/charts-build-scripts;
+echo "Downloading ${CHARTS_BUILD_SCRIPTS_REPO%.git}/releases/download/${CHARTS_BUILD_SCRIPT_VERSION}/${BINARY_NAME}"
+curl_output=$(curl -s -L -w "%{http_code}" ${CHARTS_BUILD_SCRIPTS_REPO%.git}/releases/download/${CHARTS_BUILD_SCRIPT_VERSION}/${BINARY_NAME} --output bin/charts-build-scripts)
+HTTP_CODE=$(echo "$curl_output" | tail -n 1) # Extract the HTTP code from the last line
+if [[ "$HTTP_CODE" -ne 200 ]]; then
+    echo "Error downloading ${BINARY_NAME}, HTTP code: $HTTP_CODE"
     exit 1
 fi
+echo "Downloaded ${BINARY_NAME} to ./bin/charts-build-scripts"
 
+echo "Checking downloaded binary file"
+file bin/charts-build-scripts
+
+
+
+file bin/charts-build-scripts #check the file type.
 echo "${BINARY_NAME} => ./bin/charts-build-scripts"
 
 chmod +x ./bin/charts-build-scripts
