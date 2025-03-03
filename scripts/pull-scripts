@@ -8,11 +8,25 @@ source ./version # Source the version file to set environment variables
 if ls ../bin/charts-build-scripts 1>/dev/null 2>/dev/null; then
     # Use awk to split the version output correctly and extract the version number
     CURRENT_SCRIPT_VERSION="v$(../bin/charts-build-scripts --version | awk '{print $3}')"
+
+    # If the version is "latest", fetch the latest release version
+    if [[ "${CHARTS_BUILD_SCRIPT_VERSION}" == "latest" ]]; then
+        CHARTS_BUILD_SCRIPT_VERSION=$(curl --silent "https://api.github.com/repos/rancher/charts-build-scripts/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        echo "Resolved latest version to ${CHARTS_BUILD_SCRIPT_VERSION}"
+    fi
+
     echo "Current version: ${CURRENT_SCRIPT_VERSION}, Expected version: ${CHARTS_BUILD_SCRIPT_VERSION}"
     # Exit if the current version matches the expected version
     if [[ "${CURRENT_SCRIPT_VERSION}" == "${CHARTS_BUILD_SCRIPT_VERSION}" ]]; then
+        echo "target version already present"
         exit 0
     fi
+fi
+
+# If the version is "latest", fetch the latest release version
+if [[ "${CHARTS_BUILD_SCRIPT_VERSION}" == "latest" ]]; then
+    CHARTS_BUILD_SCRIPT_VERSION=$(curl --silent "https://api.github.com/repos/rancher/charts-build-scripts/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+    echo "Resolved latest version to ${CHARTS_BUILD_SCRIPT_VERSION}"
 fi
 
 echo "Downloading charts-build-scripts version ${CHARTS_BUILD_SCRIPTS_REPO}@${CHARTS_BUILD_SCRIPT_VERSION}"
