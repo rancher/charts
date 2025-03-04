@@ -28,6 +28,7 @@ This chart installs the following components:
 | CIS    | k3s                     | [k3s-cis-1.9](https://github.com/rancher/security-scan/tree/release/v0.4/package/cfg/k3s-cis-1.9)                                               | k3s-v1.27+          |
 | CIS    | k3s                     | [k3s-cis-1.8-permissive](https://github.com/rancher/security-scan/tree/release/v0.4/package/cfg/k3s-cis-1.8-permissive)                        | k3s-v1.26           |
 | CIS    | k3s                     | [k3s-cis-1.8-hardened](https://github.com/rancher/security-scan/tree/release/v0.4/package/cfg/k3s-cis-1.8-hardened)                          | k3s-v1.26           |
+| CIS    | eks                     | [eks-1.5.0](https://github.com/aquasecurity/kube-bench/tree/main/cfg/eks-1.5.0)                                                         | eks-1.27.0+                 |
 | CIS    | eks                     | [eks-1.2.0](https://github.com/aquasecurity/kube-bench/tree/main/cfg/eks-1.2.0)                                                       | eks                 |
 | CIS    | aks                     | [aks-1.0](https://github.com/aquasecurity/kube-bench/tree/main/cfg/aks-1.0)                                                         | aks                 |
 | CIS    | gke                     | [gke-1.2.0](https://github.com/aquasecurity/kube-bench/tree/main/cfg/gke-1.2.0)                                                       | gke-1.20            |
