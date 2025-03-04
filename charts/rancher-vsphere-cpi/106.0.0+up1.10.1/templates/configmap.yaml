@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vsphere-cloud-config
+  labels:
+    vsphere-cpi-infra: config
+    component: {{ .Chart.Name }}-cloud-controller-manager
+    {{- include "labels" . | nindent 4 }}
+  namespace: {{ .Release.Namespace }}
+data:
+  vsphere.yaml: |
+    # Global properties in this section will be used for all specified vCenters unless overriden in VirtualCenter section.
+    global:
+      secretName: {{ .Values.vCenter.credentialsSecret.name | quote }}
+      secretNamespace: {{ $.Release.Namespace | quote }}
+      port: {{ .Values.vCenter.port }}
+      insecureFlag: {{ .Values.vCenter.insecureFlag }}
+      {{- with .Values.global.ipFamily }}
+      ipFamily:
+        {{- splitList "," . | toYaml | nindent 8 }}
+      {{- end }}
+    {{ with .Values.vCenter }}
+    # vcenter section
+    vcenter:
+      {{ .host | quote }}:
+        server: {{ .host | quote }}
+        datacenters:
+          - {{ .datacenters | quote }}
+    {{- if .labels.generate }}
+
+    # labels for regions and zones
+    labels:
+      region: {{ .labels.region | quote }}
+      zone: {{ .labels.zone | quote }}
+    {{- end }}
+    {{- end }}
+    {{- if .Values.nodesEnable }}
+    {{- with .Values.nodes }}
+    nodes:
+    {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- end }}
