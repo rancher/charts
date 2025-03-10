@@ -63,6 +63,10 @@ spec:
           operator: Exists
       {{- end }}
       serviceAccountName: vsphere-csi-node
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       hostNetwork: true
       dnsPolicy: "ClusterFirstWithHostNet"
       containers:
@@ -116,8 +120,21 @@ spec:
                   fieldPath: spec.nodeName
             - name: CSI_ENDPOINT
               value: unix:///csi/csi.sock
+            # Maximum number of volumes that controller can publish to the node. 
+            # If value is not set or zero Kubernetes decide how many volumes can be published by the controller to the node.
             - name: MAX_VOLUMES_PER_NODE
-              value: "59" # Maximum number of volumes that controller can publish to the node. If value is not set or zero Kubernetes decide how many volumes can be published by the controller to the node.
+            # Attaching more than 59 CNS disks per VM is possible since vSphere 8. To use it, set the feature gate pvscsiCtrlr256DiskSupportEnabled to true
+            # in the vCenter server appliance (/usr/lib/vmware-vsan/VsanVcMgmtConfig.xml). Do not forget to restart vsan-health service: service-control --restart vmware-vsan-health
+            # Your VM also need a Virtual Hardware Version that allows for 64 disks per PvSCSI controller.
+              {{- if and (.Values.maxPvscsiTargetsPerVm.enabled) (gt (int .Values.csiNode.maxVolumesPerNode) 0 ) }}
+              {{-   if gt (int .Values.csiNode.maxVolumesPerNode) 255 }}
+              value: "255"
+              {{-   else }}
+              value: "{{ .Values.csiNode.maxVolumesPerNode }}"
+              {{-   end }}
+              {{- else }}
+              value: "59"
+              {{- end }} 
             - name: X_CSI_MODE
               value: "node"
             - name: X_CSI_SPEC_REQ_VALIDATION

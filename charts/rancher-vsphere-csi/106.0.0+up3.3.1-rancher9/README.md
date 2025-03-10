@@ -8,7 +8,8 @@ The CSI driver for vSphere is `csi.vsphere.vmware.com`.
 
 ## Prerequisites
 
-- vSphere 6.7 U3+
+- vCenter 7.0+
+- vSphere 6.7 U3+ (ESXi hosts)
 - Kubernetes v1.20+
 - Out-of-tree vSphere Cloud Provider Interface (CPI)
 - A Secret on your Kubernetes cluster that contains vSphere CSI configuration and credentials
