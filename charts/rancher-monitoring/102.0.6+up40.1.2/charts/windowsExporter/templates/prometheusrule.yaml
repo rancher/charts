@@ -1,0 +1,13 @@
+{{- if and .Values.prometheusRule .Values.clients }}{{- if and .Values.prometheusRule.enabled .Values.clients.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels: {{ include "windowsExporter.labels" . | nindent 4 }}
+  name: {{ template "windowsExporter.name" . }}
+  namespace: {{ template "windowsExporter.namespace" . }}
+spec:
+  groups:
+  - name: windows-exporter-relabel.rules
+    rules:
+{{- include "windowsExporter.renamedMetricsRules" . | nindent 4 -}}
+{{- end }}{{- end }}

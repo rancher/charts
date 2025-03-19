@@ -1,0 +1,15 @@
+{{- if and .Values.clients }}{{- if and .Values.clients.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "windowsExporter.name" . }}
+  namespace: {{ template "windowsExporter.namespace" . }}
+  labels: {{ include "windowsExporter.labels" . | nindent 4 }}
+spec:
+  ports:
+  - name: windows-metrics
+    port: {{ required "Need .Values.clients.port to figure out where to get metrics from" .Values.clients.port }}
+    protocol: TCP
+    targetPort: {{ .Values.clients.port }}
+  selector: {{ include "windowsExporter.labels" . | nindent 4 }}
+{{- end }}{{- end }}
