@@ -6,7 +6,7 @@ require "yaml"
 
 pwd = Pathname(Dir.pwd)
 
-regsync = YAML.load((pwd + "regsync.yaml").read)
+regsync = YAML.load((pwd + "/config/regsync.yaml").read)
 
 regsync["sync"].sum do |sync|
   sync["tags"]["allow"].count
