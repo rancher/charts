@@ -29,6 +29,11 @@ jobs:
           echo "CHART=${{ github.event.inputs.chart }}" >> $GITHUB_ENV
           echo "BRANCH=${{ github.event.inputs.branch }}" >> $GITHUB_ENV
 
+      - name: Configure Git for Commit
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+
       - name: Checkout to new branch
         run: |
           git checkout -b "auto-bump_${{ env.CHART }}"
@@ -47,8 +52,8 @@ jobs:
       - name: read bump version from json file
         id: read_bump_version
         run: |
-          echo "Reading data from config/bump.json"
-          JSON_FILE="config/bump.json"
+          echo "Reading data from config/bump_version.json"
+          JSON_FILE="config/bump_version.json"
 
           if [[ ! -f "$JSON_FILE" ]]; then
             echo "Error: $JSON_FILE not found!"
@@ -87,11 +92,6 @@ jobs:
         with:
           app-id: ${{ env.APP_ID }}
           private-key: ${{ env.PRIVATE_KEY }}
-
-      - name: Configure Git for Commit
-        run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
 
       - name: Git Add, Commit, Push Changes
         run: |
