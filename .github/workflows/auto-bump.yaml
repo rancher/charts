@@ -8,6 +8,7 @@ on:
         required: true
         type: string
 
+
 jobs:
   process-event:
     runs-on: ubuntu-latest
@@ -15,7 +16,7 @@ jobs:
       contents: write
       id-token: write
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Log Event Payload
@@ -28,28 +29,62 @@ jobs:
           echo "CHART=${{ github.event.inputs.chart }}" >> $GITHUB_ENV
           echo "BRANCH=${{ github.event.inputs.branch }}" >> $GITHUB_ENV
 
-      - name: Setup Git
+      - name: Configure Git for Commit
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
 
-      - name: make chart-bump
+      - name: Checkout to new branch
         run: |
-          echo "make chart-bump package=${{ env.CHART }} branch=${{ env.BRANCH }}"
-          last_line=$(make chart-bump package="${{ env.CHART }}" branch="${{ env.BRANCH }}" | tail -n 1)
-          echo "new_version=$last_line" >> $GITHUB_ENV
-          echo "new_version (in make step): $last_line" # For debugging in this step
+          git checkout -b "auto-bump_${{ env.CHART }}"
 
-      - name: Debug new_version (to bump)
+      - name: make pull-scripts
         run: |
-          echo "new_version (in echo step): ${{ env.new_version }}"
+          echo "make pull-scripts"
+          make pull-scripts
+
+      - name: chart-bump
+        run: |
+          LOG="DEBUG"
+          echo "Running chart-bump with LOG=${LOG}"
+          ./bin/charts-build-scripts chart-bump --package="${{ env.CHART }}" --branch="${{ env.BRANCH }}"
+
+      - name: read bump version from json file
+        id: read_bump_version
+        run: |
+          echo "Reading data from config/bump_version.json"
+          JSON_FILE="config/bump_version.json"
+
+          if [[ ! -f "$JSON_FILE" ]]; then
+            echo "Error: $JSON_FILE not found!"
+            exit 1
+          fi
+
+          NEW_VERSION=$(jq -r '.new_version' "$JSON_FILE")
+          if [[ -z "$NEW_VERSION" || "$NEW_VERSION" == "null" ]]; then
+            echo "Error: Could not read '.new_version' or value is null/empty in $JSON_FILE"
+            exit 1
+          fi
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+          CHARTS_ARRAY_JSON=$(jq -c '.charts' "$JSON_FILE")
+          echo $CHARTS_ARRAY_JSON
+
+      - name: Git status
+        run: |
+          git status
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No bump detected"
+            exit 1
+          fi
 
       - name: Read App Secrets
         uses: rancher-eio/read-vault-secrets@main
         with:
           secrets: |
             secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
-            secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY ;
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY
 
       - name: Create App Token
         uses: actions/create-github-app-token@v1
@@ -58,12 +93,14 @@ jobs:
           app-id: ${{ env.APP_ID }}
           private-key: ${{ env.PRIVATE_KEY }}
 
-      - name: Push Changes
+      - name: Git Add, Commit, Push Changes
         run: |
-          git push origin "auto-bump-${{ env.CHART }}-${{ env.new_version }}"
+          git add .
+          git commit -m "auto bump chart: ${{ env.CHART }} version: ${{ env.new_version }}"
+          git push origin "auto-bump_${{ env.CHART }}"
 
       - name: Create Pull Request
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          gh pr create --base ${{ env.BRANCH }} --head "auto-bump-${{ env.CHART }}-${{ env.new_version }}" --title "[${{ env.BRANCH }}] auto: ${{ env.CHART }} ${{ env.new_version }}" --body-file '.github/auto_bump_template.md'
+          gh pr create --base ${{ env.BRANCH }} --head "auto-bump_${{ env.CHART }}" --title "[${{ env.BRANCH }}] auto: ${{ env.CHART }} ${{ steps.read_bump_version.outputs.version }}" --body-file '.github/auto_bump_template.md'
