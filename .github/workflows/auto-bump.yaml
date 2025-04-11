@@ -35,10 +35,6 @@ jobs:
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
 
-      - name: Checkout to new branch
-        run: |
-          git checkout -b "auto-bump_${{ env.CHART }}"
-
       - name: make pull-scripts
         run: |
           echo "make pull-scripts"
@@ -46,7 +42,7 @@ jobs:
 
       - name: chart-bump
         run: |
-          LOG="DEBUG" ./bin/charts-build-scripts chart-bump --package="${{ env.CHART }}" --branch="${{ env.BRANCH }}" --version="${{ env.VERSION_OVERRIDE }}"
+          LOG="DEBUG" ./bin/charts-build-scripts chart-bump --package="${{ env.CHART }}" --branch="${{ env.BRANCH }}" --override="${{ env.VERSION_OVERRIDE }}"
 
       - name: read bump version from json file
         id: read_bump_version
@@ -64,11 +60,14 @@ jobs:
             echo "Error: Could not read '.new_version' or value is null/empty in $JSON_FILE"
             exit 1
           fi
-
-          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "New version: $NEW_VERSION"
+          cat "$JSON_FILE"
 
           CHARTS_ARRAY_JSON=$(jq -c '.charts' "$JSON_FILE")
           echo $CHARTS_ARRAY_JSON
+
+          echo "BUMP_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
 
       - name: Git status
         run: |
@@ -92,14 +91,31 @@ jobs:
           app-id: ${{ env.APP_ID }}
           private-key: ${{ env.PRIVATE_KEY }}
 
+      - name: Set Branch Name Output
+        id: set_branch # Give step an id
+        run: |
+          echo 'NEW_BRANCH="auto-bump_${{ env.CHART }}_${{ env.BUMP_VERSION }}"' >> $GITHUB_ENV
+
+      - name: Echo Job Outputs (for debugging)
+        run: |
+          echo "BRANCH: ${{ env.BRANCH}}"
+          echo "CHART: ${{ env.CHART}}"
+          echo "NEW_BRANCH: ${{ env.NEW_BRANCH}}"
+          echo "BUMP_VERSION: ${{ env.BUMP_VERSION}}"
+
+
+      - name: Checkout to new branch
+        run: |
+          git checkout -b "${{ env.NEW_BRANCH}}"
+
       - name: Git Add, Commit, Push Changes
         run: |
           git add .
-          git commit -m "auto bump chart: ${{ env.CHART }} version: ${{ env.new_version }}"
-          git push origin "auto-bump_${{ env.CHART }}"
+          git commit -m "auto bump chart: ${{ env.CHART }} version: ${{ env.BUMP_VERSION }}"
+          git push origin "${{ env.NEW_BRANCH}}"
 
       - name: Create Pull Request
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          gh pr create --base ${{ env.BRANCH }} --head "auto-bump_${{ env.CHART }}" --title "[${{ env.BRANCH }}] auto: ${{ env.CHART }} ${{ steps.read_bump_version.outputs.version }}" --body-file '.github/auto_bump_template.md'
+          gh pr create --base ${{ env.BRANCH }} --head "${{ env.NEW_BRANCH}}" --title "[${{ env.BRANCH }}] auto: ${{ env.CHART }} ${{ env.BUMP_VERSION }}" --body-file '.github/auto_bump_template.md'
