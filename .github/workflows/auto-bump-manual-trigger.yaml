@@ -12,13 +12,18 @@ on:
         required: true
         default: "dev-v2.11"
       version-override:
-        description: "disable the bump version auto calculation with a version to override it"
+        description: "Optional: disable the bump version auto calculation, forcing it to be a patch or minor version bump"
         required: false
-        default: ""
+        type: choice
+        options:
+          - auto
+          - patch
+          - minor
+        default: 'auto'
 
 
 jobs:
   auto-bump:
     uses: ./.github/workflows/auto-bump.yaml
     with:
-      eventPayload: '{"chart": "${{ github.event.inputs.chart }}", "branch": "${{ github.event.inputs.branch }}"}'
+      eventPayload: '{"chart": "${{ github.event.inputs.chart }}", "branch": "${{ github.event.inputs.branch }}", "version-override": "${{ github.event.inputs.version-override }}"}'
