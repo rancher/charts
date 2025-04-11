@@ -21,13 +21,14 @@ jobs:
 
       - name: Log Event Payload
         run: |
-         echo "Payload: ${{  github.event.inputs.chart  }}; ${{  github.event.inputs.branch  }}"
+         echo "Payload: ${{  github.event.inputs.chart  }}; ${{  github.event.inputs.branch  }}; ${{  github.event.inputs.version-override  }}"
 
       - name: Parse JSON Payload
         id: parse_payload
         run: |
           echo "CHART=${{ github.event.inputs.chart }}" >> $GITHUB_ENV
           echo "BRANCH=${{ github.event.inputs.branch }}" >> $GITHUB_ENV
+          echo "VERSION_OVERRIDE=${{ github.event.inputs.version-override }}" >> $GITHUB_ENV
 
       - name: Configure Git for Commit
         run: |
@@ -47,7 +48,7 @@ jobs:
         run: |
           LOG="DEBUG"
           echo "Running chart-bump with LOG=${LOG}"
-          ./bin/charts-build-scripts chart-bump --package="${{ env.CHART }}" --branch="${{ env.BRANCH }}"
+          ./bin/charts-build-scripts chart-bump --package="${{ env.CHART }}" --branch="${{ env.BRANCH }}" --version="${{ env.VERSION_OVERRIDE }}"
 
       - name: read bump version from json file
         id: read_bump_version
