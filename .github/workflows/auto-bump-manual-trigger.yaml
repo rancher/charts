@@ -1,0 +1,29 @@
+name: Manual Trigger for Auto Bump
+
+on:
+  workflow_dispatch:
+    inputs:
+      chart:
+        description: "Chart name"
+        required: true
+        default: "example-chart"
+      branch:
+        description: "Branch name (only dev branches)"
+        required: true
+        default: "dev-v2.11"
+      version-override:
+        description: "Optional: disable the bump version auto calculation, forcing it to be a patch or minor version bump"
+        required: false
+        type: choice
+        options:
+          - auto
+          - patch
+          - minor
+        default: 'auto'
+
+
+jobs:
+  auto-bump:
+    uses: ./.github/workflows/auto-bump.yaml
+    with:
+      eventPayload: '{"chart": "${{ github.event.inputs.chart }}", "branch": "${{ github.event.inputs.branch }}", "version-override": "${{ github.event.inputs.version-override }}"}'
