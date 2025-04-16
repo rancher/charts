@@ -29,6 +29,7 @@ jobs:
           echo "CHART=${{ github.event.inputs.chart }}" >> $GITHUB_ENV
           echo "BRANCH=${{ github.event.inputs.branch }}" >> $GITHUB_ENV
           echo "VERSION_OVERRIDE=${{ github.event.inputs.version-override }}" >> $GITHUB_ENV
+          echo "MULTI_RC=${{ github.event.inputs.multi-rc }}" >> $GITHUB_ENV
 
       - name: Configure Git for Commit
         run: |
@@ -42,7 +43,7 @@ jobs:
 
       - name: chart-bump
         run: |
-          LOG="DEBUG" ./bin/charts-build-scripts chart-bump --package="${{ env.CHART }}" --branch="${{ env.BRANCH }}" --override="${{ env.VERSION_OVERRIDE }}"
+          LOG="DEBUG" ./bin/charts-build-scripts chart-bump --package="${{ env.CHART }}" --branch="${{ env.BRANCH }}" --override="${{ env.VERSION_OVERRIDE }} --multi-rc=${{ env.MULTI_RC }}"
 
       - name: read bump version from json file
         id: read_bump_version
@@ -102,6 +103,7 @@ jobs:
           echo "CHART: ${{ env.CHART}}"
           echo "NEW_BRANCH: ${{ env.NEW_BRANCH}}"
           echo "BUMP_VERSION: ${{ env.BUMP_VERSION}}"
+          echo "MULTI_RC": ${{ env.MULTI_RC}}"
 
 
       - name: Checkout to new branch
