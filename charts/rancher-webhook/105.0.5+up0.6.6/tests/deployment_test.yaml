@@ -1,0 +1,73 @@
+suite: Test Deployment
+templates:
+  - deployment.yaml
+
+tests:
+  - it: should set webhook default port values
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].containerPort
+          value: 9443
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CATTLE_PORT
+            value: "9443"
+
+  - it: should set updated webhook port
+    set:
+      port: 2319
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].containerPort
+          value: 2319
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CATTLE_PORT
+            value: "2319"
+
+  - it: should not set capabilities by default.
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].securityContext
+
+  - it: should set net capabilities when capNetBindService is true.
+    set:
+      capNetBindService: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].securityContext.capabilities.add
+          content: NET_BIND_SERVICE
+
+  - it: should not set volumes or volumeMounts by default
+    asserts:
+      - isNull:
+          path: spec.template.spec.volumes
+      - isNull:
+          path: spec.template.spec.volumeMounts
+
+  - it: should set CA fields when CA options are set
+    set:
+      auth.clientCA: base64-encoded-cert
+      auth.allowedCNs:
+        - kube-apiserver
+        - joe
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: client-ca
+            secret:
+              secretName: client-ca
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: client-ca
+            mountPath: /tmp/k8s-webhook-server/client-ca
+            readOnly: true
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ALLOWED_CNS
+            value: kube-apiserver,joe
