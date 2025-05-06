@@ -8,13 +8,26 @@ on:
         required: true
         default: "example-chart"
       branch:
-        description: "Branch name (only dev branches)"
+        description: "Branch name (only dev branches); (must be the same as 'Use workflow from' branch)"
         required: true
         default: "dev-v2.11"
-
+      version-override:
+        description: "Version Override (optional): disable the bump version auto calculation, forcing it to be a patch or minor version bump"
+        required: false
+        type: choice
+        options:
+          - auto
+          - patch
+          - minor
+        default: 'auto'
+      multi-rc:
+        description: "Multi-RC (optional): allow multiple-RC versions for this bump, the default behavior is to remove the previous RC version"
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   auto-bump:
     uses: ./.github/workflows/auto-bump.yaml
     with:
-      eventPayload: '{"chart": "${{ github.event.inputs.chart }}", "branch": "${{ github.event.inputs.branch }}"}'
+      eventPayload: '{"chart": "${{ github.event.inputs.chart }}", "branch": "${{ github.event.inputs.branch }}", "version-override": "${{ github.event.inputs.version-override }}", "multi-rc": "${{ github.event.inputs.multi-rc }}"}'
