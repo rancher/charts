@@ -16,7 +16,7 @@
 -          image: "{{ .Values.registry }}/{{ .Values.controller.prime.image.repository }}:{{ .Values.controller.prime.image.tag }}"
 +          image: {{ template "system_default_registry" . }}{{ .Values.controller.prime.image.repository }}:{{ .Values.controller.prime.image.tag }}
            {{- end }}
-           imagePullPolicy: Always
+           imagePullPolicy: {{ .Values.controller.prime.image.imagePullPolicy }}
            resources: {}
 @@ -117,7 +117,7 @@
        {{- end }}
@@ -24,10 +24,10 @@
          - name: neuvector-controller-pod
 -          image: {{ include "neuvector.controller.image" . | quote }}
 +          image: {{ template "system_default_registry" . }}{{ .Values.controller.image.repository }}:{{ .Values.controller.image.tag }}
+           imagePullPolicy: {{ .Values.controller.image.imagePullPolicy }}
            {{- if $pre530 }}
            securityContext:
-             privileged: true
-@@ -159,18 +159,6 @@
+@@ -160,18 +160,6 @@
              - name: CTRL_PERSIST_CONFIG
                value: "1"
            {{- end }}
