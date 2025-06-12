@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sr-bundle-db-deployment
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      sr-app: db
+  template:
+    metadata:
+      labels:
+        sr-app: db
+    spec:
+      {{- if .Values.privateRegistry.registrySecret }}
+      imagePullSecrets:
+      - name: {{ .Values.privateRegistry.registrySecret }}
+      {{- end }}
+      containers:
+      - args:
+        - --maxmemory
+        - 1gb
+        - --maxmemory-policy
+        - noeviction
+        image: {{ template "redis_registry_url" . }}library/redis:7.4.1
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        name: redis
+        ports:
+        - containerPort: 6379
+        resources:
+          requests:
+            memory: {{ .Values.resources.redis.requests.memory }}
+            cpu: {{ .Values.resources.redis.requests.cpu }}
+            ephemeral-storage: {{ .Values.resources.redis.requests.ephemeralStorage }}
+          limits:
+            memory: {{ .Values.resources.redis.limits.memory }}
+            cpu: {{ .Values.resources.redis.limits.cpu }}
+            ephemeral-storage: {{ .Values.resources.redis.limits.ephemeralStorage }}
+      nodeSelector:
+        kubernetes.io/os: linux
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sr-bundle-db-service
+  namespace: {{ .Release.Namespace }}
+spec:
+  ports:
+  - port: 6379
+    protocol: TCP
+    targetPort: 6379
+  selector:
+    sr-app: db
