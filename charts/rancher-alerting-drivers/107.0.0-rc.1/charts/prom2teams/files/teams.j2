@@ -1,0 +1,44 @@
+{%- set
+  theme_colors = {
+    'resolved' : '2DC72D',
+    'critical' : '8C1A1A',
+    'severe' : '8C1A1A',
+    'warning' : 'FF9A0B',
+    'unknown' : 'CCCCCC'
+  }
+-%}
+
+{
+    "@type": "MessageCard",
+    "@context": "http://schema.org/extensions",
+    "themeColor": "{% if status=='resolved' %} {{ theme_colors.resolved }} {% else %} {{ theme_colors[msg_text.severity] }} {% endif %}",
+    "summary": "{% if status=='resolved' %}(Resolved) {% endif %}{{ msg_text.summary }}",
+    "title": "Prometheus alert {% if status=='resolved' %}(Resolved) {% elif status=='unknown' %} (status unknown) {% endif %}",
+    "sections": [{
+        "activityTitle": "{{ msg_text.summary }}",
+        "facts": [{% if msg_text.name %}{
+            "name": "Alert",
+            "value": "{{ msg_text.name }}"
+        },{% endif %}{% if msg_text.instance %}{
+            "name": "In host",
+            "value": "{{ msg_text.instance }}"
+        },{% endif %}{% if msg_text.severity %}{
+            "name": "Severity",
+            "value": "{{ msg_text.severity }}"
+        },{% endif %}{% if msg_text.description %}{
+            "name": "Description",
+            "value": "{{ msg_text.description }}"
+        },{% endif %}{
+            "name": "Status",
+            "value": "{{ msg_text.status }}"
+        }{% if msg_text.extra_labels %}{% for key in msg_text.extra_labels %},{
+            "name": "{{ key }}",
+            "value": "{{ msg_text.extra_labels[key] }}"
+        }{% endfor %}{% endif %}
+        {% if msg_text.extra_annotations %}{% for key in msg_text.extra_annotations %},{
+            "name": "{{ key }}",
+            "value": "{{ msg_text.extra_annotations[key] }}"
+        }{% endfor %}{% endif %}],
+          "markdown": true
+    }]
+}
