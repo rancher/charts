@@ -1,8 +1,4 @@
-# Prime Sync action will run for every PR into release-v2.* branch only after an approval is given
-# It will run make target to generate regsync file and add a commit to the PR updating the regsync file.
-# It will then install and run regsync client and do the prime image mirroring.
-
-name: Prime Sync
+name: Registries Scan/Sync
 
 on:
   pull_request:
@@ -10,27 +6,45 @@ on:
       - labeled
 
 jobs:
-  onLabelAndApproval:
-    if: github.event.label.name == 'regsync-ready' && startsWith(github.event.pull_request.base.ref, 'release-v')
+  scanLabelAndApproval:
+    if: github.event.label.name == 'registries-scan' && startsWith(github.event.pull_request.base.ref, 'release-v')
     runs-on: ubuntu-latest
     outputs:
-      is_approved: ${{ steps.check-approval.outputs.approved }}
+      start_scan: ${{ steps.scan-check-approval.outputs.scan-approved }}
     steps:
-      - name: Check if PR is approved
-        id: check-approval
+      - name: Start Scan - Check if PR is approved
+        id: scan-check-approval
         run: |
-          IS_APPROVED=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews --jq '[.[] | select(.state == "APPROVED")] | length')
-          if [[ "$IS_APPROVED" -gt 0 ]]; then
-            echo "::set-output name=approved::true"
+          START_SCAN=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews --jq '[.[] | select(.state == "APPROVED")] | length')
+          if [[ "$START_SCAN" -gt 0 ]]; then
+            echo "::set-output name=scan-approved::true"
           else
-            echo "::set-output name=approved::false"
+            echo "::set-output name=scan-approved::false"
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  build:
-    needs: onLabelAndApproval
-    if: needs.onLabelAndApproval.outputs.is_approved == 'true'
+  syncLabelAndApproval:
+    if: github.event.label.name == 'registries-sync' && startsWith(github.event.pull_request.base.ref, 'release-v')
+    runs-on: ubuntu-latest
+    outputs:
+      start_sync: ${{ steps.sync-check-approval.outputs.sync-approved }}
+    steps:
+      - name: Start Sync - Check if PR is approved
+        id: sync-check-approval
+        run: |
+          START_SYNC=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews --jq '[.[] | select(.state == "APPROVED")] | length')
+          if [[ "$START_SYNC" -gt 0 ]]; then
+            echo "::set-output name=sync-approved::true"
+          else
+            echo "::set-output name=sync-approved::false"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  scan:
+    needs: scanLabelAndApproval
+    if: needs.scanLabelAndApproval.outputs.start_scan == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -58,69 +72,74 @@ jobs:
         with:
           token: ${{ steps.app-token.outputs.token }}
 
-      - name: Set-up Ruby 3.2
-        continue-on-error: false
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.2' # Not needed with a .ruby-version file
-
-      - name: Install Skopeo
-        continue-on-error: false
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y skopeo
-
       - name: Git Setup
         continue-on-error: false
         run: |
+          echo "git global configuration"
+          git config --global --add safe.directory "$PWD"
+          echo $PATH >> $GITHUB_PATH
           git config --global user.email "${{ secrets.USER_GITHUB }}"
           git config --global user.name "rancherbot"
           git fetch origin ${{ github.event.pull_request.head.ref }}
           git checkout ${{ github.event.pull_request.head.ref }}
 
-      - name: Generate RegSync
-        continue-on-error: false
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+      - name: Scan Images from Assets/;Docker;Staging
         run: |
           make pull-scripts
-          make regsync 2>&1 | tee output.log  # Capture output and save to file
-          last_line=$(tail -n 1 output.log | tr -d '\r') # Read last line from file
-          last_line=$(echo "$last_line" | tr -d '\n')  # Remove any newlines
-
-          echo "changes=$last_line" >> $GITHUB_OUTPUT # Correct way to set output
-
-          cat output.log # Print the log file content for debugging in GHA
-
-          if [[ "$last_line" == "YES" ]]; then
-            echo "Changes detected. Continuing workflow."
-          elif [[ "$last_line" == "NO" ]]; then
-            echo "No changes detected. Skipping workflow."
-            exit 0 # Graceful exit to prevent error
-          else
-            echo "Unexpected output from make regsync: $last_line"
-            exit 1 # Error exit to stop the workflow
-          fi
+          LOG="DEBUG" ./bin/charts-build-scripts scan-registries
 
       - name: Push
         continue-on-error: false
         run: |
-            git push origin ${{ github.event.pull_request.head.ref }}
+          git push origin ${{ github.event.pull_request.head.ref }}
 
-      - name: Install Regsync
+  sync:
+    needs: syncLabelAndApproval
+    if: needs.syncLabelAndApproval.outputs.start_sync == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Read App Secrets
+        continue-on-error: false
+        uses: rancher-eio/read-vault-secrets@main
+        with:
+          secrets: |
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY ;
+
+      - name: Create App Token
+        continue-on-error: false
+        uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ env.APP_ID }}
+          private-key: ${{ env.PRIVATE_KEY }}
+
+      - name: Checkout
+        continue-on-error: false
+        uses: actions/checkout@v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Git Setup
         continue-on-error: false
         run: |
-          curl --silent --fail --location --output regsync https://github.com/regclient/regclient/releases/download/v0.5.1/regsync-linux-amd64
-          chmod +x regsync
+          echo "git global configuration"
+          git config --global --add safe.directory "$PWD"
+          echo $PATH >> $GITHUB_PATH
+          git config --global user.email "${{ secrets.USER_GITHUB }}"
+          git config --global user.name "rancherbot"
+          git fetch origin ${{ github.event.pull_request.head.ref }}
+          git checkout ${{ github.event.pull_request.head.ref }}
 
-      - name: Sync Images to Registry
-        run: |
-          export PATH=$PATH:$(pwd)
-          head config/regsync.yaml
-          ruby ./scripts/regsync-split.rb
-          tree ./split-regsync
-          time find split-regsync -type f -name split-regsync.yaml -print -exec time regsync once --config '{}' ';'
+      - name: Sync Registries
+        continue-on-error: false
         env:
-          REGISTRY_ENDPOINT: ${{ secrets.REGISTRY_ENDPOINT }}
-          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
-          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          PRIME_USER: ${{ secrets.REGISTRY_USERNAME }}
+          PRIME_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          LOG: "DEBUG"
+        run: |
+          make pull-scripts
+          ./bin/charts-build-scripts sync-registries
