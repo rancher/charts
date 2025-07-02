@@ -55,6 +55,8 @@ jobs:
         uses: rancher-eio/read-vault-secrets@main
         with:
           secrets: |
+            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKER_USERNAME ;
+            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKER_PASSWORD ;
             secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
             secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY ;
 
@@ -84,9 +86,11 @@ jobs:
           git checkout ${{ github.event.pull_request.head.ref }}
 
       - name: Scan Images from Assets/;Docker;Staging
+        env:
+          LOG: "DEBUG"
         run: |
           make pull-scripts
-          LOG="DEBUG" ./bin/charts-build-scripts scan-registries
+          ./bin/charts-build-scripts scan-registries
 
       - name: Push
         continue-on-error: false
@@ -139,6 +143,8 @@ jobs:
         env:
           PRIME_USER: ${{ secrets.REGISTRY_USERNAME }}
           PRIME_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          DOCKER_USERNAME: ${{ env.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ env.DOCKER_PASSWORD }}
           LOG: "DEBUG"
         run: |
           make pull-scripts
