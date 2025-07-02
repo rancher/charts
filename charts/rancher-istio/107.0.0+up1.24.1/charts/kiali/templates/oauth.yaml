@@ -1,0 +1,31 @@
+{{- if eq "true" (include "kiali-server.isOpenShift" .) }}
+{{- if (or (.Values.kiali_route_url) (.Values.auth.openshift.redirect_uris)) }}
+---
+apiVersion: oauth.openshift.io/v1
+kind: OAuthClient
+metadata:
+  name: {{ include "kiali-server.fullname" . }}-{{ .Release.Namespace }}
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    {{- include "kiali-server.labels" . | nindent 4 }}
+redirectURIs:
+{{- if .Values.auth.openshift.redirect_uris }}
+{{- range .Values.auth.openshift.redirect_uris }}
+- {{ . }}
+{{- end }}
+{{- else }}
+- {{ .Values.kiali_route_url }}/api/auth/callback
+{{- if .Values.server.web_port }}
+- {{ .Values.kiali_route_url }}:{{ .Values.server.web_port }}/api/auth/callback
+{{- end }}
+{{- end }}
+grantMethod: auto
+{{- if .Values.auth.openshift.token_inactivity_timeout }}
+accessTokenInactivityTimeoutSeconds: {{ .Values.auth.openshift.token_inactivity_timeout }}
+{{- end }}
+{{- if .Values.auth.openshift.token_max_age }}
+accessTokenMaxAgeSeconds: {{ .Values.auth.openshift.token_max_age }}
+{{- end }}
+...
+{{- end }}
+{{- end }}
