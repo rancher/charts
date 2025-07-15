@@ -5,5 +5,5 @@ The compliance-operator enables running security scans on a kubernetes cluster a
 # Installation
 
 ```
-helm install rancher-compliance ./ --create-namespace -n rancher-compliance-system
+helm install rancher-compliance ./ --create-namespace -n compliance-operator-system
 ```
