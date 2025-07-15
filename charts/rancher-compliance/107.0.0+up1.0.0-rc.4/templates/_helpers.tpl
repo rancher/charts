@@ -1,6 +1,6 @@
 {{/* Ensure namespace is set the same everywhere */}}
 {{- define "app.namespace" -}}
-  {{- .Release.Namespace | default "rancher-compliance-system" -}}
+  {{- .Release.Namespace | default "compliance-operator-system" -}}
 {{- end -}}
 
 {{- define "system_default_registry" -}}
