@@ -2,7 +2,7 @@
 
 ROOT_DIR=../..
 UPSTREAM_REMOTE=upstream
-UPSTREAM_BRANCH=release-v2.10
+UPSTREAM_BRANCH=release-v2.13
 OLD_CHART_DIR=$ROOT_DIR/charts
 NEW_CHART_DIR=$ROOT_DIR/to-be-released
 
