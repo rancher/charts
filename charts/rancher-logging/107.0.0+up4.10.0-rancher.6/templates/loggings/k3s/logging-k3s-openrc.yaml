@@ -1,0 +1,12 @@
+{{- define "logging-operator.logging.k3s-openrc" -}}
+{{- $individualValues := .Values.additionalLoggingSources.k3s -}}
+metadata:
+  name: {{ .Release.Name }}-k3s
+spec:
+  {{- include "logging-operator.individualLoggingRef" $individualValues | nindent 2 }}
+  fluentd:
+    {{- include "logging-operator.individualFluentd" $individualValues | nindent 4 }}
+{{- end -}}
+{{- if and .Values.additionalLoggingSources.k3s.enabled (eq .Values.additionalLoggingSources.k3s.container_engine "openrc")}}
+{{- include "logging-operator.logging" (list . "logging-operator.logging.k3s-openrc") -}}
+{{- end }}
