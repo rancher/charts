@@ -1,0 +1,15 @@
+{{- define "logging-operator.logging.kube-audit" -}}
+{{- $individualValues := .Values.additionalLoggingSources.kubeAudit -}}
+metadata:
+  name: {{ .Release.Name }}-kube-audit
+spec:
+  {{- include "logging-operator.individualLoggingRef" $individualValues | nindent 2 }}
+  {{- if .Values.additionalLoggingSources.kubeAudit.loggingRef }}
+  loggingRef: {{ .Values.additionalLoggingSources.kubeAudit.loggingRef }}
+  {{- end }}
+  fluentd:
+  {{- include "logging-operator.individualFluentd" $individualValues | nindent 4 }}
+{{- end -}}
+{{- if .Values.additionalLoggingSources.kubeAudit.enabled }}
+{{- include "logging-operator.logging" (list . "logging-operator.logging.kube-audit") -}}
+{{- end }}
