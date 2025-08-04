@@ -59,7 +59,6 @@ jobs:
             secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKER_PASSWORD ;
             secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
             secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY ;
-
       - name: Create App Token
         continue-on-error: false
         uses: actions/create-github-app-token@v1
@@ -112,10 +111,12 @@ jobs:
           secrets: |
             secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
             secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY ;
-            secret/data/github/repo/${{ github.repository }}/rancher-prime-registry/credentials username | PRIME_REGISTRY_USERNAME ;
-            secret/data/github/repo/${{ github.repository }}/rancher-prime-registry/credentials password | PRIME_REGISTRY_SECRET ;
             secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKER_USERNAME ;
             secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKER_PASSWORD ;
+            secret/data/github/repo/${{ github.repository }}/rancher-prime-registry/credentials username | REGISTRY_USERNAME ;
+            secret/data/github/repo/${{ github.repository }}/rancher-prime-registry/credentials password | REGISTRY_PASSWORD ;
+            secret/data/github/repo/${{ github.repository }}/rancher-prime-registry/credentials registry | PRIME_REGISTRY ;
+
       - name: Create App Token
         continue-on-error: false
         uses: actions/create-github-app-token@v1
@@ -144,8 +145,9 @@ jobs:
       - name: Sync Registries
         continue-on-error: false
         env:
-          PRIME_USER: ${{ env.PRIME_REGISTRY_USERNAME }}
-          PRIME_PASSWORD: ${{ env.PRIME_REGISTRY_SECRET }}
+          PRIME_USER: ${{ env.REGISTRY_USERNAME }}
+          PRIME_PASSWORD: ${{ env.REGISTRY_PASSWORD }}
+          PRIME_URL: ${{ env.PRIME_REGISTRY }}
           DOCKER_USERNAME: ${{ env.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ env.DOCKER_PASSWORD }}
           LOG: "DEBUG"
