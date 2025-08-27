@@ -1,0 +1,41 @@
+{{- if .Values.rbac.enabled }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "logging-operator.fullname" . }}-edit
+  labels:
+    {{- if .Values.rbac.createAggregatedEditClusterRole }}
+      rbac.authorization.k8s.io/aggregate-to-edit: "true"
+    {{- end }}
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+rules:
+- apiGroups:
+  - logging.banzaicloud.io
+  resources:
+  - flows
+  - outputs
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - logging.banzaicloud.io
+  resources:
+  - syslogngflows
+  - syslogngoutputs
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
+{{- end }}
