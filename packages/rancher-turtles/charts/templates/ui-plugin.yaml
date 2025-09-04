@@ -1,0 +1,16 @@
+{{- if and (index .Values "turtlesUI" "enabled") (index .Values "rancherTurtles" "rancherInstalled") }}
+apiVersion: catalog.cattle.io/v1
+kind: UIPlugin
+metadata:
+  name: capi
+  namespace: '{{ .Values.rancherTurtles.namespace }}'
+spec:
+  plugin:
+    endpoint: https://raw.githubusercontent.com/rancher/capi-ui-extension/gh-pages/extensions/capi/{{ index .Values "turtlesUI" "version" | toString }}
+    name: capi
+    version: {{ index .Values "turtlesUI" "version" }}
+    metadata:
+      catalog.cattle.io/display-name: CAPI UI
+      catalog.cattle.io/experimental: "true"
+      catalog.cattle.io/ui-extensions-version: ">= 3.0.0"
+{{- end }}
