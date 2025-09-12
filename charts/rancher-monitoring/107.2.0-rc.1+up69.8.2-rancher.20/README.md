@@ -113,6 +113,15 @@ The following table shows values exposed by Rancher Monitoring's additions to th
 | `prometheus-adapter.prometheus.port` | The port on the Prometheus deployment that Prometheus Adapter can make requests to | `9090` |
 | `prometheus.prometheusSpec.ignoreNamespaceSelectors` | Ignore NamespaceSelector settings from the PodMonitor and ServiceMonitor configs. If true, PodMonitors and ServiceMonitors can only discover Pods and Services within the namespace they are deployed into | `false` |
 
+The following values must be set when installing the chart manually. They/these values are automatically populated when installed via the UI.
+Even with these values, manual installation may still have problems. It is strongly recommended to install via the UI, as this is the only supported method by the Rancher Team.
+
+| Parameter | Description | Default |
+| ----- | ----------- | ------ |
+| `global.cattle.clusterId` | The cluster ID, required for Grafana ingress to work correctly. For local/upstream clusters, the value must be `local`. For Downstream Clusters the value needs to be the ID of the cluster, which you can get by using the following command: `kubectl get clusters.provisioning.cattle.io -n fleet-default CLUSTER_NAME -o=jsonpath="{.status.clusterName}"` or going to the UI and in the Cluster Management, find the cluster in the list and from the right-hand three-dot menu, choose 'View in API' - the cluster id is in the 'status.clusterName' field   | `local` |
+| `global.cattle.clusterName` | The cluster name, usually `local` for upstream clusters. For downstream clusters the name can be seen on Cluster Management on the clusters list | `local` |
+
+
 The following values are enabled for different distributions via [rancher-pushprox](https://github.com/rancher/dev-charts/tree/master/packages/rancher-pushprox). See the rancher-pushprox `README.md` for more information on what all values can be configured for the PushProxy chart.
 
 | Parameter | Description | Default |

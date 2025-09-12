@@ -33,6 +33,12 @@ spec:
         imagePullPolicy: {{ $.Values.global.kubectl.pullPolicy }}
         command: ["kubectl", "patch", "serviceaccount", "default", "-p", "{\"automountServiceAccountToken\": false}"]
         args: ["-n", "{{ $ns }}"]
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
       {{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -84,7 +90,7 @@ spec:
   - {}
   policyTypes:
   - Ingress
-  - Egress 
+  - Egress
   podSelector:
     matchLabels:
       k8s-app: kube-dns
