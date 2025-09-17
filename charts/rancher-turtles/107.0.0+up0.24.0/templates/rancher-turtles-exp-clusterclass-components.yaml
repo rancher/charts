@@ -1,0 +1,793 @@
+{{- if index .Values "rancherTurtles" "features" "clusterclass-operations" "enabled" }}
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.1
+  labels:
+    turtles-capi.cattle.io: clusterclass
+  name: clusterupgradegroups.rollout.turtles-capi.cattle.io
+spec:
+  group: rollout.turtles-capi.cattle.io
+  names:
+    kind: ClusterUpgradeGroup
+    listKind: ClusterUpgradeGroupList
+    plural: clusterupgradegroups
+    singular: clusterupgradegroup
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: ClusterUpgradeGroup is the Schema for the clusterupgrades API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ClusterUpgradeGroupSpec defines the desired state of ClusterUpgradeGroup
+            properties:
+              className:
+                type: string
+              rolloutStrategy:
+                description: |-
+                  RolloutStrategy controls the rollout of bundles, by defining
+                  partitions, canaries and percentages for cluster availability.
+                properties:
+                  rollingUpdate:
+                    description: |-
+                      Rolling update config params. Present only if
+                      RolloutStrategyType = RollingUpdate.
+                    properties:
+                      maxFailures:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: |-
+                          The maximum number of failed attempts before skipping the update for a given
+                          cluster.
+                        x-kubernetes-int-or-string: true
+                      maxRollouts:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: |-
+                          The maximum number of clusters that can be in update state (non-active) during a
+                          rolling update.
+                        x-kubernetes-int-or-string: true
+                      rolloutDelay:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: The delay between subsequent cluster rollouts.
+                        x-kubernetes-int-or-string: true
+                    type: object
+                  type:
+                    description: |-
+                      Type of rollout.
+                      Default is RollingUpdate.
+                    type: string
+                type: object
+              targets:
+                description: Targets refer to the clusters that should be upgraded.
+                items:
+                  properties:
+                    clusterGroup:
+                      description: ClusterGroup to match a specific cluster group
+                        by name.
+                      nullable: true
+                      type: string
+                    clusterGroupSelector:
+                      description: ClusterGroupSelector is a selector to match cluster
+                        groups.
+                      nullable: true
+                      properties:
+                        matchExpressions:
+                          description: matchExpressions is a list of label selector
+                            requirements. The requirements are ANDed.
+                          items:
+                            description: |-
+                              A label selector requirement is a selector that contains values, a key, and an operator that
+                              relates the key and values.
+                            properties:
+                              key:
+                                description: key is the label key that the selector
+                                  applies to.
+                                type: string
+                              operator:
+                                description: |-
+                                  operator represents a key's relationship to a set of values.
+                                  Valid operators are In, NotIn, Exists and DoesNotExist.
+                                type: string
+                              values:
+                                description: |-
+                                  values is an array of string values. If the operator is In or NotIn,
+                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                  the values array must be empty. This array is replaced during a strategic
+                                  merge patch.
+                                items:
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            required:
+                            - key
+                            - operator
+                            type: object
+                          type: array
+                          x-kubernetes-list-type: atomic
+                        matchLabels:
+                          additionalProperties:
+                            type: string
+                          description: |-
+                            matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                            map is equivalent to an element of matchExpressions, whose key field is "key", the
+                            operator is "In", and the values array contains only "value". The requirements are ANDed.
+                          type: object
+                      type: object
+                      x-kubernetes-map-type: atomic
+                    clusterName:
+                      description: |-
+                        ClusterName to match a specific cluster by name that will be
+                        selected
+                      nullable: true
+                      type: string
+                    clusterSelector:
+                      description: |-
+                        ClusterSelector is a selector to match clusters. The structure is
+                        the standard metav1.LabelSelector format. If clusterGroupSelector or
+                        clusterGroup is specified, clusterSelector will be used only to
+                        further refine the selection after clusterGroupSelector and
+                        clusterGroup is evaluated.
+                      nullable: true
+                      properties:
+                        matchExpressions:
+                          description: matchExpressions is a list of label selector
+                            requirements. The requirements are ANDed.
+                          items:
+                            description: |-
+                              A label selector requirement is a selector that contains values, a key, and an operator that
+                              relates the key and values.
+                            properties:
+                              key:
+                                description: key is the label key that the selector
+                                  applies to.
+                                type: string
+                              operator:
+                                description: |-
+                                  operator represents a key's relationship to a set of values.
+                                  Valid operators are In, NotIn, Exists and DoesNotExist.
+                                type: string
+                              values:
+                                description: |-
+                                  values is an array of string values. If the operator is In or NotIn,
+                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                  the values array must be empty. This array is replaced during a strategic
+                                  merge patch.
+                                items:
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            required:
+                            - key
+                            - operator
+                            type: object
+                          type: array
+                          x-kubernetes-list-type: atomic
+                        matchLabels:
+                          additionalProperties:
+                            type: string
+                          description: |-
+                            matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                            map is equivalent to an element of matchExpressions, whose key field is "key", the
+                            operator is "In", and the values array contains only "value". The requirements are ANDed.
+                          type: object
+                      type: object
+                      x-kubernetes-map-type: atomic
+                    doNotDeploy:
+                      description: DoNotDeploy if set to true, will not deploy to
+                        this target.
+                      type: boolean
+                    name:
+                      description: |-
+                        Name of target. This value is largely for display and logging. If
+                        not specified a default name of the format "target000" will be used
+                      type: string
+                  type: object
+                type: array
+            required:
+            - className
+            type: object
+          status:
+            description: ClusterUpgradeGroupStatus defines the observed state of ClusterUpgradeGroup
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+  labels:
+    turtles-capi.cattle.io: clusterclass
+  name: clusterupgrades.rollout.turtles-capi.cattle.io
+spec:
+  group: rollout.turtles-capi.cattle.io
+  names:
+    kind: ClusterUpgrade
+    listKind: ClusterUpgradeList
+    plural: clusterupgrades
+    singular: clusterupgrade
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: ClusterUpgrade is the Schema for the clusterupgrades API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ClusterUpgradeSpec defines the desired state of ClusterUpgrade
+            properties:
+              className:
+                type: string
+              rolloutStrategy:
+                description: |-
+                  RolloutStrategy controls the rollout of bundles, by defining
+                  partitions, canaries and percentages for cluster availability.
+                properties:
+                  autoPartitionSize:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: |-
+                      A number or percentage of how to automatically partition clusters if no
+                      specific partitioning strategy is configured.
+                      default: 25%
+                    x-kubernetes-int-or-string: true
+                  maxUnavailable:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: |-
+                      A number or percentage of clusters that can be unavailable during an update
+                      of a bundle. This follows the same basic approach as a deployment rollout
+                      strategy. Once the number of clusters meets unavailable state update will be
+                      paused. Default value is 100% which doesn't take effect on update.
+                      default: 100%
+                    x-kubernetes-int-or-string: true
+                  maxUnavailablePartitions:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: |-
+                      A number or percentage of cluster partitions that can be unavailable during
+                      an update of a bundle.
+                      default: 0
+                    x-kubernetes-int-or-string: true
+                  partitions:
+                    description: |-
+                      A list of definitions of partitions.  If any target clusters do not match
+                      the configuration they are added to partitions at the end following the
+                      autoPartitionSize.
+                    items:
+                      description: Partition defines a separate rollout strategy for
+                        a set of clusters.
+                      properties:
+                        clusterGroup:
+                          description: A cluster group name to include in this partition
+                          type: string
+                        clusterGroupSelector:
+                          description: Selector matching cluster group labels to include
+                            in this partition
+                          properties:
+                            matchExpressions:
+                              description: matchExpressions is a list of label selector
+                                requirements. The requirements are ANDed.
+                              items:
+                                description: |-
+                                  A label selector requirement is a selector that contains values, a key, and an operator that
+                                  relates the key and values.
+                                properties:
+                                  key:
+                                    description: key is the label key that the selector
+                                      applies to.
+                                    type: string
+                                  operator:
+                                    description: |-
+                                      operator represents a key's relationship to a set of values.
+                                      Valid operators are In, NotIn, Exists and DoesNotExist.
+                                    type: string
+                                  values:
+                                    description: |-
+                                      values is an array of string values. If the operator is In or NotIn,
+                                      the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                      the values array must be empty. This array is replaced during a strategic
+                                      merge patch.
+                                    items:
+                                      type: string
+                                    type: array
+                                required:
+                                - key
+                                - operator
+                                type: object
+                              type: array
+                            matchLabels:
+                              additionalProperties:
+                                type: string
+                              description: |-
+                                matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                operator is "In", and the values array contains only "value". The requirements are ANDed.
+                              type: object
+                          type: object
+                          x-kubernetes-map-type: atomic
+                        clusterName:
+                          description: ClusterName is the name of a cluster to include
+                            in this partition
+                          type: string
+                        clusterSelector:
+                          description: Selector matching cluster labels to include
+                            in this partition
+                          properties:
+                            matchExpressions:
+                              description: matchExpressions is a list of label selector
+                                requirements. The requirements are ANDed.
+                              items:
+                                description: |-
+                                  A label selector requirement is a selector that contains values, a key, and an operator that
+                                  relates the key and values.
+                                properties:
+                                  key:
+                                    description: key is the label key that the selector
+                                      applies to.
+                                    type: string
+                                  operator:
+                                    description: |-
+                                      operator represents a key's relationship to a set of values.
+                                      Valid operators are In, NotIn, Exists and DoesNotExist.
+                                    type: string
+                                  values:
+                                    description: |-
+                                      values is an array of string values. If the operator is In or NotIn,
+                                      the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                      the values array must be empty. This array is replaced during a strategic
+                                      merge patch.
+                                    items:
+                                      type: string
+                                    type: array
+                                required:
+                                - key
+                                - operator
+                                type: object
+                              type: array
+                            matchLabels:
+                              additionalProperties:
+                                type: string
+                              description: |-
+                                matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                operator is "In", and the values array contains only "value". The requirements are ANDed.
+                              type: object
+                          type: object
+                          x-kubernetes-map-type: atomic
+                        maxUnavailable:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          description: |-
+                            A number or percentage of clusters that can be unavailable in this
+                            partition before this partition is treated as done.
+                            default: 10%
+                          x-kubernetes-int-or-string: true
+                        name:
+                          description: A user-friendly name given to the partition
+                            used for Display (optional).
+                          type: string
+                      type: object
+                    type: array
+                type: object
+              targets:
+                description: Targets refer to the clusters that should be upgraded.
+                items:
+                  properties:
+                    clusterGroup:
+                      description: ClusterGroup to match a specific cluster group
+                        by name.
+                      nullable: true
+                      type: string
+                    clusterGroupSelector:
+                      description: ClusterGroupSelector is a selector to match cluster
+                        groups.
+                      nullable: true
+                      properties:
+                        matchExpressions:
+                          description: matchExpressions is a list of label selector
+                            requirements. The requirements are ANDed.
+                          items:
+                            description: |-
+                              A label selector requirement is a selector that contains values, a key, and an operator that
+                              relates the key and values.
+                            properties:
+                              key:
+                                description: key is the label key that the selector
+                                  applies to.
+                                type: string
+                              operator:
+                                description: |-
+                                  operator represents a key's relationship to a set of values.
+                                  Valid operators are In, NotIn, Exists and DoesNotExist.
+                                type: string
+                              values:
+                                description: |-
+                                  values is an array of string values. If the operator is In or NotIn,
+                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                  the values array must be empty. This array is replaced during a strategic
+                                  merge patch.
+                                items:
+                                  type: string
+                                type: array
+                            required:
+                            - key
+                            - operator
+                            type: object
+                          type: array
+                        matchLabels:
+                          additionalProperties:
+                            type: string
+                          description: |-
+                            matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                            map is equivalent to an element of matchExpressions, whose key field is "key", the
+                            operator is "In", and the values array contains only "value". The requirements are ANDed.
+                          type: object
+                      type: object
+                      x-kubernetes-map-type: atomic
+                    clusterName:
+                      description: |-
+                        ClusterName to match a specific cluster by name that will be
+                        selected
+                      nullable: true
+                      type: string
+                    clusterSelector:
+                      description: |-
+                        ClusterSelector is a selector to match clusters. The structure is
+                        the standard metav1.LabelSelector format. If clusterGroupSelector or
+                        clusterGroup is specified, clusterSelector will be used only to
+                        further refine the selection after clusterGroupSelector and
+                        clusterGroup is evaluated.
+                      nullable: true
+                      properties:
+                        matchExpressions:
+                          description: matchExpressions is a list of label selector
+                            requirements. The requirements are ANDed.
+                          items:
+                            description: |-
+                              A label selector requirement is a selector that contains values, a key, and an operator that
+                              relates the key and values.
+                            properties:
+                              key:
+                                description: key is the label key that the selector
+                                  applies to.
+                                type: string
+                              operator:
+                                description: |-
+                                  operator represents a key's relationship to a set of values.
+                                  Valid operators are In, NotIn, Exists and DoesNotExist.
+                                type: string
+                              values:
+                                description: |-
+                                  values is an array of string values. If the operator is In or NotIn,
+                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                  the values array must be empty. This array is replaced during a strategic
+                                  merge patch.
+                                items:
+                                  type: string
+                                type: array
+                            required:
+                            - key
+                            - operator
+                            type: object
+                          type: array
+                        matchLabels:
+                          additionalProperties:
+                            type: string
+                          description: |-
+                            matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                            map is equivalent to an element of matchExpressions, whose key field is "key", the
+                            operator is "In", and the values array contains only "value". The requirements are ANDed.
+                          type: object
+                      type: object
+                      x-kubernetes-map-type: atomic
+                    doNotDeploy:
+                      description: DoNotDeploy if set to true, will not deploy to
+                        this target.
+                      type: boolean
+                    name:
+                      description: |-
+                        Name of target. This value is largely for display and logging. If
+                        not specified a default name of the format "target000" will be used
+                      type: string
+                  type: object
+                type: array
+            required:
+            - className
+            type: object
+          status:
+            description: ClusterUpgradeStatus defines the observed state of ClusterUpgrade
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: turtles-rollout-poc
+    app.kubernetes.io/instance: controller-manager-sa
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: serviceaccount
+    app.kubernetes.io/part-of: turtles-rollout-poc
+    turtles-capi.cattle.io: clusterclass
+  name: rancher-turtles-clusterclass-manager
+  namespace: {{ index .Values "rancherTurtles" "namespace" }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: turtles-rollout-poc
+    app.kubernetes.io/instance: leader-election-role
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: role
+    app.kubernetes.io/part-of: turtles-rollout-poc
+    turtles-capi.cattle.io: clusterclass
+  name: rancher-turtles-clusterclass-leader-election-role
+  namespace: {{ index .Values "rancherTurtles" "namespace" }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+aggregationRule:
+  clusterRoleSelectors:
+  - matchLabels:
+      rancher-turtles/aggregate-to-manager: "true"
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    turtles-capi.cattle.io: clusterclass
+  name: rancher-turtles-clusterclass-aggregated-manager-role
+rules: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    rancher-turtles/aggregate-to-manager: "true"
+    turtles-capi.cattle.io: clusterclass
+  name: rancher-turtles-clusterclass-manager-role
+rules:
+- apiGroups:
+  - cluster.x-k8s.io
+  resources:
+  - clusterclasses
+  - clusters
+  - clusters/status
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - rollout.turtles-capi.cattle.io
+  resources:
+  - clusterupgradegroups
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - rollout.turtles-capi.cattle.io
+  resources:
+  - clusterupgradegroups/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - rollout.turtles-capi.cattle.io
+  resources:
+  - clusterupgradegroupss/finalizers
+  verbs:
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: turtles-rollout-poc
+    app.kubernetes.io/instance: leader-election-rolebinding
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: rolebinding
+    app.kubernetes.io/part-of: turtles-rollout-poc
+    turtles-capi.cattle.io: clusterclass
+  name: rancher-turtles-clusterclass-leader-election-rolebinding
+  namespace: {{ index .Values "rancherTurtles" "namespace" }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: rancher-turtles-clusterclass-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: rancher-turtles-clusterclass-manager
+  namespace: {{ index .Values "rancherTurtles" "namespace" }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: turtles-rollout-poc
+    app.kubernetes.io/instance: manager-rolebinding
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: clusterrolebinding
+    app.kubernetes.io/part-of: turtles-rollout-poc
+    turtles-capi.cattle.io: clusterclass
+  name: rancher-turtles-clusterclass-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rancher-turtles-clusterclass-aggregated-manager-role
+subjects:
+- kind: ServiceAccount
+  name: rancher-turtles-clusterclass-manager
+  namespace: {{ index .Values "rancherTurtles" "namespace" }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    control-plane: controller-manager
+    turtles-capi.cattle.io: clusterclass
+  name: rancher-turtles-clusterclass-controller-manager
+  namespace: {{ index .Values "rancherTurtles" "namespace" }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+      turtles-capi.cattle.io: clusterclass
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+      labels:
+        control-plane: controller-manager
+        turtles-capi.cattle.io: clusterclass
+    spec:
+      containers:
+      - args:
+        - --leader-elect
+        command:
+        - ./turtles-clusterclass-operations
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_UID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.uid
+        {{- $imageVersion := index .Values "rancherTurtles" "features" "clusterclass-operations" "imageVersion" -}}
+        {{- if contains "sha256:" $imageVersion }}
+        image: {{ index .Values "rancherTurtles" "features" "clusterclass-operations" "image" }}@{{ index .Values "rancherTurtles" "features" "clusterclass-operations" "imageVersion" }}
+        {{- else }}
+        image: {{ index .Values "rancherTurtles" "features" "clusterclass-operations" "image" }}:{{ index .Values "rancherTurtles" "features" "clusterclass-operations" "imageVersion" }}
+        {{- end }}
+        imagePullPolicy: '{{ index .Values "rancherTurtles" "features" "clusterclass-operations" "imagePullPolicy" }}'
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: manager
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
+      serviceAccountName: rancher-turtles-clusterclass-manager
+      terminationGracePeriodSeconds: 10
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+{{- end }}
