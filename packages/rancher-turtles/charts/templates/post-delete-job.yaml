@@ -1,0 +1,166 @@
+{{- if index .Values "cluster-api-operator" "cleanup" }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: post-delete-job
+  namespace: '{{ .Values.rancherTurtles.namespace }}'
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-weight": "1"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: post-delete-job-delete-webhooks
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-weight": "1"
+rules:
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - validatingwebhookconfigurations
+  - mutatingwebhookconfigurations
+  verbs:
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: post-delete-job-webhook-cleanup
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-weight": "1"
+subjects:
+  - kind: ServiceAccount
+    name: post-delete-job
+    namespace: '{{ .Values.rancherTurtles.namespace }}'
+roleRef:
+  kind: ClusterRole
+  name: post-delete-job-delete-webhooks
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cluster-api-operator-mutatingwebhook-cleanup
+  namespace: '{{ .Values.rancherTurtles.namespace }}'
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-weight": "2"
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      serviceAccountName: post-delete-job
+      containers:
+        - name: cluster-api-operator-mutatingwebhook-cleanup
+          image: {{ index .Values "rancherTurtles" "kubectlImage" }}
+          command: ["kubectl"]
+          args:
+          - delete
+          - mutatingwebhookconfigurations.admissionregistration.k8s.io
+          - capi-mutating-webhook-configuration
+          - capi-kubeadm-bootstrap-mutating-webhook-configuration
+          - capi-kubeadm-control-plane-mutating-webhook-configuration
+          - rke2-bootstrap-mutating-webhook-configuration
+          - rke2-control-plane-mutating-webhook-configuration
+          - --ignore-not-found=true
+      restartPolicy: Never
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cluster-api-operator-validatingwebhook-cleanup
+  namespace: '{{ .Values.rancherTurtles.namespace }}'
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-weight": "2"
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      serviceAccountName: post-delete-job
+      containers:
+        - name: cluster-api-operator-validatingwebhook-cleanup
+          image: {{ index .Values "rancherTurtles" "kubectlImage" }}
+          command: ["kubectl"]
+          args:
+          - delete
+          - validatingwebhookconfigurations.admissionregistration.k8s.io
+          - capi-validating-webhook-configuration
+          - capi-kubeadm-bootstrap-validating-webhook-configuration
+          - capi-kubeadm-control-plane-validating-webhook-configuration
+          - rke2-bootstrap-validating-webhook-configuration
+          - rke2-control-plane-validating-webhook-configuration
+          - --ignore-not-found=true
+      restartPolicy: Never
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cluster-api-operator-deployment-cleanup
+  namespace: '{{ .Values.rancherTurtles.namespace }}'
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-weight": "2"
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      serviceAccountName: post-delete-job
+      restartPolicy: Never
+      containers:
+      - name: delete-capi-controller-manager
+        image: {{ index .Values "rancherTurtles" "kubectlImage" }}
+        command: ["kubectl"]
+        args:
+        - delete
+        - deployments.apps/capi-controller-manager
+        - -n
+        - {{ index .Values "cluster-api-operator" "cluster-api" "core" "namespace" }}
+        - --ignore-not-found=true
+      - name: delete-capi-kubeadm-bootstrap-controller-manager
+        image: {{ index .Values "rancherTurtles" "kubectlImage" }}
+        command: ["kubectl"]
+        args:
+        - delete
+        - deployments.apps/capi-kubeadm-bootstrap-controller-manager
+        - -n
+        - capi-kubeadm-bootstrap-system
+        - --ignore-not-found=true
+      - name: delete-capi-kubeadm-control-plane-controller-manager
+        image: {{ index .Values "rancherTurtles" "kubectlImage" }}
+        command: ["kubectl"]
+        args:
+        - delete
+        - deployments.apps/capi-kubeadm-control-plane-controller-manager
+        - -n
+        - capi-kubeadm-control-plane-system
+        - --ignore-not-found=true
+      - name: delete-rke2-kubeadm-bootstrap-controller-manager
+        image: {{ index .Values "rancherTurtles" "kubectlImage" }}
+        command: ["kubectl"]
+        args:
+        - delete
+        - deployments.apps/rke2-bootstrap-controller-manager
+        - -n
+        - {{ index .Values "cluster-api-operator" "cluster-api" "rke2" "bootstrap" "namespace" }}
+        - --ignore-not-found=true
+      - name: delete-rke2-control-plane-controller-manager
+        image: {{ index .Values "rancherTurtles" "kubectlImage" }}
+        command: ["kubectl"]
+        args:
+        - delete
+        - deployments.apps/rke2-control-plane-controller-manager
+        - -n
+        - {{ index .Values "cluster-api-operator" "cluster-api" "rke2" "controlPlane" "namespace" }}
+        - --ignore-not-found=true
+{{- end }}
