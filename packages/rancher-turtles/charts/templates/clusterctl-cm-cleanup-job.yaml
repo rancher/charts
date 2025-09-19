@@ -1,0 +1,66 @@
+{{- if index .Values "rancherTurtles" "rancherInstalled" }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pre-upgrade-job
+  namespace: '{{ .Values.rancherTurtles.namespace }}'
+  annotations:
+    "helm.sh/hook": "post-delete, pre-upgrade"
+    "helm.sh/hook-weight": "-2"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pre-upgrade-job-delete-clusterctl-configmap
+  annotations:
+    "helm.sh/hook": "post-delete, pre-upgrade"
+    "helm.sh/hook-weight": "-2"
+rules:
+- apiGroups: [""]
+  resources:
+  - configmaps
+  verbs:
+  - list
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pre-upgrade-job-clusterctl-configmap-cleanup
+  annotations:
+    "helm.sh/hook": "post-delete, pre-upgrade"
+    "helm.sh/hook-weight": "-2"
+subjects:
+  - kind: ServiceAccount
+    name: pre-upgrade-job
+    namespace: '{{ .Values.rancherTurtles.namespace }}'
+roleRef:
+  kind: ClusterRole
+  name: pre-upgrade-job-delete-clusterctl-configmap
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rancher-clusterctl-configmap-cleanup
+  namespace: '{{ .Values.rancherTurtles.namespace }}'
+  annotations:
+    "helm.sh/hook": "post-delete, pre-upgrade"
+    "helm.sh/hook-weight": "-1"
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      serviceAccountName: pre-upgrade-job
+      containers:
+        - name: rancher-clusterctl-configmap-cleanup
+          image: {{ index .Values "rancherTurtles" "kubectlImage" }}
+          args:
+          - delete
+          - configmap
+          - --namespace={{ .Values.rancherTurtles.namespace }}
+          - clusterctl-config
+          - --ignore-not-found=true
+      restartPolicy: Never
+{{- end }}
