@@ -1,0 +1,159 @@
+- apiVersion: "v1"
+  kindsRegexp: "^namespaces$"
+  resourceNameRegexp: "^cattle-kubewarden-|^kubewarden"
+- apiVersion: "rbac.authorization.k8s.io/v1"
+  kindsRegexp: "^roles$|^rolebindings$"
+  labelSelectors:
+    matchExpressions:
+    - key: "app.kubernetes.io/part-of"
+      operator: "In"
+      values: ["kubewarden"]
+  namespaceRegexp: "^cattle-kubewarden-|^kubewarden"
+- apiVersion: "rbac.authorization.k8s.io/v1"
+  kindsRegexp: "^clusterroles$|^clusterrolebindings$"
+  labelSelectors:
+    matchExpressions:
+    - key: "app.kubernetes.io/part-of"
+      operator: "In"
+      values: ["kubewarden"]
+- apiVersion: "v1"
+  kindsRegexp: "^serviceaccounts$"
+  labelSelectors:
+    matchExpressions:
+    - key: "app.kubernetes.io/part-of"
+      operator: "In"
+      values: ["kubewarden"]
+  namespaceRegexp: "^cattle-kubewarden-|^kubewarden"
+- apiVersion: "batch/v1"
+  kindsRegexp: "^cronjobs$"
+  labelSelectors:
+    matchExpressions:
+    - key: "app.kubernetes.io/part-of"
+      operator: "In"
+      values: ["kubewarden"]
+  namespaceRegexp: "^cattle-kubewarden-|^kubewarden"
+
+# CRDs
+- apiVersion: "apiextensions.k8s.io/v1"
+  kindsRegexp: "."
+  resourceNameRegexp: "kubewarden.io$"
+- apiVersion: "apiextensions.k8s.io/v1"
+  kindsRegexp: "."
+  resourceNameRegexp: "wgpolicyk8s.io$"
+
+# kubewarden-controller deployment
+- apiVersion: "apps/v1"
+  kindsRegexp: "^deployments$"
+  namespaceRegexp: "^cattle-kubewarden-|^kubewarden"
+  resourceNames:
+    - "kubewarden-controller"
+    
+# policyservers, policies in all ns
+- apiVersion: "policies.kubewarden.io/v1"
+  kindsRegexp: "."
+
+# kubewarden webhook configurations exposed by the kubewarden-controller
+# (not the ones which the controller reconciles that connect to each policy-server)
+- apiVersion: "admissionregistration.k8s.io/v1"
+  kindsRegexp: "^WebhookConfiguration$"
+  labelSelectors:
+    matchExpressions:
+    - key: "app.kubernetes.io/part-of"
+      operator: "In"
+      values: ["kubewarden"]
+    - key: "app.kubernetes.io/component"
+      operator: "In"
+      values: ["controller"]
+      
+# policy-reporter, policy-reporter-ui resources
+- apiVersion: "rbac.authorization.k8s.io/v1"
+  kindsRegexp: "^roles$|^rolebindings$"
+  labelSelectors:
+    matchExpressions:
+    - key: "app.kubernetes.io/instance"
+      operator: "In"
+      values: ["kubewarden-controller"]
+    - key: "app.kubernetes.io/name"
+      operator: "In"
+      values: ["policy-reporter", "policy-reporter-ui"]
+  namespaceRegexp: "^cattle-kubewarden-|^kubewarden"
+- apiVersion: "rbac.authorization.k8s.io/v1"
+  kindsRegexp: "^clusterroles$|^clusterrolebindings$"
+  labelSelectors:
+    matchExpressions:
+    - key: "app.kubernetes.io/instance"
+      operator: "In"
+      values: ["kubewarden-controller"]
+    - key: "app.kubernetes.io/name"
+      operator: "In"
+      values: ["policy-reporter", "policy-reporter-ui"]
+- apiVersion: "v1"
+  kindsRegexp: "^serviceaccounts$"
+  labelSelectors:
+    matchExpressions:
+    - key: "app.kubernetes.io/instance"
+      operator: "In"
+      values: ["kubewarden-controller"]
+    - key: "app.kubernetes.io/name"
+      operator: "In"
+      values: ["policy-reporter", "policy-reporter-ui"]
+  namespaceRegexp: "^cattle-kubewarden-|^kubewarden"
+- apiVersion: "batch/v1"
+  kindsRegexp: "^cronjobs$"
+  labelSelectors:
+    matchExpressions:
+    - key: "app.kubernetes.io/instance"
+      operator: "In"
+      values: ["kubewarden-controller"]
+    - key: "app.kubernetes.io/name"
+      operator: "In"
+      values: ["policy-reporter", "policy-reporter-ui"]
+  namespaceRegexp: "^cattle-kubewarden-|^kubewarden"
+- apiVersion: "apps/v1"
+  kindsRegexp: "^deployments$"
+  labelSelectors:
+    matchExpressions:
+    - key: "app.kubernetes.io/instance"
+      operator: "In"
+      values: ["kubewarden-controller"]
+    - key: "app.kubernetes.io/name"
+      operator: "In"
+      values: ["policy-reporter", "policy-reporter-ui"]
+  namespaceRegexp: "^cattle-kubewarden-|^kubewarden"
+- apiVersion: "networking.k8s.io/v1"
+  kindsRegexp: "^ingress$|^networkpolicies$"
+  labelSelectors:
+    matchExpressions:
+    - key: "app.kubernetes.io/instance"
+      operator: "In"
+      values: ["kubewarden-controller"]
+    - key: "app.kubernetes.io/name"
+      operator: "In"
+      values: ["policy-reporter", "policy-reporter-ui"]
+- apiVersion: "policy/v1"
+  kindsRegexp: "^poddisruptionbudgets$"
+  labelSelectors:
+    matchExpressions:
+    - key: "app.kubernetes.io/instance"
+      operator: "In"
+      values: ["kubewarden-controller"]
+    - key: "app.kubernetes.io/name"
+      operator: "In"
+      values: ["policy-reporter", "policy-reporter-ui"]
+  namespaceRegexp: "^cattle-kubewarden-|^kubewarden"
+- apiVersion: "v1"
+  kindsRegexp: "^services$"
+  labelSelectors:
+    matchExpressions:
+    - key: "app.kubernetes.io/instance"
+      operator: "In"
+      values: ["kubewarden-controller"]
+    - key: "app.kubernetes.io/name"
+      operator: "In"
+      values: ["policy-reporter", "policy-reporter-ui"]
+  namespaceRegexp: "^cattle-kubewarden-|^kubewarden"
+- apiVersion: "apiextensions.k8s.io/v1"
+  kindsRegexp: "."
+  resourceNameRegexp: "policyrepoter.kyverno.io$"
+- apiVersion: "policyreporter.kyverno.io/v1alpha1"
+  kindsRegexp: "."
