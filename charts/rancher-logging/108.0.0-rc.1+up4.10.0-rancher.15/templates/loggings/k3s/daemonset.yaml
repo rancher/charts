@@ -1,0 +1,73 @@
+{{- if and .Values.additionalLoggingSources.k3s.enabled (eq .Values.additionalLoggingSources.k3s.container_engine "systemd") }}
+{{- $individualValues := .Values.additionalLoggingSources.k3s.fluentbit -}}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: "{{ .Release.Name }}-k3s-journald-aggregator"
+  namespace: "{{ .Release.Namespace }}"
+spec:
+  selector:
+    matchLabels:
+      name: {{ .Release.Name }}-k3s-journald-aggregator
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/loggings/k3s/configmap.yaml") . | sha256sum }}
+      name: "{{ .Release.Name }}-k3s-journald-aggregator"
+      namespace: "{{ .Release.Namespace }}"
+      labels:
+        name: {{ .Release.Name }}-k3s-journald-aggregator
+    spec:
+      containers:
+        - name: fluentbit
+          image: "{{ template "logging-operator.fluentbitImage" . }}"
+          {{- include "logging-operator.individualFluentbit" $individualValues | nindent 10 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          {{- if .Values.global.seLinux.enabled }}
+            seLinuxOptions:
+              type: rke_logreader_t
+          {{- end }}
+          volumeMounts:
+            - mountPath: /fluent-bit/etc/
+              name: config
+            - mountPath: {{ .Values.systemdLogPath | default "/var/log/journal" }}
+              name: journal
+              readOnly: true
+            - mountPath: /etc/machine-id
+              name: machine-id
+              readOnly: true
+      {{- with .Values.dnsConfig }}
+      dnsConfig:  {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      serviceAccountName: "{{ .Release.Name }}-k3s-journald-aggregator"
+      volumes:
+        - name: config
+          configMap:
+            name: "{{ .Release.Name }}-k3s"
+        - name: journal
+          hostPath:
+            path: {{ .Values.systemdLogPath | default "/var/log/journal" }}
+        - name: machine-id
+          hostPath:
+            path: /etc/machine-id
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: "{{ .Release.Name }}-k3s-journald-aggregator"
+  namespace: "{{ .Release.Namespace }}"
+{{- end }}
