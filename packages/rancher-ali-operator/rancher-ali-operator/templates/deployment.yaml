@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ali-config-operator
+  namespace: cattle-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      ke.cattle.io/operator: ali
+  template:
+    metadata:
+      labels:
+        ke.cattle.io/operator: ali
+    spec:
+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
+{{- if .Values.nodeSelector }}
+{{ toYaml .Values.nodeSelector | indent 8 }}
+{{- end }}
+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+{{- if .Values.tolerations }}
+{{ toYaml .Values.tolerations | indent 8 }}
+{{- end }}
+      serviceAccountName: ali-operator
+      {{- if .Values.priorityClassName }}
+      priorityClassName: "{{.Values.priorityClassName}}"
+      {{- end }}
+      securityContext:
+        fsGroup: 1007
+        runAsUser: 1007
+      containers:
+      - name: ali-operator
+        image: '{{ template "system_default_registry" $ }}{{ $.Values.aliOperator.image.repository }}:{{ $.Values.aliOperator.image.tag }}'
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: HTTP_PROXY
+          value: {{ .Values.httpProxy }}
+        - name: HTTPS_PROXY
+          value: {{ .Values.httpsProxy }}
+        - name: NO_PROXY
+          value: {{ .Values.noProxy }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          privileged: false
+          capabilities:
+            drop:
+            - ALL
+{{- if .Values.additionalTrustedCAs }}
+        # ali-operator mounts the additional CAs in two places:
+        volumeMounts:
+            # This directory is owned by the ali-operator user so c_rehash works here.
+          - mountPath: /etc/rancher/ssl/ca-additional.pem
+            name: tls-ca-additional-volume
+            subPath: ca-additional.pem
+            readOnly: true
+            # This directory is root-owned so c_rehash doesn't work here,
+            # but the cert is here in case update-ca-certificates is called in the future or by the OS.
+          - mountPath: /etc/pki/trust/anchors/ca-additional.pem
+            name: tls-ca-additional-volume
+            subPath: ca-additional.pem
+            readOnly: true
+      volumes:
+        - name: tls-ca-additional-volume
+          secret:
+            defaultMode: 0400
+            secretName: tls-ca-additional
+  {{- end }}
