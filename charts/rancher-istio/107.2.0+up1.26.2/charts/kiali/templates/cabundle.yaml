@@ -1,0 +1,15 @@
+{{- if not .Values.deployment.remote_cluster_resources_only }}
+{{- if eq "true" (include "kiali-server.isOpenShift" .) }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kiali-server.fullname" . }}-cabundle
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    {{- include "kiali-server.labels" . | nindent 4 }}
+  annotations:
+    service.beta.openshift.io/inject-cabundle: "true"
+...
+{{- end }}
+{{- end }}
