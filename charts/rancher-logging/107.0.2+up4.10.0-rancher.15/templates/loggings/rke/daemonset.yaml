@@ -1,0 +1,75 @@
+{{- if .Values.additionalLoggingSources.rke.enabled }}
+{{- $containers := printf "%s/containers/" (default "/var/lib/docker" .Values.global.dockerRootDirectory) }}
+{{- $individualValues := .Values.additionalLoggingSources.rke.fluentbit -}}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: "{{ .Release.Name }}-rke-aggregator"
+  namespace: "{{ .Release.Namespace }}"
+spec:
+  selector:
+    matchLabels:
+      name: {{ .Release.Name }}-rke-aggregator
+  template:
+    metadata:
+      name: "{{ .Release.Name }}-rke-aggregator"
+      namespace: "{{ .Release.Namespace }}"
+      labels:
+        name: {{ .Release.Name }}-rke-aggregator
+    spec:
+      containers:
+        - name: fluentbit
+          image: "{{ template "logging-operator.fluentbitImage" . }}"
+          {{- include "logging-operator.individualFluentbit" $individualValues | nindent 10 }}
+          volumeMounts:
+            - mountPath: /var/lib/rancher/rke/log/
+              name: indir
+            - mountPath: {{ $containers }}
+              name: containers
+            - mountPath: /tail-db
+              name: positiondb
+            - mountPath: /fluent-bit/etc/fluent-bit.conf
+              name: config
+              subPath: fluent-bit.conf
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          {{- if .Values.global.seLinux.enabled }}
+            seLinuxOptions:
+              type: rke_logreader_t
+          {{- end }}
+      volumes:
+        - name: indir
+          hostPath:
+            path: /var/lib/rancher/rke/log/
+            type: DirectoryOrCreate
+        - name: containers
+          hostPath:
+            path: {{ $containers }}
+            type: DirectoryOrCreate
+        - name: positiondb
+          emptyDir: {}
+        - name: config
+          configMap:
+            name: "{{ .Release.Name }}-rke"
+      {{- with .Values.dnsConfig }}
+      dnsConfig:  {{- toYaml . | nindent 8 }}
+      {{- end }}
+      tolerations: {{- include "customTolerations" . | nindent 8 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      serviceAccountName: "{{ .Release.Name }}-rke-aggregator"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: "{{ .Release.Name }}-rke-aggregator"
+  namespace: "{{ .Release.Namespace }}"
+{{- end }}
