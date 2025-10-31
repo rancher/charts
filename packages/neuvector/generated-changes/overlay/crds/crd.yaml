@@ -192,6 +192,55 @@ spec:
                     - Protect
                     type: string
                 type: object
+              response:
+                items:
+                  properties:
+                    policy_name:
+                      enum:
+                      - default
+                      type: string
+                    event:
+                      enum:
+                      - event
+                      - security-event
+                      - cve-report
+                      - compliance
+                      type: string
+                    comment:
+                      type: string
+                    conditions:
+                      items:
+                        properties:
+                          type:
+                            type: string
+                          value:
+                            type: string
+                        required:
+                        - type
+                        - value
+                        type: object
+                      type: array
+                    actions:
+                      items:
+                        enum:
+                        - quarantine
+                        - suppress-log
+                        - webhook
+                        type: string
+                      minItems: 1
+                      type: array
+                    webhooks:
+                      items:
+                        type: string
+                      type: array
+                    disable:
+                      type: boolean
+                  required:
+                  - policy_name
+                  - event
+                  - actions
+                  type: object
+                type: array
               target:
                 properties:
                   policymode:
@@ -477,6 +526,55 @@ spec:
                     - Protect
                     type: string
                 type: object
+              response:
+                items:
+                  properties:
+                    policy_name:
+                      enum:
+                      - default
+                      type: string
+                    event:
+                      enum:
+                      - event
+                      - security-event
+                      - cve-report
+                      - compliance
+                      type: string
+                    comment:
+                      type: string
+                    conditions:
+                      items:
+                        properties:
+                          type:
+                            type: string
+                          value:
+                            type: string
+                        required:
+                        - type
+                        - value
+                        type: object
+                      type: array
+                    actions:
+                      items:
+                        enum:
+                        - quarantine
+                        - suppress-log
+                        - webhook
+                        type: string
+                      minItems: 1
+                      type: array
+                    webhooks:
+                      items:
+                        type: string
+                      type: array
+                    disable:
+                      type: boolean
+                  required:
+                  - policy_name
+                  - event
+                  - actions
+                  type: object
+                type: array
               target:
                 properties:
                   policymode:
@@ -717,6 +815,8 @@ spec:
                       type: string
                     comment:
                       type: string
+                    conversion_id_ref:
+                      type: integer
                     criteria:
                       items:
                         properties:
@@ -995,6 +1095,9 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   name: nvgroupdefinitions.neuvector.com
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
 spec:
   group: neuvector.com
   names:
@@ -1042,6 +1145,92 @@ spec:
                 type: object
             required:
             - selector
+            type: object
+        type: object
+{{- end }}
+---
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+apiVersion: apiextensions.k8s.io/v1
+{{- else }}
+apiVersion: apiextensions.k8s.io/v1beta1
+{{- end }}
+kind: CustomResourceDefinition
+metadata:
+  name: nvresponserulesecurityrules.neuvector.com
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+spec:
+  group: neuvector.com
+  names:
+    kind: NvResponseRuleSecurityRule
+    listKind: NvResponseRuleSecurityRuleList
+    plural: nvresponserulesecurityrules
+    singular: nvresponserulesecurityrule
+  scope: Cluster
+{{- if (semverCompare "<1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+  version: v1
+{{- end }}
+  versions:
+  - name: v1
+    served: true
+    storage: true
+{{- if (semverCompare ">=1.19-0" (substr 1 -1 .Capabilities.KubeVersion.GitVersion)) }}
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              rule:
+                properties:
+                  policy_name:
+                    enum:
+                    - default
+                    type: string
+                  event:
+                    enum:
+                    - event
+                    - security-event
+                    - cve-report
+                    - compliance
+                    - admission-control
+                    type: string
+                  comment:
+                    type: string
+                  conditions:
+                    items:
+                      properties:
+                        type:
+                          type: string
+                        value:
+                          type: string
+                      required:
+                      - type
+                      - value
+                      type: object
+                    type: array
+                  actions:
+                    items:
+                      enum:
+                      - quarantine
+                      - suppress-log
+                      - webhook
+                      type: string
+                    minItems: 1
+                    type: array
+                  webhooks:
+                    items:
+                      type: string
+                    type: array
+                  disable:
+                    type: boolean
+                required:
+                - policy_name
+                - event
+                - actions
+                type: object
+            required:
+            - rule
             type: object
         type: object
 {{- end }}
