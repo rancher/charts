@@ -226,3 +226,60 @@ tests:
   - equal:
       path: spec.template.spec.imagePullSecrets[0].name
       value: "pull-secret"
+
+- it: should not set default resources
+  template: deployment.yaml
+  asserts:
+  - isNull:
+      path: spec.template.spec.containers[0].resources
+
+- it: should set resources with requests and limits
+  set:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+  template: deployment.yaml
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].resources
+      value:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+
+- it: should set resources with only requests
+  set:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+  template: deployment.yaml
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].resources
+      value:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+
+- it: should set resources with only limits
+  set:
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+  template: deployment.yaml
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].resources
+      value:
+        limits:
+          cpu: 500m
+          memory: 512Mi

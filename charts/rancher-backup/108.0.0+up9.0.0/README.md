@@ -49,6 +49,7 @@ The following table lists the configurable parameters of the rancher-backup char
 | affinity | https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity | {} |
 | serviceAccount.annotations | Annotations to apply to created service account | {} |
 | global.cattle.psp.enabled | Enable or disable PSPs in the chart | false |
+| resources | CPU and memory resource requests and limits for the backup-restore-operator container | {} |
 
 -----
 
