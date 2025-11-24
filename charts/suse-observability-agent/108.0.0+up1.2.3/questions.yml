@@ -1,0 +1,196 @@
+questions:
+  - variable: stackstate.cluster.name
+    label: "Cluster Name"
+    type: string
+    description: "The Cluster Name given when installing the instance of the Kubernetes StackPack in SUSE Observability. This is used to identify the cluster in SUSE Observability."
+    required: true
+    group: General
+  - variable: stackstate.url
+    label: "SUSE Observability Ingest URL"
+    type: string
+    description: "The URL where SUSE Observability is running, needs to include the protocol (http/https)"
+    required: true
+    group: General
+  - variable: stackstate.apiKey
+    label: "SUSE Observability API Key"
+    type: string
+    description: "The API key for SUSE Observability."
+    required: true
+    group: General
+  - variable: global.skipSslValidation
+    label: "Skip TLS validation from client"
+    type: boolean
+    description: "Skip TLS validation from client."
+    default: "false"
+    group: "General"
+  - variable: all.registry.override
+    label: "Override Default Image Registry"
+    type: boolean
+    description: "Override the default image registry."
+    default: false
+    group: "General"
+    show_subquestions_if: true
+    subquestions:
+      - variable: global.imageRegistry
+        label: "Docker Image Registry"
+        type: string
+        description: "The registry to pull the agent images from."
+        default: "quay.io"
+      - variable: global.imagePullCredentials.default.username
+        label: "Docker Image Pull Username"
+        type: string
+        description: "The username to use when pulling the agent images."
+      - variable: global.imagePullCredentials.default.password
+        label: "Docker Image Pull Password"
+        type: password
+        description: "The password to use when pulling the agent images."
+  - variable: nodeAgent.containers.agent.resources.override
+    label: "Override Node Agent Resource Allocation"
+    type: boolean
+    description: "Override the default resources for the node agent, which collects metrics and topology from the kubelet and host on each node it is installed."
+    default: "false"
+    group: "Node Agent"
+    show_subquestions_if: true
+    subquestions:
+      - variable: nodeAgent.containers.agent.resources.requests.cpu
+        label: "CPU Requests"
+        type: string
+        description: "The requested CPU for the Node Agent."
+        default: "20m"
+      - variable: nodeAgent.containers.agent.resources.requests.memory
+        label: "Memory Requests"
+        type: string
+        description: "The requested memory for the Node Agent."
+        default: "180Mi"
+      - variable: nodeAgent.containers.agent.resources.limits.cpu
+        label: "CPU Limit"
+        type: string
+        description: "The CPU limit for the Node Agent."
+        default: "270m"
+      - variable: nodeAgent.containers.agent.resources.limits.memory
+        label: "Memory Limit"
+        type: string
+        description: "The memory limit for the Node Agent."
+        default: "420Mi"
+  - variable: nodeAgent.containers.processAgent.enabled
+    label: "Enable Process Agent"
+    type: boolean
+    description: "Enable the Process Agent, which collects process and network connectivity information from all hosts in the cluster."
+    default: "true"
+    group: "Process Agent"
+  - variable: nodeAgent.skipKubeletTLSVerify
+    label: "Skip Kubelet TLS Verify"
+    type: boolean
+    description: "Skip TLS verification when connecting to the kubelet API."
+    default: "true"
+    group: "Process Agent"
+  - variable: nodeAgent.containers.processAgent.resources.override
+    label: "Override Process Agent Resource Allocation"
+    type: boolean
+    description: "Override the default resources."
+    default: "false"
+    group: "Process Agent"
+    show_subquestions_if: true
+    subquestions:
+      - variable: nodeAgent.containers.processAgent.resources.requests.cpu
+        label: "CPU Requests"
+        type: string
+        description: "The requested CPU for the Process Agent."
+        default: "25m"
+      - variable: nodeAgent.containers.processAgent.resources.requests.memory
+        label: "Memory Requests"
+        type: string
+        description: "The requested memory for the Process Agent."
+        default: "128Mi"
+      - variable: nodeAgent.containers.processAgent.resources.limits.cpu
+        label: "CPU Limit"
+        type: string
+        description: "The CPU limit for the Process Agent."
+        default: "125m"
+      - variable: nodeAgent.containers.processAgent.resources.limits.memory
+        label: "Memory Limit"
+        type: string
+        description: "The memory limit for the Process Agent."
+        default: "400Mi"
+  - variable: clusterAgent.enabled
+    label: "Enable Cluster Agent"
+    type: boolean
+    description: "Enable the Cluster Agent, which collects and forwards cluster-wide information from kubernetes."
+    default: "true"
+    group: "Cluster Agent"
+  - variable: clusterAgent.collection.kubernetesResources.secrets
+    label: "Collect Secret Resources"
+    type: boolean
+    description: |
+      Collect Kubernetes Secrets.
+      NOTE: StackState will not send the actual data of the secrets, only the metadata and a secure hash of the data.
+    default: "true"
+    group: "Cluster Agent"
+  - variable: clusterAgent.resources.override
+    label: "Override Cluster Agent Resource Allocation"
+    type: boolean
+    description: "Override the default resources."
+    default: "false"
+    group: "Cluster Agent"
+    show_subquestions_if: true
+    subquestions:
+      - variable: clusterAgent.resources.requests.cpu
+        label: "CPU Requests"
+        type: string
+        description: "The requested CPU for the Cluster Agent."
+        default: "70m"
+      - variable: clusterAgent.resources.requests.memory
+        label: "Memory Requests"
+        type: string
+        description: "The requested memory for the Cluster Agent."
+        default: "512Mi"
+      - variable: clusterAgent.resources.limits.cpu
+        label: "CPU Limit"
+        type: string
+        description: "The CPU limit for the Cluster Agent."
+        default: "400m"
+      - variable: clusterAgent.resources.limits.memory
+        label: "Memory Limit"
+        type: string
+        description: "The memory limit for the Cluster Agent."
+        default: "800Mi"
+  - variable: logsAgent.enabled
+    label: "Enable Logs Agent"
+    type: boolean
+    description: "Enable the Logs Agent, which installs a logs collector on each node in the cluster."
+    default: "true"
+    group: "Logs Agent"
+  - variable: logsAgent.resources.override
+    label: "Override Logs Agent Resource Allocation"
+    type: boolean
+    description: "Override the default resources."
+    default: "false"
+    group: "Logs Agent"
+    show_subquestions_if: true
+    subquestions:
+      - variable: logsAgent.resources.requests.cpu
+        label: "CPU Requests"
+        type: string
+        description: "The requested CPU for the Logs Agent."
+        default: "20m"
+      - variable: logsAgent.resources.requests.memory
+        label: "Memory Requests"
+        type: string
+        description: "The requested memory for the Logs Agent."
+        default: "100Mi"
+      - variable: logsAgent.resources.limits.cpu
+        label: "CPU Limit"
+        type: string
+        description: "The CPU limit for the Logs Agent."
+        default: "1300m"
+      - variable: logsAgent.resources.limits.memory
+        label: "Memory Limit"
+        type: string
+        description: "The memory limit for the Logs Agent."
+        default: "192Mi"
+  - variable: kubernetes-rbac-agent.enabled
+    label: "Enable RBAC Agent"
+    type: boolean
+    description: "Enable the RBAC Agent for project-based authorization in SUSE Observability."
+    default: "true"
+    group: "RBAC Agent"

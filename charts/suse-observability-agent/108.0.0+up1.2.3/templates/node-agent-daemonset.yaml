@@ -1,0 +1,109 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ .Release.Name }}-node-agent
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "stackstate-k8s-agent.labels" . | indent 4 }}
+{{ include "stackstate-k8s-agent.global.extraLabels" . | indent 4 }}
+    app.kubernetes.io/component: node-agent
+  annotations:
+{{ include "stackstate-k8s-agent.global.extraAnnotations" . | indent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: node-agent
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/name: {{ include "stackstate-k8s-agent.name" . }}
+{{- with .Values.nodeAgent.updateStrategy }}
+  updateStrategy:
+    {{- toYaml . | nindent 4 }}
+{{- end }}
+  template:
+    metadata:
+      annotations:
+        {{- include "stackstate-k8s-agent.checksum-configs" . | nindent 8 }}
+        {{- include "stackstate-k8s-agent.nodeAgent.configmap.override.checksum" . | nindent 8 }}
+        {{- include "stackstate-k8s-agent.customCertificates.checksum" . | nindent 8 }}
+{{ include "stackstate-k8s-agent.global.extraAnnotations" . | indent 8 }}
+      labels:
+        app.kubernetes.io/component: node-agent
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/name: {{ include "stackstate-k8s-agent.name" . }}
+{{ include "stackstate-k8s-agent.global.extraLabels" . | indent 8 }}
+    spec:
+      {{- include "stackstate-k8s-agent.image.pullSecrets" (dict "images" (list .Values.nodeAgent.containers.agent.image .Values.all.image) "context" $) | nindent 6 }}
+      containers:
+        {{- include "container-agent" . | nindent 6 }}
+        {{- if .Values.nodeAgent.containers.processAgent.enabled }}
+          {{- include "container-process-agent" . | nindent 6 }}
+        {{- end }}
+      dnsPolicy: ClusterFirstWithHostNet
+      hostNetwork: {{ .Values.nodeAgent.useHostNetwork }}
+      hostPID: {{ .Values.nodeAgent.useHostPID }}
+      {{- if .Values.nodeAgent.priorityClassName }}
+      priorityClassName: {{ .Values.nodeAgent.priorityClassName }}
+      {{- end }}
+      serviceAccountName: {{ .Release.Name }}-node-agent
+      nodeSelector:
+        {{ template "label.os" . }}: {{ .Values.targetSystem }}
+        {{- with .Values.nodeAgent.nodeSelector }}
+            {{- toYaml . | nindent 8 }}
+        {{- end }}
+    {{- with .Values.nodeAgent.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.nodeAgent.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      volumes:
+    {{- if .Values.nodeAgent.containerRuntime.customSocketPath }}
+      - hostPath:
+          path: {{ .Values.nodeAgent.containerRuntime.customSocketPath }}
+        name: customcrisocket
+    {{- end }}
+      - hostPath:
+          path: /var/lib/kubelet
+        name: kubelet
+      - hostPath:
+          path: /var/lib/nfs
+        name: nfs
+      - hostPath:
+          path: /var/lib/docker/overlay2
+        name: dockeroverlay2
+      - hostPath:
+          path: /run/docker/netns
+        name: dockernetns
+      - hostPath:
+          path: /var/run/crio/crio.sock
+        name: crisocket
+      - hostPath:
+          path: /var/run/containerd/containerd.sock
+        name: containerdsocket
+      - hostPath:
+          path: /sys/kernel/debug
+        name: sys-kernel-debug
+      - hostPath:
+          path: /var/run/docker.sock
+        name: dockersocket
+      - hostPath:
+          path: {{ .Values.nodeAgent.containerRuntime.hostProc }}
+        name: procdir
+      - hostPath:
+          path: /etc
+        name: etcdir
+      - hostPath:
+          path: /etc/passwd
+        name: passwd
+      - hostPath:
+          path: /sys/fs/cgroup
+        name: cgroups
+      {{- if .Values.nodeAgent.config.override }}
+      - name: config-override-volume
+        configMap:
+          name: {{ .Release.Name }}-node-agent
+      {{- end }}
+      {{- include "stackstate-k8s-agent.customCertificates.volume" . | nindent 6 }}
