@@ -1,0 +1,36 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: clusterscanprofiles.cis.cattle.io
+spec:
+  group: cis.cattle.io
+  names:
+    kind: ClusterScanProfile
+    plural: clusterscanprofiles
+  scope: Cluster
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    subresources:
+      status: {}
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              benchmarkVersion:
+                nullable: true
+                type: string
+              skipTests:
+                items:
+                  nullable: true
+                  type: string
+                nullable: true
+                type: array
+            type: object
+        type: object
+    additionalPrinterColumns:
+    - jsonPath: .spec.benchmarkVersion
+      name: BenchmarkVersion
+      type: string
