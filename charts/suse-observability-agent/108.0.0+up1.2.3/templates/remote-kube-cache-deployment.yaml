@@ -1,0 +1,77 @@
+{{- if include "stackstate-k8s-agent.processAgent.podCorrelation.remoteCache.enabled" . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-remote-kube-cache
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "stackstate-k8s-agent.labels" . | indent 4 }}
+{{ include "stackstate-k8s-agent.global.extraLabels" . | indent 4 }}
+    app.kubernetes.io/component: remote-kube-cache
+  annotations:
+{{ include "stackstate-k8s-agent.global.extraAnnotations" . | indent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: remote-kube-cache
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/name: {{ include "stackstate-k8s-agent.name" . }}
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        {{- include "stackstate-k8s-agent.checksum-configs" . | nindent 8 }}
+        {{- include "stackstate-k8s-agent.customCertificates.checksum" . | nindent 8 }}
+{{ include "stackstate-k8s-agent.global.extraAnnotations" . | indent 8 }}
+      labels:
+        app.kubernetes.io/component: remote-kube-cache
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/name: {{ include "stackstate-k8s-agent.name" . }}
+{{ include "stackstate-k8s-agent.global.extraLabels" . | indent 8 }}
+    spec:
+      serviceAccountName: {{ .Release.Name }}-remote-kube-cache
+      containers:
+        - name: remote-kube-cache
+          image: quay.io/stackstate/process-agent-remote-kube-cache:75fc7860
+          imagePullPolicy: Always
+          env:
+            # We can set all the config through environment variables https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/blob/2d5ea0eafeeebeaed7b4c21a997c5dbea2abe439/pkg/kubecache/config.go#L19
+            - name: OTEL_EBPF_K8S_CACHE_LOG_LEVEL
+              value: "info"
+            - name: OTEL_EBPF_K8S_CACHE_PORT
+              value: {{ include "stackstate-k8s-agent.remoteKubeCache.grpcPort" . | quote }}
+            - name: OTEL_EBPF_K8S_CACHE_INTERNAL_METRICS_PROMETHEUS_PORT
+              value: "8999"
+            {{- range $key, $value := .Values.global.extraEnv.open }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          ports:
+            - containerPort: {{ include "stackstate-k8s-agent.remoteKubeCache.grpcPort" . }}
+              name: grpc
+            - containerPort: 8999
+              name: internalprom
+          {{- with .Values.remoteKubeCache.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+          {{- include "stackstate-k8s-agent.customCertificates.volumeMount" . | nindent 12 }}
+          securityContext:
+            privileged: false
+      nodeSelector:
+        {{ template "label.os" . }}: {{ .Values.targetSystem }}
+        {{- with .Values.remoteKubeCache.nodeSelector }}
+            {{- toYaml . | nindent 8 }}
+        {{- end }}
+    {{- with .Values.remoteKubeCache.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.remoteKubeCache.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      volumes:
+      {{- include "stackstate-k8s-agent.customCertificates.volume" . | nindent 6 }}
+{{- end }}

@@ -1,0 +1,118 @@
+global:
+  # global.imageRegistry -- Globally override the image registry that is used. Can be overridden by specific containers. Defaults to quay.io
+  imageRegistry: null
+  # global.imagePullSecrets -- Globally add image pull secrets that are used.
+  imagePullSecrets: []
+  # global.imagePullCredentials -- Globally define credentials for pulling images.
+  imagePullCredentials: {}
+
+  # global.commonLabels -- Common labels added to all resources created by the helm chart
+  commonLabels: {}
+  # global.commonAnnotations -- Common annotations added to all resources created by the helm chart
+  commonAnnotations: {}
+
+  # global.extraLabels -- Extra labels added ta all resources created by the helm chart (DEPRECATED: use commonLabels instead)
+  extraLabels: {}
+  # global.extraAnnotations -- Extra annotations added ta all resources created by the helm chart (DEPRECATED: use commonAnnotations instead)
+  extraAnnotations: {}
+
+  proxy:
+    # global.proxy.url -- Proxy for all traffic to stackstate
+    url: ""
+
+  # global.skipSslValidation -- Enable tls validation from client
+  skipSslValidation: false
+
+  apiKey:
+    # global.apiKey.fromSecret -- The secret from which the receiver api key is taken. Will execute as a template.
+    # Overriding this will allow setting the api key from an externally provided secret.
+    fromSecret:
+
+  # global.customCertificates -- Custom certificates for HTTPS endpoints
+  customCertificates:
+    # global.customCertificates.enabled -- Enable custom certificate injection
+    enabled: false
+    # global.customCertificates.configMapName -- Name of existing ConfigMap containing certificates (exclusive with pemData)
+    configMapName: ""
+    # global.customCertificates.pemData -- PEM-encoded certificate data (exclusive with configMapName), will be stored as tls.pem
+    pemData: ""
+
+# apiKey -- Directly set the api key to use. Can be templated
+apiKey:
+
+url:
+  # url.value -- Directly set the url value to use. Can be templated
+  value:
+
+  # url.fromConfigMap -- Set the url through a config map. Needs to contain 'STS_URL'
+  fromConfigMap:
+
+clusterName:
+  # clusterName.value -- Directly set the clusterName
+  value:
+
+  # url.fromConfigMap -- Set the cluster name through a config map. Needs to contain 'STS_CLUSTER_NAME'
+  fromConfigMap:
+
+# roleType -- This agent collects two types of (cluster)role(bindings), instance and scope role bindings. Configured through this setting
+roleType: "instance"
+
+containers:
+  rbacAgent:
+
+    image:
+      # containers.rbacAgent.image.registry -- Registry for the docker image.
+      registry:
+      # containers.rbacAgent.image.repository - Repository for the docker image
+      repository: "stackstate/kubernetes-rbac-agent"
+      # containers.rbacAgent.image.pullPolicy -- Policy when pulling an image
+      pullPolicy: IfNotPresent
+      # containers.rbacAgent.image.tag -- The tag for the docker image
+      tag: "35ec5206"
+
+    # containers.rbacAgent.resource -- Resources for the proxy container
+    resources:
+      requests:
+        # containers.rbacAgent.resources.requests.memory -- Memory resource requests.
+        memory: "25Mi"
+      limits:
+        # containers.rbacAgent.resources.limits.memory -- Memory resource limits.
+        memory: "40Mi"
+
+    # containers.rbacAgent.env -- Additional environment variables
+    env: {}
+
+    # containers.rbacAgent.podLabels -- Additional labels on the pod
+    podLabels: {}
+
+    # containers.rbacAgent.podAnnotations -- Additional annotations on the pod
+    podAnnotations: {}
+
+    # containers.rbacAgent.nodeSelector -- Set a nodeSelector
+    nodeSelector: {}
+
+    # containers.rbacAgent.tolerations -- Set tolerations
+    tolerations: []
+
+    # containers.rbacAgent.affinity -- Set affinity
+    affinity: {}
+
+    # containers.rbacAgent.priorityClassName -- Set priorityClassName
+    priorityClassName: ""
+
+    securityContext:
+
+      # containers.rbacAgent.securityContext.enabled -- Whether or not to enable the securityContext
+      enabled: true
+
+      # containers.rbacAgent.securityContext.fsGroup -- The GID (group ID) of all files on all mounted volumes
+      fsGroup: 65534
+
+      # containers.rbacAgent.securityContext.runAsGroup -- The GID (group ID) of the owning user of the process
+      runAsGroup: 65534
+
+      # containers.rbacAgent.securityContext.runAsNonRoot -- Ensure that the user is not root (!= 0)
+      runAsNonRoot: true
+
+      # containers.rbacAgent.securityContext.runAsUser -- The UID (user ID) of the owning user of the process
+      runAsUser: 65534

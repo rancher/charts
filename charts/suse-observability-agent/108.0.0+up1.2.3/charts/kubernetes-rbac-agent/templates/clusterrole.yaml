@@ -1,0 +1,22 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "kubernetes-rbac-agent.global.name" . }}
+  labels:
+    app.kubernetes.io/component: kubernetes-rbac-agent
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ include "kubernetes-rbac-agent.global.name" . }}
+    {{- include "kubernetes-rbac-agent.global.commonLabels" . | indent 4 }}
+  annotations:
+    {{- include "kubernetes-rbac-agent.global.commonAnnotations" . | indent 4 }}
+rules:
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources:
+    - clusterroles
+    - clusterrolebindings
+    - roles
+    - rolebindings
+  verbs:
+    - get
+    - list
+    - watch

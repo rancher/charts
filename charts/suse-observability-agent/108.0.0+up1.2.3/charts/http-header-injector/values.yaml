@@ -1,0 +1,107 @@
+# debug -- Enable debugging. This will leave leave artifacts around like the prehook jobs for further inspection
+debug: false
+
+global:
+  # global.imageRegistry -- Globally override the image registry that is used. Can be overridden by specific containers. Defaults to quay.io
+  imageRegistry: null
+  # global.imagePullSecrets -- Globally add image pull secrets that are used.
+  imagePullSecrets: []
+  # global.imagePullCredentials -- Globally define credentials for pulling images.
+  imagePullCredentials: {}
+
+  # global.extraLabels -- Extra labels added ta all resources created by the helm chart
+  extraLabels: {}
+  # global.extraAnnotations -- Extra annotations added ta all resources created by the helm chart
+  extraAnnotations: {}
+
+images:
+  pullSecretName:
+
+# proxy -- Proxy being injected into pods for rewriting http headers
+proxy:
+  image:
+    # proxy.image.registry -- Registry for the docker image.
+    registry:
+    # proxy.image.repository - Repository for the docker image
+    repository: "stackstate/http-header-injector-proxy"
+    # proxy.image.pullPolicy -- Policy when pulling an image
+    pullPolicy: IfNotPresent
+    # proxy.image.tag -- The tag for the docker image
+    tag: sha-5ff79451
+
+  # proxy.resource -- Resources for the proxy container
+  resources:
+    requests:
+      # proxy.resources.requests.memory -- Memory resource requests.
+      memory: "25Mi"
+    limits:
+      # proxy.resources.limits.memory -- Memory resource limits.
+      memory: "40Mi"
+
+# proxyInit -- InitContainer within pod which redirects traffic to the proxy container.
+proxyInit:
+  image:
+    # proxyInit.image.registry -- Registry for the docker image
+    registry:
+    # proxyInit.image.repository - Repository for the docker image
+    repository: "stackstate/http-header-injector-proxy-init"
+    # proxyInit.image.pullPolicy -- Policy when pulling an image
+    pullPolicy: IfNotPresent
+    # proxyInit.image.tag -- The tag for the docker image
+    tag: sha-5ff79451
+
+# sidecarInjector -- Service for injecting the proxy sidecar into pods
+sidecarInjector:
+  image:
+    # sidecarInjector.image.registry -- Registry for the docker image.
+    registry:
+    # sidecarInjector.image.repository - Repository for the docker image
+    repository: "stackstate/generic-sidecar-injector"
+    # sidecarInjector.image.pullPolicy -- Policy when pulling an image
+    pullPolicy: IfNotPresent
+    # sidecarInjector.image.tag -- The tag for the docker image
+    tag: sha-5678567f
+
+# certificatePrehook -- Helm prehook to setup/remove a certificate for the sidecarInjector mutationwebhook
+certificatePrehook:
+  image:
+    # certificatePrehook.image.registry -- Registry for the docker image.
+    registry:
+    # certificatePrehook.image.repository - Repository for the docker image.
+    repository: stackstate/container-tools
+    # certificatePrehook.image.pullPolicy -- Policy when pulling an image
+    pullPolicy: IfNotPresent
+    # certificatePrehook.image.tag -- The tag for the docker image
+    tag: 1.6.0
+  resources:
+    limits:
+      cpu: "100m"
+      memory: "200Mi"
+    requests:
+      cpu: "100m"
+      memory: "200Mi"
+
+# webhook -- MutationWebhook that will be installed to inject a sidecar into pods
+webhook:
+  # webhook.failurePolicy -- How should the webhook fail? Best is to use Ignore, because there is a brief moment at initialization when the hook s there but the service not. Also, putting this to fail can cause the control plane be unresponsive.
+  failurePolicy: Ignore
+  tls:
+    # webhook.tls.mode -- The mode for the webhook. Can be "provided", "generated", "secret" or "cert-manager". If you want to use cert-manager, you need to install it first. NOTE: If you choose "generated", additional privileges are required to create the certificate and webhook at runtime.
+    mode: "generated"
+    provided:
+      # webhook.tls.provided.caBundle -- The caBundle that is used for the webhook. This is the certificate that is used to sign the webhook. Only used if you set webhook.tls.mode to "provided".
+      caBundle: ""
+      # webhook.tls.provided.crt -- The certificate that is used for the webhook. Only used if you set webhook.tls.mode to "provided".
+      crt: ""
+      # webhook.tls.provided.key -- The key that is used for the webhook. Only used if you set webhook.tls.mode to "provided".
+      key: ""
+    certManager:
+      # webhook.tls.certManager.issuer -- The issuer that is used for the webhook. Only used if you set webhook.tls.mode to "cert-manager".
+      issuer: ""
+      # webhook.tls.certManager.issuerKind -- The issuer kind that is used for the webhook, valid values are "Issuer" or "ClusterIssuer". Only used if you set webhook.tls.mode to "cert-manager".
+      issuerKind: "ClusterIssuer"
+      # webhook.tls.certManager.issuerNamespace -- The namespace the cert-manager issuer is located in. If left empty defaults to the release's namespace that is used for the webhook. Only used if you set webhook.tls.mode to "cert-manager".
+      issuerNamespace: ""
+    secret:
+      # webhook.tls.secret.name -- The name of the secret containing the pre-provisioned certificate data that is used for the webhook. Only used if you set webhook.tls.mode to "secret".
+      name: ""

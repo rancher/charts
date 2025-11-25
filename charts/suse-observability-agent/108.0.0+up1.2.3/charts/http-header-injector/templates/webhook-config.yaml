@@ -1,0 +1,126 @@
+{{- $proxyContainerConfig := dict "ContainerConfig" .Values.proxy -}}
+{{- $proxyInitContainerConfig := dict "ContainerConfig" .Values.proxyInit -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/component: http-header-injector
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ include "http-header-injector.app.name" . }}
+{{ include "http-header-injector.global.extraLabels" . | indent 4 }}
+  annotations:
+{{ include "http-header-injector.global.extraAnnotations" . | indent 4 }}
+  name: {{ .Release.Name }}-http-header-injector-config
+data:
+  sidecarconfig.yaml: |
+    initContainers:
+      - name: http-header-proxy-init
+        image: "{{ include "http-header-injector.image.registry" (merge $proxyInitContainerConfig .) }}/{{ .Values.proxyInit.image.repository }}:{{ .Values.proxyInit.image.tag }}"
+        imagePullPolicy: {{ .Values.proxyInit.image.pullPolicy }}
+        command: ["/init-iptables.sh"]
+        env:
+          - name: CHART_VERSION
+            value: "{{ .Chart.Version }}"
+          - name: PROXY_PORT
+            value: {% if index .Annotations "config.http-header-injector.stackstate.io/proxy-port" %}"{% index .Annotations "config.http-header-injector.stackstate.io/proxy-port" %}"{% else %}"7060"{% end %}
+          - name: PROXY_UID
+            value: {% if index .Annotations "config.http-header-injector.stackstate.io/proxy-uid" %}"{% index .Annotations "config.http-header-injector.stackstate.io/proxy-uid" %}"{% else %}"2103"{% end %}
+          - name: POD_HOST_NETWORK
+            value: {% .Spec.HostNetwork %}
+          {% if eq (index .Annotations "linkerd.io/inject") "enabled" %}
+          - name: LINKERD
+            value: true
+          # Reference: https://linkerd.io/2.13/reference/proxy-configuration/
+          - name: LINKERD_PROXY_UID
+            value: {% if index .Annotations "config.linkerd.io/proxy-uid" %}"{% index .Annotations "config.linkerd.io/proxy-uid" %}"{% else %}"2102"{% end %}
+          # Due to https://github.com/linkerd/linkerd2/issues/10981 this is now not realy possible, still bringing in the code for future reference
+          - name: LINKERD_ADMIN_PORT
+            value: {% if index .Annotations "config.linkerd.io/admin-port" %}"{% index .Annotations "config.linkerd.io/admin-port" %}"{% else %}"4191"{% end %}
+          {% end %}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            add:
+              - NET_ADMIN
+              - NET_RAW
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: false
+          runAsUser: 0
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+          # This is required for iptables to be able to run
+          - mountPath: /run
+            name: http-header-proxy-init-xtables-lock
+
+    containers:
+      - name: http-header-proxy
+        image: "{{ include "http-header-injector.image.registry" (merge $proxyContainerConfig .) }}/{{ .Values.proxy.image.repository }}:{{ .Values.proxy.image.tag }}"
+        imagePullPolicy: {{ .Values.proxy.image.pullPolicy }}
+        env:
+          - name: CHART_VERSION
+            value: "{{ .Chart.Version }}"
+          - name: PORT
+            value: {% if index .Annotations "config.http-header-injector.stackstate.io/proxy-port" %}"{% index .Annotations "config.http-header-injector.stackstate.io/proxy-port" %}"{% else %}"7060"{% end %}
+          - name: DEBUG
+            value: {% if index .Annotations "config.http-header-injector.stackstate.io/debug" %}"{% index .Annotations "config.http-header-injector.stackstate.io/debug" %}"{% else %}"disabled"{% end %}
+        securityContext:
+          runAsUser: {% if index .Annotations "config.http-header-injector.stackstate.io/proxy-uid" %}{% index .Annotations "config.http-header-injector.stackstate.io/proxy-uid" %}{% else %}2103{% end %}
+          seccompProfile:
+            type: RuntimeDefault
+        {{- with .Values.proxy.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+        {{- end }}
+      - name: http-header-inject-debug
+        image: "{{ include "http-header-injector.image.registry" (merge $proxyContainerConfig .) }}/{{ .Values.proxyInit.image.repository }}:{{ .Values.proxyInit.image.tag }}"
+        imagePullPolicy: {{ .Values.proxyInit.image.pullPolicy }}
+        command: ["/bin/sh", "-c", "while echo \"Running\"; do sleep 1; done"]
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            add:
+              - NET_ADMIN
+              - NET_RAW
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: false
+          runAsUser: 0
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+          # This is required for iptables to be able to run
+          - mountPath: /run
+            name: http-header-proxy-init-xtables-lock
+
+    volumes:
+      - emptyDir: {}
+        name: http-header-proxy-init-xtables-lock
+
+  mutationconfig.yaml: |
+    mutationConfigs:
+      - name: "http-header-injector"
+        annotationNamespace: "http-header-injector.stackstate.io"
+        annotationTrigger: "inject"
+        annotationConfig:
+          volumeMounts: []
+        initContainersBeforePodInitContainers: [ "http-header-proxy-init" ]
+        initContainers: [ "http-header-proxy-init" ]
+        containers: [ "http-header-proxy" ]
+        volumes: [ "http-header-proxy-init-xtables-lock" ]
+        volumeMounts: [ ]
+        # Namespaces are ignored by the mutatingwebhook
+        ignoreNamespaces: [ ]
+      - name: "http-header-injector-debug"
+        annotationNamespace: "http-header-injector-debug.stackstate.io"
+        annotationTrigger: "inject"
+        annotationConfig:
+          volumeMounts: []
+        initContainersBeforePodInitContainers: [ ]
+        initContainers: [ ]
+        containers: [ "http-header-inject-debug"  ]
+        volumes: [ "http-header-proxy-init-xtables-lock" ]
+        volumeMounts: [ ]
+        # Namespaces are ignored by the mutatingwebhook
+        ignoreNamespaces: [ ]

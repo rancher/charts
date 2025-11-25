@@ -1,0 +1,166 @@
+{{- define "container-process-agent" -}}
+- name: process-agent
+{{ if .Values.nodeAgent.containers.processAgent.image.registry }}
+  image: "{{ .Values.nodeAgent.containers.processAgent.image.registry }}/{{ .Values.nodeAgent.containers.processAgent.image.repository }}:{{ .Values.nodeAgent.containers.processAgent.image.tag }}"
+{{ else }}
+  image: "{{ include "stackstate-k8s-agent.imageRegistry" . }}/{{ .Values.nodeAgent.containers.processAgent.image.repository }}:{{ .Values.nodeAgent.containers.processAgent.image.tag }}"
+{{- end }}
+  imagePullPolicy: "{{ .Values.nodeAgent.containers.processAgent.image.pullPolicy }}"
+  ports:
+    - containerPort: 6063
+  env:
+    {{ include "stackstate-k8s-agent.apiKeyEnv" . | nindent 4 }}
+    - name: STS_KUBERNETES_KUBELET_HOST
+      valueFrom:
+        fieldRef:
+          fieldPath: status.hostIP
+    - name: KUBERNETES_HOSTNAME
+      valueFrom:
+        fieldRef:
+          fieldPath: spec.nodeName
+    - name: STS_HOSTNAME
+      value: "$(KUBERNETES_HOSTNAME)-{{ .Values.stackstate.cluster.name}}"
+    - name: HOST_PROC
+      value: "/host/proc"
+    - name: HOST_SYS
+      value: "/host/sys"
+    - name: HOST_ETC
+      value: "/host/etc"
+    - name: KUBERNETES
+      value: "true"
+    - name: STS_CLUSTER_NAME
+      value: {{ .Values.stackstate.cluster.name | quote }}
+    - name: STS_LOG_LEVEL
+      value: {{ .Values.nodeAgent.containers.processAgent.logLevel | default .Values.nodeAgent.logLevel | quote }}
+    - name: STS_DISABLED_PROTOCOLS
+    {{- if .Values.processAgent.disabledProtocols }}
+      value: {{ join "," .Values.processAgent.disabledProtocols | quote }}
+    {{- else }}
+      value: ""
+    {{- end }}
+    - name: STS_PROTOCOL_INSPECTION_ENABLED
+      value: {{ .Values.nodeAgent.protocolInspection.enabled | quote }}
+    - name: STS_CONNECTION_CHECK_INTERVAL
+      value: {{ .Values.processAgent.checkIntervals.connections | quote }}
+    - name: STS_PROCESS_CHECK_INTERVAL
+      value: {{ .Values.processAgent.checkIntervals.process | quote }}
+    - name: GOMEMLIMIT
+      value: {{ .Values.processAgent.softMemoryLimit.goMemLimit | quote }}
+    - name: STS_HTTP_STATS_BUFFER_SIZE
+      value: {{ .Values.processAgent.softMemoryLimit.httpStatsBufferSize | quote }}
+    - name: STS_HTTP_OBSERVATIONS_BUFFER_SIZE
+      value: {{ .Values.processAgent.softMemoryLimit.httpObservationsBufferSize | quote }}
+    - name: STS_PROCESS_AGENT_URL
+      value: {{ include "stackstate-k8s-agent.stackstate.url" . }}
+    - name: STS_SKIP_SSL_VALIDATION
+      value: {{ or .Values.global.skipSslValidation .Values.nodeAgent.skipSslValidation | quote }}
+    - name: STS_SKIP_KUBELET_TLS_VERIFY
+      value: {{ .Values.nodeAgent.skipKubeletTLSVerify | quote }}
+    - name: STS_HTTP_TRACING_ENABLED
+      value: {{ .Values.nodeAgent.httpTracing.enabled | quote }}
+    - name: STS_POD_CORRELATION_ENABLED
+      value: {{ .Values.processAgent.podCorrelation.enabled | quote }}
+    {{- if include "stackstate-k8s-agent.processAgent.podCorrelation.remoteCache.enabled" . }}
+    - name: STS_POD_CORRELATION_REMOTE_CACHE_ADDR
+      value: {{ include "stackstate-k8s-agent.remoteKubeCache.address" $ }}
+    {{- end }}
+    - name: STS_POD_CORRELATION_PROTOCOL_METRICS
+      value: {{ .Values.processAgent.podCorrelation.protocolMetrics | quote }}
+    - name: STS_POD_CORRELATION_PARTIAL_CORRELATION
+      value: {{ .Values.processAgent.podCorrelation.partialCorrelation | quote }}
+    - name: STS_POD_CORRELATION_ATTRIBUTES_KEYS
+    {{- if .Values.processAgent.podCorrelation.attributes }}
+      value: {{ join "," .Values.processAgent.podCorrelation.attributes | quote }}
+    {{- else }}
+      value: ""
+    {{- end }}
+    - name: STS_POD_CORRELATION_EXPORTER_TYPE
+      value: {{ .Values.processAgent.podCorrelation.exporter.type | quote }}
+    - name: STS_POD_CORRELATION_EXPORTER_OTLP_ENDPOINT
+      value: {{ .Values.processAgent.podCorrelation.exporter.endpoint | quote }}
+    - name: STS_POD_CORRELATION_EXPORTER_INTERVAL
+      value: {{ .Values.processAgent.podCorrelation.exporter.interval | quote }}
+    {{- if .Values.nodeAgent.containerRuntime.customSocketPath }}
+    - name: STS_CRI_SOCKET_PATH
+      value: {{ .Values.nodeAgent.containerRuntime.customSocketPath }}
+    {{- end }}
+    {{- if .Values.global.proxy.url }}
+    - name: STS_PROXY_HTTPS
+      value: {{ .Values.global.proxy.url | quote }}
+    - name: STS_PROXY_HTTP
+      value: {{ .Values.global.proxy.url | quote }}
+    {{- end }}
+    {{- range $key, $value := .Values.global.extraEnv.open }}
+    - name: {{ $key }}
+      value: {{ $value | quote }}
+    {{- end }}
+    {{- range $key, $value := .Values.global.extraEnv.secret }}
+    - name: {{ $key }}
+      valueFrom:
+        secretKeyRef:
+          name: {{ include "stackstate-k8s-agent.secret.internal.name" $ }}
+          key: {{ $key }}
+    {{- end }}
+    {{- range $key, $value := .Values.nodeAgent.containers.processAgent.env }}
+    - name: {{ $key }}
+      value: {{ $value | quote }}
+    {{- end }}
+  {{- with .Values.nodeAgent.containers.processAgent.resources }}
+  resources:
+    {{- toYaml . | nindent 12 }}
+  {{- end }}
+  volumeMounts:
+  {{- if .Values.nodeAgent.containerRuntime.customSocketPath }}
+  - name: customcrisocket
+    mountPath: {{ .Values.nodeAgent.containerRuntime.customSocketPath }}
+    readOnly: true
+  {{- end }}
+  - name: crisocket
+    mountPath: /var/run/crio/crio.sock
+    readOnly: true
+  - name: containerdsocket
+    mountPath: /var/run/containerd/containerd.sock
+    readOnly: true
+  - name: sys-kernel-debug
+    mountPath: /sys/kernel/debug
+    # Having sys-kernel-debug as read only breaks specific monitors from receiving metrics
+    # readOnly: true
+  - name: dockersocket
+    mountPath: /var/run/docker.sock
+    readOnly: true
+  # The agent needs access to /etc to figure out what os it is running on.
+  - name: etcdir
+    mountPath: /host/etc
+    readOnly: true
+  - name: procdir
+    mountPath: /host/proc
+  # We have an agent option STS_DISABLE_BPF_JIT_HARDEN that write to /proc. this is a debug setting but if we want to use
+  # it, we have the option to make /proc writable.
+    readOnly: {{ .Values.nodeAgent.containers.processAgent.procVolumeReadOnly }}
+  - name: passwd
+    mountPath: /etc/passwd
+    readOnly: true
+  - name: cgroups
+    mountPath: /host/sys/fs/cgroup
+    readOnly: true
+  {{- if .Values.nodeAgent.config.override }}
+  {{- range .Values.nodeAgent.config.override }}
+  - name: config-override-volume
+    mountPath: {{ .path }}/{{ .name }}
+    subPath: {{ .path | replace "/" "_"}}_{{ .name }}
+    readOnly: true
+  {{- end }}
+  {{- end }}
+  {{- include "stackstate-k8s-agent.customCertificates.volumeMount" . | nindent 2 }}
+{{- if .Values.all.fullPrivilegesMode.enabled}}
+  securityContext:
+    privileged: true
+    runAsUser: 0  # root
+    capabilities:
+      add: [ "ALL" ]
+    readOnlyRootFilesystem: false
+{{- else }}
+  securityContext:
+    privileged: true
+{{- end }}
+{{- end -}}
