@@ -13,6 +13,15 @@ forward-port:
 check-release-yaml:
 	./scripts/check-release-yaml
 
+prepare-cached: pull-scripts
+	@./bin/charts-build-scripts prepare --useCache
+
+patch-cached: pull-scripts
+	@./bin/charts-build-scripts patch --useCache
+
+charts-cached: pull-scripts
+	@./bin/charts-build-scripts charts --useCache
+
 validate:
 	@./scripts/pull-scripts
 	@./bin/charts-build-scripts validate $(if $(filter true,$(remote)),--remote) $(if $(filter true,$(local)),--local)
