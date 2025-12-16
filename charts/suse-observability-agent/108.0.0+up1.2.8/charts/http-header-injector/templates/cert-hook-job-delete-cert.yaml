@@ -1,0 +1,41 @@
+# Delete is always executed, even if another TLS mode is chosen, to make sure the automatic generated secret is cleaned
+# up.
+# The only scenario in which the secret will not be cleaned up, is when this chart is included as subchart and disabled,
+# in that case the post-delete hook won't run and the secret will linger. We accept this as a small shortcoming of this approach.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-header-injector-delete-cert
+  labels:
+    app.kubernetes.io/component: http-header-injector
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ include "http-header-injector.app.name" . }}
+{{ include "http-header-injector.global.extraLabels" . | indent 4 }}
+  annotations:
+    "helm.sh/hook": post-delete,post-upgrade
+    "helm.sh/hook-weight": "-2"
+    "helm.sh/hook-delete-policy": before-hook-creation{{- if not .Values.debug -}},hook-succeeded{{- end }}
+{{ include "http-header-injector.global.extraAnnotations" . | indent 4 }}
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: http-header-injector
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/name: {{ include "http-header-injector.app.name" . }}
+{{ include "http-header-injector.global.extraLabels" . | indent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/cert-hook-config.yaml") . | sha256sum }}
+{{ include "http-header-injector.global.extraAnnotations" . | indent 8 }}
+    spec:
+      serviceAccountName: "{{ include "http-header-injector.cert-serviceaccount.name" . }}"
+      {{- include "http-header-injector.image.pullSecretsHooks" . | nindent 6 }}
+      volumes:
+        - name: "{{ include "http-header-injector.cert-config.name" . }}"
+          configMap:
+            name: "{{ include "http-header-injector.cert-config.name" . }}"
+            defaultMode: 0777
+      containers:
+      - {{ include "http-header-injector.cert-delete.container.main" . | nindent 8 }}
+      restartPolicy: Never
+  backoffLimit: 0

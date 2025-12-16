@@ -1,0 +1,59 @@
+{{- $containerConfig := dict "ContainerConfig" .Values.sidecarInjector -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: http-header-injector
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ include "http-header-injector.app.name" . }}
+    app: "{{ include "http-header-injector.app.name" . }}"
+{{ include "http-header-injector.global.extraLabels" . | indent 4 }}
+  annotations:
+{{ include "http-header-injector.global.extraAnnotations" . | indent 4 }}
+  name: "{{ include "http-header-injector.app.name" . }}"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "{{ include "http-header-injector.app.name" . }}"
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: http-header-injector
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/name: {{ include "http-header-injector.app.name" . }}
+        app: "{{ include "http-header-injector.app.name" . }}"
+{{ include "http-header-injector.global.extraLabels" . | indent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/webhook-config.yaml") . | sha256sum }}
+        # This is here to make sure the generic injector gets restarted and picks up a new secret that may have been generated upon upgrade.
+        revision: "{{ .Release.Revision }}"
+{{ include "http-header-injector.global.extraAnnotations" . | indent 8 }}
+      name: "{{ include "http-header-injector.app.name" . }}"
+    spec:
+      {{- include "http-header-injector.image.pullSecrets" . | nindent 6 }}
+      volumes:
+        - name: "{{ include "http-header-injector.webhook-config.name" . }}"
+          configMap:
+            name: "{{ include "http-header-injector.webhook-config.name" . }}"
+        - name: "{{ include "http-header-injector.cert-secret.name" . }}"
+          secret:
+            secretName: "{{ include "http-header-injector.cert-secret.name" . }}"
+      containers:
+        - image: "{{ include "http-header-injector.image.registry" (merge $containerConfig .) }}/{{ .Values.sidecarInjector.image.repository }}:{{ .Values.sidecarInjector.image.tag }}"
+          imagePullPolicy: {{ .Values.sidecarInjector.image.pullPolicy }}
+          name: http-header-injector
+          volumeMounts:
+            - name: "{{ include "http-header-injector.webhook-config.name" . }}"
+              mountPath: /etc/webhook/config
+              readOnly: true
+            - name: "{{ include "http-header-injector.cert-secret.name" . }}"
+              mountPath: /etc/webhook/certs
+              readOnly: true
+          command: [ "/sidecarinjector" ]
+          args:
+            - --port=8443
+            - --sidecar-config-file=/etc/webhook/config/sidecarconfig.yaml
+            - --mutation-config-file=/etc/webhook/config/mutationconfig.yaml
+            - --cert-file-path=/etc/webhook/certs/tls.crt
+            - --key-file-path=/etc/webhook/certs/tls.key

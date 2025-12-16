@@ -1,0 +1,157 @@
+# This is always ran to allow for the delete job to be ran.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ include "http-header-injector.cert-config.name" . }}"
+  labels:
+    app.kubernetes.io/component: http-header-injector-cert-hook
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ include "http-header-injector.app.name" . }}
+{{ include "http-header-injector.global.extraLabels" . | indent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,post-install,pre-upgrade,post-upgrade,post-delete
+    "helm.sh/hook-weight": "-3"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+{{ include "http-header-injector.global.extraAnnotations" . | indent 4 }}
+data:
+  generate-cert.sh: |
+    #!/bin/bash
+
+    # We are going for a self-signed certificate here. We would like to use k8s CertificateSigningRequest, however,
+    # currently there are no out of the box signers that can sign a 'server auth' certificate, which is required for mutation webhooks.
+    set -ex
+
+    SCRIPTDIR="${BASH_SOURCE%/*}"
+
+    DIR=`mktemp -d`
+
+    cd "$DIR"
+
+    echo "Chart enabled, creating secret and webhook"
+
+    openssl genrsa -out ca.key 2048
+
+    openssl req -x509 -new -nodes -key ca.key -config "$SCRIPTDIR/ca.conf" -days 10000 -out ca.crt
+    
+    openssl genrsa -out tls.key 2048
+
+    openssl req -new -key tls.key -out tls.csr -config "$SCRIPTDIR/csr.conf"
+
+    openssl x509 -req -in tls.csr -CA ca.crt -CAkey ca.key \
+    -CAcreateserial -out tls.crt -days 10000 \
+    -extensions v3_ext -extfile "$SCRIPTDIR/csr.conf" -sha256
+
+    # Create or update the secret
+    echo "Applying secret"
+    kubectl create secret generic "{{ include "http-header-injector.cert-secret.name" . }}" \
+      -n "{{ .Release.Namespace }}" \
+      --from-file=tls.crt=./tls.crt \
+      --from-file=tls.key=./tls.key \
+      --from-file=ca.crt=./ca.crt \
+      --type=kubernetes.io/tls \
+      --dry-run=client \
+      -o yaml | kubectl apply -f -
+    echo "Secret created/updated"
+
+  delete-cert.sh: |
+    #!/bin/bash
+
+    set -x
+
+    DIR="${BASH_SOURCE%/*}"
+    if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
+    if [[ "$DIR" = "." ]]; then DIR="$PWD"; fi
+
+    cd "$DIR"
+
+    # Using detection of deployment here to also make this work in post-delete.
+    if kubectl get deployments "{{ include "http-header-injector.app.name" . }}"  -n "{{ .Release.Namespace }}"; then
+      echo "Header injection enabled, not removing secret"
+      exit 0
+    else
+      echo "Header injection, removing secret"
+    fi
+
+    # Delete the secret
+    echo "Deleting secret"
+    kubectl delete secret "{{ include "http-header-injector.cert-secret.name" . }}" -n "{{ .Release.Namespace }}"
+
+    exit 0
+
+  inject-ca.sh: |
+    #!/bin/bash
+
+    set -ex
+
+    # Extract the CA certificate from the secret
+    echo "Extracting ca.crt from secret '{{ include "http-header-injector.cert-secret.name" . }}' in namespace '{{ .Release.Namespace }}'..."
+    CA_BUNDLE=$(kubectl get secret "{{ include "http-header-injector.cert-secret.name" . }}" -n "{{ .Release.Namespace }}" -o jsonpath='{.data.ca\.crt}')
+
+    if [[ -z "$CA_BUNDLE" ]]; then
+      echo "Error: Failed to extract ca.crt from secret. Ensure the secret contains a ca.crt field."
+      exit 1
+    fi
+
+    # Patch the MutatingWebhookConfiguration with the CA bundle
+    echo "Patching MutatingWebhookConfiguration '{{ include "http-header-injector.mutating-webhook.name" . }}'..."
+    kubectl patch mutatingwebhookconfiguration "{{ include "http-header-injector.mutating-webhook.name" . }}" --type='json' -p="[
+      {
+        \"op\": \"replace\",
+        \"path\": \"/webhooks/0/clientConfig/caBundle\",
+        \"value\": \"$CA_BUNDLE\"
+      }
+    ]"
+
+    if [[ $? -eq 0 ]]; then
+      echo "Successfully patched MutatingWebhookConfiguration '{{ include "http-header-injector.mutating-webhook.name" . }}'."
+      else
+    echo "Error: Failed to patch MutatingWebhookConfiguration."
+      exit 1
+    fi
+
+
+  csr.conf: |
+    [ req ]
+    default_bits = 2048
+    prompt = no
+    default_md = sha256
+    req_extensions = req_ext
+    distinguished_name = dn
+
+    [ dn ]
+    C = NL
+    ST = Utrecht
+    L = Hilversum
+    O = StackState
+    OU = Dev
+    CN = {{ include "http-header-injector.webhook-service.name" . }}
+
+    [ req_ext ]
+    subjectAltName = @alt_names
+
+    [ alt_names ]
+    DNS.1 = {{ include "http-header-injector.webhook-service.fqname" . }}
+
+    [ v3_ext ]
+    authorityKeyIdentifier=keyid,issuer:always
+    basicConstraints=CA:FALSE
+    keyUsage=keyEncipherment,dataEncipherment
+    extendedKeyUsage=serverAuth
+    subjectAltName=@alt_names
+
+  ca.conf: |
+    [ req ]
+    distinguished_name = req_distinguished_name
+    req_extensions = v3_req
+    prompt = no
+
+    [ req_distinguished_name ]
+    CN = {{ include "http-header-injector.webhook-service.name" . }}
+
+    [ v3_req ]
+    basicConstraints = critical, CA:true
+    keyUsage = critical, digitalSignature, keyEncipherment, keyCertSign
+    subjectAltName = @alt_names
+
+    [ alt_names ]
+    DNS.1 = {{ include "http-header-injector.webhook-service.fqname" . }}

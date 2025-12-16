@@ -1,0 +1,94 @@
+{{- if .Values.logsAgent.enabled }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ .Release.Name }}-logs-agent
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "stackstate-k8s-agent.labels" . | indent 4 }}
+{{ include "stackstate-k8s-agent.global.extraLabels" . | indent 4 }}
+    app.kubernetes.io/component: logs-agent
+  annotations:
+{{ include "stackstate-k8s-agent.global.extraAnnotations" . | indent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: logs-agent
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/name: {{ include "stackstate-k8s-agent.name" . }}
+{{- with .Values.logsAgent.updateStrategy }}
+  updateStrategy:
+    {{- toYaml . | nindent 4 }}
+{{- end }}
+  template:
+    metadata:
+      annotations:
+        {{- include "stackstate-k8s-agent.checksum-configs" . | nindent 8 }}
+        {{- include "stackstate-k8s-agent.logsAgent.configmap.override.checksum" . | nindent 8 }}
+        {{- include "stackstate-k8s-agent.customCertificates.checksum" . | nindent 8 }}
+{{ include "stackstate-k8s-agent.global.extraAnnotations" . | indent 8 }}
+      labels:
+        app.kubernetes.io/component: logs-agent
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/name: {{ include "stackstate-k8s-agent.name" . }}
+{{ include "stackstate-k8s-agent.global.extraLabels" . | indent 8 }}
+    spec:
+      {{- include "stackstate-k8s-agent.image.pullSecrets" (dict "images" (list .Values.logsAgent.image .Values.all.image) "context" $) | nindent 6 }}
+      containers:
+        - name: logs-agent
+          image: "{{ include "stackstate-k8s-agent.imageRegistry" . }}/{{ .Values.logsAgent.image.repository }}:{{ .Values.logsAgent.image.tag }}"
+          args:
+          - -config.expand-env=true
+          - -config.file=/etc/promtail/promtail.yaml
+          imagePullPolicy: "{{ .Values.logsAgent.image.pullPolicy }}"
+          env:
+          {{ include "stackstate-k8s-agent.apiKeyEnv" . | nindent 10 }}
+          - name: "HOSTNAME" # needed when using kubernetes_sd_configs
+            valueFrom:
+              fieldRef:
+                fieldPath: "spec.nodeName"
+          securityContext:
+            privileged: false
+        {{- with .Values.logsAgent.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+        {{- end }}
+          volumeMounts:
+            - name: logs
+              mountPath: /var/log
+              readOnly: true
+            - name: logs-agent-config
+              mountPath: /etc/promtail
+              readOnly: true
+            - name: varlibdockercontainers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+            {{- include "stackstate-k8s-agent.customCertificates.volumeMount" . | nindent 12 }}
+      {{- if .Values.logsAgent.priorityClassName }}
+      priorityClassName: {{ .Values.logsAgent.priorityClassName }}
+      {{- end }}
+      serviceAccountName: {{ .Release.Name }}-logs-agent
+    {{- with .Values.logsAgent.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.logsAgent.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.logsAgent.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      volumes:
+        - name: logs
+          hostPath:
+            path: /var/log
+        - name: varlibdockercontainers
+          hostPath:
+            path: /var/lib/docker/containers
+        - name: logs-agent-config
+          configMap:
+            name: {{ .Release.Name }}-logs-agent
+        {{- include "stackstate-k8s-agent.customCertificates.volume" . | nindent 8 }}
+{{- end -}}
