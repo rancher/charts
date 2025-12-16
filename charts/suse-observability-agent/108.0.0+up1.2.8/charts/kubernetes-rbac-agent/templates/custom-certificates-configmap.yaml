@@ -1,0 +1,16 @@
+{{- include "kubernetes-rbac-agent.customCertificates.validate" . }}
+{{- if and .Values.global.customCertificates.enabled .Values.global.customCertificates.pemData (not .Values.global.customCertificates.configMapName) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kubernetes-rbac-agent.customCertificates.configmap.name" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "kubernetes-rbac-agent.global.commonLabels" . | indent 4 }}
+    app.kubernetes.io/component: custom-certificates
+  annotations:
+{{ include "kubernetes-rbac-agent.global.commonAnnotations" . | indent 4 }}
+data:
+  tls.pem: |
+{{ .Values.global.customCertificates.pemData | indent 4 }}
+{{- end }}
