@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+  name: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: elemental-operator
+  template:
+    metadata:
+      labels:
+        app: elemental-operator
+    spec:
+      securityContext:
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.securityContext.runAsGroup }}
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+      containers:
+      - env:
+        - name: NO_PROXY
+          value: {{ .Values.noProxy }}
+        {{- if .Values.proxy }}
+        - name: HTTP_PROXY
+          value: {{ .Values.proxy }}
+        - name: HTTPS_PROXY
+          value: {{ .Values.proxy }}
+        {{- end }}
+        name: {{ .Release.Name }}
+        imagePullPolicy: "{{ .Values.image.imagePullPolicy }}"
+        image: {{ template "registry_url" . }}{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
+        args:
+        - operator
+        {{- if .Values.debug }}
+        - --v=5
+        - --debug
+        {{- end }}
+        - --namespace
+        - {{ .Release.Namespace }}
+        - --operator-image
+        - {{ template "registry_url" . }}{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
+        - --seedimage-image
+        - {{ template "registry_url" . }}{{ .Values.seedImage.repository }}:{{ .Values.seedImage.tag | default .Chart.AppVersion }}
+        - --seedimage-image-pullpolicy
+        - {{ .Values.seedImage.imagePullPolicy}}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      serviceAccountName: {{ .Release.Name }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
