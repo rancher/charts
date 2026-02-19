@@ -1,0 +1,20 @@
+{{- if include "stackstate-k8s-agent.processAgent.podCorrelation.remoteCache.enabled" . }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Release.Name }}-remote-kube-cache
+  labels:
+{{ include "stackstate-k8s-agent.labels" . | indent 4 }}
+{{ include "stackstate-k8s-agent.global.extraLabels" . | indent 4 }}
+    app.kubernetes.io/component: remote-kube-cache
+  annotations:
+{{ include "stackstate-k8s-agent.global.extraAnnotations" . | indent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Release.Name }}-remote-kube-cache
+subjects:
+- kind: ServiceAccount
+  name: {{ .Release.Name }}-remote-kube-cache
+  namespace: {{ .Release.Namespace }}
+{{- end }}

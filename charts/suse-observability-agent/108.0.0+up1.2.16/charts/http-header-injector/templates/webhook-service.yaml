@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: http-header-injector
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ include "http-header-injector.app.name" . }}
+{{ include "http-header-injector.global.extraLabels" . | indent 4 }}
+  annotations:
+{{ include "http-header-injector.global.extraAnnotations" . | indent 4 }}
+  name: "{{ include "http-header-injector.webhook-service.name" . }}"
+spec:
+  ports:
+    - port: 8443
+      protocol: TCP
+      targetPort: 8443
+  selector:
+    app: "{{ include "http-header-injector.app.name" . }}"
