@@ -1,0 +1,30 @@
+{{ $defChannelName := "" }}
+{{ if and .Values.channel .Values.channel.image .Values.channel.tag .Values.channel.name }}
+{{ $defChannelName := .Values.channel.name }}
+apiVersion: elemental.cattle.io/v1beta1
+kind: ManagedOSVersionChannel
+metadata:
+  name: {{ .Values.channel.name }}
+  namespace: fleet-default
+spec:
+  options:
+    image: {{ .Values.channel.image }}:{{ .Values.channel.tag }}
+  type: custom
+{{ end }}
+
+# Keep pre-existing channels managed by Helm if they do not match with the current default
+# this way if an upgrade introduces a new channel any pre-existing channel managed by Helm is not deleted
+{{ range $index, $channel := (lookup "elemental.cattle.io/v1beta1" "ManagedOSVersionChannel" "fleet-default" "").items }}
+  {{ if and (eq (index $channel.metadata.labels "app.kubernetes.io/managed-by") "Helm") (ne $channel.metadata.name $defChannelName) }}
+---
+apiVersion: elemental.cattle.io/v1beta1
+kind: ManagedOSVersionChannel
+metadata:
+  name: {{ $channel.metadata.name }}
+  namespace: fleet-default
+spec:
+  options:
+    image: {{ $channel.spec.options.image }}
+  type: custom
+  {{ end }}
+{{ end }}
