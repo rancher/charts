@@ -1,0 +1,81 @@
+# Rancher global parameters
+global:
+  cattle:
+    # systemDefaultRegistry is used to specify the registry images are pulled from.
+    systemDefaultRegistry: ""
+image:
+  # repository is the path to the Turtles GitHub repository.
+  repository: rancher/turtles
+  # tag is the image tag.
+  tag: v0.25.4
+  # imagePullPolicy specifies image pull policy.
+  imagePullPolicy: IfNotPresent
+# namespace: Select namespace for Turtles to run.
+namespace: cattle-turtles-system
+# managerArguments: Extra args for the controller.
+managerArguments: []
+# imagePullSecrets: Secrets for private registries.
+imagePullSecrets: []
+# shellImage: Image for shell tasks.
+shellImage:
+  image:
+    repository: rancher/kuberlr-kubectl
+    tag: v5.0.0
+# features: Optional and experimental features.
+features:
+  # agent-tls-mode: Beta feature for agent TLS.
+  agent-tls-mode:
+    # enabled: Turn on or off.
+    enabled: true
+  # no-cert-manager: Beta feature for cert-manager removal.
+  no-cert-manager:
+    # enabled: Turn on or off.
+    enabled: true
+  # use-rancher-default-registry: Alpha feature to use Rancher's default registry for provider images.
+  use-rancher-default-registry:
+    # enabled: Turn on or off.
+    enabled: true
+# volumes: Volumes for controller pods.
+volumes:
+  - name: clusterctl-config
+    configMap:
+      name: clusterctl-config
+# volumeMounts: Volume mounts for controller pods.
+volumeMounts:
+  manager:
+    - mountPath: /config
+      name: clusterctl-config
+# cluster-api-operator: Manages Cluster API components.
+cluster-api-operator:
+  # cleanup: Enable cleanup tasks.
+  cleanup: true
+  # cluster-api: Cluster API component settings.
+  cluster-api:
+    # enabled: Turn on or off.
+    enabled: true
+    # configSecret: Secret for Cluster API config.
+    configSecret:
+      # name: Custom secret name (if overriding).
+      name: ""
+      # defaultName: Default secret name.
+      defaultName: capi-env-variables
+    # core: Core Cluster API settings.
+    core:
+      # namespace: Core component namespace.
+      namespace: cattle-capi-system
+      # version: Core ClusterAPI version.
+      version: ""
+      # enableAutomaticUpdate: Allow the provider to update automatically when a new Turtles version is installed.
+      enableAutomaticUpdate: false
+      # imageUrl: Custom image URL.
+      imageUrl: ""
+      # fetchConfig: Config fetching settings.
+      fetchConfig:
+        # url: Config fetch URL.
+        url: ""
+        # selector: Config selector.
+        selector:
+          matchLabels:
+            managed-by.turtles.cattle.io: "true"
+            provider.cluster.x-k8s.io/name: cluster-api
+            provider.cluster.x-k8s.io/type: core
