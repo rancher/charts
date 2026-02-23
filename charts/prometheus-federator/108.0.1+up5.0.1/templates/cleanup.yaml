@@ -1,0 +1,99 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ template "prometheus-federator.name" . }}-cleanup
+  namespace: {{ template "prometheus-federator.namespace" . }}
+  labels: {{ include "prometheus-federator.labels" . | indent 4 }}
+    app: {{ template "prometheus-federator.name" . }}
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-delete-policy": before-hook-creation, hook-succeeded, hook-failed
+spec:
+  template:
+    metadata:
+      name: {{ template "prometheus-federator.name" . }}-cleanup
+      labels: {{ include "prometheus-federator.labels" . | indent 8 }}
+        app: {{ template "prometheus-federator.name" . }}
+    spec:
+      serviceAccountName: {{ template "prometheus-federator.name" . }}
+{{- if .Values.helmProjectOperator.cleanup.securityContext }}
+      securityContext: {{ toYaml .Values.helmProjectOperator.cleanup.securityContext | nindent 8 }}
+{{- end }}
+      initContainers:
+        - name: add-cleanup-annotations
+          image: {{ template "system_default_registry" . }}{{ .Values.helmProjectOperator.cleanup.image.repository }}:{{ .Values.helmProjectOperator.cleanup.image.tag }}
+          imagePullPolicy: "{{ .Values.helmProjectOperator.image.pullPolicy }}"
+          command:
+          - /bin/sh
+          - -c
+          - >
+            echo "Labeling all ProjectHelmCharts with helm.cattle.io/helm-project-operator-cleanup=true";
+            EXPECTED_HELM_API_VERSION={{ .Values.helmProjectOperator.helmApiVersion }};
+            IFS=$'\n';
+            for namespace in $(kubectl get namespaces -l helm.cattle.io/helm-project-operated=true --no-headers -o=custom-columns=NAME:.metadata.name); do
+              for projectHelmChartAndHelmApiVersion in $(kubectl get projecthelmcharts -n ${namespace} --no-headers -o=custom-columns=NAME:.metadata.name,HELMAPIVERSION:.spec.helmApiVersion); do
+                projectHelmChartAndHelmApiVersion=$(echo ${projectHelmChartAndHelmApiVersion} | xargs);
+                projectHelmChart=$(echo ${projectHelmChartAndHelmApiVersion} | cut -d' ' -f1);
+                helmApiVersion=$(echo ${projectHelmChartAndHelmApiVersion} | cut -d' ' -f2);
+                if [[ ${helmApiVersion} != ${EXPECTED_HELM_API_VERSION} ]]; then
+                  echo "Skipping marking ${namespace}/${projectHelmChart} with cleanup annotation since spec.helmApiVersion: ${helmApiVersion} is not ${EXPECTED_HELM_API_VERSION}";
+                  continue;
+                fi;
+                kubectl label projecthelmcharts -n ${namespace} ${projectHelmChart} helm.cattle.io/helm-project-operator-cleanup=true --overwrite;
+              done;
+            done;
+{{- if .Values.helmProjectOperator.cleanup.resources }}
+          resources: {{ toYaml .Values.helmProjectOperator.cleanup.resources | nindent 12 }}
+{{- end }}
+{{- if .Values.helmProjectOperator.cleanup.containerSecurityContext }}
+          securityContext: {{ toYaml .Values.helmProjectOperator.cleanup.containerSecurityContext | nindent 12 }}
+{{- end }}
+      containers:
+        - name: ensure-subresources-deleted
+          image: {{ template "system_default_registry" . }}{{ .Values.helmProjectOperator.cleanup.image.repository }}:{{ .Values.helmProjectOperator.cleanup.image.tag }}
+          imagePullPolicy: IfNotPresent
+          command:
+          - /bin/sh
+          - -c
+          - |
+            echo "Checking if HelmCharts and HelmReleases CRDs exist...";
+            CRD_HELMCHARTS=$(kubectl get crd helmcharts.helm.cattle.io --ignore-not-found)
+            CRD_HELMRELEASES=$(kubectl get crd helmreleases.helm.cattle.io --ignore-not-found)
+            if [ -z "$CRD_HELMCHARTS" ] && [ -z "$CRD_HELMRELEASES" ]; then
+              echo "Neither HelmCharts nor HelmReleases CRDs exist in cluster, nothing to clean.";
+              exit 0;
+            fi
+            RESOURCE_LIST=""
+            if [ -n "$CRD_HELMCHARTS" ]; then
+              RESOURCE_LIST="helmcharts"
+            fi
+            if [ -n "$CRD_HELMRELEASES" ]; then
+              if [ -n "$RESOURCE_LIST" ]; then
+                RESOURCE_LIST="$RESOURCE_LIST,"
+              fi
+              RESOURCE_LIST="${RESOURCE_LIST}helmreleases"
+            fi
+            SYSTEM_NAMESPACE={{ .Release.Namespace }}
+            EXPECTED_HELM_API_VERSION={{ .Values.helmProjectOperator.helmApiVersion }};
+            HELM_API_VERSION_TRUNCATED=$(echo ${EXPECTED_HELM_API_VERSION} | cut -d'/' -f0);
+            echo "Ensuring HelmCharts and HelmReleases are deleted from ${SYSTEM_NAMESPACE}...";
+            while [[ "$(kubectl get ${RESOURCE_LIST} -l helm.cattle.io/helm-api-version=${HELM_API_VERSION_TRUNCATED} -n ${SYSTEM_NAMESPACE} 2>&1)" != "No resources found in ${SYSTEM_NAMESPACE} namespace." ]]; do
+              echo "waiting for HelmCharts and HelmReleases to be deleted from ${SYSTEM_NAMESPACE}... sleeping 3 seconds";
+              sleep 3;
+            done;
+            echo "Successfully deleted all HelmCharts and HelmReleases in ${SYSTEM_NAMESPACE}!";
+{{- if .Values.helmProjectOperator.cleanup.resources }}
+          resources: {{ toYaml .Values.helmProjectOperator.cleanup.resources | nindent 12 }}
+{{- end }}
+{{- if .Values.helmProjectOperator.cleanup.containerSecurityContext }}
+          securityContext: {{ toYaml .Values.helmProjectOperator.cleanup.containerSecurityContext | nindent 12 }}
+{{- end }}
+      restartPolicy: OnFailure
+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
+      {{- if .Values.helmProjectOperator.cleanup.nodeSelector }}
+      {{- toYaml .Values.helmProjectOperator.cleanup.nodeSelector | nindent 8 }}
+      {{- end }}
+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
+      {{- if .Values.helmProjectOperator.cleanup.tolerations }}
+      {{- toYaml .Values.helmProjectOperator.cleanup.tolerations | nindent 8 }}
+      {{- end }}
