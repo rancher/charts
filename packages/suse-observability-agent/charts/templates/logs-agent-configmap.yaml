@@ -1,0 +1,104 @@
+{{- if .Values.logsAgent.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-logs-agent
+  labels:
+{{ include "stackstate-k8s-agent.labels" . | indent 4 }}
+{{ include "stackstate-k8s-agent.global.extraLabels" . | indent 4 }}
+    app.kubernetes.io/component: logs-agent
+  annotations:
+{{ include "stackstate-k8s-agent.global.extraAnnotations" . | indent 4 }}
+data:
+  promtail.yaml: |
+    server:
+      http_listen_port: 9080
+      grpc_listen_port: 0
+
+    clients:
+      - url: {{ tpl .Values.stackstate.url . }}/logs/k8s
+        headers:
+          sts-api-key: ${STS_API_KEY}
+        external_labels:
+           sts_cluster_name: {{ .Values.stackstate.cluster.name | quote }}
+      {{- if .Values.global.proxy.url }}
+        proxy_url: {{ .Values.global.proxy.url | quote }}
+      {{- end }}
+        tls_config:
+          insecure_skip_verify: {{ or .Values.global.skipSslValidation .Values.logsAgent.skipSslValidation }}
+
+
+    positions:
+      filename: /tmp/positions.yaml
+    target_config:
+      sync_period: 10s
+    scrape_configs:
+    - job_name: pod-logs
+      kubernetes_sd_configs:
+        - role: pod
+      pipeline_stages:
+        - docker: {}
+        - cri: {}
+      relabel_configs:
+        # We keep the results of this scraping job only if the __meta_kubernetes_pod_uid label is not empty
+        - source_labels: [__meta_kubernetes_pod_uid]
+          action: keep
+          regex: .+
+        - action: replace
+          source_labels:
+            - __meta_kubernetes_pod_name
+          target_label: pod_name
+        - action: replace
+          source_labels:
+            - __meta_kubernetes_pod_uid
+          target_label: pod_uid
+        - action: replace
+          source_labels:
+            - __meta_kubernetes_pod_container_name
+          target_label: container_name
+        # The __path__ is required by the promtail client
+        - replacement: /var/log/pods/*$1/*.log
+          separator: /
+          source_labels:
+            - __meta_kubernetes_pod_uid
+            - __meta_kubernetes_pod_container_name
+          target_label: __path__
+        # Drop all remaining labels, we do not need those
+        - action: labeldrop
+          regex: __meta_(.*)
+
+    - job_name: static-pod-logs
+      kubernetes_sd_configs:
+        - role: pod
+      pipeline_stages:
+        - docker: {}
+        - cri: {}
+      relabel_configs:
+        # We keep the results of this scraping job only if the
+        # __meta_kubernetes_pod_annotation_kubernetes_io_config_mirror label is not empty
+        - source_labels: [__meta_kubernetes_pod_annotation_kubernetes_io_config_mirror]
+          action: keep
+          regex: .+
+        - action: replace
+          source_labels:
+            - __meta_kubernetes_pod_name
+          target_label: pod_name
+        - action: replace
+          source_labels:
+            - __meta_kubernetes_pod_uid
+          target_label: pod_uid
+        - action: replace
+          source_labels:
+            - __meta_kubernetes_pod_container_name
+          target_label: container_name
+        # The __path__ is required by the promtail client
+        - replacement: /var/log/pods/*$1/*.log
+          separator: /
+          source_labels:
+            - __meta_kubernetes_pod_annotation_kubernetes_io_config_mirror
+            - __meta_kubernetes_pod_container_name
+          target_label: __path__
+        # Drop all remaining labels, we do not need those
+        - action: labeldrop
+          regex: __meta_(.*)
+{{- end -}}

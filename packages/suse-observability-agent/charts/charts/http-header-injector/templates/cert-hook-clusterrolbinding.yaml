@@ -1,0 +1,23 @@
+# This is always ran to allow for the delete job to be ran.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: "{{ include "http-header-injector.cert-serviceaccount.name" . }}"
+  labels:
+    app.kubernetes.io/component: http-header-injector-cert-hook
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ include "http-header-injector.app.name" . }}
+{{ include "http-header-injector.global.extraLabels" . | indent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,post-install,pre-upgrade,post-upgrade,post-delete
+    "helm.sh/hook-weight": "-3"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+{{ include "http-header-injector.global.extraAnnotations" . | indent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: "{{ include "http-header-injector.cert-clusterrole.name" . }}"
+subjects:
+  - kind: ServiceAccount
+    name: "{{ include "http-header-injector.cert-serviceaccount.name" . }}"
+    namespace: {{ .Release.Namespace }}
