@@ -1,0 +1,52 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: "{{ include "http-header-injector.mutating-webhook.name" . }}"
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    app.kubernetes.io/component: http-header-injector
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ include "http-header-injector.app.name" . }}
+{{ include "http-header-injector.global.extraLabels" . | indent 4 }}
+  annotations:
+    {{- if eq .Values.webhook.tls.mode "cert-manager" }}
+    cert-manager.io/inject-ca-from: {{ include "cert-manager.certificate.namespace" . }}/{{ include "http-header-injector.webhook-service.name" . }}
+    {{- else if eq .Values.webhook.tls.mode "secret" }}
+    cert-manager.io/inject-ca-from-secret: {{ .Release.Namespace }}/{{ .Values.webhook.tls.secret.name | required "'webhook.tls.secret.name' is required when webhook.tls.mode is 'secret'" }}
+    {{- end }}
+{{ include "http-header-injector.global.extraAnnotations" . | indent 4 }}
+webhooks:
+  - clientConfig:
+      {{- if eq .Values.webhook.tls.mode "provided" }}
+      caBundle: "{{ .Values.webhook.tls.provided.caBundle | b64enc }}"
+      {{- else }}
+      caBundle: ""
+      {{- end }}
+      service:
+        name: "{{ include "http-header-injector.webhook-service.name" . }}"
+        path: /mutate
+        namespace: {{ .Release.Namespace }}
+        port: 8443
+    # Putting failure on ignore, not doing so can crash the entire control plane if something goes wrong with the service.
+    failurePolicy: "{{ .Values.webhook.failurePolicy }}"
+    name: "{{ include "http-header-injector.mutatingwebhookconfiguration.name" . }}"
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values:
+            - kube-system
+            - cert-manager
+            - {{ .Release.Namespace }}
+    rules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+        resources:
+          - pods
+    sideEffects: None
+    admissionReviewVersions:
+      - v1
