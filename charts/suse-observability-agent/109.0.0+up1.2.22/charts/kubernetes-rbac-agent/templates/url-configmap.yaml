@@ -1,0 +1,22 @@
+{{- define "kubernetes-rbac-agent.url.configmap.internal" -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/component: kubernetes-rbac-agent
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ include "kubernetes-rbac-agent.app.name" . }}
+    {{- include "kubernetes-rbac-agent.global.commonLabels" . | indent 4 }}
+  annotations:
+    {{- include "kubernetes-rbac-agent.global.commonAnnotations" . | indent 4 }}
+  name: {{ template "kubernetes-rbac-agent.url.configmap.internal.name" . }}
+data:
+  STS_URL: {{ tpl .Values.url.value . | quote }}
+{{- end -}}
+
+{{- if .Values.url.value }}
+{{- $stackstateUrlInternalConfigMap := fromYaml (include "kubernetes-rbac-agent.url.configmap.internal" .) -}}
+{{- toYaml (merge $stackstateUrlInternalConfigMap) -}}
+{{- else if not (.Values.url.fromConfigMap) }}
+{{- fail "Url not defined, either provide a SUSE Observability platform url through url.value" }}
+{{- end }}

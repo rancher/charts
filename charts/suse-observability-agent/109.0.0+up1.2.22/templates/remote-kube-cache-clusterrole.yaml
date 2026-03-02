@@ -1,0 +1,20 @@
+{{- if include "stackstate-k8s-agent.processAgent.podCorrelation.remoteCache.enabled" . }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Release.Name }}-remote-kube-cache
+  labels:
+{{ include "stackstate-k8s-agent.labels" . | indent 4 }}
+{{ include "stackstate-k8s-agent.global.extraLabels" . | indent 4 }}
+    app.kubernetes.io/component: remote-kube-cache
+  annotations:
+{{ include "stackstate-k8s-agent.global.extraAnnotations" . | indent 4 }}
+rules:
+  - apiGroups: [""]
+    resources:
+      - "pods"
+      # today we cannot customize the cache to just list pods, it lists by default also services and nodes.
+      - "services"
+      - "nodes"
+    verbs: ["list", "watch"]
+{{- end }}

@@ -1,0 +1,28 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Release.Name }}-node-agent
+  labels:
+{{ include "stackstate-k8s-agent.labels" . | indent 4 }}
+{{ include "stackstate-k8s-agent.global.extraLabels" . | indent 4 }}
+    app.kubernetes.io/component: node-agent
+  annotations:
+{{ include "stackstate-k8s-agent.global.extraAnnotations" . | indent 4 }}
+rules:
+- apiGroups:  # Kubelet connectivity
+  - ""
+  resources:
+  - nodes/metrics
+  - nodes/proxy
+  - nodes/spec
+  - endpoints
+  {{- if and .Values.nodeAgent.containers.processAgent.enabled .Values.processAgent.podCorrelation.enabled (not .Values.processAgent.podCorrelation.remoteCache) }}
+  # inside the process agent we have a local informer that needs to list/watch pods if we don't use the remote cache
+  - pods
+  {{- end }}
+  verbs:
+  - get
+  - list
+  {{- if and .Values.nodeAgent.containers.processAgent.enabled .Values.processAgent.podCorrelation.enabled (not .Values.processAgent.podCorrelation.remoteCache) }}
+  - watch
+  {{- end }}
