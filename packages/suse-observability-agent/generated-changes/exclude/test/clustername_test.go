@@ -23,7 +23,7 @@ func TestClusterNameValidation(t *testing.T) {
 		IsValid     bool
 	}{
 		{"not allowed end with special character [.]", "name.", false},
-		{"not allowed end with special character [-]", "name.", false},
+		{"not allowed end with special character [-]", "name-", false},
 		{"not allowed start with special character [-]", "-name", false},
 		{"not allowed start with special character [.]", ".name", false},
 		{"upper case is not allowed", "Euwest1-prod.cool-company.com", false},
@@ -47,7 +47,10 @@ func TestClusterNameValidation(t *testing.T) {
 				assert.Nil(t, err)
 			} else {
 				assert.NotNil(t, err)
-				assert.Contains(t, output, "stackstate.cluster.name: Does not match pattern")
+				// Helm schema validation produces errors in format:
+				// "at '/stackstate/cluster/name': '<value>' does not match pattern '^...'"
+				assert.Contains(t, output, "does not match pattern")
+				assert.Contains(t, output, "stackstate/cluster/name")
 			}
 		})
 	}

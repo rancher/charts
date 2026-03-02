@@ -1,0 +1,22 @@
+{{- define "kubernetes-rbac-agent.clusterName.configmap.internal" -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/component: kubernetes-rbac-agent
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ include "kubernetes-rbac-agent.app.name" . }}
+    {{- include "kubernetes-rbac-agent.global.commonLabels" . | indent 4 }}
+  annotations:
+    {{- include "kubernetes-rbac-agent.global.commonAnnotations" . | indent 4 }}
+  name: {{ template "kubernetes-rbac-agent.clusterName.configmap.internal.name" . }}
+data:
+  STS_CLUSTER_NAME: {{ tpl .Values.clusterName.value . | quote }}
+{{- end -}}
+
+{{- if .Values.clusterName.value }}
+{{- $stackstateClusterNameInternalConfigMap := fromYaml (include "kubernetes-rbac-agent.clusterName.configmap.internal" .) -}}
+{{- toYaml (merge $stackstateClusterNameInternalConfigMap) -}}
+{{- else if not (.Values.clusterName.fromConfigMap) }}
+{{- fail "ClusterName not defined, either provide a SUSE Observability platform url through clusterName.value" }}
+{{- end }}
