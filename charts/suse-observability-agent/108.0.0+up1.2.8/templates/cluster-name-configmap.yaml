@@ -1,0 +1,22 @@
+{{- define "stackstate-k8s-agent.clusterName.configmap.internal" -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/component: suse-observability-agent
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ template "stackstate-k8s-agent.clusterName.configmap.internal.name" . }}
+    {{- include "stackstate-k8s-agent.global.extraLabels" . | indent 4 }}
+  annotations:
+    {{- include "stackstate-k8s-agent.global.extraAnnotations" . | indent 4 }}
+  name: {{ template "stackstate-k8s-agent.clusterName.configmap.internal.name" . }}
+data:
+  STS_CLUSTER_NAME: {{ tpl .Values.stackstate.cluster.name . | quote }}
+{{- end -}}
+
+{{- if .Values.stackstate.cluster.name }}
+{{- $stackstateClusterNameInternalConfigMap := fromYaml (include "stackstate-k8s-agent.clusterName.configmap.internal" .) -}}
+{{- toYaml (merge $stackstateClusterNameInternalConfigMap) -}}
+{{- else }}
+{{- fail "Cluster name not defined, provide a clustername through stackstate.cluster.name" }}
+{{- end }}

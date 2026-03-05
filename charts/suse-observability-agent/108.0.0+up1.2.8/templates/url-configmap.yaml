@@ -1,0 +1,23 @@
+{{- define "stackstate-k8s-agent.url.configmap.internal" -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/component: suse-observability-agent
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ template "stackstate-k8s-agent.url.configmap.internal.name" . }}
+    {{- include "stackstate-k8s-agent.global.extraLabels" . | indent 4 }}
+  annotations:
+    {{- include "stackstate-k8s-agent.global.extraAnnotations" . | indent 4 }}
+  name: {{ template "stackstate-k8s-agent.url.configmap.internal.name" . }}
+data:
+  STS_URL: {{ .Values.stackstate.url | quote }}
+  STS_STS_URL: {{ .Values.stackstate.url | quote }}
+{{- end -}}
+
+{{- if .Values.stackstate.url }}
+{{- $stackstateUrlInternalConfigMap := fromYaml (include "stackstate-k8s-agent.url.configmap.internal" .) -}}
+{{- toYaml (merge $stackstateUrlInternalConfigMap) -}}
+{{- else }}
+{{- fail "Url not defined, either provide a SUSE Observability platform url through stackstate.url" }}
+{{- end }}
