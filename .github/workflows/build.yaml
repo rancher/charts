@@ -63,6 +63,7 @@ jobs:
           git config --global --add safe.directory "$PWD"
           echo $PATH >> $GITHUB_PATH
           echo "fetch the pull request"
+          git fetch origin ${{ github.base_ref }}
           git fetch origin pull/${{ github.event.pull_request.number }}/head:pr-${{ github.event.pull_request.number }}
           echo "checkout the PR"
           git checkout pr-${{ github.event.pull_request.number }}
@@ -78,6 +79,11 @@ jobs:
         env:
           LOG: "DEBUG"
         run: make check-release-yaml
+
+      - name: Lint image tags
+        env:
+          BASE_BRANCH: ${{ github.base_ref }}
+        run: ./bin/charts-build-scripts lint-images
 
       - name: Release PR Validation Chekpoints
         continue-on-error: false
