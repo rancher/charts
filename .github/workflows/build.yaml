@@ -58,14 +58,18 @@ jobs:
 
       - name: Git Checkout PR and into new branch
         continue-on-error: false
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           echo "git global configuration"
           git config --global --add safe.directory "$PWD"
           echo $PATH >> $GITHUB_PATH
           echo "fetch the pull request"
-          git fetch origin pull/${{ github.event.pull_request.number }}/head:pr-${{ github.event.pull_request.number }}
+          git fetch origin "${BASE_REF}"
+          git fetch origin "pull/${PR_NUMBER}/head:pr-${PR_NUMBER}"
           echo "checkout the PR"
-          git checkout pr-${{ github.event.pull_request.number }}
+          git checkout "pr-${PR_NUMBER}"
           echo "checkout into a new branch for safety"
           git checkout -b staging-pr-workflow
 
@@ -78,6 +82,11 @@ jobs:
         env:
           LOG: "DEBUG"
         run: make check-release-yaml
+
+      - name: Lint image tags
+        env:
+          BASE_BRANCH: ${{ github.base_ref }}
+        run: ./bin/charts-build-scripts lint-images
 
       - name: Release PR Validation Chekpoints
         continue-on-error: false
@@ -93,9 +102,10 @@ jobs:
         continue-on-error: false
         env:
           LOG: "DEBUG"
+          BASE_REF: ${{ github.base_ref }}
         run: |
-          echo "github.base_ref: ${{ github.base_ref }}"
-          if [[ "${{ github.base_ref }}" == *release-v* ]]; then
+          echo "github.base_ref: ${BASE_REF}"
+          if [[ "${BASE_REF}" == *release-v* ]]; then
             echo "Validating remote release branch"
             make validate remote=true
           else
@@ -117,3 +127,4 @@ jobs:
         env:
           LOG: "DEBUG"
         run: make check-rc
+
