@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agent-sa
+  namespace: cattle-ai-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: agent-subjectaccessreview-role
+rules:
+- apiGroups: ["authorization.k8s.io"]
+  resources: ["subjectaccessreviews"]
+  verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: agent-subjectaccessreview-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: agent-subjectaccessreview-role
+subjects:
+- kind: ServiceAccount
+  name: agent-sa
+  namespace: cattle-ai-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-role
+  namespace: cattle-ai-agent-system
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "patch", "update"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "patch", "update"]
+  resourceNames: ["llm-config"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "update", "patch"]
+  resourceNames: ["rancher-ai-agent"]
+- apiGroups: ["ai.cattle.io"]
+  resources: ["aiagentconfigs"]
+  verbs: ["create", "list", "get", "update", "patch", "watch"]
+- apiGroups: ["ai.cattle.io"]
+  resources: ["aiagentconfigs/status"]
+  verbs: ["get", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: bind-agent-sa
+  namespace: cattle-ai-agent-system
+subjects:
+- kind: ServiceAccount
+  name: agent-sa
+  namespace: cattle-ai-agent-system
+roleRef:
+  kind: Role
+  name: agent-role
+  apiGroup: rbac.authorization.k8s.io

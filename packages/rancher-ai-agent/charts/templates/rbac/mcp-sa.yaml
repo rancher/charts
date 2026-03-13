@@ -1,0 +1,36 @@
+{{- if not .Values.insecureSkipTls }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mcp-cert-rotator-sa
+  namespace: cattle-ai-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cert-rotator-role
+  namespace: cattle-ai-agent-system
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "update", "patch", "delete"]
+  resourceNames: ["cattle-mcp-tls", "cattle-mcp-ca"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["create"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: bind-mcp-cert-rotator
+  namespace: cattle-ai-agent-system
+subjects:
+- kind: ServiceAccount
+  name: mcp-cert-rotator-sa
+  namespace: cattle-ai-agent-system
+roleRef:
+  kind: Role
+  name: cert-rotator-role
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

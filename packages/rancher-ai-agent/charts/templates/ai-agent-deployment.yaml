@@ -1,0 +1,165 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: rancher-ai-agent
+  name: rancher-ai-agent
+  namespace: cattle-ai-agent-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rancher-ai-agent
+  template:
+    metadata:
+      labels:
+        app: rancher-ai-agent
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: agent-sa
+      {{- if or (not .Values.insecureSkipTls) .Values.rag.pvc }}
+      volumes:
+      {{- if not .Values.insecureSkipTls }}
+      - name: mcp-ca-volume
+        secret:
+          secretName: cattle-mcp-ca
+      {{- end }}
+      {{- if .Values.rag.pvc }}
+      - name: rag-storage
+        persistentVolumeClaim:
+          claimName: "{{ .Values.rag.pvc }}"
+      {{- end }}
+      {{- end }}
+      containers:
+      - image: "{{ .Values.aiAgent.image.repository }}:{{ .Values.aiAgent.image.tag }}"
+        imagePullPolicy: "{{ .Values.aiAgent.image.pullPolicy }}"
+        name: agent
+        env:
+          - name: OPENAI_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: llm-secret
+                key: OPENAI_API_KEY
+                optional: true
+          - name: OPENAI_URL
+            valueFrom:
+              secretKeyRef:
+                name: llm-secret
+                key: OPENAI_URL
+                optional: true
+          - name: OLLAMA_MODEL
+            valueFrom:
+              configMapKeyRef:
+                name: llm-config
+                key: OLLAMA_MODEL
+                optional: true
+          - name: GEMINI_MODEL
+            valueFrom:
+              configMapKeyRef:
+                name: llm-config
+                key: GEMINI_MODEL
+                optional: true
+          - name: OPENAI_MODEL
+            valueFrom:
+              configMapKeyRef:
+                name: llm-config
+                key: OPENAI_MODEL
+                optional: true
+          - name: BEDROCK_MODEL
+            valueFrom:
+              configMapKeyRef:
+                name: llm-config
+                key: BEDROCK_MODEL
+                optional: true
+          - name: OLLAMA_URL
+            valueFrom:
+              secretKeyRef:
+                name: llm-secret
+                key: OLLAMA_URL
+                optional: true
+          - name: GOOGLE_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: llm-secret
+                key: GOOGLE_API_KEY
+                optional: true
+          - name: ACTIVE_LLM
+            valueFrom:
+              configMapKeyRef:
+                name: llm-config
+                key: ACTIVE_LLM
+                optional: true
+          - name: LANGFUSE_PUBLIC_KEY
+            valueFrom:
+              secretKeyRef:
+                name: llm-secret
+                key: LANGFUSE_PUBLIC_KEY
+                optional: true
+          - name: LANGFUSE_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: llm-secret
+                key: LANGFUSE_SECRET_KEY
+                optional: true
+          - name: LANGFUSE_HOST
+            valueFrom:
+              secretKeyRef:
+                name: llm-secret
+                key: LANGFUSE_HOST
+                optional: true
+          - name: AWS_BEARER_TOKEN_BEDROCK
+            valueFrom:
+              secretKeyRef:
+                name: llm-secret
+                key: AWS_BEARER_TOKEN_BEDROCK
+                optional: true
+          - name: AWS_REGION
+            valueFrom: 
+              secretKeyRef:
+                name: llm-secret
+                key: AWS_REGION
+                optional: true
+          - name: DB_ENABLED
+            value: "{{ .Values.storage.enabled }}"
+          - name: DB_CONNECTION_STRING
+            value: "{{ .Values.storage.connectionString }}"
+          - name: LOG_LEVEL
+            value: "{{ .Values.log.level }}"
+          - name: INSECURE_SKIP_TLS
+            value: "{{ .Values.insecureSkipTls }}"
+          - name: LLM_MOCK_ENABLED
+            value: "{{ .Values.llmMock.enabled }}"
+          - name: LLM_MOCK_URL
+            value: "{{ .Values.llmMock.url }}"
+        ports:
+         - containerPort: 8000
+        startupProbe:
+          httpGet:
+            path: /v1/api/readiness
+            port: 8000
+          {{ toYaml .Values.probes.startup | nindent 10 }}
+        livenessProbe:
+          httpGet:
+            path: /v1/api/health
+            port: 8000
+          {{ toYaml .Values.probes.liveness | nindent 10 }}
+        readinessProbe:
+          httpGet:
+            path: /v1/api/readiness
+            port: 8000
+          {{ toYaml .Values.probes.readiness | nindent 10 }}
+        {{- if or (not .Values.insecureSkipTls) .Values.rag.pvc }}
+        volumeMounts:
+        {{- if not .Values.insecureSkipTls }}
+          - name: mcp-ca-volume
+            mountPath: /etc/tls
+            readOnly: true
+        {{- end }}
+        {{- if .Values.rag.pvc }}
+          - name: rag-storage
+            mountPath: /app/rag
+        {{- end }}
+        {{- end }}

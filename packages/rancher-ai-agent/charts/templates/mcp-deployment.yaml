@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: rancher-mcp-server
+  name: rancher-mcp-server
+  namespace: cattle-ai-agent-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rancher-mcp-server
+  template:
+    metadata:
+      labels:
+        app: rancher-mcp-server
+    spec:
+      {{- if not .Values.insecureSkipTls }}
+      serviceAccountName: mcp-cert-rotator-sa
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - image: "{{ .Values.mcp.image.repository }}:{{ .Values.mcp.image.tag }}"
+        imagePullPolicy: "{{ .Values.mcp.image.pullPolicy }}"
+        name: mcp-server
+        ports:
+         - containerPort: 9092
+        command: ["/usr/local/bin/mcp"]
+        args:
+          - "serve"
+          - "--port"
+          - "9092"
+        {{- if .Values.insecureSkipTls }}
+          - "--insecure"
+        {{- end }}
+        {{- if .Values.mcp.readOnly }}
+          - "--read-only"
+        {{- end }}
+        {{- if .Values.log.level }}
+          - "--log-level"
+          - "{{ .Values.log.level }}"
+        {{- end }}
+
