@@ -80,13 +80,29 @@ spec:
           image: {{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
           imagePullPolicy: IfNotPresent
           command:
-          - /bin/sh
-          - -c
-          - >
-            echo "Deleting CRDs...";
-            mkdir -p /etc/crd;
-            base64 -d /etc/config/crds.bz2.b64 | bzcat > /etc/crd.yaml;
-            kubectl delete --ignore-not-found=true -f /etc/crd.yaml;
+            - /bin/sh
+            - -c
+            - >
+              echo "Waiting for rancher-monitoring to be uninstalled...";
+              time_limit=300;
+              time_elapsed=0;
+              kubectl get apps -n cattle-monitoring-system rancher-monitoring;
+              while kubectl get apps -n cattle-monitoring-system rancher-monitoring >/dev/null 2>&1; do
+                if [ $time_elapsed -ge $time_limit ]; then
+                  echo "Timeout waiting for rancher-monitoring to be uninstalled";
+                  exit 1;
+                fi;
+                echo "rancher-monitoring still exists. Waiting... ($time_elapsed/$time_limit s)";
+                sleep 5;
+                time_elapsed=$((time_elapsed + 5));
+              done;
+
+              echo "rancher-monitoring is not found. Proceeding with CRD deletion.";
+              mkdir -p /etc/crd;
+              base64 -d /etc/config/crds.bz2.b64 | bzcat > /etc/crd.yaml;
+              kubectl delete --ignore-not-found=true -f /etc/crd.yaml;
+              echo "CRD deletion command issued.";
+              exit 0;
           volumeMounts:
             - name: crd-manifest
               readOnly: true
