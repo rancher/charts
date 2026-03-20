@@ -1,0 +1,26 @@
+apiVersion: management.cattle.io/v3
+builtin: false
+context: project
+displayName: View Virtualization Resources
+external: false
+hidden: false
+kind: RoleTemplate
+metadata:
+  labels:
+  {{- include "harvester-rbac.labels" . | nindent 4 }}
+  name: virt-project-view
+roleTemplateNames:
+  - read-only
+  - monitoring-ui-view
+rules:
+  - apiGroups:
+      - loadbalancer.harvesterhci.io
+    resources:
+      - "*"
+    verbs:
+      - get
+      - list
+      - watch
+  {{- with .Values.projectRole.virtProjectView.additionalRules }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}

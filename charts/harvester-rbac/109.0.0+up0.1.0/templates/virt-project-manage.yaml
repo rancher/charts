@@ -1,0 +1,25 @@
+apiVersion: management.cattle.io/v3
+builtin: false
+context: project
+description: Provides management access to projects in Harvester
+displayName: Manage Virtualization Resources
+external: false
+hidden: false
+kind: RoleTemplate
+metadata:
+  labels:
+  {{- include "harvester-rbac.labels" . | nindent 4 }}
+  name: virt-project-manage
+roleTemplateNames:
+  - project-member
+  - monitoring-ui-view
+rules:
+  - apiGroups:
+      - loadbalancer.harvesterhci.io
+    resources:
+      - "*"
+    verbs:
+      - "*"
+  {{- with .Values.projectRole.virtProjectManage.additionalRules }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
