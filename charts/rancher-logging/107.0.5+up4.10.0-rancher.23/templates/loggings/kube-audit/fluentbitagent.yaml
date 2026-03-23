@@ -1,0 +1,30 @@
+{{- define "logging-operator.fluentbitagent.kube-audit" -}}
+{{- $individualValues := .Values.additionalLoggingSources.kubeAudit.fluentbit -}}
+metadata:
+  name: {{ .Release.Name }}-kube-audit
+spec:
+  {{- include "logging-operator.individualFluentbitLoggingRef" $individualValues | nindent 2 }}
+  disableKubernetesFilter: true
+  extraVolumeMounts:
+    - source: {{ template "kubeAuditPathPrefix" . }}
+      destination: "/kube-audit-logs"
+      readOnly: true
+  inputTail:
+    Tag: {{ .Values.additionalLoggingSources.kubeAudit.fluentbit.logTag }}
+    Path: /kube-audit-logs/{{ template "kubeAuditFilename" . }}
+    Parser: json
+  tolerations:
+    {{- include "customTolerations" . | nindent 6 }}
+    {{- with .Values.additionalLoggingSources.kubeAudit.fluentbit.tolerations }}
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  nodeSelector: {{ include "controlplaneSelector" . | nindent 6 }}
+  {{- include "logging-operator.individualFluentbit" $individualValues | nindent 2 }}
+  {{- if $individualValues.positiondb }}
+  positiondb:
+    {{- toYaml $individualValues.positiondb | nindent 4 }}
+  {{- end }}
+{{- end -}}
+{{- if .Values.additionalLoggingSources.kubeAudit.enabled }}
+{{- include "logging-operator.fluentbitagent" (list . "logging-operator.fluentbitagent.kube-audit") -}}
+{{- end }}
