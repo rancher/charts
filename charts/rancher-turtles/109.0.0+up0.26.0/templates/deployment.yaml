@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: rancher-turtles-controller-manager
+  namespace: '{{ .Values.namespace }}'
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+      labels:
+        control-plane: controller-manager
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}  
+      {{- end }}
+      containers:
+      - args:
+        - --leader-elect
+        - --feature-gates=agent-tls-mode={{ index .Values "features" "agent-tls-mode" "enabled"}},no-cert-manager={{ index .Values "features" "no-cert-manager" "enabled"}},use-rancher-default-registry={{ index .Values "features" "use-rancher-default-registry" "enabled"}}
+        {{- range .Values.managerArguments }}
+        - {{ . }}
+        {{- end }}  
+        command:
+        - /manager
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_UID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.uid
+        {{- if (contains "sha256:" .Values.image.tag) }}
+        image: '{{ template "system_default_registry" . }}{{ .Values.image.repository }}@{{ .Values.image.tag }}'
+        {{- else }}
+        image: '{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}'
+        {{- end}}
+        imagePullPolicy: '{{ .Values.image.imagePullPolicy }}'
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 9440
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: manager
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 9440
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 600Mi
+          requests:
+            cpu: 10m
+            memory: 128Mi
+        {{- with .Values.volumeMounts.manager }}
+        volumeMounts:
+        {{- toYaml . | nindent 12 }}
+        {{- end }}
+        securityContext:
+          seccompProfile:
+            type: RuntimeDefault
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 65532
+      serviceAccountName: rancher-turtles-manager
+      terminationGracePeriodSeconds: 10
+      {{- with .Values.volumes }}
+      volumes:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
