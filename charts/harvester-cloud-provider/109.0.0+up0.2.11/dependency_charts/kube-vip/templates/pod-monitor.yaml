@@ -1,0 +1,21 @@
+{{- if and .Values.podMonitor.enabled (hasKey .Values.env "prometheus_server") }}
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ include "kube-vip.name" . }}
+  labels:
+    {{- include "kube-vip.selectorLabels" . | nindent 4 }}
+  {{- with .Values.podMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.podMonitor.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "kube-vip.selectorLabels" . | nindent 6 }}
+  podMetricsEndpoints:
+  - port: monitoring
+{{- end }}
