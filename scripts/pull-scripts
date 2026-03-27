@@ -7,6 +7,8 @@ SCRIPTS_DIR="$(dirname "$0")"
 chmod -R a+x "${REPO_ROOT}/bin/" || true
 source "${SCRIPTS_DIR}/version"
 
+# Resolves CHARTS_BUILD_SCRIPT_VERSION from "latest" to the actual release tag.
+# No-op if the version is already pinned. Mutates the global variable.
 resolve_version() {
     if [[ "${CHARTS_BUILD_SCRIPT_VERSION}" == "latest" ]]; then
         CHARTS_BUILD_SCRIPT_VERSION=$(curl --silent "https://api.github.com/repos/rancher/charts-build-scripts/releases/latest" | jq -r '.tag_name')
@@ -14,6 +16,8 @@ resolve_version() {
     fi
 }
 
+# Exits 0 if the binary already exists at the target version — skip download.
+# Returns normally if binary is missing or at a different version.
 check_existing_binary() {
     if [[ ! -f "${REPO_ROOT}/bin/charts-build-scripts" ]]; then
         return
@@ -29,6 +33,8 @@ check_existing_binary() {
     fi
 }
 
+# Derives OS and ARCH from the local Go installation.
+# Sets globals OS, ARCH, BINARY_NAME used by download_binary.
 detect_platform() {
     OS=$(go version | cut -d' ' -f4 | cut -d'/' -f1)
     ARCH=$(go version | cut -d' ' -f4 | cut -d'/' -f2)
@@ -41,6 +47,8 @@ detect_platform() {
     echo "Platform: ${OS}/${ARCH} — binary: ${BINARY_NAME}"
 }
 
+# Wipes bin/, then downloads the release binary from CHARTS_BUILD_SCRIPTS_REPO.
+# Exits 1 on non-200 HTTP response.
 download_binary() {
     local url="${CHARTS_BUILD_SCRIPTS_REPO%.git}/releases/download/${CHARTS_BUILD_SCRIPT_VERSION}/${BINARY_NAME}"
 
@@ -59,6 +67,7 @@ download_binary() {
     echo "Downloaded ${BINARY_NAME} to ${REPO_ROOT}/bin/charts-build-scripts"
 }
 
+# Sanity-checks the downloaded binary with file(1), makes it executable, and runs --version.
 verify_binary() {
     echo "Checking downloaded binary file"
     file "${REPO_ROOT}/bin/charts-build-scripts"
