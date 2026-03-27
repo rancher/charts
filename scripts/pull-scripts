@@ -76,6 +76,16 @@ verify_binary() {
 }
 
 main() {
+    if [[ "${SKIP_PS}" == "true" ]]; then
+        echo "WARNING: SKIP_PS is set — skipping version resolution and binary download"
+        if [[ ! -f "${REPO_ROOT}/bin/charts-build-scripts" ]]; then
+            echo "ERROR: no binary found at ${REPO_ROOT}/bin/charts-build-scripts"
+            exit 1
+        fi
+        verify_binary
+        return
+    fi
+
     resolve_version
     check_existing_binary
     detect_platform
