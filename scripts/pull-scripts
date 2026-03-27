@@ -5,6 +5,7 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SCRIPTS_DIR="$(dirname "$0")"
 
 chmod -R a+x "${REPO_ROOT}/bin/" || true
+# shellcheck source=/dev/null
 source "${SCRIPTS_DIR}/version"
 
 # Resolves CHARTS_BUILD_SCRIPT_VERSION from "latest" to the actual release tag.
@@ -23,7 +24,8 @@ check_existing_binary() {
         return
     fi
 
-    local current_version="v$("${REPO_ROOT}/bin/charts-build-scripts" --version | awk '{print $3}')"
+    local current_version
+    current_version="v$("${REPO_ROOT}/bin/charts-build-scripts" --version | awk '{print $3}')"
     echo "Current version: ${current_version}"
     echo "Expected version: ${CHARTS_BUILD_SCRIPT_VERSION}"
 
