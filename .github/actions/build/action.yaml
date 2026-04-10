@@ -1,0 +1,243 @@
+name: Build Validation
+description: Run all chart validation checks including release.yaml format, image tag linting, index validation, and Docker image availability checks
+inputs:
+  base_ref:
+    description: "Base branch reference for the PR target (e.g., dev-v2.14, release-v2.13). Used to determine validation mode and fetch base branch state."
+    required: true
+  pr_number:
+    description: "Pull request number from github.event.pull_request.number. Used to fetch and checkout the PR head for validation."
+    required: true
+  app_token:
+    description: "GitHub App token generated from Vault secrets. Required for release PR validation API calls via gh CLI."
+    required: true
+  docker_username:
+    description: "Docker Hub username from Vault secrets. Used to authenticate for Docker image availability checks."
+    required: true
+  docker_password:
+    description: "Docker Hub password from Vault secrets. Used to authenticate for Docker image availability checks."
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Validate inputs and display build context
+      shell: bash
+      env:
+        BASE_REF: ${{ inputs.base_ref }}
+        PR_NUMBER: ${{ inputs.pr_number }}
+        APP_TOKEN: ${{ inputs.app_token }}
+        DOCKER_USERNAME: ${{ inputs.docker_username }}
+        DOCKER_PASSWORD: ${{ inputs.docker_password }}
+      run: |
+        echo "================================================================="
+        echo "Build Validation - PR #${PR_NUMBER} → ${BASE_REF}"
+        echo "================================================================="
+
+        # Validate all required inputs are provided
+        VALIDATION_FAILED=0
+
+        if [[ -z "$BASE_REF" ]]; then
+          echo "ERROR: base_ref input is required but not provided"
+          VALIDATION_FAILED=1
+        fi
+
+        if [[ -z "$PR_NUMBER" ]]; then
+          echo "ERROR: pr_number input is required but not provided"
+          VALIDATION_FAILED=1
+        fi
+
+        if [[ -z "$APP_TOKEN" ]]; then
+          echo "ERROR: app_token input is required but not provided"
+          VALIDATION_FAILED=1
+        fi
+
+        if [[ -z "$DOCKER_USERNAME" ]]; then
+          echo "ERROR: docker_username input is required but not provided"
+          VALIDATION_FAILED=1
+        fi
+
+        if [[ -z "$DOCKER_PASSWORD" ]]; then
+          echo "ERROR: docker_password input is required but not provided"
+          VALIDATION_FAILED=1
+        fi
+
+        if [[ $VALIDATION_FAILED -eq 1 ]]; then
+          echo "Input validation failed"
+          exit 1
+        fi
+
+        # Log non-sensitive inputs
+        echo "Inputs validated:"
+        echo "  base_ref: ${BASE_REF}"
+        echo "  pr_number: ${PR_NUMBER}"
+        echo "  app_token: ***REDACTED***"
+        echo "  docker_username: ***REDACTED***"
+        echo "  docker_password: ***REDACTED***"
+        echo "================================================================="
+
+    - name: Verify required dependencies are installed
+      shell: bash
+      run: |
+        echo "Verifying dependencies..."
+        DEPS_MISSING=0
+
+        # Check each required tool
+        if ! command -v docker &> /dev/null; then
+          echo "ERROR: docker not found"
+          DEPS_MISSING=1
+        else
+          echo "✓ docker: $(docker --version)"
+        fi
+
+        if ! command -v jq &> /dev/null; then
+          echo "ERROR: jq not found"
+          DEPS_MISSING=1
+        else
+          echo "✓ jq: $(jq --version)"
+        fi
+
+        if ! command -v git &> /dev/null; then
+          echo "ERROR: git not found"
+          DEPS_MISSING=1
+        else
+          echo "✓ git: $(git --version)"
+        fi
+
+        if ! command -v make &> /dev/null; then
+          echo "ERROR: make not found"
+          DEPS_MISSING=1
+        else
+          echo "✓ make: $(make --version | head -1)"
+        fi
+
+        if ! command -v go &> /dev/null; then
+          echo "ERROR: go not found"
+          DEPS_MISSING=1
+        else
+          echo "✓ go: $(go version)"
+        fi
+
+        if ! command -v patch &> /dev/null; then
+          echo "ERROR: patch not found"
+          DEPS_MISSING=1
+        else
+          echo "✓ patch: $(patch --version | head -1)"
+        fi
+
+        if ! command -v gawk &> /dev/null; then
+          echo "ERROR: gawk not found"
+          DEPS_MISSING=1
+        else
+          echo "✓ gawk: $(gawk --version | head -1)"
+        fi
+
+        if [[ $DEPS_MISSING -eq 1 ]]; then
+          echo ""
+          echo "ERROR: Missing dependencies. Ensure dependencies action runs before this action."
+          exit 1
+        fi
+
+        echo "All dependencies verified"
+        echo "================================================================="
+
+    - name: Git Checkout PR and into new branch
+      shell: bash
+      env:
+        BASE_REF: ${{ inputs.base_ref }}
+        PR_NUMBER: ${{ inputs.pr_number }}
+      run: |
+        echo "Configure git environment"
+        git config --global --add safe.directory "$PWD"
+        echo "$PATH" >> $GITHUB_PATH
+        echo "-------------------------------------------------------------------"
+
+        echo "Fetch base branch and PR"
+        echo "  Base branch: ${BASE_REF}"
+        echo "  PR number: ${PR_NUMBER}"
+        git fetch origin "${BASE_REF}"
+        git fetch origin "pull/${PR_NUMBER}/head:pr-${PR_NUMBER}"
+        echo "✓ Fetch completed"
+        echo "-------------------------------------------------------------------"
+
+        echo "Checkout PR into local branch"
+        git checkout "pr-${PR_NUMBER}"
+        echo "✓ Checked out pr-${PR_NUMBER}"
+        echo "-------------------------------------------------------------------"
+
+        echo "Create staging branch for validation"
+        git checkout -b staging-pr-workflow
+        echo "✓ Created staging-pr-workflow branch"
+        echo "-------------------------------------------------------------------"
+
+        echo "Verify checkout succeeded"
+        CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+        CURRENT_COMMIT=$(git rev-parse HEAD)
+        COMMIT_MSG=$(git log -1 --pretty=format:"%s")
+
+        if [[ "$CURRENT_BRANCH" != "staging-pr-workflow" ]]; then
+          echo "ERROR: Expected branch 'staging-pr-workflow', got '${CURRENT_BRANCH}'"
+          exit 1
+        fi
+
+        echo "✓ Checkout verification passed"
+        echo "  Working directory: $PWD"
+        echo "  Branch: ${CURRENT_BRANCH}"
+        echo "  Commit: ${CURRENT_COMMIT}"
+        echo "  Message: ${COMMIT_MSG}"
+        echo "================================================================="
+
+    - name: (make pull-scripts) Download charts-build-scripts binary
+      shell: bash
+      run: make pull-scripts
+
+    - name: (make check-release-yaml) Validate release.yaml format with yq
+      shell: bash
+      env:
+        LOG: "DEBUG"
+      run: make check-release-yaml
+
+    - name: Validate Docker image tags in charts
+      shell: bash
+      env:
+        BASE_BRANCH: ${{ inputs.base_ref }}
+      run: ./bin/charts-build-scripts lint-images
+
+    - name: (make validate-release-charts) Run release PR validation checkpoints
+      shell: bash
+      if: contains(inputs.base_ref, 'release-v')
+      env:
+        GH_TOKEN: ${{ inputs.app_token }}
+        BRANCH: ${{ inputs.base_ref }}
+        PR_NUMBER: ${{ inputs.pr_number }}
+        LOG: "DEBUG"
+      run: make validate-release-charts
+
+    - name: (make validate) Verify Helm index matches assets directory
+      shell: bash
+      env:
+        LOG: "DEBUG"
+        BASE_REF: ${{ inputs.base_ref }}
+      run: |
+        echo "github.base_ref: ${BASE_REF}"
+        if [[ "${BASE_REF}" == *release-v* ]]; then
+          echo "Validating remote release branch"
+          make validate remote=true
+        else
+          echo "Validating local branch"
+          make validate
+        fi
+
+    - name: (make check-images) Validate Docker image availability
+      shell: bash
+      env:
+        DOCKER_USERNAME: ${{ inputs.docker_username }}
+        DOCKER_PASSWORD: ${{ inputs.docker_password }}
+        LOG: "DEBUG"
+      run: make check-images
+
+    - name: (make check-rc) Validate release candidate versions
+      shell: bash
+      if: contains(inputs.base_ref, 'release-v')
+      env:
+        LOG: "DEBUG"
+      run: make check-rc
