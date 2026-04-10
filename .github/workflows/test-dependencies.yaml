@@ -1,0 +1,29 @@
+name: Test Dependencies
+
+on: workflow_dispatch
+
+jobs:
+  test-dependencies:
+    runs-on: ubuntu-latest
+    container: registry.suse.com/bci/bci-base:latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Test Dependencies Action
+        uses: ./.github/actions/dependencies
+
+      - name: Verify Installation
+        run: |
+          echo "Verifying all tools..."
+          docker --version
+          jq --version
+          git --version
+          make --version
+          go version
+          patch --version
+          gawk --version
+          yq --version
+          gh --version
+

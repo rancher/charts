@@ -1,0 +1,159 @@
+# TEMPLATE: Copy this file to active branches as .github/workflows/build.yaml
+# Adjust the branch pattern in 'on.pull_request.branches' to match the target branch
+#
+# This workflow keeps vault/checkout steps local (for OIDC context),
+# then delegates all validation logic to the centralized composite action.
+
+name: Build
+
+on:
+  pull_request:
+    branches:
+      - dev-v*
+      - release-v*
+
+jobs:
+  build:
+    name: Validate
+    runs-on: org-${{ github.repository_owner_id }}-amd64-k8s
+    container: registry.suse.com/bci/bci-base:latest
+    permissions:
+      contents: read
+      id-token: write  # Required for OIDC authentication with Vault
+    steps:
+      # ====================================================================
+      # WORKFLOW CONTEXT
+      # ====================================================================
+      - name: Display PR Context
+        run: |
+          echo "================================================================="
+          echo "Build Validation Workflow"
+          echo "================================================================="
+          echo "PR Number:       ${{ github.event.pull_request.number }}"
+          echo "Target Branch:   ${{ github.base_ref }}"
+          echo "Source Branch:   ${{ github.head_ref }}"
+          echo "Author:          ${{ github.event.pull_request.user.login }}"
+          echo "Repository:      ${{ github.repository }}"
+          echo "Commit SHA:      ${{ github.event.pull_request.head.sha }}"
+          echo "================================================================="
+
+      # ====================================================================
+      # DEPENDENCY INSTALLATION
+      # ====================================================================
+      - name: Install Dependencies
+        uses: rancher/charts/.github/actions/dependencies@automation-core
+
+      # ====================================================================
+      # SECRETS MANAGEMENT (OIDC vault authentication)
+      # ====================================================================
+      - name: Load Secrets from Vault
+        continue-on-error: true
+        id: vault
+        uses: rancher-eio/read-vault-secrets@7282bf97898cd1c16c89f837e0bb442e6d384c89 # main
+        with:
+          secrets: |
+            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKER_USERNAME ;
+            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKER_PASSWORD ;
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY ;
+
+      - name: Check Vault Status
+        run: |
+          if [[ "${{ steps.vault.outcome }}" == "failure" ]]; then
+            echo "================================================================="
+            echo "WARNING: Vault authentication failed"
+            echo "================================================================="
+            echo ""
+            echo "This is expected if you are opening a PR from a fork."
+            echo ""
+            echo "Impact:"
+            echo "  - Docker image checks may be rate-limited (slower)"
+            echo "  - Some validation features may be limited"
+            echo "  - Build will still run and validate your changes"
+            echo ""
+            echo "Recommendation for fork contributors:"
+            echo "  Open PRs against upstream using feature branch names that"
+            echo "  do NOT match dev-v* or release-v* patterns to avoid triggering"
+            echo "  this workflow. Branches are auto-deleted after merge."
+            echo ""
+            echo "================================================================="
+          else
+            echo "Vault authentication successful"
+          fi
+
+      - name: Export Vault Secrets as Outputs
+        id: secrets
+        run: |
+          # Check if secrets were loaded (will be empty for fork PRs)
+          if [[ -z "${{ env.DOCKER_USERNAME }}" ]] || [[ -z "${{ env.DOCKER_PASSWORD }}" ]]; then
+            echo "WARNING: Docker credentials not available from Vault"
+            echo "  This is expected for fork PRs (no Vault access)"
+            echo "  Docker image checks may be rate-limited"
+          else
+            echo "Docker credentials loaded successfully"
+            echo "::add-mask::${{ env.DOCKER_USERNAME }}"
+            echo "::add-mask::${{ env.DOCKER_PASSWORD }}"
+          fi
+
+          if [[ -z "${{ env.APP_ID }}" ]] || [[ -z "${{ env.PRIVATE_KEY }}" ]]; then
+            echo "WARNING: GitHub App credentials not available from Vault"
+            echo "  This is expected for fork PRs (no Vault access)"
+            echo "  Some validation features may be limited"
+          else
+            echo "GitHub App credentials loaded successfully"
+            echo "::add-mask::${{ env.APP_ID }}"
+            echo "::add-mask::${{ env.PRIVATE_KEY }}"
+          fi
+
+          # Export as step outputs (empty values are OK for fork PRs)
+          echo "docker_username=${{ env.DOCKER_USERNAME }}" >> $GITHUB_OUTPUT
+          echo "docker_password=${{ env.DOCKER_PASSWORD }}" >> $GITHUB_OUTPUT
+          echo "app_id=${{ env.APP_ID }}" >> $GITHUB_OUTPUT
+          echo "private_key=${{ env.PRIVATE_KEY }}" >> $GITHUB_OUTPUT
+
+      - name: Create App Token
+        continue-on-error: true
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        id: app_token
+        with:
+          app-id: ${{ steps.secrets.outputs.app_id }}
+          private-key: ${{ steps.secrets.outputs.private_key }}
+
+      - name: Check App Token Status
+        run: |
+          if [[ "${{ steps.app_token.outcome }}" == "failure" ]]; then
+            echo "================================================================="
+            echo "WARNING: GitHub App token creation failed"
+            echo "================================================================="
+            echo ""
+            echo "This is expected if Vault authentication failed (fork PRs)."
+            echo ""
+            echo "Impact:"
+            echo "  - Some GitHub API-based validation features may be limited"
+            echo "  - Build will still run and validate your changes"
+            echo ""
+            echo "================================================================="
+          else
+            echo "GitHub App token created successfully"
+          fi
+
+      # ====================================================================
+      # REPOSITORY SETUP
+      # ====================================================================
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      # ====================================================================
+      # VALIDATION
+      # ====================================================================
+      - name: Build Validation
+        uses: rancher/charts/.github/actions/build@automation-core
+        with:
+          base_ref: ${{ github.base_ref }}
+          pr_number: ${{ github.event.pull_request.number }}
+          app_token: ${{ steps.app_token.outputs.token }}
+          docker_username: ${{ steps.secrets.outputs.docker_username }}
+          docker_password: ${{ steps.secrets.outputs.docker_password }}
+
