@@ -192,3 +192,68 @@ runs:
 
         echo "Checksum verified successfully"
         echo "-------------------------------------------------------------------"
+
+    - name: Install yq
+      shell: bash
+      env:
+        YQ_VERSION: "v4.52.5"
+        YQ_BINARY: "yq_linux_amd64"
+        EXPECTED_CHECKSUM: "75d893a0d5940d1019cb7cdc60001d9e876623852c31cfc6267047bc31149fa9"
+        INSTALL_PATH: "/usr/bin/yq"
+      run: |
+        echo "install yq (pinned version)"
+        curl -sL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/${YQ_BINARY}" -o /tmp/yq
+
+        echo "verify checksum"
+        ACTUAL_CHECKSUM=$(sha256sum /tmp/yq | cut -d' ' -f1)
+
+        echo "Expected checksum: $EXPECTED_CHECKSUM"
+        echo "Actual checksum:   $ACTUAL_CHECKSUM"
+
+        if [[ "$ACTUAL_CHECKSUM" != "$EXPECTED_CHECKSUM" ]]; then
+          echo "ERROR: Checksum mismatch!"
+          exit 1
+        fi
+
+        echo "install to $INSTALL_PATH"
+        mv /tmp/yq "$INSTALL_PATH"
+        chmod +x "$INSTALL_PATH"
+
+        echo "verify version"
+        yq --version
+
+        echo "Checksum verified successfully"
+        echo "-------------------------------------------------------------------"
+
+    - name: Install gh
+      shell: bash
+      env:
+        GH_VERSION: "v2.89.0"
+        EXPECTED_CHECKSUM: "d0422caade520530e76c1c558da47daebaa8e1203d6b7ff10ad7d6faba3490d8"
+        INSTALL_PATH: "/usr/bin/gh"
+      run: |
+        echo "install gh (pinned version)"
+        curl -sL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.tar.gz" -o /tmp/gh.tar.gz
+
+        echo "verify checksum"
+        ACTUAL_CHECKSUM=$(sha256sum /tmp/gh.tar.gz | cut -d' ' -f1)
+
+        echo "Expected checksum: $EXPECTED_CHECKSUM"
+        echo "Actual checksum:   $ACTUAL_CHECKSUM"
+
+        if [[ "$ACTUAL_CHECKSUM" != "$EXPECTED_CHECKSUM" ]]; then
+          echo "ERROR: Checksum mismatch!"
+          exit 1
+        fi
+
+        echo "extract and install to $INSTALL_PATH"
+        tar -xzf /tmp/gh.tar.gz -C /tmp
+        mv "/tmp/gh_${GH_VERSION}_linux_amd64/bin/gh" "$INSTALL_PATH"
+        chmod +x "$INSTALL_PATH"
+        rm -rf /tmp/gh.tar.gz "/tmp/gh_${GH_VERSION}_linux_amd64"
+
+        echo "verify version"
+        gh --version
+
+        echo "Checksum verified successfully"
+        echo "-------------------------------------------------------------------"
