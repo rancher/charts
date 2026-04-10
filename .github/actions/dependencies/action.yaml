@@ -233,7 +233,7 @@ runs:
         INSTALL_PATH: "/usr/bin/gh"
       run: |
         echo "install gh (pinned version)"
-        curl -sL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.tar.gz" -o /tmp/gh.tar.gz
+        curl -sL "https://github.com/cli/cli/releases/download/${GH_VERSION}/gh_${GH_VERSION#v}_linux_amd64.tar.gz" -o /tmp/gh.tar.gz
 
         echo "verify checksum"
         ACTUAL_CHECKSUM=$(sha256sum /tmp/gh.tar.gz | cut -d' ' -f1)
@@ -248,9 +248,9 @@ runs:
 
         echo "extract and install to $INSTALL_PATH"
         tar -xzf /tmp/gh.tar.gz -C /tmp
-        mv "/tmp/gh_${GH_VERSION}_linux_amd64/bin/gh" "$INSTALL_PATH"
+        mv "/tmp/gh_${GH_VERSION#v}_linux_amd64/bin/gh" "$INSTALL_PATH"
         chmod +x "$INSTALL_PATH"
-        rm -rf /tmp/gh.tar.gz "/tmp/gh_${GH_VERSION}_linux_amd64"
+        rm -rf /tmp/gh.tar.gz "/tmp/gh_${GH_VERSION#v}_linux_amd64"
 
         echo "verify version"
         gh --version
