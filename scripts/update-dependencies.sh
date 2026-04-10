@@ -99,7 +99,7 @@ for pkg in "${!GITHUB_PACKAGES[@]}"; do
     asset_name=$(echo "$asset_pattern" | sed "s/{VERSION}/$version_number/g")
 
     # Download asset and calculate checksum
-    docker run --rm registry.suse.com/bci/bci-base:latest bash -c "
+    docker run --rm --name "github-release_$pkg" registry.suse.com/bci/bci-base:latest bash -c "
       curl -sL https://github.com/$repo/releases/download/${latest_version}/${asset_name} -o /tmp/${pkg}_asset
       echo \"$latest_version\"
       sha256sum /tmp/${pkg}_asset | cut -d' ' -f1
