@@ -83,6 +83,7 @@ jobs:
 
       - name: Export Vault Secrets as Outputs
         id: secrets
+        continue-on-error: false
         run: |
           # Check if secrets were loaded (will be empty for fork PRs)
           if [[ -z "${{ env.DOCKER_USERNAME }}" ]] || [[ -z "${{ env.DOCKER_PASSWORD }}" ]]; then
@@ -109,7 +110,13 @@ jobs:
           echo "docker_username=${{ env.DOCKER_USERNAME }}" >> $GITHUB_OUTPUT
           echo "docker_password=${{ env.DOCKER_PASSWORD }}" >> $GITHUB_OUTPUT
           echo "app_id=${{ env.APP_ID }}" >> $GITHUB_OUTPUT
-          echo "private_key=${{ env.PRIVATE_KEY }}" >> $GITHUB_OUTPUT
+
+          # Use heredoc format for private_key (multi-line PEM certificate)
+          {
+            echo "private_key<<EOF"
+            echo "${{ env.PRIVATE_KEY }}"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
 
       - name: Create App Token
         continue-on-error: true
