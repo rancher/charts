@@ -8,14 +8,14 @@ inputs:
     description: "Pull request number from github.event.pull_request.number. Used to fetch and checkout the PR head for validation."
     required: true
   app_token:
-    description: "GitHub App token generated from Vault secrets. Required for release PR validation API calls via gh CLI."
-    required: true
+    description: "GitHub App token generated from Vault secrets. Optional - may be empty for fork PRs. Required for release PR validation API calls via gh CLI."
+    required: false
   docker_username:
-    description: "Docker Hub username from Vault secrets. Used to authenticate for Docker image availability checks."
-    required: true
+    description: "Docker Hub username from Vault secrets. Optional - may be empty for fork PRs. Used to authenticate for Docker image availability checks."
+    required: false
   docker_password:
-    description: "Docker Hub password from Vault secrets. Used to authenticate for Docker image availability checks."
-    required: true
+    description: "Docker Hub password from Vault secrets. Optional - may be empty for fork PRs. Used to authenticate for Docker image availability checks."
+    required: false
 
 runs:
   using: composite
@@ -33,7 +33,7 @@ runs:
         echo "Build Validation - PR #${PR_NUMBER} → ${BASE_REF}"
         echo "================================================================="
 
-        # Validate all required inputs are provided
+        # Validate required inputs
         VALIDATION_FAILED=0
 
         if [[ -z "$BASE_REF" ]]; then
@@ -46,33 +46,29 @@ runs:
           VALIDATION_FAILED=1
         fi
 
-        if [[ -z "$APP_TOKEN" ]]; then
-          echo "ERROR: app_token input is required but not provided"
-          VALIDATION_FAILED=1
-        fi
-
-        if [[ -z "$DOCKER_USERNAME" ]]; then
-          echo "ERROR: docker_username input is required but not provided"
-          VALIDATION_FAILED=1
-        fi
-
-        if [[ -z "$DOCKER_PASSWORD" ]]; then
-          echo "ERROR: docker_password input is required but not provided"
-          VALIDATION_FAILED=1
-        fi
-
         if [[ $VALIDATION_FAILED -eq 1 ]]; then
           echo "Input validation failed"
           exit 1
         fi
 
-        # Log non-sensitive inputs
+        # Check optional credentials (from Vault - may be empty for fork PRs)
+        if [[ -z "$APP_TOKEN" ]]; then
+          echo "WARNING: app_token is empty (expected for fork PRs)"
+          echo "  Impact: Release PR validation will be limited"
+        fi
+
+        if [[ -z "$DOCKER_USERNAME" ]] || [[ -z "$DOCKER_PASSWORD" ]]; then
+          echo "WARNING: Docker credentials are empty (expected for fork PRs)"
+          echo "  Impact: Docker image checks may be rate-limited"
+        fi
+
+        # Log validated inputs
         echo "Inputs validated:"
         echo "  base_ref: ${BASE_REF}"
         echo "  pr_number: ${PR_NUMBER}"
-        echo "  app_token: ***REDACTED***"
-        echo "  docker_username: ***REDACTED***"
-        echo "  docker_password: ***REDACTED***"
+        echo "  app_token: $(if [[ -n "$APP_TOKEN" ]]; then echo '***REDACTED***'; else echo '(empty)'; fi)"
+        echo "  docker_username: $(if [[ -n "$DOCKER_USERNAME" ]]; then echo '***REDACTED***'; else echo '(empty)'; fi)"
+        echo "  docker_password: $(if [[ -n "$DOCKER_PASSWORD" ]]; then echo '***REDACTED***'; else echo '(empty)'; fi)"
         echo "================================================================="
 
     - name: Verify required dependencies are installed
