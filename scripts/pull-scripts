@@ -9,6 +9,13 @@ chmod -R a+x "${REPO_ROOT}/bin/" || true
 # shellcheck source=/dev/null
 source "${SCRIPTS_DIR}/version"
 
+# Helper function for output - respects PORCELAIN mode
+log() {
+    if [[ "${PORCELAIN}" != "1" ]]; then
+        echo "$@"
+    fi
+}
+
 # Array of scripts to download from automation-core branch
 AUTOMATION_CORE_SCRIPTS=(
   "check-release-yaml"
@@ -27,8 +34,12 @@ AUTOMATION_CORE_SCRIPTS=(
 # No-op if the version is already pinned. Mutates the global variable.
 resolve_version() {
     if [[ "${CHARTS_BUILD_SCRIPT_VERSION}" == "latest" ]]; then
-        CHARTS_BUILD_SCRIPT_VERSION=$(curl --silent "https://api.github.com/repos/rancher/charts-build-scripts/releases/latest" | jq -r '.tag_name')
-        echo "Resolved latest version to ${CHARTS_BUILD_SCRIPT_VERSION}"
+        if command -v gh &> /dev/null; then
+            CHARTS_BUILD_SCRIPT_VERSION=$(gh api /repos/rancher/charts-build-scripts/releases/latest | jq -r '.tag_name')
+        else
+            CHARTS_BUILD_SCRIPT_VERSION=$(curl --silent "https://api.github.com/repos/rancher/charts-build-scripts/releases/latest" | jq -r '.tag_name')
+        fi
+        log "Resolved latest version to ${CHARTS_BUILD_SCRIPT_VERSION}"
     fi
 }
 
@@ -41,11 +52,11 @@ check_existing_binary() {
 
     local current_version
     current_version="v$("${REPO_ROOT}/bin/charts-build-scripts" --version | awk '{print $3}')"
-    echo "Current version: ${current_version}"
-    echo "Expected version: ${CHARTS_BUILD_SCRIPT_VERSION}"
+    log "Current version: ${current_version}"
+    log "Expected version: ${CHARTS_BUILD_SCRIPT_VERSION}"
 
     if [[ "${current_version}" == "${CHARTS_BUILD_SCRIPT_VERSION}" ]]; then
-        echo "Target version already present"
+        log "Target version already present"
         exit 0
     fi
 }
@@ -61,7 +72,7 @@ detect_platform() {
     else
         BINARY_NAME="charts-build-scripts_${OS}_${ARCH}"
     fi
-    echo "Platform: ${OS}/${ARCH} — binary: ${BINARY_NAME}"
+    log "Platform: ${OS}/${ARCH} — binary: ${BINARY_NAME}"
 }
 
 # Wipes bin/, then downloads the release binary from CHARTS_BUILD_SCRIPTS_REPO.
@@ -69,27 +80,33 @@ detect_platform() {
 download_binary() {
     local url="${CHARTS_BUILD_SCRIPTS_REPO%.git}/releases/download/${CHARTS_BUILD_SCRIPT_VERSION}/${BINARY_NAME}"
 
-    echo "Cleaning bin directory"
+    log "Cleaning bin directory"
     mkdir -p "${REPO_ROOT}/bin"
     find "${REPO_ROOT}/bin" -mindepth 1 -delete
     chmod -R a+x "${REPO_ROOT}/bin/"
 
-    echo "Downloading ${url}"
+    log "Downloading ${url}"
     local http_code
     http_code=$(curl -s -L -w "%{http_code}" "${url}" --output "${REPO_ROOT}/bin/charts-build-scripts")
     if [[ "$http_code" -ne 200 ]]; then
-        echo "Error downloading ${BINARY_NAME}, HTTP code: ${http_code}"
+        echo "Error downloading ${BINARY_NAME}, HTTP code: ${http_code}" >&2
         exit 1
     fi
-    echo "Downloaded ${BINARY_NAME} to ${REPO_ROOT}/bin/charts-build-scripts"
+    log "Downloaded ${BINARY_NAME} to ${REPO_ROOT}/bin/charts-build-scripts}"
 }
 
 # Sanity-checks the downloaded binary with file(1), makes it executable, and runs --version.
 verify_binary() {
-    echo "Checking downloaded binary file"
-    file "${REPO_ROOT}/bin/charts-build-scripts"
-    chmod +x "${REPO_ROOT}/bin/charts-build-scripts"
-    "${REPO_ROOT}/bin/charts-build-scripts" --version
+    log "Checking downloaded binary file"
+    if [[ "${PORCELAIN}" == "1" ]]; then
+        file "${REPO_ROOT}/bin/charts-build-scripts" > /dev/null
+        chmod +x "${REPO_ROOT}/bin/charts-build-scripts"
+        "${REPO_ROOT}/bin/charts-build-scripts" --version > /dev/null
+    else
+        file "${REPO_ROOT}/bin/charts-build-scripts"
+        chmod +x "${REPO_ROOT}/bin/charts-build-scripts"
+        "${REPO_ROOT}/bin/charts-build-scripts" --version
+    fi
 }
 
 # Downloads a single script from automation-core if it doesn't exist locally
@@ -99,20 +116,20 @@ download_script_from_automation_core() {
     local target_path="${SCRIPTS_DIR}/${script_path}"
 
     if [[ -f "$target_path" ]]; then
-        echo "Script already exists, skipping: ${script_path}"
+        log "Script already exists, skipping: ${script_path}"
         return 0
     fi
 
-    echo "Downloading script: ${script_path}"
+    log "Downloading script: ${script_path}"
     mkdir -p "$(dirname "$target_path")"
     git show upstream/automation-core:scripts/${script_path} > "$target_path"
     chmod +x "$target_path"
-    echo "Downloaded: ${script_path}"
+    log "Downloaded: ${script_path}"
 }
 
 # Downloads all scripts from automation-core branch
 download_automation_core_scripts() {
-    echo "Checking automation-core scripts..."
+    log "Checking automation-core scripts..."
     for script in "${AUTOMATION_CORE_SCRIPTS[@]}"; do
         download_script_from_automation_core "$script"
     done
@@ -122,9 +139,9 @@ main() {
     download_automation_core_scripts
 
     if [[ "${SKIP_PS}" == "true" ]]; then
-        echo "WARNING: SKIP_PS is set — skipping version resolution and binary download"
+        echo "WARNING: SKIP_PS is set — skipping version resolution and binary download" >&2
         if [[ ! -f "${REPO_ROOT}/bin/charts-build-scripts" ]]; then
-            echo "ERROR: no binary found at ${REPO_ROOT}/bin/charts-build-scripts"
+            echo "ERROR: no binary found at ${REPO_ROOT}/bin/charts-build-scripts" >&2
             exit 1
         fi
         verify_binary
