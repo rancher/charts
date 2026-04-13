@@ -9,6 +9,20 @@ chmod -R a+x "${REPO_ROOT}/bin/" || true
 # shellcheck source=/dev/null
 source "${SCRIPTS_DIR}/version"
 
+# Array of scripts to download from automation-core branch
+AUTOMATION_CORE_SCRIPTS=(
+  "check-release-yaml"
+  "forward-port"
+  "package-ci"
+  "remove-asset"
+  "import-build-workflow.sh"
+  "release-validation/diff-with-released.sh"
+  "release-validation/last-released.sh"
+  "release-validation/pr-review-template.md"
+  "release-validation/validate-annotations.sh"
+  "release-validation/validate-index.sh"
+)
+
 # Resolves CHARTS_BUILD_SCRIPT_VERSION from "latest" to the actual release tag.
 # No-op if the version is already pinned. Mutates the global variable.
 resolve_version() {
@@ -78,7 +92,35 @@ verify_binary() {
     "${REPO_ROOT}/bin/charts-build-scripts" --version
 }
 
+# Downloads a single script from automation-core if it doesn't exist locally
+# Args: $1 = script path relative to scripts/ directory
+download_script_from_automation_core() {
+    local script_path="$1"
+    local target_path="${SCRIPTS_DIR}/${script_path}"
+
+    if [[ -f "$target_path" ]]; then
+        echo "Script already exists, skipping: ${script_path}"
+        return 0
+    fi
+
+    echo "Downloading script: ${script_path}"
+    mkdir -p "$(dirname "$target_path")"
+    git show upstream/automation-core:scripts/${script_path} > "$target_path"
+    chmod +x "$target_path"
+    echo "Downloaded: ${script_path}"
+}
+
+# Downloads all scripts from automation-core branch
+download_automation_core_scripts() {
+    echo "Checking automation-core scripts..."
+    for script in "${AUTOMATION_CORE_SCRIPTS[@]}"; do
+        download_script_from_automation_core "$script"
+    done
+}
+
 main() {
+    download_automation_core_scripts
+
     if [[ "${SKIP_PS}" == "true" ]]; then
         echo "WARNING: SKIP_PS is set — skipping version resolution and binary download"
         if [[ ! -f "${REPO_ROOT}/bin/charts-build-scripts" ]]; then
