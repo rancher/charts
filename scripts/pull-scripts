@@ -74,7 +74,14 @@ detect_upstream_remote() {
         return
     fi
 
-    # If neither found, error
+    # Final fallback to origin (for CI environments)
+    if git remote | grep -q "^origin$"; then
+        REMOTE="origin"
+        log "Using origin remote (CI environment)"
+        return
+    fi
+
+    # If none found, error
     echo "ERROR: No remote found for rancher/charts repository" >&2
     exit 1
 }
