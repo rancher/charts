@@ -106,6 +106,34 @@ echo -e "${YELLOW}Skipped:${RESET}          ${SKIPPED}"
 echo -e "${RED}Failed:${RESET}           ${#FAILED_PACKAGES[@]}"
 echo "========================================"
 
+# GitHub Actions Job Summary (only in CI)
+if [[ -n "${GITHUB_STEP_SUMMARY}" ]]; then
+    cat >> $GITHUB_STEP_SUMMARY <<EOF
+## Package CI Validation
+
+| Metric | Count |
+|--------|-------|
+| Total Packages | ${TOTAL} |
+| Passed | ${PASSED} |
+| Skipped | ${SKIPPED} |
+| Failed | ${#FAILED_PACKAGES[@]} |
+EOF
+
+    # Add failed packages details if any
+    if [ ${#FAILED_PACKAGES[@]} -ne 0 ]; then
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Failed Packages" >> $GITHUB_STEP_SUMMARY
+        for failure in "${FAILED_PACKAGES[@]}"; do
+            IFS='|' read -r pkg step details <<< "$failure"
+            if [ "$step" = "drift" ]; then
+                echo "- \`${pkg}\`: generated git drift" >> $GITHUB_STEP_SUMMARY
+            else
+                echo "- \`${pkg}\`: failed at **${step}** step" >> $GITHUB_STEP_SUMMARY
+            fi
+        done
+    fi
+fi
+
 if [ ${#FAILED_PACKAGES[@]} -ne 0 ]; then
     echo ""
     log_error "Failed packages:"
