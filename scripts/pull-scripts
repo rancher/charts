@@ -1,8 +1,46 @@
 #!/bin/bash
 set -e # Exit immediately if a command exits with a non-zero status.
 
+# ============================================================================
+# Pull Scripts and Build Tools
+# ============================================================================
+#
+# WHAT:
+#   Downloads build scripts, Makefile, and charts-build-scripts binary.
+#   automation-core branch is the single source of truth for all scripts
+#   and configuration.
+#
+# HOW IT WORKS:
+#   1. Detects upstream remote (https or ssh URL)
+#   2. Fetches automation-core branch (shallow, --depth 1)
+#   3. Downloads scripts listed in AUTOMATION_CORE_SCRIPTS array
+#   4. Downloads Makefile from automation-core
+#   5. Resolves charts-build-scripts version (latest or pinned)
+#   6. Downloads platform-specific binary from GitHub releases
+#
+# USAGE:
+#   make pull-scripts
+#
+#   Skip binary download (scripts/Makefile only):
+#     SKIP_PS=true make pull-scripts
+#
+#   Pin to specific version:
+#     CHARTS_BUILD_SCRIPT_VERSION=v0.10.0 make pull-scripts
+#
+# REQUIREMENTS:
+#   - Git repository with rancher/charts remote
+#   - Go installed (for platform detection)
+#   - jq installed (for version resolution)
+#   - gh cli (optional, improves rate limiting)
+#
+# ============================================================================
+
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SCRIPTS_DIR="$(dirname "$0")"
+
+# Configuration
+AUTOMATION_BRANCH="automation-core"
+REMOTE=""  # Detected dynamically
 
 mkdir -p "${REPO_ROOT}/bin"
 chmod -R a+x "${REPO_ROOT}/bin/" || true
@@ -16,18 +54,44 @@ log() {
     fi
 }
 
+# Detects the remote name for rancher/charts repository
+detect_upstream_remote() {
+    local remote_name
+
+    # Check for https URL first
+    remote_name=$(git remote -v | grep "https://github.com/rancher/charts.git" | head -n1 | awk '{print $1}')
+
+    if [[ -n "$remote_name" ]]; then
+        REMOTE="$remote_name"
+        return
+    fi
+
+    # Fallback to SSH URL
+    remote_name=$(git remote -v | grep "git@github.com:rancher/charts.git" | head -n1 | awk '{print $1}')
+
+    if [[ -n "$remote_name" ]]; then
+        REMOTE="$remote_name"
+        return
+    fi
+
+    # If neither found, error
+    echo "ERROR: No remote found for rancher/charts repository" >&2
+    exit 1
+}
+
 # Array of scripts to download from automation-core branch
 AUTOMATION_CORE_SCRIPTS=(
   "check-release-yaml"
+  "clean-scripts"
   "forward-port"
+  "import-build-workflow"
   "package-ci"
   "remove-asset"
-  "import-build-workflow.sh"
-  "release-validation/diff-with-released.sh"
-  "release-validation/last-released.sh"
+  "release-validation/diff-with-released"
+  "release-validation/last-released"
   "release-validation/pr-review-template.md"
-  "release-validation/validate-annotations.sh"
-  "release-validation/validate-index.sh"
+  "release-validation/validate-annotations"
+  "release-validation/validate-index"
 )
 
 # Resolves CHARTS_BUILD_SCRIPT_VERSION from "latest" to the actual release tag.
@@ -127,9 +191,15 @@ download_script_from_automation_core() {
 
     log "Downloading script: ${script_path}"
     mkdir -p "$(dirname "$target_path")"
-    git show upstream/automation-core:scripts/${script_path} > "$target_path"
+    git show "${REMOTE}/${AUTOMATION_BRANCH}:scripts/${script_path}" > "$target_path"
     chmod +x "$target_path"
     log "Downloaded: ${script_path}"
+}
+
+# Fetches automation-core branch from upstream remote
+fetch_automation_core() {
+    log "Fetching ${AUTOMATION_BRANCH} from ${REMOTE}..."
+    git fetch --depth 1 "${REMOTE}" "${AUTOMATION_BRANCH}"
 }
 
 # Downloads all scripts from automation-core branch
@@ -140,8 +210,18 @@ download_automation_core_scripts() {
     done
 }
 
+# Downloads Makefile from automation-core (source of truth)
+download_makefile() {
+    log "Downloading Makefile from automation-core..."
+    git show "${REMOTE}/${AUTOMATION_BRANCH}:Makefile" > "${REPO_ROOT}/Makefile"
+    log "Makefile updated from automation-core"
+}
+
 main() {
+    detect_upstream_remote
+    fetch_automation_core
     download_automation_core_scripts
+    download_makefile
 
     if [[ "${SKIP_PS}" == "true" ]]; then
         echo "WARNING: SKIP_PS is set — skipping version resolution and binary download" >&2

@@ -139,6 +139,35 @@ runs:
         echo "All dependencies verified"
         echo "================================================================="
 
+    - name: Verify required scripts are present
+      shell: bash
+      run: |
+        echo "Checking required scripts..."
+        SCRIPTS_MISSING=0
+
+        if [[ ! -f scripts/pull-scripts ]]; then
+          echo "ERROR: scripts/pull-scripts not found"
+          SCRIPTS_MISSING=1
+        else
+          echo "✓ scripts/pull-scripts exists"
+        fi
+
+        if [[ ! -f scripts/version ]]; then
+          echo "ERROR: scripts/version not found"
+          SCRIPTS_MISSING=1
+        else
+          echo "✓ scripts/version exists"
+        fi
+
+        if [[ $SCRIPTS_MISSING -eq 1 ]]; then
+          echo ""
+          echo "ERROR: Required scripts missing. These scripts must never be deleted."
+          exit 1
+        fi
+
+        echo "All required scripts present"
+        echo "================================================================="
+
     - name: Git Checkout PR and into new branch
       shell: bash
       env:

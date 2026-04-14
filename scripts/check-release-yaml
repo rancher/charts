@@ -1,16 +1,44 @@
 #!/bin/bash
 
+# Colors
+RESET='\033[0m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+
+# Logging functions
+log_success() {
+    echo -e "${GREEN}[PASS]${RESET} $1"
+}
+
+log_warning() {
+    echo -e "${YELLOW}[WARN]${RESET} $1"
+}
+
+log_error() {
+    echo -e "${RED}[FAIL]${RESET} $1" >&2
+}
+
+# Check if yq is installed
+if ! command -v yq &> /dev/null; then
+  log_warning "yq is not installed"
+  echo "Install yq to validate release.yaml formatting and prevent YAML syntax errors"
+  echo "Skipping release.yaml validation..."
+  exit 0
+fi
+
 # Check if the file is empty
 if [[ ! -s release.yaml ]]; then
-  echo "release.yaml is empty!"
+  log_warning "release.yaml is empty"
   exit 0
 fi
 
 yq -i release.yaml
 
 if [[ -n $(git status --porcelain release.yaml) ]]; then
-  echo "release.yaml not following yq style"
+  log_error "release.yaml not following yq style"
   exit 1
 else
+  log_success "release.yaml validation passed"
   exit 0
 fi

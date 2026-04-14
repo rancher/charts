@@ -1,34 +1,181 @@
 #!/bin/bash
-
 set -e
 
-cd $(dirname $0)
+# ============================================================================
+# Forward-Port Chart
+# ============================================================================
+#
+# WHAT IS FORWARD-PORTING?
+#   Forward-porting copies a chart release from an upstream branch (e.g.,
+#   release-v2.14) to the current branch (e.g., dev-v2.15). This is needed
+#   when a chart is released to an older branch but needs to also exist in
+#   newer branches.
+#
+# HOW IT WORKS:
+#   1. Fetches the upstream branch (e.g., release-v2.14)
+#   2. Copies the chart asset (.tgz) from upstream to the current branch
+#   3. Unzips the asset into charts/ directory
+#   4. Updates release.yaml to include the new version
+#   5. Regenerates index.yaml to reflect the new chart
+#
+#   NOTE: This does NOT rebuild the chart from source. It copies the exact
+#         packaged asset that was released on the upstream branch.
+#
+# USAGE:
+#   CHART=<chart-name> \
+#   VERSION=<version> \
+#   UPSTREAM=<git-remote> \
+#   BRANCH=<git-branch> \
+#   make forward-port
+#
+#   Example:
+#     CHART=rancher-monitoring \
+#     VERSION=103.1.0+up45.31.1 \
+#     UPSTREAM=origin \
+#     BRANCH=release-v2.14 \
+#     make forward-port
+#
+# REQUIREMENTS:
+#   - Git working directory must be clean
+#   - yq must be installed
+#   - Chart asset must exist in the upstream branch
+#
+# ============================================================================
+
+cd "$(dirname "$0")"
 cd ..
 
-if [ -n "$(git status --porcelain)" ]; then
-    echo "Git needs to be clean to run this script"
-    exit 1
-fi
+# Colors
+RESET='\033[0m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
 
-if [[ -z ${CHART} ]] || [[ -z ${VERSION} ]] || [[ -z ${UPSTREAM} ]] || [[ -z ${BRANCH} ]]; then
-    echo "Usage: CHART=<chart> VERSION=<version> UPSTREAM=<git-remote> BRANCH=<git-branch> make forward-port"
-    exit 1
-fi
+# Logging functions
+log_info() {
+    echo -e "${BLUE}[INFO]${RESET} $1"
+}
 
-if [[ -d charts/${CHART}/${VERSION} ]] && [[ -f  assets/${CHART}/${CHART}-${VERSION}.tgz ]]; then
-    rm -rf charts/${CHART}/${VERSION}
-    rm -rf assets/${CHART}/${CHART}-${VERSION}.tgz
-fi
+log_success() {
+    echo -e "${GREEN}[PASS]${RESET} $1"
+}
 
-git fetch ${UPSTREAM} ${BRANCH}
-if ! git cat-file -e ${UPSTREAM}/${BRANCH}:assets/${CHART}/${CHART}-${VERSION}.tgz; then
-    exit 1
-fi
-git checkout ${UPSTREAM}/${BRANCH} -- assets/${CHART}/${CHART}-${VERSION}.tgz 2>&1 1>/dev/null
-git reset HEAD 2>&1 1>/dev/null
-ASSET=${CHART}/${CHART}-${VERSION}.tgz make unzip
+log_warning() {
+    echo -e "${YELLOW}[WARN]${RESET} $1"
+}
 
-touch release.yaml
-yq e -i ".${CHART} = ((.${CHART} + [\"${VERSION}\"]) | unique)" release.yaml
+log_error() {
+    echo -e "${RED}[FAIL]${RESET} $1" >&2
+}
 
-make index
+# ============================================================================
+# Validation
+# ============================================================================
+validate_environment() {
+    # Check git status is clean
+    if [ -n "$(git status --porcelain)" ]; then
+        log_error "Git needs to be clean to run this script"
+        exit 1
+    fi
+
+    # Check required arguments
+    if [[ -z "${CHART}" ]] || [[ -z "${VERSION}" ]] || [[ -z "${UPSTREAM}" ]] || [[ -z "${BRANCH}" ]]; then
+        log_error "Missing required arguments"
+        echo "Usage: CHART=<chart> VERSION=<version> UPSTREAM=<git-remote> BRANCH=<git-branch> make forward-port"
+        exit 1
+    fi
+
+    # Check yq is installed
+    if ! command -v yq &> /dev/null; then
+        log_error "yq is not installed"
+        echo "Install yq to run forward-port"
+        exit 1
+    fi
+
+    log_success "Validation passed"
+}
+
+# ============================================================================
+# Forward-port operation
+# ============================================================================
+forward_port_chart() {
+    log_info "Forward-porting ${CHART}:${VERSION} from ${UPSTREAM}/${BRANCH}"
+
+    # Remove existing chart and asset if they exist
+    if [[ -d "charts/${CHART}/${VERSION}" ]] && [[ -f "assets/${CHART}/${CHART}-${VERSION}.tgz" ]]; then
+        log_warning "Removing existing chart and asset"
+        rm -rf "charts/${CHART}/${VERSION}"
+        rm -rf "assets/${CHART}/${CHART}-${VERSION}.tgz"
+    fi
+
+    # Fetch upstream branch
+    log_info "Fetching ${UPSTREAM}/${BRANCH}"
+    git fetch "${UPSTREAM}" "${BRANCH}"
+
+    # Check if chart asset exists in upstream branch
+    if ! git cat-file -e "${UPSTREAM}/${BRANCH}:assets/${CHART}/${CHART}-${VERSION}.tgz"; then
+        log_error "Chart asset not found in ${UPSTREAM}/${BRANCH}"
+        exit 1
+    fi
+
+    # Checkout chart asset from upstream branch
+    log_info "Checking out chart asset"
+    git checkout "${UPSTREAM}/${BRANCH}" -- "assets/${CHART}/${CHART}-${VERSION}.tgz" 1>/dev/null 2>&1
+    git reset HEAD 1>/dev/null 2>&1
+
+    log_success "Chart forward-ported"
+}
+
+# ============================================================================
+# Unzip chart asset
+# ============================================================================
+unzip_chart() {
+    log_info "Unzipping chart asset"
+    if ! ASSET="${CHART}/${CHART}-${VERSION}.tgz" make unzip; then
+        log_error "Failed to unzip chart asset"
+        exit 1
+    fi
+    log_success "Chart unzipped"
+}
+
+# ============================================================================
+# Update release.yaml
+# ============================================================================
+update_release() {
+    log_info "Updating release.yaml"
+    touch release.yaml
+    if ! yq -i ".${CHART} = ((.${CHART} + [\"${VERSION}\"]) | unique)" release.yaml; then
+        log_error "Failed to update release.yaml"
+        exit 1
+    fi
+    log_success "Release.yaml updated"
+}
+
+# ============================================================================
+# Regenerate index
+# ============================================================================
+regenerate_index() {
+    log_info "Regenerating index"
+    if ! make index; then
+        log_error "Failed to regenerate index"
+        exit 1
+    fi
+    log_success "Index regenerated"
+}
+
+# ============================================================================
+# Main
+# ============================================================================
+main() {
+    validate_environment
+    forward_port_chart
+    unzip_chart
+    update_release
+    regenerate_index
+
+    echo ""
+    log_success "Forward-ported: ${CHART}:${VERSION}"
+}
+
+main
