@@ -1,34 +1,83 @@
 #!/bin/bash
-
 set -e
 
-cd $(dirname $0)
+cd "$(dirname "$0")"
 cd ..
 
-if [ -n "$(git status --porcelain)" ]; then
-    echo "Git needs to be clean to run this script"
-    exit 1
-fi
+# ============================================================================
+# Validation
+# ============================================================================
+validate_environment() {
+    # Check git status is clean
+    if [ -n "$(git status --porcelain)" ]; then
+        echo "Git needs to be clean to run this script"
+        exit 1
+    fi
 
-if [[ -z ${CHART} ]] || [[ -z ${VERSION} ]] || [[ -z ${UPSTREAM} ]] || [[ -z ${BRANCH} ]]; then
-    echo "Usage: CHART=<chart> VERSION=<version> UPSTREAM=<git-remote> BRANCH=<git-branch> make forward-port"
-    exit 1
-fi
+    # Check required arguments
+    if [[ -z "${CHART}" ]] || [[ -z "${VERSION}" ]] || [[ -z "${UPSTREAM}" ]] || [[ -z "${BRANCH}" ]]; then
+        echo "Usage: CHART=<chart> VERSION=<version> UPSTREAM=<git-remote> BRANCH=<git-branch> make forward-port"
+        exit 1
+    fi
 
-if [[ -d charts/${CHART}/${VERSION} ]] && [[ -f  assets/${CHART}/${CHART}-${VERSION}.tgz ]]; then
-    rm -rf charts/${CHART}/${VERSION}
-    rm -rf assets/${CHART}/${CHART}-${VERSION}.tgz
-fi
+    # Check yq is installed
+    if ! command -v yq &> /dev/null; then
+        echo "ERROR: yq is not installed"
+        echo "Install yq to run forward-port"
+        exit 1
+    fi
+}
 
-git fetch ${UPSTREAM} ${BRANCH}
-if ! git cat-file -e ${UPSTREAM}/${BRANCH}:assets/${CHART}/${CHART}-${VERSION}.tgz; then
-    exit 1
-fi
-git checkout ${UPSTREAM}/${BRANCH} -- assets/${CHART}/${CHART}-${VERSION}.tgz 2>&1 1>/dev/null
-git reset HEAD 2>&1 1>/dev/null
-ASSET=${CHART}/${CHART}-${VERSION}.tgz make unzip
+# ============================================================================
+# Forward-port operation
+# ============================================================================
+forward_port_chart() {
+    # Remove existing chart and asset if they exist
+    if [[ -d "charts/${CHART}/${VERSION}" ]] && [[ -f "assets/${CHART}/${CHART}-${VERSION}.tgz" ]]; then
+        rm -rf "charts/${CHART}/${VERSION}"
+        rm -rf "assets/${CHART}/${CHART}-${VERSION}.tgz"
+    fi
 
-touch release.yaml
-yq e -i ".${CHART} = ((.${CHART} + [\"${VERSION}\"]) | unique)" release.yaml
+    # Fetch upstream branch
+    git fetch "${UPSTREAM}" "${BRANCH}"
 
-make index
+    # Check if chart asset exists in upstream branch
+    if ! git cat-file -e "${UPSTREAM}/${BRANCH}:assets/${CHART}/${CHART}-${VERSION}.tgz"; then
+        exit 1
+    fi
+
+    # Checkout chart asset from upstream branch
+    git checkout "${UPSTREAM}/${BRANCH}" -- "assets/${CHART}/${CHART}-${VERSION}.tgz" 1>/dev/null 2>&1
+    git reset HEAD 1>/dev/null 2>&1
+}
+
+# ============================================================================
+# Unzip and update release.yaml
+# ============================================================================
+update_release() {
+    # Unzip the chart asset
+    ASSET="${CHART}/${CHART}-${VERSION}.tgz" make unzip
+
+    # Update release.yaml with new version
+    touch release.yaml
+    yq e -i ".${CHART} = ((.${CHART} + [\"${VERSION}\"]) | unique)" release.yaml
+}
+
+# ============================================================================
+# Regenerate index
+# ============================================================================
+regenerate_index() {
+    make index
+}
+
+# ============================================================================
+# Main
+# ============================================================================
+main() {
+    validate_environment
+    forward_port_chart
+    update_release
+    regenerate_index
+}
+
+main
