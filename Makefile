@@ -10,11 +10,9 @@ remove:
 forward-port:
 	./scripts/forward-port
 
-check-release-yaml:
-	./scripts/check-release-yaml
-
 validate:
 	@./scripts/pull-scripts
+	@./scripts/check-release-yaml
 	@./bin/charts-build-scripts validate $(if $(filter true,$(remote)),--remote) $(if $(filter true,$(local)),--local)
 
 chart-bump:
