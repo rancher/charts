@@ -1,44 +1,129 @@
 #!/bin/bash
+set -e
+
+# ============================================================================
+# Package CI - Validates all packages pass the build workflow
+# ============================================================================
 
 cd $(dirname $0)
 cd ..
 
+# Colors
+RESET='\033[0m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+
+# Logging functions
+log_info() {
+    echo -e "${BLUE}[INFO]${RESET} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[PASS]${RESET} $1"
+}
+
+log_skip() {
+    echo -e "${YELLOW}[SKIP]${RESET} $1"
+}
+
+log_error() {
+    echo -e "${RED}[FAIL]${RESET} $1"
+}
+
+# Validate clean git state
 if [ -n "$(git status --porcelain)" ]; then
-    echo "Git needs to be clean to run this script"
+    log_error "Git needs to be clean to run this script"
     exit 1
 fi
 
 ORIG_PACKAGE=${PACKAGE}
 
-FAILED_PACKAGES=()
-for package in $(PORCELAIN=1 make list); do
-    export PACKAGE="${package#packages\/}"
+# Get package list dynamically from charts-build-scripts
+packageList=$(PORCELAIN=1 make list)
 
-    # Do developer workflow
-    if ! make prepare > /dev/null 2>&1; then
-        FAILED_PACKAGES+=("- ${PACKAGE} failed at prepare")
-    elif ! make patch > /dev/null 2>&1; then
-        FAILED_PACKAGES+=("- ${PACKAGE} failed at patch")
-    elif ! make clean > /dev/null 2>&1; then
-        FAILED_PACKAGES+=("- ${PACKAGE} failed at clean")
-    elif [ -n "$(git status --porcelain)" ]; then
-        FAILED_PACKAGES+=("- ${PACKAGE} generated additional changes: $(git status --porcelain | xargs)")
-    elif ! make charts > /dev/null 2>&1; then
-        FAILED_PACKAGES+=("- ${PACKAGE} failed at charts")
-    else
-        echo "${PACKAGE} passed ci"
+# Counters
+TOTAL=0
+PASSED=0
+SKIPPED=0
+FAILED_PACKAGES=()
+
+log_info "Starting package CI validation..."
+echo ""
+
+for package in $packageList; do
+    export PACKAGE="${package#packages\/}"
+    TOTAL=$((TOTAL + 1))
+
+    # Skip auto packages - they track upstream branches and will naturally drift
+    if grep -q "^auto: true" "packages/${PACKAGE}/package.yaml" 2>/dev/null; then
+        log_skip "${PACKAGE} (auto: true)"
+        SKIPPED=$((SKIPPED + 1))
+        continue
     fi
 
+    # Run developer workflow: prepare -> icon -> patch -> clean -> charts
+    if ! make prepare > /dev/null 2>&1; then
+        FAILED_PACKAGES+=("${PACKAGE}|prepare")
+        log_error "${PACKAGE} failed at prepare"
+    elif ! make icon > /dev/null 2>&1; then
+        FAILED_PACKAGES+=("${PACKAGE}|icon")
+        log_error "${PACKAGE} failed at icon"
+    elif ! make patch > /dev/null 2>&1; then
+        FAILED_PACKAGES+=("${PACKAGE}|patch")
+        log_error "${PACKAGE} failed at patch"
+    elif ! make clean > /dev/null 2>&1; then
+        FAILED_PACKAGES+=("${PACKAGE}|clean")
+        log_error "${PACKAGE} failed at clean"
+    elif [ -n "$(git status --porcelain)" ]; then
+        FAILED_PACKAGES+=("${PACKAGE}|drift|$(git status --porcelain | xargs)")
+        log_error "${PACKAGE} generated git changes"
+    elif ! make charts > /dev/null 2>&1; then
+        FAILED_PACKAGES+=("${PACKAGE}|charts")
+        log_error "${PACKAGE} failed at charts"
+    else
+        log_success "${PACKAGE}"
+        PASSED=$((PASSED + 1))
+    fi
+
+    # Cleanup after each package test
     git clean -df > /dev/null 2>&1
     git checkout -- . > /dev/null 2>&1
 done
 
+
+# ============================================================================
+# Summary
+# ============================================================================
 echo ""
+echo "========================================"
+log_info "Package CI Summary"
+echo "========================================"
+echo "Total packages:   ${TOTAL}"
+echo -e "${GREEN}Passed:${RESET}           ${PASSED}"
+echo -e "${YELLOW}Skipped:${RESET}          ${SKIPPED}"
+echo -e "${RED}Failed:${RESET}           ${#FAILED_PACKAGES[@]}"
+echo "========================================"
+
 if [ ${#FAILED_PACKAGES[@]} -ne 0 ]; then
-    echo "Failed to pass ci for the following packages:"
-    printf '%s\n' "${FAILED_PACKAGES[@]}"
+    echo ""
+    log_error "Failed packages:"
+    for failure in "${FAILED_PACKAGES[@]}"; do
+        IFS='|' read -r pkg step details <<< "$failure"
+        if [ "$step" = "drift" ]; then
+            echo "  - ${pkg}: generated git changes"
+            echo "    ${details}"
+        else
+            echo "  - ${pkg}: failed at ${step}"
+        fi
+    done
+    echo ""
+    exit 1
 else
-    echo "All packages pass ci!"
+    echo ""
+    log_success "All packages pass CI!"
+    echo ""
 fi
 
 export PACKAGE=${ORIG_PACKAGE}
