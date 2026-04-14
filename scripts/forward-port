@@ -1,6 +1,47 @@
 #!/bin/bash
 set -e
 
+# ============================================================================
+# Forward-Port Chart
+# ============================================================================
+#
+# WHAT IS FORWARD-PORTING?
+#   Forward-porting copies a chart release from an upstream branch (e.g.,
+#   release-v2.14) to the current branch (e.g., dev-v2.15). This is needed
+#   when a chart is released to an older branch but needs to also exist in
+#   newer branches.
+#
+# HOW IT WORKS:
+#   1. Fetches the upstream branch (e.g., release-v2.14)
+#   2. Copies the chart asset (.tgz) from upstream to the current branch
+#   3. Unzips the asset into charts/ directory
+#   4. Updates release.yaml to include the new version
+#   5. Regenerates index.yaml to reflect the new chart
+#
+#   NOTE: This does NOT rebuild the chart from source. It copies the exact
+#         packaged asset that was released on the upstream branch.
+#
+# USAGE:
+#   CHART=<chart-name> \
+#   VERSION=<version> \
+#   UPSTREAM=<git-remote> \
+#   BRANCH=<git-branch> \
+#   make forward-port
+#
+#   Example:
+#     CHART=rancher-monitoring \
+#     VERSION=103.1.0+up45.31.1 \
+#     UPSTREAM=origin \
+#     BRANCH=release-v2.14 \
+#     make forward-port
+#
+# REQUIREMENTS:
+#   - Git working directory must be clean
+#   - yq must be installed
+#   - Chart asset must exist in the upstream branch
+#
+# ============================================================================
+
 cd "$(dirname "$0")"
 cd ..
 
@@ -104,7 +145,7 @@ unzip_chart() {
 update_release() {
     log_info "Updating release.yaml"
     touch release.yaml
-    if ! yq e -i ".${CHART} = ((.${CHART} + [\"${VERSION}\"]) | unique)" release.yaml; then
+    if ! yq -i ".${CHART} = ((.${CHART} + [\"${VERSION}\"]) | unique)" release.yaml; then
         log_error "Failed to update release.yaml"
         exit 1
     fi
