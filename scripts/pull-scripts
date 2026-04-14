@@ -4,6 +4,10 @@ set -e # Exit immediately if a command exits with a non-zero status.
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SCRIPTS_DIR="$(dirname "$0")"
 
+# Configuration
+AUTOMATION_BRANCH="automation-core"
+REMOTE=""  # Detected dynamically
+
 mkdir -p "${REPO_ROOT}/bin"
 chmod -R a+x "${REPO_ROOT}/bin/" || true
 # shellcheck source=/dev/null
@@ -14,6 +18,31 @@ log() {
     if [[ "${PORCELAIN}" != "1" ]]; then
         echo "$@"
     fi
+}
+
+# Detects the remote name for rancher/charts repository
+detect_upstream_remote() {
+    local remote_name
+
+    # Check for https URL first
+    remote_name=$(git remote -v | grep "https://github.com/rancher/charts.git" | head -n1 | awk '{print $1}')
+
+    if [[ -n "$remote_name" ]]; then
+        REMOTE="$remote_name"
+        return
+    fi
+
+    # Fallback to SSH URL
+    remote_name=$(git remote -v | grep "git@github.com:rancher/charts.git" | head -n1 | awk '{print $1}')
+
+    if [[ -n "$remote_name" ]]; then
+        REMOTE="$remote_name"
+        return
+    fi
+
+    # If neither found, error
+    echo "ERROR: No remote found for rancher/charts repository" >&2
+    exit 1
 }
 
 # Array of scripts to download from automation-core branch
@@ -127,9 +156,15 @@ download_script_from_automation_core() {
 
     log "Downloading script: ${script_path}"
     mkdir -p "$(dirname "$target_path")"
-    git show upstream/automation-core:scripts/${script_path} > "$target_path"
+    git show "${REMOTE}/${AUTOMATION_BRANCH}:scripts/${script_path}" > "$target_path"
     chmod +x "$target_path"
     log "Downloaded: ${script_path}"
+}
+
+# Fetches automation-core branch from upstream remote
+fetch_automation_core() {
+    log "Fetching ${AUTOMATION_BRANCH} from ${REMOTE}..."
+    git fetch --depth 1 "${REMOTE}" "${AUTOMATION_BRANCH}"
 }
 
 # Downloads all scripts from automation-core branch
@@ -140,8 +175,18 @@ download_automation_core_scripts() {
     done
 }
 
+# Downloads Makefile from automation-core (source of truth)
+download_makefile() {
+    log "Downloading Makefile from automation-core..."
+    git show "${REMOTE}/${AUTOMATION_BRANCH}:Makefile" > "${REPO_ROOT}/Makefile"
+    log "Makefile updated from automation-core"
+}
+
 main() {
+    detect_upstream_remote
+    fetch_automation_core
     download_automation_core_scripts
+    download_makefile
 
     if [[ "${SKIP_PS}" == "true" ]]; then
         echo "WARNING: SKIP_PS is set — skipping version resolution and binary download" >&2
