@@ -16,6 +16,9 @@ inputs:
   docker_password:
     description: "Docker Hub password from Vault secrets. Optional - may be empty for fork PRs. Used to authenticate for Docker image availability checks."
     required: false
+  github_token:
+    description: "GitHub token for authenticated API requests. Used by pull-scripts for gh api calls to avoid rate limiting."
+    required: false
 
 runs:
   using: composite
@@ -184,6 +187,8 @@ runs:
 
     - name: (make pull-scripts) Download charts-build-scripts binary
       shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
       run: make pull-scripts
 
     - name: (make check-release-yaml) Validate release.yaml format with yq
