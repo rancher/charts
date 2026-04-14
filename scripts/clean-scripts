@@ -1,0 +1,70 @@
+#!/bin/bash
+set -e
+
+# ============================================================================
+# Clean Scripts Downloaded from automation-core
+# ============================================================================
+#
+# PURPOSE:
+#   Remove all scripts that were downloaded from automation-core branch.
+#   Useful when forcing a re-download of updated scripts from automation-core.
+#
+# USAGE:
+#   ./scripts/clean-scripts
+#   make pull-scripts  # Re-download clean versions
+#
+# IMPORTANT:
+#   - Only removes scripts defined in AUTOMATION_CORE_SCRIPTS array
+#   - Does NOT remove pull-scripts, version, or other local scripts
+#   - Safe to run anytime - idempotent operation
+#
+# ============================================================================
+
+SCRIPTS_DIR="$(dirname "$0")"
+
+# Array of scripts downloaded from automation-core (must match pull-scripts)
+AUTOMATION_CORE_SCRIPTS=(
+  "check-release-yaml"
+  "forward-port"
+  "package-ci"
+  "remove-asset"
+  "import-build-workflow"
+  "release-validation/diff-with-released"
+  "release-validation/last-released"
+  "release-validation/pr-review-template.md"
+  "release-validation/validate-annotations"
+  "release-validation/validate-index"
+)
+
+echo "================================================================="
+echo "Cleaning automation-core scripts"
+echo "================================================================="
+echo ""
+
+files_removed=0
+for script in "${AUTOMATION_CORE_SCRIPTS[@]}"; do
+    target_path="${SCRIPTS_DIR}/${script}"
+
+    if [[ -f "$target_path" ]]; then
+        rm -f "$target_path"
+        echo "Removed: ${script}"
+        files_removed=$((files_removed + 1))
+    fi
+done
+
+# Clean empty release-validation directory if it exists
+if [[ -d "${SCRIPTS_DIR}/release-validation" ]]; then
+    if [[ -z "$(ls -A "${SCRIPTS_DIR}/release-validation")" ]]; then
+        rmdir "${SCRIPTS_DIR}/release-validation"
+        echo "Removed empty directory: release-validation"
+    fi
+fi
+
+echo ""
+echo "================================================================="
+echo "✓ Cleaned ${files_removed} script(s)"
+echo "================================================================="
+echo ""
+echo "Next steps:"
+echo "  Re-download scripts: make pull-scripts"
+echo ""
