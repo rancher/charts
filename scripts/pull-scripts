@@ -34,11 +34,16 @@ AUTOMATION_CORE_SCRIPTS=(
 # No-op if the version is already pinned. Mutates the global variable.
 resolve_version() {
     if [[ "${CHARTS_BUILD_SCRIPT_VERSION}" == "latest" ]]; then
+        # Try gh first if available
         if command -v gh &> /dev/null; then
-            CHARTS_BUILD_SCRIPT_VERSION=$(gh api /repos/rancher/charts-build-scripts/releases/latest | jq -r '.tag_name')
-        else
+            CHARTS_BUILD_SCRIPT_VERSION=$(gh api /repos/rancher/charts-build-scripts/releases/latest 2>/dev/null | jq -r '.tag_name')
+        fi
+
+        # Fallback to curl if gh failed or returned empty
+        if [[ -z "${CHARTS_BUILD_SCRIPT_VERSION}" ]]; then
             CHARTS_BUILD_SCRIPT_VERSION=$(curl --silent "https://api.github.com/repos/rancher/charts-build-scripts/releases/latest" | jq -r '.tag_name')
         fi
+
         log "Resolved latest version to ${CHARTS_BUILD_SCRIPT_VERSION}"
     fi
 }
