@@ -1,6 +1,40 @@
 #!/bin/bash
 set -e # Exit immediately if a command exits with a non-zero status.
 
+# ============================================================================
+# Pull Scripts and Build Tools
+# ============================================================================
+#
+# WHAT:
+#   Downloads build scripts, Makefile, and charts-build-scripts binary.
+#   automation-core branch is the single source of truth for all scripts
+#   and configuration.
+#
+# HOW IT WORKS:
+#   1. Detects upstream remote (https or ssh URL)
+#   2. Fetches automation-core branch (shallow, --depth 1)
+#   3. Downloads scripts listed in AUTOMATION_CORE_SCRIPTS array
+#   4. Downloads Makefile from automation-core
+#   5. Resolves charts-build-scripts version (latest or pinned)
+#   6. Downloads platform-specific binary from GitHub releases
+#
+# USAGE:
+#   make pull-scripts
+#
+#   Skip binary download (scripts/Makefile only):
+#     SKIP_PS=true make pull-scripts
+#
+#   Pin to specific version:
+#     CHARTS_BUILD_SCRIPT_VERSION=v0.10.0 make pull-scripts
+#
+# REQUIREMENTS:
+#   - Git repository with rancher/charts remote
+#   - Go installed (for platform detection)
+#   - jq installed (for version resolution)
+#   - gh cli (optional, improves rate limiting)
+#
+# ============================================================================
+
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SCRIPTS_DIR="$(dirname "$0")"
 
