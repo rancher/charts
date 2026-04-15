@@ -108,15 +108,44 @@ validate_inputs() {
 # ============================================================================
 # Auto-fix trigger
 # ============================================================================
+# Triggers the update-dependencies workflow via repository_dispatch event.
+#
+# HOW IT WORKS:
+#   Sends a repository_dispatch event with type "checksum_mismatch" to GitHub API.
+#   Only workflows that listen for this specific event_type will trigger:
+#     on:
+#       repository_dispatch:
+#         types: [checksum_mismatch]
+#
+# CLIENT PAYLOAD:
+#   Includes package details for audit/debugging (currently unused by workflow).
+#
+# RETURNS:
+#   0 if trigger successful, 1 if failed (no token or API error)
+# ============================================================================
 trigger_auto_fix() {
+    # No token = cannot trigger (fork PR or insufficient permissions)
     if [[ -z "${GH_TOKEN}" ]]; then
         return 1
     fi
 
+    # Build client payload for audit trail
+    local PAYLOAD
+    PAYLOAD=$(cat <<EOF
+{
+  "package": "${PACKAGE_VERSION}",
+  "expected": "${EXPECTED_CHECKSUM}",
+  "actual": "${ACTUAL_CHECKSUM}"
+}
+EOF
+)
+
+    # Trigger repository_dispatch event (type: checksum_mismatch)
+    # This triggers .github/workflows/update-dependencies.yaml
     if gh api "repos/${GITHUB_REPOSITORY}/dispatches" \
-      -f event_type="checksum_mismatch" \
-      -f client_payload="{\"package\":\"${PACKAGE_VERSION}\",\"expected\":\"${EXPECTED_CHECKSUM}\",\"actual\":\"${ACTUAL_CHECKSUM}\"}" \
-      2>/dev/null; then
+        -f event_type="checksum_mismatch" \
+        -f "client_payload=${PAYLOAD}" \
+        2>/dev/null; then
         log_info "Auto-fix workflow triggered successfully"
         return 0
     else
