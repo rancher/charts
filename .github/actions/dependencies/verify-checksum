@@ -1,0 +1,206 @@
+#!/bin/bash
+set -e
+
+# ============================================================================
+# Checksum Verification - Reusable dependency verification with auto-fix
+# ============================================================================
+#
+# WHAT IS THIS?
+#   Standalone script for verifying package checksums during dependency
+#   installation. Used by all package installation steps in the dependencies
+#   action to ensure binary integrity and trigger automated fixes on mismatch.
+#
+# WHY DOES IT EXIST?
+#   SUSE periodically rebuilds packages in their repositories (security patches,
+#   compiler updates, etc). When this happens, the binary checksum changes even
+#   though the version stays the same. This would block all PRs until a
+#   maintainer manually updates checksums. This script automates the fix.
+#
+# HOW IT WORKS:
+#   1. Validates all required inputs
+#   2. Compares actual checksum against expected checksum
+#   3. If match: exits success
+#   4. If mismatch:
+#      - Triggers repository_dispatch event to start auto-fix workflow
+#      - Builds developer-friendly summary from template
+#      - Posts summary to GITHUB_STEP_SUMMARY for PR visibility
+#      - Exits failure (fails the check, but with helpful context)
+#
+# USAGE:
+#   $GITHUB_ACTION_PATH/verify-checksum "${PACKAGE_VERSION}" "${EXPECTED_CHECKSUM}" "${ACTUAL_CHECKSUM}" "${GH_TOKEN}" "${GITHUB_REPOSITORY}"
+#
+# REQUIREMENTS:
+#   - GITHUB_STEP_SUMMARY environment variable (set by GHA)
+#   - gh CLI available (for triggering auto-fix)
+#   - checksum_mismatch_summary.md template in same directory
+#
+# ============================================================================
+
+cd "$(dirname "$0")"
+
+# Colors
+RESET='\033[0m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+
+# Global variables (set in main)
+PACKAGE_VERSION=""
+EXPECTED_CHECKSUM=""
+ACTUAL_CHECKSUM=""
+GH_TOKEN=""
+GITHUB_REPOSITORY=""
+
+# Logging functions
+log_info() {
+    echo -e "${BLUE}[INFO]${RESET} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[PASS]${RESET} $1"
+}
+
+log_warning() {
+    echo -e "${YELLOW}[WARN]${RESET} $1"
+}
+
+log_error() {
+    echo -e "${RED}[FAIL]${RESET} $1" >&2
+}
+
+# ============================================================================
+# Validation
+# ============================================================================
+validate_inputs() {
+    echo "::group::Checksum verification"
+    log_info "Validating inputs"
+
+    if [[ -z "${PACKAGE_VERSION}" ]]; then
+        log_error "PACKAGE_VERSION is required"
+        exit 1
+    fi
+    log_info "Package: ${PACKAGE_VERSION}"
+
+    if [[ -z "${EXPECTED_CHECKSUM}" ]]; then
+        log_error "EXPECTED_CHECKSUM is required"
+        exit 1
+    fi
+    log_info "Expected checksum: ${EXPECTED_CHECKSUM}"
+
+    if [[ -z "${ACTUAL_CHECKSUM}" ]]; then
+        log_error "ACTUAL_CHECKSUM is required"
+        exit 1
+    fi
+    log_info "Actual checksum: ${ACTUAL_CHECKSUM}"
+
+    if [[ -z "${GITHUB_REPOSITORY}" ]]; then
+        log_error "GITHUB_REPOSITORY is required"
+        exit 1
+    fi
+    log_info "Repository: ${GITHUB_REPOSITORY}"
+
+    if [[ -z "${GH_TOKEN}" ]]; then
+        log_warning "GH_TOKEN not provided - auto-fix will not be triggered (fork PR)"
+    fi
+}
+
+# ============================================================================
+# Auto-fix trigger
+# ============================================================================
+trigger_auto_fix() {
+    if [[ -z "${GH_TOKEN}" ]]; then
+        return 1
+    fi
+
+    if gh api "repos/${GITHUB_REPOSITORY}/dispatches" \
+      -f event_type="checksum_mismatch" \
+      -f client_payload="{\"package\":\"${PACKAGE_VERSION}\",\"expected\":\"${EXPECTED_CHECKSUM}\",\"actual\":\"${ACTUAL_CHECKSUM}\"}" \
+      2>/dev/null; then
+        log_info "Auto-fix workflow triggered successfully"
+        return 0
+    else
+        log_warning "Could not trigger auto-fix workflow"
+        return 1
+    fi
+}
+
+# ============================================================================
+# Build summary from template
+# ============================================================================
+build_summary() {
+    local AUTO_FIX_TRIGGERED="$1"
+
+    # Load template
+    local SUMMARY
+    SUMMARY=$(cat checksum_mismatch_summary.md)
+
+    # Replace package information
+    SUMMARY="${SUMMARY//\{\{PACKAGE_VERSION\}\}/${PACKAGE_VERSION}}"
+    SUMMARY="${SUMMARY//\{\{EXPECTED_CHECKSUM\}\}/${EXPECTED_CHECKSUM}}"
+    SUMMARY="${SUMMARY//\{\{ACTUAL_CHECKSUM\}\}/${ACTUAL_CHECKSUM}}"
+
+    # Set status and actions based on auto-fix result
+    local AUTO_FIX_STATUS
+    local DEVELOPER_ACTIONS
+
+    if [[ "$AUTO_FIX_TRIGGERED" == "true" ]]; then
+        AUTO_FIX_STATUS="Auto-fix triggered. Check [Update Dependencies](https://github.com/${GITHUB_REPOSITORY}/actions/workflows/update-dependencies.yaml) for progress."
+        DEVELOPER_ACTIONS="Wait 5-10 minutes for the PR to be created and merged, then re-run your checks."
+    else
+        AUTO_FIX_STATUS="Could not trigger auto-fix (fork PR or insufficient permissions)"
+        DEVELOPER_ACTIONS="Wait for scheduled update (runs every 6 hours) OR ask a maintainer to trigger manually."
+    fi
+
+    SUMMARY="${SUMMARY//\{\{AUTO_FIX_STATUS\}\}/${AUTO_FIX_STATUS}}"
+    SUMMARY="${SUMMARY//\{\{DEVELOPER_ACTIONS\}\}/${DEVELOPER_ACTIONS}}"
+
+    echo "$SUMMARY"
+}
+
+# ============================================================================
+# Checksum verification
+# ============================================================================
+verify_checksum() {
+    # Checksums match - success
+    if [[ "$ACTUAL_CHECKSUM" == "$EXPECTED_CHECKSUM" ]]; then
+        log_success "Checksum verified"
+        echo "::endgroup::"
+        exit 0
+    fi
+
+    # Checksum mismatch detected
+    log_error "Checksum mismatch"
+    echo "::warning::Dependency checksum mismatch - automated fix in progress"
+
+    # Try to trigger automated fix workflow
+    local AUTO_FIX_TRIGGERED=false
+    if trigger_auto_fix; then
+        AUTO_FIX_TRIGGERED=true
+    fi
+
+    # Build and post developer-friendly summary
+    local SUMMARY
+    SUMMARY=$(build_summary "${AUTO_FIX_TRIGGERED}")
+    echo "$SUMMARY" >> "$GITHUB_STEP_SUMMARY"
+
+    echo "::endgroup::"
+    exit 1
+}
+
+# ============================================================================
+# Main
+# ============================================================================
+main() {
+    # Set global variables from arguments
+    PACKAGE_VERSION="$1"
+    EXPECTED_CHECKSUM="$2"
+    ACTUAL_CHECKSUM="$3"
+    GH_TOKEN="$4"
+    GITHUB_REPOSITORY="$5"
+
+    validate_inputs
+    verify_checksum
+}
+
+main "$@"
