@@ -1,0 +1,136 @@
+name: Update Dependencies
+
+on:
+  repository_dispatch:
+    types: [checksum_mismatch]
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours
+  workflow_dispatch:  # Manual trigger - never auto-merges
+
+jobs:
+  update-dependencies:
+    runs-on: org-${{ github.repository_owner_id }}-amd64-k8s
+    container: registry.suse.com/bci/bci-base:latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Display Workflow Context
+        run: |
+          echo "================================================================="
+          echo "Update Dependencies Workflow"
+          echo "================================================================="
+          echo "Trigger:         ${{ github.event_name }}"
+          echo "Repository:      ${{ github.repository }}"
+          echo "Branch:          ${{ github.ref_name }}"
+          echo "================================================================="
+
+      - name: Load Secrets from Vault
+        uses: rancher-eio/read-vault-secrets@7282bf97898cd1c16c89f837e0bb442e6d384c89 # main
+        with:
+          secrets: |
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY
+
+      - name: Create App Token
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        id: app_token
+        with:
+          app-id: ${{ env.APP_ID }}
+          private-key: ${{ env.PRIVATE_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          token: ${{ steps.app_token.outputs.token }}
+          persist-credentials: true
+
+      - name: Install dependencies (bootstrap mode)
+        uses: ./.github/actions/dependencies
+        with:
+          skip_verification: 'true'
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+
+      - name: Run update-dependencies script
+        env:
+          CI: true
+        run: |
+          ./scripts/update-dependencies
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "================================================================="
+            echo "✓ No changes detected - dependencies are up to date"
+            echo "================================================================="
+          fi
+
+      - name: Create and push branch
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          BRANCH_NAME="auto-update-dependencies-$(date +%s)"
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+
+          git checkout -b "$BRANCH_NAME"
+          git add .github/actions/dependencies/action.yaml
+          git commit -m "ci(dependencies): update package checksums
+
+          Automated dependency checksum update triggered by SUSE package rebuild."
+          git push origin "$BRANCH_NAME"
+
+      - name: Create Pull Request
+        if: steps.changes.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+        run: |
+          TRIGGER_MSG="Manual trigger"
+          if [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
+            TRIGGER_MSG="Checksum mismatch detected in PR check"
+          elif [[ "${{ github.event_name }}" == "schedule" ]]; then
+            TRIGGER_MSG="Scheduled maintenance"
+          fi
+
+          # Load PR body template
+          PR_BODY=$(cat .github/actions/dependencies/update-dependencies-pr-body.md)
+          PR_BODY="${PR_BODY//\{\{TRIGGER_MSG\}\}/${TRIGGER_MSG}}"
+          PR_BODY="${PR_BODY//\{\{GITHUB_REPOSITORY\}\}/${{ github.repository }}}"
+
+          PR_URL=$(gh pr create \
+            --base "${{ github.ref_name }}" \
+            --head "${{ env.BRANCH_NAME }}" \
+            --title "ci(dependencies): update package checksums" \
+            --body "$PR_BODY")
+
+          echo "PR_URL=$PR_URL" >> $GITHUB_ENV
+          echo "PR created: $PR_URL"
+
+      - name: Check auto-merge eligibility
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          # Manual triggers never auto-merge
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "================================================================="
+            echo "ℹ Auto-merge: NO (manual trigger - review required)"
+            echo "================================================================="
+            exit 0
+          fi
+
+          echo "================================================================="
+          echo "✓ Auto-merge: YES (automated trigger)"
+          echo "================================================================="
+
+      - name: Enable auto-merge
+        if: steps.changes.outputs.has_changes == 'true' && github.event_name != 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+        run: |
+          gh pr merge "${{ env.PR_URL }}" --auto --squash
+          echo "PR will auto-merge when CI passes: ${{ env.PR_URL }}"
