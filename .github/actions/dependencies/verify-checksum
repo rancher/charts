@@ -170,19 +170,19 @@ build_summary() {
     SUMMARY="${SUMMARY//\{\{ACTUAL_CHECKSUM\}\}/${ACTUAL_CHECKSUM}}"
 
     # Set status and actions based on auto-fix result
-    local AUTO_FIX_STATUS
-    local DEVELOPER_ACTIONS
+    local STATUS
+    local ACTIONS
 
     if [[ "$AUTO_FIX_TRIGGERED" == "true" ]]; then
-        AUTO_FIX_STATUS="Auto-fix triggered. Check [Update Dependencies](https://github.com/${GITHUB_REPOSITORY}/actions/workflows/update-dependencies.yaml) for progress."
-        DEVELOPER_ACTIONS="Wait 5-10 minutes for the PR to be created and merged, then re-run your checks."
+        STATUS="Auto-fix triggered. [Update Dependencies](https://github.com/${GITHUB_REPOSITORY}/actions/workflows/update-dependencies.yaml)."
+        ACTIONS="Wait 5-10 minutes for the PR to be created and merged, then re-run your checks."
     else
-        AUTO_FIX_STATUS="Could not trigger auto-fix (fork PR or insufficient permissions)"
-        DEVELOPER_ACTIONS="Wait for scheduled update (runs every 6 hours) OR ask a maintainer to trigger manually."
+        STATUS="Could not trigger auto-fix (fork PR or insufficient permissions)"
+        ACTIONS="Wait for scheduled update (runs every 6 hours) OR ask a maintainer to trigger manually OR reopen the PR from an upstream branch."
     fi
 
-    SUMMARY="${SUMMARY//\{\{AUTO_FIX_STATUS\}\}/${AUTO_FIX_STATUS}}"
-    SUMMARY="${SUMMARY//\{\{DEVELOPER_ACTIONS\}\}/${DEVELOPER_ACTIONS}}"
+    SUMMARY="${SUMMARY//\{\{STATUS\}\}/${STATUS}}"
+    SUMMARY="${SUMMARY//\{\{ACTIONS\}\}/${ACTIONS}}"
 
     echo "$SUMMARY"
 }
