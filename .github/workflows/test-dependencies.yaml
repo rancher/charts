@@ -27,3 +27,23 @@ jobs:
           yq --version
           gh --version
 
+  test-bootstrap-mode:
+    runs-on: ubuntu-latest
+    container: registry.suse.com/bci/bci-base:latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Test Dependencies Action (Bootstrap Mode)
+        uses: ./.github/actions/dependencies
+        with:
+          skip_verification: 'true'
+
+      - name: Verify Bootstrap Installation
+        run: |
+          echo "Verifying bootstrap tools (git and gh only)..."
+          git --version
+          gh --version
+          echo "Bootstrap mode successful!"
+
