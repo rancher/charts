@@ -5,11 +5,16 @@ inputs:
   github_token:
     description: "GitHub token for triggering automated dependency updates on checksum mismatch"
     required: false
+  skip_verification:
+    description: "Skip checksum verification and install only minimal dependencies (git, gh) for update-dependencies workflow"
+    required: false
+    default: 'false'
 
 runs:
   using: composite
   steps:
     - name: Install Docker
+      if: inputs.skip_verification == 'false'
       shell: bash
       env:
         PACKAGE_VERSION: "docker-28.5.1_ce-150000.243.1.x86_64"
@@ -31,6 +36,7 @@ runs:
         echo "-------------------------------------------------------------------"
 
     - name: Install jq
+      if: inputs.skip_verification == 'false'
       shell: bash
       env:
         PACKAGE_VERSION: "jq-1.6-150000.3.12.1.x86_64"
@@ -59,6 +65,7 @@ runs:
         EXPECTED_CHECKSUM: "70a3423f84100dcbb0302f3ca6a0595dc9ca507ba3aa846136f27fe79b742d1a"
         BINARY_PATH: "/usr/bin/git"
         GH_TOKEN: ${{ inputs.github_token }}
+        SKIP_VERIFICATION: ${{ inputs.skip_verification }}
       run: |
         echo "::group::Installing ${PACKAGE_VERSION}"
         zypper --non-interactive --gpg-auto-import-keys install "$PACKAGE_VERSION"
@@ -66,15 +73,20 @@ runs:
 
         echo "git --version: $(git --version)"
 
-        echo "verify checksum"
-        ACTUAL_CHECKSUM=$(sha256sum "$BINARY_PATH" | cut -d' ' -f1)
+        if [[ "$SKIP_VERIFICATION" != "true" ]]; then
+          echo "verify checksum"
+          ACTUAL_CHECKSUM=$(sha256sum "$BINARY_PATH" | cut -d' ' -f1)
 
-        $GITHUB_ACTION_PATH/verify-checksum "${PACKAGE_VERSION}" "${EXPECTED_CHECKSUM}" "${ACTUAL_CHECKSUM}" "${GH_TOKEN}" "${{ github.repository }}" || exit 1
+          $GITHUB_ACTION_PATH/verify-checksum "${PACKAGE_VERSION}" "${EXPECTED_CHECKSUM}" "${ACTUAL_CHECKSUM}" "${GH_TOKEN}" "${{ github.repository }}" || exit 1
 
-        echo "Checksum verified successfully"
+          echo "Checksum verified successfully"
+        else
+          echo "Skipping checksum verification (bootstrap mode)"
+        fi
         echo "-------------------------------------------------------------------"
 
     - name: Install make
+      if: inputs.skip_verification == 'false'
       shell: bash
       env:
         PACKAGE_VERSION: "make-4.2.1-7.3.2.x86_64"
@@ -97,6 +109,7 @@ runs:
         echo "-------------------------------------------------------------------"
 
     - name: Install go
+      if: inputs.skip_verification == 'false'
       shell: bash
       env:
         PACKAGE_VERSION: "go-1.25-150000.3.46.1.x86_64"
@@ -119,6 +132,7 @@ runs:
         echo "-------------------------------------------------------------------"
 
     - name: Install patch
+      if: inputs.skip_verification == 'false'
       shell: bash
       env:
         PACKAGE_VERSION: "patch-2.7.6-150000.5.9.1.x86_64"
@@ -141,6 +155,7 @@ runs:
         echo "-------------------------------------------------------------------"
 
     - name: Install gawk
+      if: inputs.skip_verification == 'false'
       shell: bash
       env:
         PACKAGE_VERSION: "gawk-4.2.1-150000.3.3.1.x86_64"
@@ -163,6 +178,7 @@ runs:
         echo "-------------------------------------------------------------------"
 
     - name: Install yq
+      if: inputs.skip_verification == 'false'
       shell: bash
       env:
         YQ_VERSION: "v4.52.5"
@@ -197,16 +213,23 @@ runs:
         EXPECTED_CHECKSUM: "d0422caade520530e76c1c558da47daebaa8e1203d6b7ff10ad7d6faba3490d8"
         INSTALL_PATH: "/usr/bin/gh"
         GH_TOKEN: ${{ inputs.github_token }}
+        SKIP_VERIFICATION: ${{ inputs.skip_verification }}
       run: |
         echo "::group::Installing gh ${GH_VERSION}"
         curl -sL "https://github.com/cli/cli/releases/download/${GH_VERSION}/gh_${GH_VERSION#v}_linux_amd64.tar.gz" -o /tmp/gh.tar.gz
         echo "::endgroup::"
 
-        echo "verify checksum"
-        ACTUAL_CHECKSUM=$(sha256sum /tmp/gh.tar.gz | cut -d' ' -f1)
+        if [[ "$SKIP_VERIFICATION" != "true" ]]; then
+          echo "verify checksum"
+          ACTUAL_CHECKSUM=$(sha256sum /tmp/gh.tar.gz | cut -d' ' -f1)
 
-        PACKAGE_VERSION="gh-${GH_VERSION}"
-        $GITHUB_ACTION_PATH/verify-checksum "${PACKAGE_VERSION}" "${EXPECTED_CHECKSUM}" "${ACTUAL_CHECKSUM}" "${GH_TOKEN}" "${{ github.repository }}" || exit 1
+          PACKAGE_VERSION="gh-${GH_VERSION}"
+          $GITHUB_ACTION_PATH/verify-checksum "${PACKAGE_VERSION}" "${EXPECTED_CHECKSUM}" "${ACTUAL_CHECKSUM}" "${GH_TOKEN}" "${{ github.repository }}" || exit 1
+
+          echo "Checksum verified successfully"
+        else
+          echo "Skipping checksum verification (bootstrap mode)"
+        fi
 
         echo "extract and install to $INSTALL_PATH"
         tar -xzf /tmp/gh.tar.gz -C /tmp
@@ -215,6 +238,4 @@ runs:
         rm -rf /tmp/gh.tar.gz "/tmp/gh_${GH_VERSION#v}_linux_amd64"
 
         echo "gh --version: $(gh --version)"
-
-        echo "Checksum verified successfully"
         echo "-------------------------------------------------------------------"
