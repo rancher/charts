@@ -168,13 +168,17 @@ runs:
         echo "All required scripts present"
         echo "================================================================="
 
+    - name: Record start time
+      shell: bash
+      run: echo "BUILD_START_TIME=$(date +%s)" >> $GITHUB_ENV
+
     - name: Git Checkout PR and into new branch
       shell: bash
       env:
         BASE_REF: ${{ inputs.base_ref }}
         PR_NUMBER: ${{ inputs.pr_number }}
       run: |
-        echo "Configure git environment"
+        echo "::group::Configure git environment"
         git config --global --add safe.directory "$PWD"
         echo "$PATH" >> $GITHUB_PATH
         echo "-------------------------------------------------------------------"
@@ -207,6 +211,7 @@ runs:
           exit 1
         fi
 
+        echo "::endgroup::"
         echo "✓ Checkout verification passed"
         echo "  Working directory: $PWD"
         echo "  Branch: ${CURRENT_BRANCH}"
@@ -220,11 +225,17 @@ runs:
         GH_TOKEN: ${{ inputs.github_token }}
       run: make pull-scripts
 
-    - name: (make check-release-yaml) Validate release.yaml format with yq
+    - name: (./scripts/check-release-yaml) Validate release.yaml format with yq
       shell: bash
       env:
         LOG: "DEBUG"
-      run: make check-release-yaml
+      run: ./scripts/check-release-yaml
+
+    - name: (./scripts/package-ci) Verify all packages pass build workflow
+      shell: bash
+      env:
+        LOG: "DEBUG"
+      run: ./scripts/package-ci
 
     - name: Validate Docker image tags in charts
       shell: bash
@@ -271,3 +282,46 @@ runs:
       env:
         LOG: "DEBUG"
       run: make check-rc
+
+    - name: Post build validation summary
+      if: success()
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        PR_NUMBER: ${{ inputs.pr_number }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      run: |
+        # Calculate duration
+        END_TIME=$(date +%s)
+        DURATION=$((END_TIME - BUILD_START_TIME))
+        MINUTES=$((DURATION / 60))
+        SECONDS=$((DURATION % 60))
+        DURATION_STR="${MINUTES}m ${SECONDS}s"
+
+        # Count chart packages
+        TGZ_COUNT=$(find assets/ -name "*.tgz" 2>/dev/null | wc -l)
+
+        # Find existing comment to update
+        COMMENT_ID=$(gh pr view ${PR_NUMBER} --json comments --jq '.comments[] | select(.body | contains("<!-- build-validation-summary -->")) | .id' | head -1)
+
+        # Post or update comment
+        BODY="<!-- build-validation-summary -->
+        ## Build Validation Complete
+
+        **${TGZ_COUNT} charts verified in ${DURATION_STR}**
+        **Commit:** ${HEAD_SHA:0:8}
+
+        ### Checks Run
+        - Release YAML validation
+        - Package CI validation
+        - Docker image tag lint
+        - Helm index validation
+        - Docker image availability"
+
+        if [[ -n "$COMMENT_ID" ]]; then
+          gh api "repos/{owner}/{repo}/issues/comments/${COMMENT_ID}" -X PATCH -f body="$BODY"
+          echo "Updated existing comment ${COMMENT_ID}"
+        else
+          gh pr comment ${PR_NUMBER} --body "$BODY"
+          echo "Posted new comment"
+        fi
