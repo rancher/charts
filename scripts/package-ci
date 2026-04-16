@@ -5,7 +5,7 @@ set -e
 # Package CI - Validates all packages pass the build workflow
 # ============================================================================
 
-cd $(dirname $0)
+cd "$(dirname "$0")"
 cd ..
 
 # Colors
@@ -64,27 +64,42 @@ for package in $packageList; do
     fi
 
     # Run developer workflow: prepare -> icon -> patch -> clean -> charts
-    if ! make prepare > /dev/null 2>&1; then
+    # Capture stderr to show actual errors when failures occur
+    error_log=$(mktemp)
+
+    if ! make prepare > /dev/null 2>"$error_log"; then
         FAILED_PACKAGES+=("${PACKAGE}|prepare")
         log_error "${PACKAGE} failed at prepare"
-    elif ! make icon > /dev/null 2>&1; then
+        cat "$error_log" >&2
+        rm -f "$error_log"
+    elif ! make icon > /dev/null 2>"$error_log"; then
         FAILED_PACKAGES+=("${PACKAGE}|icon")
         log_error "${PACKAGE} failed at icon"
-    elif ! make patch > /dev/null 2>&1; then
+        cat "$error_log" >&2
+        rm -f "$error_log"
+    elif ! make patch > /dev/null 2>"$error_log"; then
         FAILED_PACKAGES+=("${PACKAGE}|patch")
         log_error "${PACKAGE} failed at patch"
-    elif ! make clean > /dev/null 2>&1; then
+        cat "$error_log" >&2
+        rm -f "$error_log"
+    elif ! make clean > /dev/null 2>"$error_log"; then
         FAILED_PACKAGES+=("${PACKAGE}|clean")
         log_error "${PACKAGE} failed at clean"
+        cat "$error_log" >&2
+        rm -f "$error_log"
     elif [ -n "$(git status --porcelain)" ]; then
         FAILED_PACKAGES+=("${PACKAGE}|drift|$(git status --porcelain | xargs)")
         log_error "${PACKAGE} generated git changes"
-    elif ! make charts > /dev/null 2>&1; then
+        rm -f "$error_log"
+    elif ! make charts > /dev/null 2>"$error_log"; then
         FAILED_PACKAGES+=("${PACKAGE}|charts")
         log_error "${PACKAGE} failed at charts"
+        cat "$error_log" >&2
+        rm -f "$error_log"
     else
         log_success "${PACKAGE}"
         PASSED=$((PASSED + 1))
+        rm -f "$error_log"
     fi
 
     # Cleanup after each package test
