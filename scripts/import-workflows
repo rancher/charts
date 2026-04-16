@@ -2,41 +2,46 @@
 set -e
 
 # ============================================================================
-# Import Build Workflow from automation-core
+# Import Workflows from automation-core
 # ============================================================================
 #
 # PURPOSE:
-#   Import the centralized GitHub Actions build workflow from the
-#   automation-core branch into active release branches.
+#   Import centralized GitHub Actions workflows from the automation-core
+#   branch into active release branches.
 #
 # USAGE:
 #   Run this script from active branches (dev-v2.X, release-v2.X):
 #
 #   $ git checkout dev-v2.15
-#   $ ./scripts/import-build-workflow
+#   $ ./scripts/import-workflows
 #
 # IMPORTANT:
 #   - DO NOT run this from automation-core branch (it is the source)
 #   - Only run from dev-v* or release-v* branches (consumers)
-#   - This imports .github/workflows/build-core.yaml from automation-core
-#   - Saves it as .github/workflows/build.yaml in the active branch
+#   - This imports all workflows defined in WORKFLOW_FILES array
 #
 # SOURCE OF TRUTH:
-#   automation-core branch contains the canonical build-core.yaml template
-#   Active branches consume it via this script
+#   automation-core branch contains the canonical workflow templates
+#   Active branches consume them via this script
 #
 # ============================================================================
 
 echo "================================================================="
-echo "Import Build Workflow from automation-core"
+echo "Import Workflows from automation-core"
 echo "================================================================="
 echo ""
 
 # Configuration
 REMOTE="upstream"
 AUTOMATION_BRANCH="automation-core"
-SOURCE_FILE=".github/workflows/build-core.yaml"
-TARGET_FILE=".github/workflows/build.yaml"
+
+# Workflow files to import from automation-core
+# Add new workflows here to include them in the import
+WORKFLOW_FILES=(
+  "build.yaml"
+  "auto-bump.yaml"
+  "auto-bump-manual-trigger.yaml"
+)
 
 # Validate we're in a git repository
 if ! git rev-parse --git-dir > /dev/null 2>&1; then
@@ -44,31 +49,57 @@ if ! git rev-parse --git-dir > /dev/null 2>&1; then
   exit 1
 fi
 
-# Check if target file exists
-if [[ ! -f "$TARGET_FILE" ]]; then
-  echo "WARNING: $TARGET_FILE does not exist"
-  echo "It will be created"
-fi
-
 # Fetch latest automation-core
 echo "Fetching latest $AUTOMATION_BRANCH from $REMOTE..."
 git fetch "$REMOTE" "$AUTOMATION_BRANCH"
+echo ""
 
-# Extract build-core.yaml from automation-core
-echo "Extracting $SOURCE_FILE from $REMOTE/$AUTOMATION_BRANCH..."
-git show "$REMOTE/$AUTOMATION_BRANCH:$SOURCE_FILE" > "$TARGET_FILE"
+# Import each workflow
+IMPORTED_FILES=()
+CHANGED_FILES=()
+for workflow in "${WORKFLOW_FILES[@]}"; do
+  SOURCE_FILE=".github/workflows/${workflow}"
+  TARGET_FILE=".github/workflows/${workflow}"
+
+  echo "Importing: $workflow"
+
+  if ! git show "$REMOTE/$AUTOMATION_BRANCH:$SOURCE_FILE" > "$TARGET_FILE" 2>/dev/null; then
+    echo "  WARNING: Failed to import $SOURCE_FILE (file may not exist in automation-core)"
+    continue
+  fi
+
+  IMPORTED_FILES+=("$TARGET_FILE")
+
+  # Check if file has changes
+  if git diff --quiet "$TARGET_FILE" 2>/dev/null; then
+    echo "  ✓ Imported (no changes)"
+  else
+    echo "  ✓ Imported (modified)"
+    CHANGED_FILES+=("$TARGET_FILE")
+  fi
+done
 
 echo ""
 echo "================================================================="
 echo "✓ Import completed successfully"
 echo "================================================================="
 echo ""
-echo "Changes:"
-echo "  Imported: $SOURCE_FILE"
-echo "  To:       $TARGET_FILE"
+echo "Imported ${#IMPORTED_FILES[@]} workflow(s)"
+echo ""
+
+if [[ ${#CHANGED_FILES[@]} -eq 0 ]]; then
+  echo "No file changes detected - workflows are already up to date"
+  echo ""
+  exit 0
+fi
+
+echo "Files with changes:"
+for file in "${CHANGED_FILES[@]}"; do
+  echo "  - $file"
+done
 echo ""
 echo "Next steps:"
-echo "  Review changes:  git diff $TARGET_FILE"
-echo "  Stage changes:   git add $TARGET_FILE"
-echo "  Commit:          git commit -m 'feat(ci): update build workflow from automation-core'"
+echo "  Review changes:  git diff .github/workflows/"
+echo "  Stage changes/Commit:"
+echo "git add .github/workflows/ && git commit -m 'feat(ci): update workflows from automation-core'"
 echo ""
