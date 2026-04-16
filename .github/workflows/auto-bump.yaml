@@ -111,6 +111,7 @@ jobs:
             echo "No bump detected"
             exit 1
           fi
+          echo "Changes detected, proceeding..."
 
       # ====================================================================
       # SECRETS MANAGEMENT (OIDC vault authentication)
@@ -164,4 +165,8 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          gh pr create --base ${{ inputs.branch }} --head "${{ env.NEW_BRANCH}}" --title "[${{ inputs.branch }}] auto: ${{ inputs.chart }} ${{ env.BUMP_VERSION }}" --body-file '.github/auto_bump_template.md'
+          gh pr create \
+            --base "${{ inputs.branch }}" \
+            --head "${{ env.NEW_BRANCH }}" \
+            --title "[${{ inputs.branch }}] auto: ${{ inputs.chart }} ${{ env.BUMP_VERSION }}" \
+            --body-file '.github/auto_bump_template.md'
