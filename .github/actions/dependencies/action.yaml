@@ -19,15 +19,7 @@ runs:
         echo "verify checksum"
         ACTUAL_CHECKSUM=$(sha256sum "$BINARY_PATH" | cut -d' ' -f1)
 
-        if [[ "$ACTUAL_CHECKSUM" != "$EXPECTED_CHECKSUM" ]]; then
-          echo "::error::Checksum mismatch for ${PACKAGE_VERSION}"
-          echo "Expected: $EXPECTED_CHECKSUM"
-          echo "Actual:   $ACTUAL_CHECKSUM"
-          echo "Source:   zypper (SUSE repos)"
-          echo ""
-          echo "Action required: Verify new checksum manually before updating workflow"
-          exit 1
-        fi
+        $GITHUB_ACTION_PATH/verify-checksum "${PACKAGE_VERSION}" "${EXPECTED_CHECKSUM}" "${ACTUAL_CHECKSUM}" "${{ github.repository }}" || exit 1
 
         echo "Checksum verified successfully"
         echo "-------------------------------------------------------------------"
@@ -48,15 +40,7 @@ runs:
         echo "verify checksum"
         ACTUAL_CHECKSUM=$(sha256sum "$BINARY_PATH" | cut -d' ' -f1)
 
-        if [[ "$ACTUAL_CHECKSUM" != "$EXPECTED_CHECKSUM" ]]; then
-          echo "::error::Checksum mismatch for ${PACKAGE_VERSION}"
-          echo "Expected: $EXPECTED_CHECKSUM"
-          echo "Actual:   $ACTUAL_CHECKSUM"
-          echo "Source:   zypper (SUSE repos)"
-          echo ""
-          echo "Action required: Verify new checksum manually before updating workflow"
-          exit 1
-        fi
+        $GITHUB_ACTION_PATH/verify-checksum "${PACKAGE_VERSION}" "${EXPECTED_CHECKSUM}" "${ACTUAL_CHECKSUM}" "${{ github.repository }}" || exit 1
 
         echo "Checksum verified successfully"
         echo "-------------------------------------------------------------------"
@@ -77,15 +61,7 @@ runs:
         echo "verify checksum"
         ACTUAL_CHECKSUM=$(sha256sum "$BINARY_PATH" | cut -d' ' -f1)
 
-        if [[ "$ACTUAL_CHECKSUM" != "$EXPECTED_CHECKSUM" ]]; then
-          echo "::error::Checksum mismatch for ${PACKAGE_VERSION}"
-          echo "Expected: $EXPECTED_CHECKSUM"
-          echo "Actual:   $ACTUAL_CHECKSUM"
-          echo "Source:   zypper (SUSE repos)"
-          echo ""
-          echo "Action required: Verify new checksum manually before updating workflow"
-          exit 1
-        fi
+        $GITHUB_ACTION_PATH/verify-checksum "${PACKAGE_VERSION}" "${EXPECTED_CHECKSUM}" "${ACTUAL_CHECKSUM}" "${{ github.repository }}" || exit 1
 
         echo "Checksum verified successfully"
         echo "-------------------------------------------------------------------"
@@ -106,15 +82,7 @@ runs:
         echo "verify checksum"
         ACTUAL_CHECKSUM=$(sha256sum "$BINARY_PATH" | cut -d' ' -f1)
 
-        if [[ "$ACTUAL_CHECKSUM" != "$EXPECTED_CHECKSUM" ]]; then
-          echo "::error::Checksum mismatch for ${PACKAGE_VERSION}"
-          echo "Expected: $EXPECTED_CHECKSUM"
-          echo "Actual:   $ACTUAL_CHECKSUM"
-          echo "Source:   zypper (SUSE repos)"
-          echo ""
-          echo "Action required: Verify new checksum manually before updating workflow"
-          exit 1
-        fi
+        $GITHUB_ACTION_PATH/verify-checksum "${PACKAGE_VERSION}" "${EXPECTED_CHECKSUM}" "${ACTUAL_CHECKSUM}" "${{ github.repository }}" || exit 1
 
         echo "Checksum verified successfully"
         echo "-------------------------------------------------------------------"
@@ -135,15 +103,7 @@ runs:
         echo "verify checksum"
         ACTUAL_CHECKSUM=$(sha256sum "$BINARY_PATH" | cut -d' ' -f1)
 
-        if [[ "$ACTUAL_CHECKSUM" != "$EXPECTED_CHECKSUM" ]]; then
-          echo "::error::Checksum mismatch for ${PACKAGE_VERSION}"
-          echo "Expected: $EXPECTED_CHECKSUM"
-          echo "Actual:   $ACTUAL_CHECKSUM"
-          echo "Source:   zypper (SUSE repos)"
-          echo ""
-          echo "Action required: Verify new checksum manually before updating workflow"
-          exit 1
-        fi
+        $GITHUB_ACTION_PATH/verify-checksum "${PACKAGE_VERSION}" "${EXPECTED_CHECKSUM}" "${ACTUAL_CHECKSUM}" "${{ github.repository }}" || exit 1
 
         echo "Checksum verified successfully"
         echo "-------------------------------------------------------------------"
@@ -164,15 +124,7 @@ runs:
         echo "verify checksum"
         ACTUAL_CHECKSUM=$(sha256sum "$BINARY_PATH" | cut -d' ' -f1)
 
-        if [[ "$ACTUAL_CHECKSUM" != "$EXPECTED_CHECKSUM" ]]; then
-          echo "::error::Checksum mismatch for ${PACKAGE_VERSION}"
-          echo "Expected: $EXPECTED_CHECKSUM"
-          echo "Actual:   $ACTUAL_CHECKSUM"
-          echo "Source:   zypper (SUSE repos)"
-          echo ""
-          echo "Action required: Verify new checksum manually before updating workflow"
-          exit 1
-        fi
+        $GITHUB_ACTION_PATH/verify-checksum "${PACKAGE_VERSION}" "${EXPECTED_CHECKSUM}" "${ACTUAL_CHECKSUM}" "${{ github.repository }}" || exit 1
 
         echo "Checksum verified successfully"
         echo "-------------------------------------------------------------------"
@@ -193,15 +145,7 @@ runs:
         echo "verify checksum"
         ACTUAL_CHECKSUM=$(sha256sum "$BINARY_PATH" | cut -d' ' -f1)
 
-        if [[ "$ACTUAL_CHECKSUM" != "$EXPECTED_CHECKSUM" ]]; then
-          echo "::error::Checksum mismatch for ${PACKAGE_VERSION}"
-          echo "Expected: $EXPECTED_CHECKSUM"
-          echo "Actual:   $ACTUAL_CHECKSUM"
-          echo "Source:   zypper (SUSE repos)"
-          echo ""
-          echo "Action required: Verify new checksum manually before updating workflow"
-          exit 1
-        fi
+        $GITHUB_ACTION_PATH/verify-checksum "${PACKAGE_VERSION}" "${EXPECTED_CHECKSUM}" "${ACTUAL_CHECKSUM}" "${{ github.repository }}" || exit 1
 
         echo "Checksum verified successfully"
         echo "-------------------------------------------------------------------"
@@ -209,26 +153,22 @@ runs:
     - name: Install yq
       shell: bash
       env:
+        # renovate: datasource=github-releases depName=mikefarah/yq
         YQ_VERSION: "v4.52.5"
         YQ_BINARY: "yq_linux_amd64"
+        # renovate: datasource=github-release-attachments depName=mikefarah/yq digestVersion=v4.52.5
         EXPECTED_CHECKSUM: "75d893a0d5940d1019cb7cdc60001d9e876623852c31cfc6267047bc31149fa9"
         INSTALL_PATH: "/usr/bin/yq"
       run: |
-        echo "install yq (pinned version)"
+        echo "::group::Installing yq ${YQ_VERSION}"
         curl -sL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/${YQ_BINARY}" -o /tmp/yq
+        echo "::endgroup::"
 
         echo "verify checksum"
         ACTUAL_CHECKSUM=$(sha256sum /tmp/yq | cut -d' ' -f1)
 
-        if [[ "$ACTUAL_CHECKSUM" != "$EXPECTED_CHECKSUM" ]]; then
-          echo "::error::Checksum mismatch for yq ${YQ_VERSION}"
-          echo "Expected: $EXPECTED_CHECKSUM"
-          echo "Actual:   $ACTUAL_CHECKSUM"
-          echo "Source:   https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/${YQ_BINARY}"
-          echo ""
-          echo "Action required: Verify new checksum manually before updating workflow"
-          exit 1
-        fi
+        PACKAGE_VERSION="yq-${YQ_VERSION}"
+        $GITHUB_ACTION_PATH/verify-checksum "${PACKAGE_VERSION}" "${EXPECTED_CHECKSUM}" "${ACTUAL_CHECKSUM}" "${{ github.repository }}" || exit 1
 
         echo "install to $INSTALL_PATH"
         mv /tmp/yq "$INSTALL_PATH"
@@ -242,25 +182,23 @@ runs:
     - name: Install gh
       shell: bash
       env:
+        # renovate: datasource=github-releases depName=cli/cli
         GH_VERSION: "v2.89.0"
+        # renovate: datasource=github-release-attachments depName=cli/cli digestVersion=v2.89.0
         EXPECTED_CHECKSUM: "d0422caade520530e76c1c558da47daebaa8e1203d6b7ff10ad7d6faba3490d8"
         INSTALL_PATH: "/usr/bin/gh"
       run: |
-        echo "install gh (pinned version)"
+        echo "::group::Installing gh ${GH_VERSION}"
         curl -sL "https://github.com/cli/cli/releases/download/${GH_VERSION}/gh_${GH_VERSION#v}_linux_amd64.tar.gz" -o /tmp/gh.tar.gz
+        echo "::endgroup::"
 
         echo "verify checksum"
         ACTUAL_CHECKSUM=$(sha256sum /tmp/gh.tar.gz | cut -d' ' -f1)
 
-        if [[ "$ACTUAL_CHECKSUM" != "$EXPECTED_CHECKSUM" ]]; then
-          echo "::error::Checksum mismatch for gh ${GH_VERSION}"
-          echo "Expected: $EXPECTED_CHECKSUM"
-          echo "Actual:   $ACTUAL_CHECKSUM"
-          echo "Source:   https://github.com/cli/cli/releases/download/${GH_VERSION}/gh_${GH_VERSION#v}_linux_amd64.tar.gz"
-          echo ""
-          echo "Action required: Verify new checksum manually before updating workflow"
-          exit 1
-        fi
+        PACKAGE_VERSION="gh-${GH_VERSION}"
+        $GITHUB_ACTION_PATH/verify-checksum "${PACKAGE_VERSION}" "${EXPECTED_CHECKSUM}" "${ACTUAL_CHECKSUM}" "${{ github.repository }}" || exit 1
+
+        echo "Checksum verified successfully"
 
         echo "extract and install to $INSTALL_PATH"
         tar -xzf /tmp/gh.tar.gz -C /tmp
@@ -269,6 +207,4 @@ runs:
         rm -rf /tmp/gh.tar.gz "/tmp/gh_${GH_VERSION#v}_linux_amd64"
 
         echo "gh --version: $(gh --version)"
-
-        echo "Checksum verified successfully"
         echo "-------------------------------------------------------------------"

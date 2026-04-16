@@ -1,0 +1,162 @@
+#!/bin/bash
+set -e
+
+# ============================================================================
+# Checksum Verification - Reusable dependency verification with auto-fix
+# ============================================================================
+#
+# WHAT IS THIS?
+#   Standalone script for verifying package checksums during dependency
+#   installation. Used by all package installation steps in the dependencies
+#   action to ensure binary integrity and trigger automated fixes on mismatch.
+#
+# WHY DOES IT EXIST?
+#   SUSE periodically rebuilds packages in their repositories (security patches,
+#   compiler updates, etc). When this happens, the binary checksum changes even
+#   though the version stays the same. This would block all PRs until a
+#   maintainer manually updates checksums. This script provides helpful guidance.
+#
+# HOW IT WORKS:
+#   1. Validates all required inputs
+#   2. Compares actual checksum against expected checksum
+#   3. If match: exits success
+#   4. If mismatch:
+#      - Builds developer-friendly summary from template
+#      - Posts summary to GITHUB_STEP_SUMMARY for PR visibility
+#      - Exits failure (fails the check, but with helpful context)
+#
+# USAGE:
+#   $GITHUB_ACTION_PATH/verify-checksum "${PACKAGE_VERSION}" "${EXPECTED_CHECKSUM}" "${ACTUAL_CHECKSUM}" "${GITHUB_REPOSITORY}"
+#
+# REQUIREMENTS:
+#   - GITHUB_STEP_SUMMARY environment variable (set by GHA)
+#   - checksum_mismatch_summary.md template in same directory
+#
+# ============================================================================
+
+cd "$(dirname "$0")"
+
+# Colors
+RESET='\033[0m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+
+# Global variables (set in main)
+PACKAGE_VERSION=""
+EXPECTED_CHECKSUM=""
+ACTUAL_CHECKSUM=""
+GITHUB_REPOSITORY=""
+
+# Logging functions
+log_info() {
+    echo -e "${BLUE}[INFO]${RESET} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[PASS]${RESET} $1"
+}
+
+log_warning() {
+    echo -e "${YELLOW}[WARN]${RESET} $1"
+}
+
+log_error() {
+    echo -e "${RED}[FAIL]${RESET} $1" >&2
+}
+
+# ============================================================================
+# Validation
+# ============================================================================
+validate_inputs() {
+    echo "::group::Checksum verification"
+    log_info "Validating inputs"
+
+    if [[ -z "${PACKAGE_VERSION}" ]]; then
+        log_error "PACKAGE_VERSION is required"
+        exit 1
+    fi
+    log_info "Package: ${PACKAGE_VERSION}"
+
+    if [[ -z "${EXPECTED_CHECKSUM}" ]]; then
+        log_error "EXPECTED_CHECKSUM is required"
+        exit 1
+    fi
+    log_info "Expected checksum: ${EXPECTED_CHECKSUM}"
+
+    if [[ -z "${ACTUAL_CHECKSUM}" ]]; then
+        log_error "ACTUAL_CHECKSUM is required"
+        exit 1
+    fi
+    log_info "Actual checksum: ${ACTUAL_CHECKSUM}"
+
+    if [[ -z "${GITHUB_REPOSITORY}" ]]; then
+        log_error "GITHUB_REPOSITORY is required"
+        exit 1
+    fi
+    log_info "Repository: ${GITHUB_REPOSITORY}"
+}
+
+# ============================================================================
+# Build summary from template
+# ============================================================================
+build_summary() {
+    # Load template
+    local SUMMARY
+    SUMMARY=$(cat checksum_mismatch_summary.md)
+
+    # Replace package information
+    SUMMARY="${SUMMARY//\{\{PACKAGE_VERSION\}\}/${PACKAGE_VERSION}}"
+    SUMMARY="${SUMMARY//\{\{EXPECTED_CHECKSUM\}\}/${EXPECTED_CHECKSUM}}"
+    SUMMARY="${SUMMARY//\{\{ACTUAL_CHECKSUM\}\}/${ACTUAL_CHECKSUM}}"
+
+    # Set status and actions for manual fix
+    local STATUS="Checksum mismatch detected - manual update required"
+    local ACTIONS="Ask a maintainer to update the dependencies."
+
+    SUMMARY="${SUMMARY//\{\{STATUS\}\}/${STATUS}}"
+    SUMMARY="${SUMMARY//\{\{ACTIONS\}\}/${ACTIONS}}"
+
+    echo "$SUMMARY"
+}
+
+# ============================================================================
+# Checksum verification
+# ============================================================================
+verify_checksum() {
+    # Checksums match - success
+    if [[ "$ACTUAL_CHECKSUM" == "$EXPECTED_CHECKSUM" ]]; then
+        log_success "Checksum verified"
+        echo "::endgroup::"
+        exit 0
+    fi
+
+    # Checksum mismatch detected
+    log_warning "Checksum mismatch"
+    echo "::warning::Dependency checksum mismatch - manual update required"
+
+    # Build and post developer-friendly summary
+    local SUMMARY
+    SUMMARY=$(build_summary)
+    echo "$SUMMARY" >> "$GITHUB_STEP_SUMMARY"
+
+    echo "::endgroup::"
+    exit 1
+}
+
+# ============================================================================
+# Main
+# ============================================================================
+main() {
+    # Set global variables from arguments
+    PACKAGE_VERSION="$1"
+    EXPECTED_CHECKSUM="$2"
+    ACTUAL_CHECKSUM="$3"
+    GITHUB_REPOSITORY="$4"
+
+    validate_inputs
+    verify_checksum
+}
+
+main "$@"

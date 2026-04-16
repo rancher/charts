@@ -1,0 +1,35 @@
+{
+  "extends": [
+    "github>rancher/renovate-config#release"
+  ],
+  "enabledManagers": ["github-actions"],
+  "ignorePaths": [
+    ".github/workflows/test-dependencies.yaml"
+  ],
+  "github-actions": {
+    "fileMatch": [
+      "\\.github/workflows/.+\\.ya?ml$",
+      "\\.github/actions/.+/action\\.ya?ml$"
+    ],
+    "pinDigests": true
+  },
+  "packageRules": [
+    {
+      "description": "Group all GitHub Actions updates together",
+      "matchManagers": ["github-actions"],
+      "groupName": "GitHub Actions",
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "description": "Ignore internal composite actions (they reference automation-core branch)",
+      "matchManagers": ["github-actions"],
+      "matchPackagePatterns": ["^rancher/charts$"],
+      "enabled": false
+    }
+  ],
+  "prConcurrentLimit": 2,
+  "prHourlyLimit": 2,
+  "semanticCommits": "enabled",
+  "commitMessagePrefix": "renovate(deps):"
+}
