@@ -108,13 +108,14 @@ resolve_version() {
         # Try gh first if available
         if command -v gh &> /dev/null; then
             CHARTS_BUILD_SCRIPT_VERSION=$(gh api /repos/rancher/charts-build-scripts/releases/latest 2>/dev/null | jq -r '.tag_name')
+            if [[ -n "${CHARTS_BUILD_SCRIPT_VERSION}" ]]; then
+                log "Resolved latest version to ${CHARTS_BUILD_SCRIPT_VERSION}"
+                return
+            fi
         fi
 
         # Fallback to curl if gh failed or returned empty
-        if [[ -z "${CHARTS_BUILD_SCRIPT_VERSION}" ]]; then
-            CHARTS_BUILD_SCRIPT_VERSION=$(curl --silent "https://api.github.com/repos/rancher/charts-build-scripts/releases/latest" | jq -r '.tag_name')
-        fi
-
+        CHARTS_BUILD_SCRIPT_VERSION=$(curl --silent "https://api.github.com/repos/rancher/charts-build-scripts/releases/latest" | jq -r '.tag_name')
         log "Resolved latest version to ${CHARTS_BUILD_SCRIPT_VERSION}"
     fi
 }
@@ -247,9 +248,9 @@ main() {
         return
     fi
 
-
-    check_existing_binary
+    # this is the proper order
     resolve_version
+    check_existing_binary
     detect_platform
     download_binary
     verify_binary
