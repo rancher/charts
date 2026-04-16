@@ -22,7 +22,7 @@ The `repository_dispatch` event with type `checksum_mismatch` triggers `.github/
 
 | Trigger Scenario | Auto-Fix | Resolution | Auto-merge | Rationale |
 |-----------------|----------|------------|------------|-----------|
-| **Fork PR** (repository_dispatch) | No - fork lacks `github_token` | Cannot trigger workflow; CI fails with checksum mismatch; contributor waits for scheduled run | N/A | Cannot trigger workflow from fork |
+| **Fork PR** (repository_dispatch) | No - fork lacks `github_token` | Cannot trigger auto-fix (lacks github_token to call GitHub API); CI fails with checksum mismatch showing helpful summary; contributor waits for scheduled run (every 6 hours) | N/A | Cannot call GitHub API to send repository_dispatch event |
 | **Upstream PR** (repository_dispatch) | Yes - has `github_token` | Creates dependency PR automatically; original PR blocked until merged | Yes | Unblocks original PR quickly; CI validates changes; easy to revert if needed |
 | **Scheduled Run** (cron: every 6 hours) | Yes - runs with workflow permissions | Creates PR if changes detected, exits cleanly if no changes | Yes | Proactive maintenance; CI validates changes; can be reverted if needed |
 | **Manual Trigger** (workflow_dispatch) | Yes - maintainer permissions | Creates PR | No | Maintainer decides per-case; manual trigger implies exceptional circumstances |
