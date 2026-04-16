@@ -122,7 +122,10 @@ resolve_version() {
 # Exits 0 if the binary already exists at the target version — skip download.
 # Returns normally if binary is missing or at a different version.
 check_existing_binary() {
+    log "Checking for existing binary at ${REPO_ROOT}/bin/charts-build-scripts"
+
     if [[ ! -f "${REPO_ROOT}/bin/charts-build-scripts" ]]; then
+        log "Binary not found - will download"
         return
     fi
 
@@ -132,9 +135,11 @@ check_existing_binary() {
     log "Expected version: ${CHARTS_BUILD_SCRIPT_VERSION}"
 
     if [[ "${current_version}" == "${CHARTS_BUILD_SCRIPT_VERSION}" ]]; then
-        log "Target version already present"
+        log "Target version already present - skipping download"
         exit 0
     fi
+
+    log "Version mismatch - will download ${CHARTS_BUILD_SCRIPT_VERSION}"
 }
 
 # Derives OS and ARCH from the local Go installation.
@@ -225,6 +230,7 @@ download_makefile() {
 }
 
 main() {
+    log "=== pull-scripts started ==="
     detect_upstream_remote
     fetch_automation_core
     download_automation_core_scripts
@@ -237,6 +243,7 @@ main() {
             exit 1
         fi
         verify_binary
+        log "=== pull-scripts completed (SKIP_PS mode) ==="
         return
     fi
 
@@ -245,6 +252,7 @@ main() {
     detect_platform
     download_binary
     verify_binary
+    log "=== pull-scripts completed successfully ==="
 }
 
 main
