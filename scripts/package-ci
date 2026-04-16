@@ -38,7 +38,18 @@ if [ -n "$(git status --porcelain)" ]; then
     exit 1
 fi
 
+# Verify charts-build-scripts binary exists before proceeding
+if [ ! -f "bin/charts-build-scripts" ]; then
+    log_error "charts-build-scripts binary not found at bin/charts-build-scripts"
+    log_error "Run 'make pull-scripts' first to download the binary"
+    exit 1
+fi
+
 ORIG_PACKAGE=${PACKAGE}
+
+# Skip pull-scripts binary download - already downloaded by build action
+# This prevents rate-limiting issues from repeated GitHub API calls
+export SKIP_PS=true
 
 # Get package list dynamically from charts-build-scripts
 packageList=$(PORCELAIN=1 make list)
