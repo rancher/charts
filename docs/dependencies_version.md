@@ -1,62 +1,76 @@
-# Dependency Checksum Management - Business Rules
+# Dependency Checksum Management
 
-## How Checksum Verification Works
+## Overview
 
-Active release branches (dev-v2.14, release-v2.13, etc.) use `.github/actions/dependencies/action.yaml` in their CI workflows to install pinned dependencies with checksum verification.
+CI workflows use `.github/actions/dependencies/action.yaml` to install pinned dependencies with checksum verification. All dependencies use pinned versions with verified checksums to ensure supply chain security.
 
-**Verification flow:**
+**Dependencies:**
+- **SUSE packages** (docker, jq, git, make, go, patch, gawk): Managed manually via `scripts/update-dependencies`
+- **GitHub releases** (yq, gh): Managed automatically via Renovate
+
+## Checksum Verification Flow
+
+**CI execution:**
 1. CI workflow calls dependencies action
 2. Action installs package with pinned version (e.g., `git-2.51.0-150600.3.15.1.x86_64`)
 3. Calculates actual checksum: `sha256sum /usr/bin/git`
 4. Compares against expected checksum in action.yaml
-5. **If mismatch:** Calls `verify-checksum` script which triggers `repository_dispatch` event
+5. **If mismatch:** Calls `verify-checksum` script which posts helpful summary to PR
 6. **If match:** Continues CI execution
 
-The `repository_dispatch` event with type `checksum_mismatch` triggers `.github/workflows/update-dependencies.yaml` on the same branch where the mismatch was detected.
+**On checksum mismatch:**
+- CI check fails with detailed summary
+- Summary shows package name, expected vs actual checksum
+- Instructs to contact a maintainer for resolution
+- **No automated fixes** - all updates require manual review
 
-## Centralized Dependency Management
+## SUSE Package Updates
 
-All dependency versions and checksums are centralized in the `automation-core` branch:
-- The `update-dependencies.yaml` workflow **only exists in automation-core**
-- When `repository_dispatch` events are sent, GitHub triggers the workflow from automation-core
-- Updates are committed to automation-core, then propagate to all release branches (dev-v2.14, release-v2.13, etc.) through the branch merge strategy
-- This prevents divergence: one source of truth for all dependency checksums across branches
+SUSE periodically rebuilds packages (security patches, compiler updates). This changes the binary checksum even when the version stays the same.
 
-**Fork vs Upstream PRs:**
-- **Fork PR:** Opened from `contributor:branch` → lacks `github_token` input (GitHub security model)
-- **Upstream PR:** Opened from `rancher:dev-v2.14` → has `github_token` via secrets/vault
+**SUSE BCI package curation:**
+- Packages from [SUSE Base Container Images (BCI)](https://opensource.suse.com/bci-docs/) - a curated subset of SLES
+- Over 4,000 packages undergo quality assurance and security audits by SUSE
+- Same CVE mitigation as SUSE Linux Enterprise Server
+- SUSE controls version selection - conservative, enterprise-grade lifecycle
 
-## Trigger Scenarios and Resolution
+**Manual update process:**
+1. Maintainer runs `./scripts/update-dependencies` locally
+2. Script fetches latest SUSE package versions/checksums via Docker
+3. Shows comparison table of current vs latest
+4. Prompts for confirmation
+5. Updates `action.yaml` with new versions/checksums
+6. Maintainer reviews changes, commits, and creates PR
 
-| Trigger Scenario | Auto-Fix | Resolution | Auto-merge | Rationale |
-|-----------------|----------|------------|------------|-----------|
-| **Fork PR** (repository_dispatch) | No - fork lacks `github_token` | Cannot trigger auto-fix (lacks github_token to call GitHub API); CI fails with checksum mismatch showing helpful summary; contributor waits for scheduled run (every 6 hours) | N/A | Cannot call GitHub API to send repository_dispatch event |
-| **Upstream PR** (repository_dispatch) | Yes - has `github_token` | Creates dependency PR automatically; original PR blocked until merged | Yes | Unblocks original PR quickly; CI validates changes; easy to revert if needed |
-| **Scheduled Run** (cron: every 6 hours) | Yes - runs with workflow permissions | Creates PR if changes detected, exits cleanly if no changes | Yes | Proactive maintenance; CI validates changes; can be reverted if needed |
-| **Manual Trigger** (workflow_dispatch) | Yes - maintainer permissions | Creates PR | No | Maintainer decides per-case; manual trigger implies exceptional circumstances |
+**Why manual:**
+- Human security gate for supply chain attacks
+- SUSE's conservative curation provides implicit stability
+- Maintainer controls timing of updates
+- All changes reviewed before merge
 
-## Bootstrap Mode
+## GitHub Release Updates (yq, gh)
 
-The `update-dependencies` workflow faces a chicken-egg problem:
-- It needs `git` and `gh` to run (checkout repo, create PRs)
-- But the dependencies action verifies checksums before installing
-- If checksums are stale, the action fails before git/gh are available
+Renovate automatically detects and proposes updates for GitHub release packages.
 
-**Solution:** Bootstrap mode (`skip_verification: true`)
-- Installs minimal dependencies (git, gh) **without checksum verification**
-- Allows the update workflow to run even when checksums are stale
-- Only used by the automated update workflow on trusted infrastructure
-- Regular CI workflows always use full verification
+**Renovate configuration:**
+```yaml
+# In action.yaml:
+# renovate: datasource=github-releases depName=cli/cli
+GH_VERSION: "v2.89.0"
+# renovate: datasource=github-release-attachments depName=cli/cli digestVersion=v2.89.0
+EXPECTED_CHECKSUM: "d0422caade520530e76c1c558da47daebaa8e1203d6b7ff10ad7d6faba3490d8"
+```
 
-## Auto-merge Strategy
+**Update process:**
+1. Renovate detects new release
+2. Creates PR with version and checksum updates
+3. CI validates changes
+4. Maintainer reviews and merges
 
-Dependencies are stable build tools (git, docker, make, go, gh, yq, jq, patch, gawk) used to execute scripts and workflows, not application runtime dependencies.
+## Security Model
 
-**Why auto-merge:**
-- CI validates all changes work correctly
-- Breaking changes are rare and caught by CI
-- Easy to revert if issues detected
-- Eliminates manual toil for predictable SUSE package rebuilds
-- Unblocks PRs quickly (especially critical during release windows)
+**Human review required:** All dependency updates (SUSE and GitHub releases) require manual review and approval by a maintainer before merge.
 
-**Trust model:** CI is the validation gate. If CI passes, changes are safe. Manual review adds no value beyond what CI already validates.
+**No automation:** Removed automated workflows and auto-merge due to security vulnerabilities identified in code review. All updates flow through manual PR review process.
+
+**Trust boundary:** CI validates that updated dependencies work correctly. Maintainer validates that updates are legitimate and not supply chain attacks.
