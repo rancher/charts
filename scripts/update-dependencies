@@ -315,11 +315,20 @@ fetch_all_versions() {
 
   # Wait for all background jobs
   log_debug "Waiting for ${#pids[@]} background jobs to complete"
+  local failed_jobs=0
   for pid in "${pids[@]}"; do
     if ! wait "$pid"; then
       log_error "Background job $pid failed"
+      failed_jobs=$((failed_jobs + 1))
     fi
   done
+
+  # Abort if any jobs failed
+  if [[ $failed_jobs -gt 0 ]]; then
+    log_error "$failed_jobs package fetch(es) failed"
+    cleanup
+    exit 1
+  fi
 
   echo ""
   log_success "All packages fetched successfully"
