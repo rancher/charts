@@ -6,11 +6,11 @@ set -e
 # ============================================================================
 #
 # WHAT IS THIS?
-#   Script that checks for updated versions and checksums of pinned system
-#   dependencies (docker, jq, git, make, go, patch, gawk) and GitHub release
-#   packages (yq, gh). When SUSE rebuilds packages or GitHub releases new
-#   versions, this script detects the changes and updates the dependencies
-#   action YAML file with new checksums.
+#   Script that checks for updated versions and checksums of pinned SUSE system
+#   dependencies (docker, jq, git, make, go, patch, gawk). When SUSE rebuilds
+#   packages, this script detects the changes and updates the dependencies
+#   action YAML file with new checksums. GitHub release packages (yq, gh) are
+#   managed by Renovate.
 #
 # WHY DOES IT EXIST?
 #   SUSE periodically rebuilds packages in their repositories (security patches,
@@ -35,17 +35,16 @@ set -e
 #
 #   EXECUTION FLOW:
 #     1. Detect mode (CI env var set = direct install, unset = Docker)
-#     2. Fetch latest versions in parallel (9 packages, ~30 seconds):
+#     2. Fetch latest versions in parallel (7 SUSE packages, ~30 seconds):
 #        - Zypper packages: Install from SUSE repos, extract version + checksum
-#        - GitHub packages: Download release asset, calculate checksum
 #     3. Parse current values from action.yaml
 #     4. Build comparison table (current vs latest)
 #     5. Prompt for confirmation (or auto-approve in CI)
 #     6. Update action.yaml with sed replacements
 #
 #   PARALLEL EXECUTION:
-#     Spins up 9 background jobs (zypper packages + GitHub releases) to fetch
-#     versions/checksums concurrently. Waits for all to complete before parsing.
+#     Spins up 7 background jobs (zypper packages) to fetch versions/checksums
+#     concurrently. Waits for all to complete before parsing.
 #
 # USAGE:
 #   Local (interactive):
@@ -55,10 +54,6 @@ set -e
 #   CI (automated):
 #     CI=true ./scripts/update-dependencies
 #     # Installs directly on runner, auto-approves changes
-#
-#   The workflow at .github/workflows/update-dependencies.yaml runs this
-#   script on a schedule (every 6 hours) and when triggered by checksum
-#   mismatch events from the verify-checksum script.
 #
 # ============================================================================
 
@@ -90,12 +85,6 @@ declare -A PACKAGES=(
   ["go"]="/usr/bin/go:go"
   ["patch"]="/usr/bin/patch:patch"
   ["gawk"]="/usr/bin/gawk:gawk"
-)
-
-# GitHub release packages: package_name:install_path:yaml_display_name:repo:asset_pattern
-declare -A GITHUB_PACKAGES=(
-  ["yq"]="/usr/bin/yq:yq:mikefarah/yq:yq_linux_amd64"
-  ["gh"]="/usr/bin/gh:gh:cli/cli:gh_{VERSION}_linux_amd64.tar.gz"
 )
 
 # Version and checksum storage
@@ -160,19 +149,6 @@ get_current_checksum() {
     sed 's/.*EXPECTED_CHECKSUM: "\(.*\)"/\1/'
 }
 
-get_current_yq_version() {
-  local display_name=$1
-  grep -A 5 "name: Install $display_name" "$ACTION_FILE" | \
-    grep "YQ_VERSION:" | \
-    sed 's/.*YQ_VERSION: "\(.*\)"/\1/'
-}
-
-get_current_gh_version() {
-  local display_name=$1
-  grep -A 5 "name: Install $display_name" "$ACTION_FILE" | \
-    grep "GH_VERSION:" | \
-    sed 's/.*GH_VERSION: "\(.*\)"/\1/'
-}
 
 escape_for_sed() {
   echo "$1" | sed 's/[\/&]/\\&/g'
@@ -238,50 +214,6 @@ fetch_zypper_package() {
   print_separator
 }
 
-fetch_github_package() {
-  local pkg=$1
-  local repo=$2
-  local asset_pattern=$3
-
-  # Get latest release version from GitHub API
-  local latest_version
-  latest_version=$(curl -s "https://api.github.com/repos/$repo/releases/latest" | grep '"tag_name":' | sed -E 's/.*"tag_name": "([^"]+)".*/\1/')
-
-  # Remove 'v' prefix if present
-  local version_number=${latest_version#v}
-
-  # Replace {VERSION} placeholder in asset pattern
-  local asset_name
-  asset_name=$(echo "$asset_pattern" | sed "s/{VERSION}/$version_number/g")
-
-  if [[ "$USE_DOCKER" == "true" ]]; then
-    # Docker mode: Download in isolated container
-    docker run --rm --name "github-release_$pkg" registry.suse.com/bci/bci-base:latest bash -c "
-      curl -sL https://github.com/$repo/releases/download/${latest_version}/${asset_name} -o /tmp/${pkg}_asset
-      echo \"$latest_version\"
-      sha256sum /tmp/${pkg}_asset | cut -d' ' -f1
-    " > "$TEMP_DIR/$pkg.txt" 2>&1
-  else
-    # CI mode: Download directly on runner
-    {
-      curl -sL "https://github.com/$repo/releases/download/${latest_version}/${asset_name}" -o "/tmp/${pkg}_asset"
-      echo "$latest_version"
-      sha256sum "/tmp/${pkg}_asset" | cut -d' ' -f1
-      rm -f "/tmp/${pkg}_asset"  # Cleanup
-    } > "$TEMP_DIR/$pkg.txt" 2>&1
-  fi
-
-  # Read results
-  local version
-  local checksum
-  version=$(head -1 "$TEMP_DIR/$pkg.txt")
-  checksum=$(tail -1 "$TEMP_DIR/$pkg.txt")
-
-  log_success "$pkg fetched"
-  echo "  Version:  $version"
-  echo "  Checksum: ${checksum:0:16}..."
-  print_separator
-}
 
 fetch_all_versions() {
   log_success "fetch_all_versions"
@@ -297,17 +229,6 @@ fetch_all_versions() {
     IFS=':' read -r binary_path display_name <<< "${PACKAGES[$pkg]}"
     (
       fetch_zypper_package "$pkg" "$binary_path"
-    ) &
-    pids+=($!)
-    log_debug "Background job started for $pkg (PID: $!)"
-  done
-
-  # Fetch GitHub release packages in parallel
-  log_debug "Launching ${#GITHUB_PACKAGES[@]} GitHub package fetches in parallel"
-  for pkg in "${!GITHUB_PACKAGES[@]}"; do
-    IFS=':' read -r install_path display_name repo asset_pattern <<< "${GITHUB_PACKAGES[$pkg]}"
-    (
-      fetch_github_package "$pkg" "$repo" "$asset_pattern"
     ) &
     pids+=($!)
     log_debug "Background job started for $pkg (PID: $!)"
@@ -354,32 +275,13 @@ parse_current_values() {
     log_debug "$pkg: current_checksum=${CURRENT_CHECKSUMS[$pkg]:0:16}... | new_checksum=${NEW_CHECKSUMS[$pkg]:0:16}..."
   done
 
-  # Parse GitHub release packages
-  log_debug "Processing ${#GITHUB_PACKAGES[@]} GitHub packages"
-  for pkg in "${!GITHUB_PACKAGES[@]}"; do
-    IFS=':' read -r install_path display_name repo asset_pattern <<< "${GITHUB_PACKAGES[$pkg]}"
-
-    log_debug "Parsing $pkg (display_name: $display_name)"
-    if [[ "$pkg" == "yq" ]]; then
-      CURRENT_VERSIONS[$pkg]=$(get_current_yq_version "$display_name")
-    elif [[ "$pkg" == "gh" ]]; then
-      CURRENT_VERSIONS[$pkg]=$(get_current_gh_version "$display_name")
-    fi
-    CURRENT_CHECKSUMS[$pkg]=$(get_current_checksum "$display_name")
-    NEW_VERSIONS[$pkg]=$(head -1 "$TEMP_DIR/$pkg.txt")
-    NEW_CHECKSUMS[$pkg]=$(tail -1 "$TEMP_DIR/$pkg.txt")
-
-    log_debug "$pkg: current=${CURRENT_VERSIONS[$pkg]} | new=${NEW_VERSIONS[$pkg]}"
-    log_debug "$pkg: current_checksum=${CURRENT_CHECKSUMS[$pkg]:0:16}... | new_checksum=${NEW_CHECKSUMS[$pkg]:0:16}..."
-  done
-
   log_success "Current values parsed"
   echo ""
 }
 
 build_comparison_table() {
   log_success "build_comparison_table"
-  log_debug "Building comparison table for 9 packages"
+  log_debug "Building comparison table for 7 packages"
 
   print_header "Dependency Comparison"
   echo ""
@@ -388,7 +290,7 @@ build_comparison_table() {
   printf "%s\n" "--------------------------------------------------------------------------------------------"
 
   local changes_detected=0
-  for pkg in docker jq git make go patch gawk yq gh; do
+  for pkg in docker jq git make go patch gawk; do
     local current_ver="${CURRENT_VERSIONS[$pkg]}"
     local new_ver="${NEW_VERSIONS[$pkg]}"
     local current_sum="${CURRENT_CHECKSUMS[$pkg]}"
@@ -417,7 +319,7 @@ build_comparison_table() {
   # Log detailed changes (only packages with changes)
   if [[ $changes_detected -gt 0 ]]; then
     log_debug "Packages with changes detected:"
-    for pkg in docker jq git make go patch gawk yq gh; do
+    for pkg in docker jq git make go patch gawk; do
       local current_ver="${CURRENT_VERSIONS[$pkg]}"
       local new_ver="${NEW_VERSIONS[$pkg]}"
       local current_sum="${CURRENT_CHECKSUMS[$pkg]}"
@@ -505,49 +407,6 @@ apply_updates() {
       log_debug "$pkg: Updating checksum in $ACTION_FILE"
       log_debug "$pkg: ${current_sum:0:16}... -> ${new_sum:0:16}..."
       sed -i "/- name: Install $display_name/,/BINARY_PATH:/ s/EXPECTED_CHECKSUM: \"$current_sum_escaped\"/EXPECTED_CHECKSUM: \"$new_sum_escaped\"/" "$ACTION_FILE"
-    fi
-  done
-
-  # Update GitHub release packages
-  log_debug "Updating GitHub packages"
-  for pkg in "${!GITHUB_PACKAGES[@]}"; do
-    IFS=':' read -r install_path display_name repo asset_pattern <<< "${GITHUB_PACKAGES[$pkg]}"
-
-    local current_ver="${CURRENT_VERSIONS[$pkg]}"
-    local new_ver="${NEW_VERSIONS[$pkg]}"
-    local current_sum="${CURRENT_CHECKSUMS[$pkg]}"
-    local new_sum="${NEW_CHECKSUMS[$pkg]}"
-
-    if [[ "$current_ver" != "$new_ver" ]] || [[ "$current_sum" != "$new_sum" ]]; then
-      log_info "Updating $pkg..."
-
-      # Escape special characters for sed
-      local current_ver_escaped
-      local new_ver_escaped
-      local current_sum_escaped
-      local new_sum_escaped
-      current_ver_escaped=$(escape_for_sed "$current_ver")
-      new_ver_escaped=$(escape_for_sed "$new_ver")
-      current_sum_escaped=$(escape_for_sed "$current_sum")
-      new_sum_escaped=$(escape_for_sed "$new_sum")
-
-      # Determine version variable name based on package
-      local version_var=""
-      if [[ "$pkg" == "yq" ]]; then
-        version_var="YQ_VERSION"
-      elif [[ "$pkg" == "gh" ]]; then
-        version_var="GH_VERSION"
-      fi
-
-      # Update version
-      log_debug "$pkg: Updating $version_var in $ACTION_FILE"
-      log_debug "$pkg: $current_ver -> $new_ver"
-      sed -i "/- name: Install $display_name/,/INSTALL_PATH:/ s/${version_var}: \"$current_ver_escaped\"/${version_var}: \"$new_ver_escaped\"/" "$ACTION_FILE"
-
-      # Update checksum
-      log_debug "$pkg: Updating checksum in $ACTION_FILE"
-      log_debug "$pkg: ${current_sum:0:16}... -> ${new_sum:0:16}..."
-      sed -i "/- name: Install $display_name/,/INSTALL_PATH:/ s/EXPECTED_CHECKSUM: \"$current_sum_escaped\"/EXPECTED_CHECKSUM: \"$new_sum_escaped\"/" "$ACTION_FILE"
     fi
   done
 
