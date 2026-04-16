@@ -14,6 +14,14 @@ Active release branches (dev-v2.14, release-v2.13, etc.) use `.github/actions/de
 
 The `repository_dispatch` event with type `checksum_mismatch` triggers `.github/workflows/update-dependencies.yaml` on the same branch where the mismatch was detected.
 
+## Centralized Dependency Management
+
+All dependency versions and checksums are centralized in the `automation-core` branch:
+- The `update-dependencies.yaml` workflow **only exists in automation-core**
+- When `repository_dispatch` events are sent, GitHub triggers the workflow from automation-core
+- Updates are committed to automation-core, then propagate to all release branches (dev-v2.14, release-v2.13, etc.) through the branch merge strategy
+- This prevents divergence: one source of truth for all dependency checksums across branches
+
 **Fork vs Upstream PRs:**
 - **Fork PR:** Opened from `contributor:branch` → lacks `github_token` input (GitHub security model)
 - **Upstream PR:** Opened from `rancher:dev-v2.14` → has `github_token` via secrets/vault
@@ -26,6 +34,19 @@ The `repository_dispatch` event with type `checksum_mismatch` triggers `.github/
 | **Upstream PR** (repository_dispatch) | Yes - has `github_token` | Creates dependency PR automatically; original PR blocked until merged | Yes | Unblocks original PR quickly; CI validates changes; easy to revert if needed |
 | **Scheduled Run** (cron: every 6 hours) | Yes - runs with workflow permissions | Creates PR if changes detected, exits cleanly if no changes | Yes | Proactive maintenance; CI validates changes; can be reverted if needed |
 | **Manual Trigger** (workflow_dispatch) | Yes - maintainer permissions | Creates PR | No | Maintainer decides per-case; manual trigger implies exceptional circumstances |
+
+## Bootstrap Mode
+
+The `update-dependencies` workflow faces a chicken-egg problem:
+- It needs `git` and `gh` to run (checkout repo, create PRs)
+- But the dependencies action verifies checksums before installing
+- If checksums are stale, the action fails before git/gh are available
+
+**Solution:** Bootstrap mode (`skip_verification: true`)
+- Installs minimal dependencies (git, gh) **without checksum verification**
+- Allows the update workflow to run even when checksums are stale
+- Only used by the automated update workflow on trusted infrastructure
+- Regular CI workflows always use full verification
 
 ## Auto-merge Strategy
 
