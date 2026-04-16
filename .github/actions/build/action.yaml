@@ -234,6 +234,7 @@ runs:
     - name: (./scripts/package-ci) Verify all packages pass build workflow
       shell: bash
       env:
+        SKIP_PS: true
         LOG: "DEBUG"
       run: ./scripts/package-ci
 
@@ -247,6 +248,7 @@ runs:
       shell: bash
       if: contains(inputs.base_ref, 'release-v')
       env:
+        SKIP_PS: true
         GH_TOKEN: ${{ inputs.app_token }}
         BRANCH: ${{ inputs.base_ref }}
         PR_NUMBER: ${{ inputs.pr_number }}
@@ -271,6 +273,7 @@ runs:
     - name: (make check-images) Validate Docker image availability
       shell: bash
       env:
+        SKIP_PS: true
         DOCKER_USERNAME: ${{ inputs.docker_username }}
         DOCKER_PASSWORD: ${{ inputs.docker_password }}
         LOG: "DEBUG"
@@ -280,17 +283,25 @@ runs:
       shell: bash
       if: contains(inputs.base_ref, 'release-v')
       env:
+        SKIP_PS: true
         LOG: "DEBUG"
       run: make check-rc
 
     - name: Post build validation summary
-      if: success()
+      if: success() && inputs.github_token != ''
+      continue-on-error: true
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github_token }}
         PR_NUMBER: ${{ inputs.pr_number }}
         HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       run: |
+        # Check if token has comment permissions
+        if ! gh pr view ${PR_NUMBER} --json number &>/dev/null; then
+          echo "WARNING: Cannot access PR (expected for fork PRs) - skipping comment"
+          exit 0
+        fi
+
         # Calculate duration
         END_TIME=$(date +%s)
         DURATION=$((END_TIME - BUILD_START_TIME))
@@ -319,9 +330,9 @@ runs:
         - Docker image availability"
 
         if [[ -n "$COMMENT_ID" ]]; then
-          gh api "repos/{owner}/{repo}/issues/comments/${COMMENT_ID}" -X PATCH -f body="$BODY"
+          gh api "repos/{owner}/{repo}/issues/comments/${COMMENT_ID}" -X PATCH -f body="$BODY" || echo "Failed to update comment (expected for fork PRs)"
           echo "Updated existing comment ${COMMENT_ID}"
         else
-          gh pr comment ${PR_NUMBER} --body "$BODY"
+          gh pr comment ${PR_NUMBER} --body "$BODY" || echo "Failed to post comment (expected for fork PRs)"
           echo "Posted new comment"
         fi
