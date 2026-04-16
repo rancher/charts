@@ -23,37 +23,29 @@ set -e
 #   4. Update action.yaml by hand
 #   5. Test changes
 #
-#   This script automates the entire process and runs on a schedule to prevent
-#   checksum mismatches from blocking PRs during release windows.
+#   This script automates the entire process for maintainers.
 #
 # HOW IT WORKS:
-#   DUAL-MODE EXECUTION:
-#     - Local (Docker mode): Runs in isolated containers to avoid installing
-#       packages on developer's machine. Preserves clean local environment.
-#     - CI (Direct mode): Installs packages directly on ephemeral runner.
-#       Faster execution, no Docker-in-Docker complexity.
-#
 #   EXECUTION FLOW:
-#     1. Detect mode (CI env var set = direct install, unset = Docker)
-#     2. Fetch latest versions in parallel (7 SUSE packages, ~30 seconds):
-#        - Zypper packages: Install from SUSE repos, extract version + checksum
-#     3. Parse current values from action.yaml
-#     4. Build comparison table (current vs latest)
-#     5. Prompt for confirmation (or auto-approve in CI)
-#     6. Update action.yaml with sed replacements
+#     1. Fetch latest versions in parallel (7 SUSE packages, ~30 seconds):
+#        - Runs isolated Docker containers (bci-base) to fetch package info
+#        - Installs each package and calculates sha256 checksum
+#     2. Parse current values from action.yaml
+#     3. Build comparison table (current vs latest)
+#     4. Prompt for confirmation
+#     5. Update action.yaml with sed replacements
 #
 #   PARALLEL EXECUTION:
 #     Spins up 7 background jobs (zypper packages) to fetch versions/checksums
 #     concurrently. Waits for all to complete before parsing.
 #
 # USAGE:
-#   Local (interactive):
-#     ./scripts/update-dependencies
-#     # Uses Docker containers, prompts for confirmation
+#   ./scripts/update-dependencies
 #
-#   CI (automated):
-#     CI=true ./scripts/update-dependencies
-#     # Installs directly on runner, auto-approves changes
+#   The script will:
+#   - Fetch latest SUSE package versions and checksums
+#   - Show comparison table of current vs latest
+#   - Prompt for confirmation before updating action.yaml
 #
 # ============================================================================
 
@@ -63,6 +55,9 @@ cd ..
 # ============================================================================
 # Global Variables
 # ============================================================================
+
+# Trap to ensure cleanup on exit
+trap cleanup EXIT
 
 # Colors
 RESET='\033[0m'
@@ -92,10 +87,6 @@ declare -A CURRENT_VERSIONS
 declare -A CURRENT_CHECKSUMS
 declare -A NEW_VERSIONS
 declare -A NEW_CHECKSUMS
-
-# Execution mode
-USE_DOCKER=true
-MODE=""
 
 # ============================================================================
 # Logging Functions
@@ -149,7 +140,6 @@ get_current_checksum() {
     sed 's/.*EXPECTED_CHECKSUM: "\(.*\)"/\1/'
 }
 
-
 escape_for_sed() {
   echo "$1" | sed 's/[\/&]/\\&/g'
 }
@@ -162,45 +152,17 @@ cleanup() {
 # Core Functions
 # ============================================================================
 
-detect_mode() {
-  log_success "detect_mode"
-
-  if [[ -n "${CI}" ]]; then
-    USE_DOCKER=false
-    MODE="CI (direct install)"
-    log_debug "CI env var detected: USE_DOCKER=false"
-  else
-    USE_DOCKER=true
-    MODE="Local (Docker isolation)"
-    log_debug "CI env var not set: USE_DOCKER=true"
-  fi
-
-  print_header "Dependency Version Update Script"
-  log_info "Execution mode: $MODE"
-  echo ""
-}
-
 fetch_zypper_package() {
   local pkg=$1
   local binary_path=$2
 
-  if [[ "$USE_DOCKER" == "true" ]]; then
-    # Docker mode: Run in isolated container
-    docker run --rm --name "bci-base_$pkg" registry.suse.com/bci/bci-base:latest bash -c "
-      zypper --non-interactive refresh &>/dev/null
-      zypper --non-interactive install $pkg &>/dev/null
-      rpm -q $pkg
-      sha256sum $binary_path | cut -d' ' -f1
-    " > "$TEMP_DIR/$pkg.txt" 2>&1
-  else
-    # CI mode: Install directly on runner
-    {
-      zypper --non-interactive refresh &>/dev/null
-      zypper --non-interactive install "$pkg" &>/dev/null
-      rpm -q "$pkg"
-      sha256sum "$binary_path" | cut -d' ' -f1
-    } > "$TEMP_DIR/$pkg.txt" 2>&1
-  fi
+  # Run in isolated container
+  docker run --rm --name "bci-base_$pkg" registry.suse.com/bci/bci-base:latest bash -c "
+    zypper --non-interactive refresh &>/dev/null
+    zypper --non-interactive install $pkg &>/dev/null
+    rpm -q $pkg
+    sha256sum $binary_path | cut -d' ' -f1
+  " > "$TEMP_DIR/$pkg.txt" 2>&1
 
   # Read results
   local version
@@ -217,7 +179,7 @@ fetch_zypper_package() {
 
 fetch_all_versions() {
   log_success "fetch_all_versions"
-  log_info "Fetching latest versions (parallel execution)..."
+  log_info "Fetching latest versions and checksums (parallel execution)..."
   log_debug "Temp directory: $TEMP_DIR"
   echo ""
 
@@ -349,12 +311,6 @@ ask_confirmation() {
   log_success "ask_confirmation"
   print_separator
 
-  if [[ -n "${CI}" ]]; then
-    log_info "CI environment detected - auto-approving changes"
-    log_debug "Skipping interactive prompt in CI mode"
-    return 0
-  fi
-
   log_debug "Prompting user for confirmation"
   read -p "Apply these changes to $ACTION_FILE? [(Y)es/(n)o]: " -n 1 -r
   echo ""
@@ -437,8 +393,8 @@ main() {
   log_debug "Working directory: $(pwd)"
   log_debug "ACTION_FILE: $ACTION_FILE"
 
-  # Detect execution mode
-  detect_mode
+  print_header "Dependency Version Update Script"
+  echo ""
 
   # Fetch latest versions in parallel
   fetch_all_versions
