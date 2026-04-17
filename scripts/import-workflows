@@ -1,0 +1,142 @@
+#!/bin/bash
+set -e
+
+# ============================================================================
+# Import Workflows from automation-core
+# ============================================================================
+#
+# PURPOSE:
+#   Import centralized GitHub Actions workflows from the automation-core
+#   branch into active release branches.
+#
+# USAGE:
+#   Run this script from active branches (dev-v2.X, release-v2.X):
+#
+#   $ git checkout dev-v2.15
+#   $ ./scripts/import-workflows
+#
+# IMPORTANT:
+#   - DO NOT run this from automation-core branch (it is the source)
+#   - Only run from dev-v* or release-v* branches (consumers)
+#   - This imports all workflows defined in WORKFLOW_FILES array
+#
+# SOURCE OF TRUTH:
+#   automation-core branch contains the canonical workflow templates
+#   Active branches consume them via this script
+#
+# ============================================================================
+# Colors
+RESET='\033[0m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+
+# Logging functions
+log_info() {
+    echo -e "${GREEN}[INFO]${RESET} $1"
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN]${RESET} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${RESET} $1" >&2
+}
+
+# Configuration
+REMOTE="upstream"
+AUTOMATION_BRANCH="automation-core"
+
+# Workflow files to import from automation-core
+WORKFLOW_FILES=(
+  "build.yaml"
+  "auto-bump.yaml"
+  "auto-bump-manual-trigger.yaml"
+)
+
+# Global arrays to track imported files
+IMPORTED_FILES=()
+CHANGED_FILES=()
+
+  # Validate git repository and fetch latest automation-core
+validate_and_fetch() {
+  echo "================================================================="
+  echo "Import Workflows from automation-core"
+  echo "================================================================="
+  echo ""
+
+  # Validate we're in a git repository
+  log_info "checking if this is a git repo?"
+  if ! git rev-parse --git-dir > /dev/null 2>&1; then
+    log_error "Not in a git repository"
+    exit 1
+  fi
+
+  # Fetch latest automation-core
+  log_info "Fetching latest $AUTOMATION_BRANCH from $REMOTE..."
+  git fetch "$REMOTE" "$AUTOMATION_BRANCH"
+  echo ""
+}
+
+# Import all workflows from automation-core
+import_workflows() {
+  for workflow in "${WORKFLOW_FILES[@]}"; do
+    SOURCE_FILE=".github/workflows/${workflow}"
+    TARGET_FILE=".github/workflows/${workflow}"
+
+    log_info "importing: .github/workflows/$workflow"
+
+    if ! git show "$REMOTE/$AUTOMATION_BRANCH:$SOURCE_FILE" > "$TARGET_FILE" 2>/dev/null; then
+      log_warn "Failed to import $SOURCE_FILE (file may not exist in automation-core)"
+      continue
+    fi
+
+    IMPORTED_FILES+=("$TARGET_FILE")
+
+    # Check if file has changes
+    if git diff --quiet "$TARGET_FILE" 2>/dev/null; then
+      log_info "✓ Imported (no changes)"
+    else
+      log_info "✓ Imported (modified)"
+      CHANGED_FILES+=("$TARGET_FILE")
+    fi
+  done
+}
+
+  # Display import results and next steps
+display_results() {
+  echo ""
+  echo "================================================================="
+  echo "✓ Import completed successfully"
+  echo "================================================================="
+  echo ""
+  log_info "Imported ${#IMPORTED_FILES[@]} workflow(s)"
+  echo ""
+
+  if [[ ${#CHANGED_FILES[@]} -eq 0 ]]; then
+    log_info "No file changes detected - workflows are already up to date"
+    echo ""
+    exit 0
+  fi
+
+  log_info "Files with changes:"
+  for file in "${CHANGED_FILES[@]}"; do
+    echo "  - $file"
+  done
+  echo ""
+  echo "Next steps:"
+  echo "  Review changes:  git diff .github/workflows/"
+  echo "  Stage changes/Commit:"
+  echo "git add .github/workflows/ && git commit -m 'feat(ci): update workflows from automation-core'"
+  echo ""
+}
+
+# Main execution
+main() {
+  validate_and_fetch
+  import_workflows
+  display_results
+}
+
+main
