@@ -23,6 +23,10 @@ inputs:
 runs:
   using: composite
   steps:
+    # ====================================================================
+    # Input Validation
+    # Verify all required inputs are provided and display build context
+    # ====================================================================
     - name: Validate inputs and display build context
       shell: bash
       env:
@@ -74,6 +78,10 @@ runs:
         echo "  docker_password: $(if [[ -n "$DOCKER_PASSWORD" ]]; then echo '***REDACTED***'; else echo '(empty)'; fi)"
         echo "================================================================="
 
+    # ====================================================================
+    # Dependency Check
+    # Verify all required tools are installed and available
+    # ====================================================================
     - name: Verify required dependencies are installed
       shell: bash
       run: |
@@ -139,6 +147,10 @@ runs:
         echo "All dependencies verified"
         echo "================================================================="
 
+    # ====================================================================
+    # Script Verification
+    # Ensure core scripts (pull-scripts, version) exist before proceeding
+    # ====================================================================
     - name: Verify required scripts are present
       shell: bash
       run: |
@@ -168,6 +180,10 @@ runs:
         echo "All required scripts present"
         echo "================================================================="
 
+    # ====================================================================
+    # Repository Setup
+    # Checkout PR code and prepare staging branch for validation
+    # ====================================================================
     - name: Record start time
       shell: bash
       run: echo "BUILD_START_TIME=$(date +%s)" >> $GITHUB_ENV
@@ -219,34 +235,85 @@ runs:
         echo "  Message: ${COMMIT_MSG}"
         echo "================================================================="
 
+    # ====================================================================
+    # Build Tools
+    # Download charts-build-scripts binary and automation-core scripts
+    # ====================================================================
     - name: (make pull-scripts) Download charts-build-scripts binary
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github_token }}
       run: make pull-scripts
 
+    # ====================================================================
+    # Validation Phase
+    # Run all validation checks - skips expensive steps if only infrastructure files changed
+    # ====================================================================
     - name: (./scripts/check-release-yaml) Validate release.yaml format with yq
       shell: bash
       env:
         LOG: "DEBUG"
       run: ./scripts/check-release-yaml
 
+    # ====================================================================
+    # Change Detection
+    # Determine if package/chart files changed to optimize validation scope
+    # ====================================================================
+    - name: Check if package validation needed
+      id: check_changes
+      shell: bash
+      env:
+        BASE_REF: ${{ inputs.base_ref }}
+      run: |
+        echo "Checking which files changed in this PR..."
+
+        # Get changed files between base branch and current HEAD
+        CHANGED_FILES=$(git diff --name-only origin/${BASE_REF}...HEAD)
+
+        echo "Changed files:"
+        echo "$CHANGED_FILES"
+        echo ""
+
+        # Check if any package/chart/asset files changed
+        if echo "$CHANGED_FILES" | grep -qE '^(packages/|charts/|assets/|index\.yaml|release\.yaml)'; then
+          echo "needs_validation=true" >> $GITHUB_OUTPUT
+          echo "✓ Package/chart files detected - full validation required"
+        else
+          echo "needs_validation=false" >> $GITHUB_OUTPUT
+          echo "✓ Only infrastructure files changed - skipping package validation"
+        fi
+        echo "================================================================="
+
+    # ====================================================================
+    # Package Build Validation
+    # Verify all packages pass the build workflow (dev-v branches only)
+    # ====================================================================
     - name: (./scripts/package-ci) Verify all packages pass build workflow
+      if: steps.check_changes.outputs.needs_validation == 'true' && contains(inputs.base_ref, 'dev-v')
       shell: bash
       env:
         SKIP_PS: true
         LOG: "DEBUG"
       run: ./scripts/package-ci
 
+    # ====================================================================
+    # Docker Image Tag Validation
+    # Lint Docker image tags in chart values files
+    # ====================================================================
     - name: Validate Docker image tags in charts
+      if: steps.check_changes.outputs.needs_validation == 'true'
       shell: bash
       env:
         BASE_BRANCH: ${{ inputs.base_ref }}
       run: ./bin/charts-build-scripts lint-images
 
+    # ====================================================================
+    # Release PR Validation
+    # Run release-specific validation checkpoints (release-v branches only)
+    # ====================================================================
     - name: (make validate-release-charts) Run release PR validation checkpoints
+      if: steps.check_changes.outputs.needs_validation == 'true' && contains(inputs.base_ref, 'release-v')
       shell: bash
-      if: contains(inputs.base_ref, 'release-v')
       env:
         SKIP_PS: true
         GH_TOKEN: ${{ inputs.app_token }}
@@ -255,7 +322,12 @@ runs:
         LOG: "DEBUG"
       run: make validate-release-charts
 
+    # ====================================================================
+    # Helm Index Validation
+    # Verify Helm index matches assets directory state
+    # ====================================================================
     - name: (make validate) Verify Helm index matches assets directory
+      if: steps.check_changes.outputs.needs_validation == 'true'
       shell: bash
       env:
         LOG: "DEBUG"
@@ -270,7 +342,12 @@ runs:
           make validate
         fi
 
+    # ====================================================================
+    # Docker Image Availability
+    # Verify all referenced Docker images exist and are accessible
+    # ====================================================================
     - name: (make check-images) Validate Docker image availability
+      if: steps.check_changes.outputs.needs_validation == 'true'
       shell: bash
       env:
         SKIP_PS: true
@@ -279,14 +356,22 @@ runs:
         LOG: "DEBUG"
       run: make check-images
 
+    # ====================================================================
+    # Release Candidate Validation
+    # Validate RC version constraints (release-v branches only)
+    # ====================================================================
     - name: (make check-rc) Validate release candidate versions
+      if: steps.check_changes.outputs.needs_validation == 'true' && contains(inputs.base_ref, 'release-v')
       shell: bash
-      if: contains(inputs.base_ref, 'release-v')
       env:
         SKIP_PS: true
         LOG: "DEBUG"
       run: make check-rc
 
+    # ====================================================================
+    # Validation Summary
+    # Post PR comment with validation results and duration
+    # ====================================================================
     - name: Post build validation summary
       if: success() && inputs.github_token != ''
       continue-on-error: true
@@ -295,6 +380,7 @@ runs:
         GH_TOKEN: ${{ inputs.github_token }}
         PR_NUMBER: ${{ inputs.pr_number }}
         HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        NEEDS_VALIDATION: ${{ steps.check_changes.outputs.needs_validation }}
       run: |
         # Check if token has comment permissions
         if ! gh pr view ${PR_NUMBER} --json number &>/dev/null; then
@@ -309,14 +395,15 @@ runs:
         SECONDS=$((DURATION % 60))
         DURATION_STR="${MINUTES}m ${SECONDS}s"
 
-        # Count chart packages
-        TGZ_COUNT=$(find assets/ -name "*.tgz" 2>/dev/null | wc -l)
-
         # Find existing comment to update
         COMMENT_ID=$(gh pr view ${PR_NUMBER} --json comments --jq '.comments[] | select(.body | contains("<!-- build-validation-summary -->")) | .id' | head -1)
 
-        # Post or update comment
-        BODY="<!-- build-validation-summary -->
+        # Build different message based on whether validation ran
+        if [[ "${NEEDS_VALIDATION}" == "true" ]]; then
+          # Count chart packages
+          TGZ_COUNT=$(find assets/ -name "*.tgz" 2>/dev/null | wc -l)
+
+          BODY="<!-- build-validation-summary -->
         ## Build Validation Complete
 
         **${TGZ_COUNT} charts verified in ${DURATION_STR}**
@@ -328,6 +415,19 @@ runs:
         - Docker image tag lint
         - Helm index validation
         - Docker image availability"
+        else
+          BODY="<!-- build-validation-summary -->
+        ## Build Validation Complete
+
+        **Infrastructure-only changes - skipped package validation**
+        **Commit:** ${HEAD_SHA:0:8}
+        **Duration:** ${DURATION_STR}
+
+        ### Checks Run
+        - Dependency checksums validation
+        - Release YAML validation
+        - Packages/, Assets/, Charts/, index.yaml validations skipped (no package/chart files changed)"
+        fi
 
         if [[ -n "$COMMENT_ID" ]]; then
           gh api "repos/{owner}/{repo}/issues/comments/${COMMENT_ID}" -X PATCH -f body="$BODY" || echo "Failed to update comment (expected for fork PRs)"
