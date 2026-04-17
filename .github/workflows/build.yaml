@@ -1,4 +1,4 @@
-# TEMPLATE: Copy this file to active branches as .github/workflows/build.yaml
+# TEMPLATE: Copy this file to active branches via scripts/import-workflows
 # Adjust the branch pattern in 'on.pull_request.branches' to match the target branch
 #
 # This workflow keeps vault/checkout steps local (for OIDC context),
@@ -20,6 +20,7 @@ jobs:
     permissions:
       contents: read
       id-token: write  # Required for OIDC authentication with Vault
+      pull-requests: write  # Required for posting build validation summary comment
     steps:
       # ====================================================================
       # WORKFLOW CONTEXT
@@ -163,4 +164,5 @@ jobs:
           app_token: ${{ steps.app_token.outputs.token }}
           docker_username: ${{ steps.secrets.outputs.docker_username }}
           docker_password: ${{ steps.secrets.outputs.docker_password }}
+          github_token: ${{ github.token }}
 
