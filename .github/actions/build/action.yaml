@@ -23,6 +23,10 @@ inputs:
 runs:
   using: composite
   steps:
+    # ====================================================================
+    # Input Validation
+    # Verify all required inputs are provided and display build context
+    # ====================================================================
     - name: Validate inputs and display build context
       shell: bash
       env:
@@ -74,6 +78,10 @@ runs:
         echo "  docker_password: $(if [[ -n "$DOCKER_PASSWORD" ]]; then echo '***REDACTED***'; else echo '(empty)'; fi)"
         echo "================================================================="
 
+    # ====================================================================
+    # Dependency Check
+    # Verify all required tools are installed and available
+    # ====================================================================
     - name: Verify required dependencies are installed
       shell: bash
       run: |
@@ -139,6 +147,10 @@ runs:
         echo "All dependencies verified"
         echo "================================================================="
 
+    # ====================================================================
+    # Script Verification
+    # Ensure core scripts (pull-scripts, version) exist before proceeding
+    # ====================================================================
     - name: Verify required scripts are present
       shell: bash
       run: |
@@ -168,6 +180,10 @@ runs:
         echo "All required scripts present"
         echo "================================================================="
 
+    # ====================================================================
+    # Repository Setup
+    # Checkout PR code and prepare staging branch for validation
+    # ====================================================================
     - name: Record start time
       shell: bash
       run: echo "BUILD_START_TIME=$(date +%s)" >> $GITHUB_ENV
@@ -219,18 +235,30 @@ runs:
         echo "  Message: ${COMMIT_MSG}"
         echo "================================================================="
 
+    # ====================================================================
+    # Build Tools
+    # Download charts-build-scripts binary and automation-core scripts
+    # ====================================================================
     - name: (make pull-scripts) Download charts-build-scripts binary
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github_token }}
       run: make pull-scripts
 
+    # ====================================================================
+    # Validation Phase
+    # Run all validation checks - skips expensive steps if only infrastructure files changed
+    # ====================================================================
     - name: (./scripts/check-release-yaml) Validate release.yaml format with yq
       shell: bash
       env:
         LOG: "DEBUG"
       run: ./scripts/check-release-yaml
 
+    # ====================================================================
+    # Change Detection
+    # Determine if package/chart files changed to optimize validation scope
+    # ====================================================================
     - name: Check if package validation needed
       id: check_changes
       shell: bash
@@ -256,6 +284,10 @@ runs:
         fi
         echo "================================================================="
 
+    # ====================================================================
+    # Package Build Validation
+    # Verify all packages pass the build workflow (dev-v branches only)
+    # ====================================================================
     - name: (./scripts/package-ci) Verify all packages pass build workflow
       if: steps.check_changes.outputs.needs_validation == 'true' && contains(inputs.base_ref, 'dev-v')
       shell: bash
@@ -264,6 +296,10 @@ runs:
         LOG: "DEBUG"
       run: ./scripts/package-ci
 
+    # ====================================================================
+    # Docker Image Tag Validation
+    # Lint Docker image tags in chart values files
+    # ====================================================================
     - name: Validate Docker image tags in charts
       if: steps.check_changes.outputs.needs_validation == 'true'
       shell: bash
@@ -271,6 +307,10 @@ runs:
         BASE_BRANCH: ${{ inputs.base_ref }}
       run: ./bin/charts-build-scripts lint-images
 
+    # ====================================================================
+    # Release PR Validation
+    # Run release-specific validation checkpoints (release-v branches only)
+    # ====================================================================
     - name: (make validate-release-charts) Run release PR validation checkpoints
       if: steps.check_changes.outputs.needs_validation == 'true' && contains(inputs.base_ref, 'release-v')
       shell: bash
@@ -282,6 +322,10 @@ runs:
         LOG: "DEBUG"
       run: make validate-release-charts
 
+    # ====================================================================
+    # Helm Index Validation
+    # Verify Helm index matches assets directory state
+    # ====================================================================
     - name: (make validate) Verify Helm index matches assets directory
       if: steps.check_changes.outputs.needs_validation == 'true'
       shell: bash
@@ -298,6 +342,10 @@ runs:
           make validate
         fi
 
+    # ====================================================================
+    # Docker Image Availability
+    # Verify all referenced Docker images exist and are accessible
+    # ====================================================================
     - name: (make check-images) Validate Docker image availability
       if: steps.check_changes.outputs.needs_validation == 'true'
       shell: bash
@@ -308,6 +356,10 @@ runs:
         LOG: "DEBUG"
       run: make check-images
 
+    # ====================================================================
+    # Release Candidate Validation
+    # Validate RC version constraints (release-v branches only)
+    # ====================================================================
     - name: (make check-rc) Validate release candidate versions
       if: steps.check_changes.outputs.needs_validation == 'true' && contains(inputs.base_ref, 'release-v')
       shell: bash
@@ -316,6 +368,10 @@ runs:
         LOG: "DEBUG"
       run: make check-rc
 
+    # ====================================================================
+    # Validation Summary
+    # Post PR comment with validation results and duration
+    # ====================================================================
     - name: Post build validation summary
       if: success() && inputs.github_token != ''
       continue-on-error: true
