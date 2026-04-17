@@ -231,7 +231,33 @@ runs:
         LOG: "DEBUG"
       run: ./scripts/check-release-yaml
 
+    - name: Check if package validation needed
+      id: check_changes
+      shell: bash
+      env:
+        BASE_REF: ${{ inputs.base_ref }}
+      run: |
+        echo "Checking which files changed in this PR..."
+
+        # Get changed files between base branch and current HEAD
+        CHANGED_FILES=$(git diff --name-only origin/${BASE_REF}...HEAD)
+
+        echo "Changed files:"
+        echo "$CHANGED_FILES"
+        echo ""
+
+        # Check if any package/chart/asset files changed
+        if echo "$CHANGED_FILES" | grep -qE '^(packages/|charts/|assets/|index\.yaml|release\.yaml)'; then
+          echo "needs_validation=true" >> $GITHUB_OUTPUT
+          echo "✓ Package/chart files detected - full validation required"
+        else
+          echo "needs_validation=false" >> $GITHUB_OUTPUT
+          echo "✓ Only infrastructure files changed - skipping package validation"
+        fi
+        echo "================================================================="
+
     - name: (./scripts/package-ci) Verify all packages pass build workflow
+      if: steps.check_changes.outputs.needs_validation == 'true' && contains(inputs.base_ref, 'dev-v')
       shell: bash
       env:
         SKIP_PS: true
@@ -239,14 +265,15 @@ runs:
       run: ./scripts/package-ci
 
     - name: Validate Docker image tags in charts
+      if: steps.check_changes.outputs.needs_validation == 'true'
       shell: bash
       env:
         BASE_BRANCH: ${{ inputs.base_ref }}
       run: ./bin/charts-build-scripts lint-images
 
     - name: (make validate-release-charts) Run release PR validation checkpoints
+      if: steps.check_changes.outputs.needs_validation == 'true' && contains(inputs.base_ref, 'release-v')
       shell: bash
-      if: contains(inputs.base_ref, 'release-v')
       env:
         SKIP_PS: true
         GH_TOKEN: ${{ inputs.app_token }}
@@ -256,6 +283,7 @@ runs:
       run: make validate-release-charts
 
     - name: (make validate) Verify Helm index matches assets directory
+      if: steps.check_changes.outputs.needs_validation == 'true'
       shell: bash
       env:
         LOG: "DEBUG"
@@ -271,6 +299,7 @@ runs:
         fi
 
     - name: (make check-images) Validate Docker image availability
+      if: steps.check_changes.outputs.needs_validation == 'true'
       shell: bash
       env:
         SKIP_PS: true
@@ -280,8 +309,8 @@ runs:
       run: make check-images
 
     - name: (make check-rc) Validate release candidate versions
+      if: steps.check_changes.outputs.needs_validation == 'true' && contains(inputs.base_ref, 'release-v')
       shell: bash
-      if: contains(inputs.base_ref, 'release-v')
       env:
         SKIP_PS: true
         LOG: "DEBUG"
@@ -295,6 +324,7 @@ runs:
         GH_TOKEN: ${{ inputs.github_token }}
         PR_NUMBER: ${{ inputs.pr_number }}
         HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        NEEDS_VALIDATION: ${{ steps.check_changes.outputs.needs_validation }}
       run: |
         # Check if token has comment permissions
         if ! gh pr view ${PR_NUMBER} --json number &>/dev/null; then
@@ -309,14 +339,15 @@ runs:
         SECONDS=$((DURATION % 60))
         DURATION_STR="${MINUTES}m ${SECONDS}s"
 
-        # Count chart packages
-        TGZ_COUNT=$(find assets/ -name "*.tgz" 2>/dev/null | wc -l)
-
         # Find existing comment to update
         COMMENT_ID=$(gh pr view ${PR_NUMBER} --json comments --jq '.comments[] | select(.body | contains("<!-- build-validation-summary -->")) | .id' | head -1)
 
-        # Post or update comment
-        BODY="<!-- build-validation-summary -->
+        # Build different message based on whether validation ran
+        if [[ "${NEEDS_VALIDATION}" == "true" ]]; then
+          # Count chart packages
+          TGZ_COUNT=$(find assets/ -name "*.tgz" 2>/dev/null | wc -l)
+
+          BODY="<!-- build-validation-summary -->
         ## Build Validation Complete
 
         **${TGZ_COUNT} charts verified in ${DURATION_STR}**
@@ -328,6 +359,19 @@ runs:
         - Docker image tag lint
         - Helm index validation
         - Docker image availability"
+        else
+          BODY="<!-- build-validation-summary -->
+        ## Build Validation Complete
+
+        **Infrastructure-only changes - skipped package validation**
+        **Commit:** ${HEAD_SHA:0:8}
+        **Duration:** ${DURATION_STR}
+
+        ### Checks Run
+        - Dependency checksums validation
+        - Release YAML validation
+        - Packages/, Assets/, Charts/, index.yaml validations skipped (no package/chart files changed)"
+        fi
 
         if [[ -n "$COMMENT_ID" ]]; then
           gh api "repos/{owner}/{repo}/issues/comments/${COMMENT_ID}" -X PATCH -f body="$BODY" || echo "Failed to update comment (expected for fork PRs)"
