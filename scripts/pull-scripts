@@ -249,13 +249,8 @@ download_makefile() {
 
 main() {
     log "=== pull-scripts started ==="
-    detect_upstream_remote
-    fetch_automation_core
-    download_automation_core_scripts
-    download_makefile
-
     if [[ "${SKIP_PS}" == "true" ]]; then
-        echo "WARNING: SKIP_PS is set — skipping version resolution and binary download" >&2
+        echo "WARNING: SKIP_PS is set — skipping all downloads, only verifying existing binary" >&2
         if [[ ! -f "${REPO_ROOT}/bin/charts-build-scripts" ]]; then
             echo "ERROR: no binary found at ${REPO_ROOT}/bin/charts-build-scripts" >&2
             exit 1
@@ -264,8 +259,10 @@ main() {
         log "=== pull-scripts completed (SKIP_PS mode) ==="
         return
     fi
-
-    # this is the proper order
+    detect_upstream_remote
+    fetch_automation_core
+    download_automation_core_scripts
+    download_makefile
     resolve_version
     check_existing_binary
     detect_platform
