@@ -243,7 +243,10 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github_token }}
-      run: make pull-scripts
+      run: |
+        echo "::group::make pull-scripts"
+        make pull-scripts
+        echo "::endgroup::"
 
     # ====================================================================
     # Validation Phase
@@ -320,7 +323,10 @@ runs:
         BRANCH: ${{ inputs.base_ref }}
         PR_NUMBER: ${{ inputs.pr_number }}
         LOG: "DEBUG"
-      run: make validate-release-charts
+      run: |
+        echo "::group::make validate-release-charts"
+        make validate-release-charts
+        echo "::endgroup::"
 
     # ====================================================================
     # Helm Index Validation
@@ -330,9 +336,11 @@ runs:
       if: steps.check_changes.outputs.needs_validation == 'true'
       shell: bash
       env:
+        SKIP_PS: true
         LOG: "DEBUG"
         BASE_REF: ${{ inputs.base_ref }}
       run: |
+        echo "::group::make validate"
         echo "github.base_ref: ${BASE_REF}"
         if [[ "${BASE_REF}" == *release-v* ]]; then
           echo "Validating remote release branch"
@@ -341,6 +349,7 @@ runs:
           echo "Validating local branch"
           make validate
         fi
+        echo "::endgroup::"
 
     # ====================================================================
     # Docker Image Availability
@@ -354,7 +363,10 @@ runs:
         DOCKER_USERNAME: ${{ inputs.docker_username }}
         DOCKER_PASSWORD: ${{ inputs.docker_password }}
         LOG: "DEBUG"
-      run: make check-images
+      run: |
+        echo "::group::make check-images"
+        make check-images
+        echo "::endgroup::"
 
     # ====================================================================
     # Release Candidate Validation
@@ -366,7 +378,10 @@ runs:
       env:
         SKIP_PS: true
         LOG: "DEBUG"
-      run: make check-rc
+      run: |
+        echo "::group::make check-rc"
+        make check-rc
+        echo "::endgroup::"
 
     # ====================================================================
     # Validation Summary
