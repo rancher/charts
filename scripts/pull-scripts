@@ -54,8 +54,16 @@ log() {
     fi
 }
 
+# Helper function for function entry logging - respects PORCELAIN mode
+log_function() {
+    if [[ "${PORCELAIN}" != "1" ]]; then
+        echo -e "\033[0;36m→ ${1}\033[0m"
+    fi
+}
+
 # Detects the remote name for rancher/charts repository
 detect_upstream_remote() {
+    log_function "detect_upstream_remote"
     local remote_name
 
     # Check for https URL first
@@ -104,6 +112,7 @@ AUTOMATION_CORE_SCRIPTS=(
 # Resolves CHARTS_BUILD_SCRIPT_VERSION from "latest" to the actual release tag.
 # No-op if the version is already pinned. Mutates the global variable.
 resolve_version() {
+    log_function "resolve_version"
     if [[ "${CHARTS_BUILD_SCRIPT_VERSION}" == "latest" ]]; then
         # Try gh first if available
         if command -v gh &> /dev/null; then
@@ -123,6 +132,7 @@ resolve_version() {
 # Exits 0 if the binary already exists at the target version — skip download.
 # Returns normally if binary is missing or at a different version.
 check_existing_binary() {
+    log_function "check_existing_binary"
     log "Checking for existing binary at ${REPO_ROOT}/bin/charts-build-scripts"
 
     if [[ ! -f "${REPO_ROOT}/bin/charts-build-scripts" ]]; then
@@ -146,6 +156,7 @@ check_existing_binary() {
 # Derives OS and ARCH from the local Go installation.
 # Sets globals OS, ARCH, BINARY_NAME used by download_binary.
 detect_platform() {
+    log_function "detect_platform"
     OS=$(go version | cut -d' ' -f4 | cut -d'/' -f1)
     ARCH=$(go version | cut -d' ' -f4 | cut -d'/' -f2)
 
@@ -160,6 +171,7 @@ detect_platform() {
 # Wipes bin/, then downloads the release binary from CHARTS_BUILD_SCRIPTS_REPO.
 # Exits 1 on non-200 HTTP response.
 download_binary() {
+    log_function "download_binary"
     local url="${CHARTS_BUILD_SCRIPTS_REPO%.git}/releases/download/${CHARTS_BUILD_SCRIPT_VERSION}/${BINARY_NAME}"
 
     log "Cleaning bin directory"
@@ -179,6 +191,7 @@ download_binary() {
 
 # Sanity-checks the downloaded binary with file(1), makes it executable, and runs --version.
 verify_binary() {
+    log_function "verify_binary"
     log "Checking downloaded binary file"
     if [[ "${PORCELAIN}" == "1" ]]; then
         file "${REPO_ROOT}/bin/charts-build-scripts" > /dev/null
@@ -194,6 +207,7 @@ verify_binary() {
 # Downloads a single script from automation-core if it doesn't exist locally
 # Args: $1 = script path relative to scripts/ directory
 download_script_from_automation_core() {
+    log_function "download_script_from_automation_core"
     local script_path="$1"
     local target_path="${SCRIPTS_DIR}/${script_path}"
 
@@ -211,12 +225,14 @@ download_script_from_automation_core() {
 
 # Fetches automation-core branch from upstream remote
 fetch_automation_core() {
+    log_function "fetch_automation_core"
     log "Fetching ${AUTOMATION_BRANCH} from ${REMOTE}..."
     git fetch --depth 1 "${REMOTE}" "${AUTOMATION_BRANCH}"
 }
 
 # Downloads all scripts from automation-core branch
 download_automation_core_scripts() {
+    log_function "download_automation_core_scripts"
     log "Checking automation-core scripts..."
     for script in "${AUTOMATION_CORE_SCRIPTS[@]}"; do
         download_script_from_automation_core "$script"
@@ -225,6 +241,7 @@ download_automation_core_scripts() {
 
 # Downloads Makefile from automation-core (source of truth)
 download_makefile() {
+    log_function "download_makefile"
     log "Downloading Makefile from automation-core..."
     git show "${REMOTE}/${AUTOMATION_BRANCH}:Makefile" > "${REPO_ROOT}/Makefile"
     log "Makefile updated from automation-core"
@@ -232,13 +249,8 @@ download_makefile() {
 
 main() {
     log "=== pull-scripts started ==="
-    detect_upstream_remote
-    fetch_automation_core
-    download_automation_core_scripts
-    download_makefile
-
     if [[ "${SKIP_PS}" == "true" ]]; then
-        echo "WARNING: SKIP_PS is set — skipping version resolution and binary download" >&2
+        echo "WARNING: SKIP_PS is set — skipping all downloads, only verifying existing binary" >&2
         if [[ ! -f "${REPO_ROOT}/bin/charts-build-scripts" ]]; then
             echo "ERROR: no binary found at ${REPO_ROOT}/bin/charts-build-scripts" >&2
             exit 1
@@ -247,8 +259,10 @@ main() {
         log "=== pull-scripts completed (SKIP_PS mode) ==="
         return
     fi
-
-    # this is the proper order
+    detect_upstream_remote
+    fetch_automation_core
+    download_automation_core_scripts
+    download_makefile
     resolve_version
     check_existing_binary
     detect_platform
