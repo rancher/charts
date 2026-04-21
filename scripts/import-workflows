@@ -12,13 +12,18 @@ set -e
 # USAGE:
 #   Run this script from active branches (dev-v2.X, release-v2.X):
 #
+#   Dev branches:
 #   $ git checkout dev-v2.15
 #   $ ./scripts/import-workflows
+#
+#   Release branches (includes registry workflows):
+#   $ git checkout release-v2.15
+#   $ ./scripts/import-workflows --release
 #
 # IMPORTANT:
 #   - DO NOT run this from automation-core branch (it is the source)
 #   - Only run from dev-v* or release-v* branches (consumers)
-#   - This imports all workflows defined in WORKFLOW_FILES array
+#   - Use --release flag for release-v* branches to import registry workflows
 #
 # SOURCE OF TRUTH:
 #   automation-core branch contains the canonical workflow templates
@@ -47,12 +52,25 @@ log_error() {
 # Configuration
 REMOTE="upstream"
 AUTOMATION_BRANCH="automation-core"
+IS_RELEASE_BRANCH=false
 
-# Workflow files to import from automation-core
-WORKFLOW_FILES=(
+# Parse arguments
+if [[ "$1" == "--release" ]]; then
+  IS_RELEASE_BRANCH=true
+fi
+
+# Dev branch workflows (dev-v2.X)
+DEV_WORKFLOWS=(
   "build.yaml"
   "auto-bump.yaml"
   "auto-bump-manual-trigger.yaml"
+)
+
+# Release branch workflows (release-v2.X)
+RELEASE_WORKFLOWS=(
+  "build.yaml"
+  "scan-registry.yaml"
+  "sync-registry.yaml"
 )
 
 # Global arrays to track imported files
@@ -81,7 +99,21 @@ validate_and_fetch() {
 
 # Import all workflows from automation-core
 import_workflows() {
-  for workflow in "${WORKFLOW_FILES[@]}"; do
+  # Select workflow list based on branch type
+  local workflows_to_import=()
+
+  if [[ "$IS_RELEASE_BRANCH" == "true" ]]; then
+    log_info "Release mode - importing release workflows"
+    workflows_to_import=("${RELEASE_WORKFLOWS[@]}")
+  else
+    log_info "Dev mode - importing dev workflows"
+    workflows_to_import=("${DEV_WORKFLOWS[@]}")
+  fi
+
+  log_info "Importing ${#workflows_to_import[@]} workflow(s)..."
+  echo ""
+
+  for workflow in "${workflows_to_import[@]}"; do
     SOURCE_FILE=".github/workflows/${workflow}"
     TARGET_FILE=".github/workflows/${workflow}"
 
@@ -111,6 +143,13 @@ display_results() {
   echo "✓ Import completed successfully"
   echo "================================================================="
   echo ""
+
+  if [[ "$IS_RELEASE_BRANCH" == "true" ]]; then
+    log_info "Mode: Release branch"
+  else
+    log_info "Mode: Dev branch"
+  fi
+
   log_info "Imported ${#IMPORTED_FILES[@]} workflow(s)"
   echo ""
 
