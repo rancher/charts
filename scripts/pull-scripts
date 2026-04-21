@@ -223,6 +223,18 @@ download_script_from_automation_core() {
     log "Downloaded: ${script_path}"
 }
 
+# Checks if a file has uncommitted changes
+# Args: $1 = file path
+# Returns: 0 (true) if changes exist, 1 (false) if no changes
+has_changes() {
+    local file_path="$1"
+    if ! git diff --quiet "$file_path" 2>/dev/null; then
+        return 0  # has changes
+    else
+        return 1  # no changes
+    fi
+}
+
 # Fetches automation-core branch from upstream remote
 fetch_automation_core() {
     log_function "fetch_automation_core"
@@ -239,12 +251,54 @@ download_automation_core_scripts() {
     done
 }
 
-# Downloads Makefile from automation-core (source of truth)
+# Downloads .gitignore from automation-core template
+download_gitignore() {
+    log_function "download_gitignore"
+
+    # Check for uncommitted local changes before downloading
+    if has_changes "${REPO_ROOT}/.gitignore"; then
+        echo "ERROR: .gitignore has uncommitted changes. This file is managed by automation-core." >&2
+        echo "Changes must be made in automation-core branch (templates/ignore-template-git) and propagated via pull-scripts." >&2
+        echo "Discard your local changes before running pull-scripts." >&2
+        exit 1
+    fi
+
+    log "Downloading .gitignore from automation-core..."
+    git show "${REMOTE}/${AUTOMATION_BRANCH}:templates/ignore-template-git" > "${REPO_ROOT}/.gitignore"
+    log ".gitignore updated from automation-core"
+
+    if has_changes "${REPO_ROOT}/.gitignore"; then
+        git add "${REPO_ROOT}/.gitignore"
+        git commit -m "chore: update .gitignore from automation-core"
+        log "Committed .gitignore changes"
+    else
+        log "No changes to .gitignore, skipping commit"
+    fi
+}
+
+# Downloads Makefile from automation-core template
 download_makefile() {
     log_function "download_makefile"
+
+    # Check for uncommitted local changes before downloading
+    if has_changes "${REPO_ROOT}/Makefile"; then
+        echo "ERROR: Makefile has uncommitted changes. This file is managed by automation-core." >&2
+        echo "Changes must be made in automation-core branch (templates/make-template-file) and propagated via pull-scripts." >&2
+        echo "Discard your local changes before running pull-scripts." >&2
+        exit 1
+    fi
+
     log "Downloading Makefile from automation-core..."
-    git show "${REMOTE}/${AUTOMATION_BRANCH}:Makefile" > "${REPO_ROOT}/Makefile"
+    git show "${REMOTE}/${AUTOMATION_BRANCH}:templates/make-template-file" > "${REPO_ROOT}/Makefile"
     log "Makefile updated from automation-core"
+
+    if has_changes "${REPO_ROOT}/Makefile"; then
+        git add "${REPO_ROOT}/Makefile"
+        git commit -m "chore: update Makefile from automation-core"
+        log "Committed Makefile changes"
+    else
+        log "No changes to Makefile, skipping commit"
+    fi
 }
 
 main() {
@@ -259,10 +313,14 @@ main() {
         log "=== pull-scripts completed (SKIP_PS mode) ==="
         return
     fi
+    # git operations
     detect_upstream_remote
     fetch_automation_core
-    download_automation_core_scripts
+    # infra files downloads
+    download_gitignore
     download_makefile
+    download_automation_core_scripts
+    # charts-build-scripts
     resolve_version
     check_existing_binary
     detect_platform
