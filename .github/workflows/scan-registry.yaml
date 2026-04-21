@@ -1,0 +1,219 @@
+# TEMPLATE: Copy this file to release branches via scripts/import-workflows --release
+# Adjust the branch pattern in 'on.pull_request' to match release-v* branches only
+#
+# This workflow handles registry scanning when 'registries-scan' label is added to PRs
+# targeting release branches. Requires PR approval before executing scan.
+
+name: Scan Registry
+
+on:
+  pull_request:
+    types:
+      - labeled
+
+jobs:
+  approval:
+    if: github.event.label.name == 'registries-scan' && startsWith(github.event.pull_request.base.ref, 'release-v')
+    runs-on: ubuntu-latest
+    outputs:
+      approved: ${{ steps.check-approval.outputs.approved }}
+    steps:
+      # ====================================================================
+      # WORKFLOW CONTEXT
+      # ====================================================================
+      - name: Display Workflow Context
+        run: |
+          echo "================================================================="
+          echo "Registry Scan Workflow - Approval Check"
+          echo "================================================================="
+          echo "PR Number:       ${{ github.event.pull_request.number }}"
+          echo "Target Branch:   ${{ github.base_ref }}"
+          echo "Source Branch:   ${{ github.head_ref }}"
+          echo "Author:          ${{ github.event.pull_request.user.login }}"
+          echo "Repository:      ${{ github.repository }}"
+          echo "Triggered by:    Label '${{ github.event.label.name }}'"
+          echo "================================================================="
+
+      # ====================================================================
+      # APPROVAL VERIFICATION
+      # ====================================================================
+      - name: Check if PR is approved
+        id: check-approval
+        run: |
+          echo "Checking PR approval status..."
+          APPROVED=$(gh api \
+            repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews \
+            --jq '[.[] | select(.state == "APPROVED")] | length')
+
+          if [[ "$APPROVED" -gt 0 ]]; then
+            echo "✓ PR has $APPROVED approval(s)"
+            echo "approved=true" >> $GITHUB_OUTPUT
+          else
+            echo "✗ PR is not approved"
+            echo "Registry scan requires PR approval before execution"
+            echo "approved=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  scan:
+    needs: approval
+    if: needs.approval.outputs.approved == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      # ====================================================================
+      # WORKFLOW CONTEXT
+      # ====================================================================
+      - name: Display Workflow Context
+        run: |
+          echo "================================================================="
+          echo "Registry Scan Workflow - Scan Execution"
+          echo "================================================================="
+          echo "PR Number:       ${{ github.event.pull_request.number }}"
+          echo "Target Branch:   ${{ github.base_ref }}"
+          echo "Source Branch:   ${{ github.head_ref }}"
+          echo "Author:          ${{ github.event.pull_request.user.login }}"
+          echo "Repository:      ${{ github.repository }}"
+          echo "Commit SHA:      ${{ github.event.pull_request.head.sha }}"
+          echo "Approval Status: ✓ Approved"
+          echo "================================================================="
+
+      # ====================================================================
+      # SECRETS MANAGEMENT (OIDC vault authentication)
+      # ====================================================================
+      - name: Load Secrets from Vault
+        continue-on-error: true
+        id: vault
+        uses: rancher-eio/read-vault-secrets@7282bf97898cd1c16c89f837e0bb442e6d384c89 # main
+        with:
+          secrets: |
+            secret/data/github/repo/${{ github.repository }}/rancher-prime-registry/credentials registry | PRIME_REGISTRY ;
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY ;
+
+      - name: Check Vault Status
+        run: |
+          if [[ "${{ steps.vault.outcome }}" == "failure" ]]; then
+            echo "================================================================="
+            echo "ERROR: Vault authentication failed"
+            echo "================================================================="
+            echo ""
+            echo "Registry scan requires access to:"
+            echo "  - Prime registry credentials"
+            echo "  - GitHub App credentials for authenticated pushes"
+            echo ""
+            echo "This workflow cannot continue without Vault access."
+            echo "================================================================="
+            exit 1
+          else
+            echo "✓ Vault authentication successful"
+          fi
+
+      - name: Validate and Export Vault Secrets
+        id: secrets
+        continue-on-error: false
+        run: |
+          # Validate and mask sensitive values
+          if [[ -z "${{ env.PRIME_REGISTRY }}" ]]; then
+            echo "ERROR: PRIME_REGISTRY not loaded from Vault"
+            exit 1
+          else
+            echo "✓ Prime registry URL loaded"
+            echo "::add-mask::${{ env.PRIME_REGISTRY }}"
+          fi
+
+          if [[ -z "${{ env.APP_ID }}" ]] || [[ -z "${{ env.PRIVATE_KEY }}" ]]; then
+            echo "ERROR: GitHub App credentials not loaded from Vault"
+            exit 1
+          else
+            echo "✓ GitHub App credentials loaded"
+            echo "::add-mask::${{ env.APP_ID }}"
+            echo "::add-mask::${{ env.PRIVATE_KEY }}"
+          fi
+
+          # Export as step outputs
+          echo "prime_registry=${{ env.PRIME_REGISTRY }}" >> $GITHUB_OUTPUT
+          echo "app_id=${{ env.APP_ID }}" >> $GITHUB_OUTPUT
+
+          # Use heredoc format for private_key (multi-line PEM certificate)
+          {
+            echo "private_key<<EOF"
+            echo "${{ env.PRIVATE_KEY }}"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+      - name: Create App Token
+        continue-on-error: false
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        id: app_token
+        with:
+          app-id: ${{ steps.secrets.outputs.app_id }}
+          private-key: ${{ steps.secrets.outputs.private_key }}
+
+      - name: Checkout
+        continue-on-error: false
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+
+      # ====================================================================
+      # REPOSITORY SETUP
+      # ====================================================================
+      - name: Configure Git
+        continue-on-error: false
+        run: |
+          echo "Configuring git for authenticated commits..."
+          git config --global --add safe.directory "$PWD"
+          echo $PATH >> $GITHUB_PATH
+          git config --global user.email "${{ secrets.USER_GITHUB }}"
+          git config --global user.name "rancherbot"
+          echo "✓ Git configured as rancherbot"
+
+          echo ""
+          echo "Fetching PR branch: ${{ github.event.pull_request.head.ref }}"
+          git fetch origin ${{ github.event.pull_request.head.ref }}
+          git checkout ${{ github.event.pull_request.head.ref }}
+          echo "✓ Checked out to PR branch"
+
+          echo ""
+          echo "Current branch: $(git branch --show-current)"
+          echo "Latest commit: $(git log -1 --oneline)"
+
+      # ====================================================================
+      # SCAN EXECUTION
+      # ====================================================================
+      - name: Pull Scripts and Binary
+        run: |
+          echo "Downloading scripts and charts-build-scripts binary..."
+          make pull-scripts
+          echo "✓ Scripts and binary ready"
+
+      - name: Scan Registry Images
+        env:
+          PRIME_URL: ${{ steps.secrets.outputs.prime_registry }}
+          LOG: "DEBUG"
+        run: |
+          echo "Scanning images from Assets/Docker/Staging registries..."
+          ./bin/charts-build-scripts scan-registries
+          echo "✓ Registry scan completed"
+
+      # ====================================================================
+      # PUSH CHANGES
+      # ====================================================================
+      - name: Push Scan Results
+        continue-on-error: false
+        run: |
+          echo "Checking for changes..."
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "Changes detected from registry scan"
+            git status --short
+            echo ""
+            echo "Pushing to branch: ${{ github.event.pull_request.head.ref }}"
+            git push origin ${{ github.event.pull_request.head.ref }}
+            echo "✓ Scan results pushed successfully"
+          else
+            echo "No changes to push"
+          fi
