@@ -6,6 +6,7 @@ help:
 	@echo "Available targets:"
 	@echo "  update-dependencies  - Check SUSE package versions/checksums and update dependencies action"
 	@echo "  test-dependencies    - Test dependencies action locally using act (requires Docker)"
+	@echo "  propagate            - Propagate automation-core infrastructure to active branches"
 	@echo "  help                 - Show this help message"
 
 update-dependencies:
@@ -14,4 +15,7 @@ update-dependencies:
 test-dependencies:
 	act -j test-dependencies --container-architecture linux/amd64
 
-.PHONY: help update-dependencies test-dependencies
+propagate:
+	./scripts/automation/propagate
+
+.PHONY: help update-dependencies test-dependencies propagate
