@@ -9,7 +9,7 @@ help:
 	@echo "  help                 - Show this help message"
 
 update-dependencies:
-	./scripts/update-dependencies
+	./scripts/automation/update-dependencies
 
 test-dependencies:
 	act -j test-dependencies --container-architecture linux/amd64
