@@ -1,79 +1,274 @@
 #!/bin/bash
 set -e # Exit immediately if a command exits with a non-zero status.
 
-chmod -R a+x bin/ || true
+# ============================================================================
+# Pull Scripts and Build Tools
+# ============================================================================
+#
+# WHAT:
+#   Downloads build scripts, Makefile, and charts-build-scripts binary.
+#   automation-core branch is the single source of truth for all scripts
+#   and configuration.
+#
+# HOW IT WORKS:
+#   1. Detects upstream remote (https or ssh URL)
+#   2. Fetches automation-core branch (shallow, --depth 1)
+#   3. Downloads scripts listed in AUTOMATION_CORE_SCRIPTS array
+#   4. Downloads Makefile from automation-core
+#   5. Resolves charts-build-scripts version (latest or pinned)
+#   6. Downloads platform-specific binary from GitHub releases
+#
+# USAGE:
+#   make pull-scripts
+#
+#   Skip binary download (scripts/Makefile only):
+#     SKIP_PS=true make pull-scripts
+#
+#   Pin to specific version:
+#     CHARTS_BUILD_SCRIPT_VERSION=v0.10.0 make pull-scripts
+#
+# REQUIREMENTS:
+#   - Git repository with rancher/charts remote
+#   - Go installed (for platform detection)
+#   - jq installed (for version resolution)
+#   - gh cli (optional, improves rate limiting)
+#
+# ============================================================================
 
-cd $(dirname $0) # Move to the directory of the script
-source ./version # Source the version file to set environment variables
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+SCRIPTS_DIR="$(dirname "$0")"
 
-# Check if the charts-build-scripts binary exists in the ../bin directory
-echo "Check if charts-build-scripts binary is present on the target version"
-if ls ../bin/charts-build-scripts 1>/dev/null 2>/dev/null; then
-    CURRENT_SCRIPT_VERSION="v$(../bin/charts-build-scripts --version | awk '{print $3}')"
-    echo "Current version: ${CURRENT_SCRIPT_VERSION}"
-    echo "Expected version: ${CHARTS_BUILD_SCRIPT_VERSION}"
+# Configuration
+AUTOMATION_BRANCH="automation-core"
+REMOTE=""  # Detected dynamically
 
-    # If the version is "latest", fetch the latest release version
-    if [[ "${CHARTS_BUILD_SCRIPT_VERSION}" == "latest" ]]; then
-        CHARTS_BUILD_SCRIPT_VERSION=$(curl --silent "https://api.github.com/repos/rancher/charts-build-scripts/releases/latest" | jq -r '.tag_name')
-        echo "Resolved latest version to ${CHARTS_BUILD_SCRIPT_VERSION}"
+mkdir -p "${REPO_ROOT}/bin"
+chmod -R a+x "${REPO_ROOT}/bin/" || true
+# shellcheck source=/dev/null
+source "${SCRIPTS_DIR}/version"
+
+# Helper function for output - respects PORCELAIN mode
+log() {
+    if [[ "${PORCELAIN}" != "1" ]]; then
+        echo "$@"
+    fi
+}
+
+# Helper function for function entry logging - respects PORCELAIN mode
+log_function() {
+    if [[ "${PORCELAIN}" != "1" ]]; then
+        echo -e "\033[0;36m→ ${1}\033[0m"
+    fi
+}
+
+# Detects the remote name for rancher/charts repository
+detect_upstream_remote() {
+    log_function "detect_upstream_remote"
+    local remote_name
+
+    # Check for https URL first
+    remote_name=$(git remote -v | grep "https://github.com/rancher/charts.git" | head -n1 | awk '{print $1}')
+
+    if [[ -n "$remote_name" ]]; then
+        REMOTE="$remote_name"
+        return
     fi
 
-    # Exit if the current version matches the expected version
-    if [[ "${CURRENT_SCRIPT_VERSION}" == "${CHARTS_BUILD_SCRIPT_VERSION}" ]]; then
-        echo "target version already present"
+    # Fallback to SSH URL
+    remote_name=$(git remote -v | grep "git@github.com:rancher/charts.git" | head -n1 | awk '{print $1}')
+
+    if [[ -n "$remote_name" ]]; then
+        REMOTE="$remote_name"
+        return
+    fi
+
+    # Final fallback to origin (for CI environments)
+    if git remote | grep -q "^origin$"; then
+        REMOTE="origin"
+        log "Using origin remote (CI environment)"
+        return
+    fi
+
+    # If none found, error
+    echo "ERROR: No remote found for rancher/charts repository" >&2
+    exit 1
+}
+
+# Array of scripts to download from automation-core branch
+AUTOMATION_CORE_SCRIPTS=(
+  "check-release-yaml"
+  "clean-scripts"
+  "forward-port"
+  "import-workflows"
+  "package-ci"
+  "remove-asset"
+  "release-validation/diff-with-released"
+  "release-validation/last-released"
+  "release-validation/pr-review-template.md"
+  "release-validation/validate-annotations"
+  "release-validation/validate-index"
+)
+
+# Resolves CHARTS_BUILD_SCRIPT_VERSION from "latest" to the actual release tag.
+# No-op if the version is already pinned. Mutates the global variable.
+resolve_version() {
+    log_function "resolve_version"
+    if [[ "${CHARTS_BUILD_SCRIPT_VERSION}" == "latest" ]]; then
+        # Try gh first if available
+        if command -v gh &> /dev/null; then
+            CHARTS_BUILD_SCRIPT_VERSION=$(gh api /repos/rancher/charts-build-scripts/releases/latest 2>/dev/null | jq -r '.tag_name')
+            if [[ -n "${CHARTS_BUILD_SCRIPT_VERSION}" ]]; then
+                log "Resolved latest version to ${CHARTS_BUILD_SCRIPT_VERSION}"
+                return
+            fi
+        fi
+
+        # Fallback to curl if gh failed or returned empty
+        CHARTS_BUILD_SCRIPT_VERSION=$(curl --silent "https://api.github.com/repos/rancher/charts-build-scripts/releases/latest" | jq -r '.tag_name')
+        log "Resolved latest version to ${CHARTS_BUILD_SCRIPT_VERSION}"
+    fi
+}
+
+# Exits 0 if the binary already exists at the target version — skip download.
+# Returns normally if binary is missing or at a different version.
+check_existing_binary() {
+    log_function "check_existing_binary"
+    log "Checking for existing binary at ${REPO_ROOT}/bin/charts-build-scripts"
+
+    if [[ ! -f "${REPO_ROOT}/bin/charts-build-scripts" ]]; then
+        log "Binary not found - will download"
+        return
+    fi
+
+    local current_version
+    current_version="v$("${REPO_ROOT}/bin/charts-build-scripts" --version | awk '{print $3}')"
+    log "Current version: ${current_version}"
+    log "Expected version: ${CHARTS_BUILD_SCRIPT_VERSION}"
+
+    if [[ "${current_version}" == "${CHARTS_BUILD_SCRIPT_VERSION}" ]]; then
+        log "Target version already present - skipping download"
         exit 0
     fi
-fi
 
-# If the version is "latest", fetch the latest release version
-if [[ "${CHARTS_BUILD_SCRIPT_VERSION}" == "latest" ]]; then
-    echo "Expected the latest version!"
-    CHARTS_BUILD_SCRIPT_VERSION=$(curl --silent "https://api.github.com/repos/rancher/charts-build-scripts/releases/latest" | jq -r '.tag_name')
-    echo "Resolved latest version to ${CHARTS_BUILD_SCRIPT_VERSION}"
-fi
+    log "Version mismatch - will download ${CHARTS_BUILD_SCRIPT_VERSION}"
+}
 
-echo "Downloading charts-build-scripts version ${CHARTS_BUILD_SCRIPTS_REPO}@${CHARTS_BUILD_SCRIPT_VERSION}"
+# Derives OS and ARCH from the local Go installation.
+# Sets globals OS, ARCH, BINARY_NAME used by download_binary.
+detect_platform() {
+    log_function "detect_platform"
+    OS=$(go version | cut -d' ' -f4 | cut -d'/' -f1)
+    ARCH=$(go version | cut -d' ' -f4 | cut -d'/' -f2)
 
-# Remove existing ../bin directory and change to the parent dir.
-echo "remove existing ../bin directory"
-rm ../bin/* || true
-cd ..
+    if [[ "$OS" == "windows" ]]; then
+        BINARY_NAME="charts-build-scripts_${OS}_${ARCH}.exe"
+    else
+        BINARY_NAME="charts-build-scripts_${OS}_${ARCH}"
+    fi
+    log "Platform: ${OS}/${ARCH} — binary: ${BINARY_NAME}"
+}
 
-echo "re-create ../bin directory"
-mkdir -p bin # Re-create bin dir
-chmod -R a+x bin/
+# Wipes bin/, then downloads the release binary from CHARTS_BUILD_SCRIPTS_REPO.
+# Exits 1 on non-200 HTTP response.
+download_binary() {
+    log_function "download_binary"
+    local url="${CHARTS_BUILD_SCRIPTS_REPO%.git}/releases/download/${CHARTS_BUILD_SCRIPT_VERSION}/${BINARY_NAME}"
 
-# Extract the OS and architecture from the go version command output
-OS=$(go version | cut -d' ' -f4 | cut -d'/' -f1)
-ARCH=$(go version | cut -d' ' -f4 | cut -d'/' -f2)
-echo "OS: $OS"
-echo "ARCH: $ARCH"
+    log "Cleaning bin directory"
+    mkdir -p "${REPO_ROOT}/bin"
+    find "${REPO_ROOT}/bin" -mindepth 1 -delete
+    chmod -R a+x "${REPO_ROOT}/bin/"
 
+    log "Downloading ${url}"
+    local http_code
+    http_code=$(curl -s -L -w "%{http_code}" "${url}" --output "${REPO_ROOT}/bin/charts-build-scripts")
+    if [[ "$http_code" -ne 200 ]]; then
+        echo "Error downloading ${BINARY_NAME}, HTTP code: ${http_code}" >&2
+        exit 1
+    fi
+    log "Downloaded ${BINARY_NAME} to ${REPO_ROOT}/bin/charts-build-scripts}"
+}
 
-# Determine the binary name based on the OS and architecture
-if [[ "$OS" == "windows" ]]; then
-    BINARY_NAME="charts-build-scripts_${OS}_${ARCH}.exe"
-else
-    BINARY_NAME="charts-build-scripts_${OS}_${ARCH}"
-fi
-echo "BINARY_NAME: $BINARY_NAME"
+# Sanity-checks the downloaded binary with file(1), makes it executable, and runs --version.
+verify_binary() {
+    log_function "verify_binary"
+    log "Checking downloaded binary file"
+    if [[ "${PORCELAIN}" == "1" ]]; then
+        file "${REPO_ROOT}/bin/charts-build-scripts" > /dev/null
+        chmod +x "${REPO_ROOT}/bin/charts-build-scripts"
+        "${REPO_ROOT}/bin/charts-build-scripts" --version > /dev/null
+    else
+        file "${REPO_ROOT}/bin/charts-build-scripts"
+        chmod +x "${REPO_ROOT}/bin/charts-build-scripts"
+        "${REPO_ROOT}/bin/charts-build-scripts" --version
+    fi
+}
 
-# Download the binary from the charts-build-scripts repository
-echo "Downloading ${CHARTS_BUILD_SCRIPTS_REPO%.git}/releases/download/${CHARTS_BUILD_SCRIPT_VERSION}/${BINARY_NAME}"
-curl_output=$(curl -s -L -w "%{http_code}" ${CHARTS_BUILD_SCRIPTS_REPO%.git}/releases/download/${CHARTS_BUILD_SCRIPT_VERSION}/${BINARY_NAME} --output bin/charts-build-scripts)
-HTTP_CODE=$(echo "$curl_output" | tail -n 1) # Extract the HTTP code from the last line
-if [[ "$HTTP_CODE" -ne 200 ]]; then
-    echo "Error downloading ${BINARY_NAME}, HTTP code: $HTTP_CODE"
-    exit 1
-fi
-echo "Downloaded ${BINARY_NAME} to ./bin/charts-build-scripts"
+# Downloads a single script from automation-core if it doesn't exist locally
+# Args: $1 = script path relative to scripts/ directory
+download_script_from_automation_core() {
+    log_function "download_script_from_automation_core"
+    local script_path="$1"
+    local target_path="${SCRIPTS_DIR}/${script_path}"
 
-echo "Checking downloaded binary file"
-file bin/charts-build-scripts
+    if [[ -f "$target_path" ]]; then
+        log "Script already exists, skipping: ${script_path}"
+        return 0
+    fi
 
-file bin/charts-build-scripts #check the file type.
-echo "${BINARY_NAME} => ./bin/charts-build-scripts"
+    log "Downloading script: ${script_path}"
+    mkdir -p "$(dirname "$target_path")"
+    git show "${REMOTE}/${AUTOMATION_BRANCH}:scripts/${script_path}" > "$target_path"
+    chmod +x "$target_path"
+    log "Downloaded: ${script_path}"
+}
 
-chmod +x ./bin/charts-build-scripts
-./bin/charts-build-scripts --version
+# Fetches automation-core branch from upstream remote
+fetch_automation_core() {
+    log_function "fetch_automation_core"
+    log "Fetching ${AUTOMATION_BRANCH} from ${REMOTE}..."
+    git fetch --depth 1 "${REMOTE}" "${AUTOMATION_BRANCH}"
+}
+
+# Downloads all scripts from automation-core branch
+download_automation_core_scripts() {
+    log_function "download_automation_core_scripts"
+    log "Checking automation-core scripts..."
+    for script in "${AUTOMATION_CORE_SCRIPTS[@]}"; do
+        download_script_from_automation_core "$script"
+    done
+}
+
+# Downloads Makefile from automation-core (source of truth)
+download_makefile() {
+    log_function "download_makefile"
+    log "Downloading Makefile from automation-core..."
+    git show "${REMOTE}/${AUTOMATION_BRANCH}:Makefile" > "${REPO_ROOT}/Makefile"
+    log "Makefile updated from automation-core"
+}
+
+main() {
+    log "=== pull-scripts started ==="
+    if [[ "${SKIP_PS}" == "true" ]]; then
+        echo "WARNING: SKIP_PS is set — skipping all downloads, only verifying existing binary" >&2
+        if [[ ! -f "${REPO_ROOT}/bin/charts-build-scripts" ]]; then
+            echo "ERROR: no binary found at ${REPO_ROOT}/bin/charts-build-scripts" >&2
+            exit 1
+        fi
+        verify_binary
+        log "=== pull-scripts completed (SKIP_PS mode) ==="
+        return
+    fi
+    detect_upstream_remote
+    fetch_automation_core
+    download_automation_core_scripts
+    download_makefile
+    resolve_version
+    check_existing_binary
+    detect_platform
+    download_binary
+    verify_binary
+    log "=== pull-scripts completed successfully ==="
+}
+
+main
