@@ -1,0 +1,207 @@
+#!/bin/bash
+
+# ============================================================================
+# Branch Container - Docker container initialization for branch sync
+# ============================================================================
+#
+# This script contains the start_container function used by propagate script.
+# Extracted for isolation and independent testing.
+#
+# Usage: Source this file to use the start_container function
+#   source scripts/automation/branch_container
+#   start_container "dev-v2.15_propagate" "dev-v2.15"
+#
+# ============================================================================
+
+# ============================================================================
+# Global Variables
+# ============================================================================
+
+# Colors
+RESET='\033[0m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;95m'
+
+# ============================================================================
+# Logging Functions
+# ============================================================================
+
+log_info() {
+    echo -e "${BLUE}[INFO]${RESET} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[PASS]${RESET} $1"
+}
+
+log_warning() {
+    echo -e "${YELLOW}[WARN]${RESET} $1"
+}
+
+log_error() {
+    echo -e "${RED}[FAIL]${RESET} $1" >&2
+}
+
+log_debug() {
+    echo -e "${MAGENTA}[DEBUG]${RESET} $1"
+}
+
+# ============================================================================
+# Container Management
+# ============================================================================
+
+start_container() {
+    local container_name=$1
+    local branch=$2
+    local repo_dir="/tmp/rancher-charts-propagate"
+    local docker_image="registry.suse.com/bci/bci-base:latest"
+
+    log_info "Starting container: $container_name"
+
+    # Remove existing container if present
+    if docker ps -a --format '{{.Names}}' | grep -q "^${container_name}$"; then
+        log_debug "Removing existing container: $container_name"
+        docker rm -f "$container_name" &> /dev/null
+    fi
+
+    # Start container with initialization script
+    if ! docker run -d \
+        --name "$container_name" \
+        -v "$repo_dir:/repo:ro" \
+        -v ~/.gitconfig:/root/.gitconfig:ro \
+        -v ~/.config/gh:/root/.config/gh:ro \
+        "$docker_image" \
+        bash -c "
+            set -e  # Exit on any error
+            set -x  # Print commands as they execute
+
+            # ================================================================
+            # Internal Functions
+            # ================================================================
+
+            install_system_dependencies() {
+                echo '[INFO] Installing system dependencies via zypper...'
+                zypper --non-interactive refresh
+                zypper --non-interactive install git make gawk jq go
+                echo '[PASS] System dependencies installed'
+            }
+
+            install_gh_cli() {
+                echo '[INFO] Installing gh CLI from GitHub releases...'
+                GH_VERSION='v2.89.0'
+                curl -sL \"https://github.com/cli/cli/releases/download/\${GH_VERSION}/gh_\${GH_VERSION#v}_linux_amd64.tar.gz\" -o /tmp/gh.tar.gz
+                tar -xzf /tmp/gh.tar.gz -C /tmp
+                mv \"/tmp/gh_\${GH_VERSION#v}_linux_amd64/bin/gh\" /usr/bin/gh
+                chmod +x /usr/bin/gh
+                rm -rf /tmp/gh.tar.gz \"/tmp/gh_\${GH_VERSION#v}_linux_amd64\"
+                echo \"[PASS] gh installed: \$(gh --version)\"
+            }
+
+            install_yq() {
+                echo '[INFO] Installing yq from GitHub releases...'
+                YQ_VERSION='v4.52.5'
+                curl -sL \"https://github.com/mikefarah/yq/releases/download/\${YQ_VERSION}/yq_linux_amd64\" -o /usr/bin/yq
+                chmod +x /usr/bin/yq
+                echo \"[PASS] yq installed: \$(yq --version)\"
+            }
+
+            setup_workspace() {
+                echo '[INFO] Setting up workspace...'
+                cp -r /repo /workspace
+                cd /workspace
+                echo '[PASS] Workspace ready'
+            }
+
+            configure_git_remote() {
+                echo '[INFO] Configuring git remote...'
+                git remote rename origin upstream
+                git remote -v
+                echo '[PASS] Git remote configured'
+            }
+
+            checkout_target_branch() {
+                echo '[INFO] Fetching branch: $branch'
+                git fetch upstream $branch --depth 1
+                git checkout FETCH_HEAD
+                git checkout -b $branch
+                git pull upstream $branch --depth 1
+                echo '[PASS] Branch checked out: $branch'
+            }
+
+            fetch_automation_core() {
+                echo '[INFO] Fetching automation-core...'
+                git fetch upstream automation-core:refs/remotes/upstream/automation-core --depth 1
+                echo '[DEBUG] Available refs:'
+                git show-ref
+                echo '[PASS] automation-core fetched'
+            }
+
+            sync_pull_scripts() {
+                echo '[INFO] Updating pull-scripts from automation-core...'
+                git show upstream/automation-core:scripts/pull-scripts > scripts/pull-scripts
+                chmod +x scripts/pull-scripts
+                echo '[PASS] pull-scripts updated'
+            }
+
+            run_pull_scripts() {
+                echo '[INFO] Running pull-scripts (syncs .gitignore and Makefile)...'
+                make pull-scripts
+                echo '[PASS] pull-scripts completed'
+            }
+
+            import_workflows() {
+                if [[ \"$branch\" == release-v* ]]; then
+                    echo '[INFO] Importing workflows (release mode)...'
+                    ./scripts/import-workflows --release
+                else
+                    echo '[INFO] Importing workflows (dev mode)...'
+                    ./scripts/import-workflows
+                fi
+                echo '[PASS] Workflows imported'
+            }
+
+            # ================================================================
+            # Main Execution
+            # ================================================================
+
+            echo '================================================================='
+            echo 'Branch Sync - $branch'
+            echo '================================================================='
+            echo ''
+
+            # Install dependencies
+            install_system_dependencies
+            install_gh_cli
+            install_yq
+
+            # Setup workspace and git
+            setup_workspace
+            configure_git_remote
+            checkout_target_branch
+            fetch_automation_core
+
+            # Sync automation-core infrastructure
+            sync_pull_scripts
+            run_pull_scripts
+            import_workflows
+
+            echo ''
+            echo '================================================================='
+            echo 'Sync completed successfully'
+            echo '================================================================='
+
+            # TODO: Push and create PR
+
+            # Keep container alive
+            tail -f /dev/null
+        "; then
+        log_error "Failed to start container: $container_name"
+        return 1
+    fi
+
+    log_success "Started: $container_name"
+    return 0
+}
