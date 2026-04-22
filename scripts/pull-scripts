@@ -6,17 +6,18 @@ set -e # Exit immediately if a command exits with a non-zero status.
 # ============================================================================
 #
 # WHAT:
-#   Downloads build scripts, Makefile, and charts-build-scripts binary.
+#   Downloads build scripts, .gitignore, Makefile, and charts-build-scripts binary.
 #   automation-core branch is the single source of truth for all scripts
 #   and configuration.
 #
 # HOW IT WORKS:
 #   1. Detects upstream remote (https or ssh URL)
 #   2. Fetches automation-core branch (shallow, --depth 1)
-#   3. Downloads scripts listed in AUTOMATION_CORE_SCRIPTS array
-#   4. Downloads Makefile from automation-core
-#   5. Resolves charts-build-scripts version (latest or pinned)
-#   6. Downloads platform-specific binary from GitHub releases
+#   3. Downloads .gitignore from automation-core template
+#   4. Downloads Makefile from automation-core template
+#   5. Downloads scripts listed in AUTOMATION_CORE_SCRIPTS array
+#   6. Resolves charts-build-scripts version (latest or pinned)
+#   7. Downloads platform-specific binary from GitHub releases
 #
 # USAGE:
 #   make pull-scripts
@@ -223,18 +224,6 @@ download_script_from_automation_core() {
     log "Downloaded: ${script_path}"
 }
 
-# Checks if a file has uncommitted changes
-# Args: $1 = file path
-# Returns: 0 (true) if changes exist, 1 (false) if no changes
-has_changes() {
-    local file_path="$1"
-    if ! git diff --quiet "$file_path" 2>/dev/null; then
-        return 0  # has changes
-    else
-        return 1  # no changes
-    fi
-}
-
 # Fetches automation-core branch from upstream remote
 fetch_automation_core() {
     log_function "fetch_automation_core"
@@ -255,54 +244,30 @@ download_automation_core_scripts() {
 download_gitignore() {
     log_function "download_gitignore"
 
-    # Check for uncommitted local changes before downloading
-    if has_changes "${REPO_ROOT}/.gitignore"; then
-        echo "ERROR: .gitignore has uncommitted changes. This file is managed by automation-core." >&2
-        echo "Changes must be made in automation-core branch (templates/ignore-template-git) and propagated via pull-scripts." >&2
-        echo "Discard your local changes before running pull-scripts." >&2
-        exit 1
-    fi
-
     log "Downloading .gitignore from automation-core..."
     git show "${REMOTE}/${AUTOMATION_BRANCH}:templates/ignore-template-git" > "${REPO_ROOT}/.gitignore"
     log ".gitignore updated from automation-core"
-
-    if has_changes "${REPO_ROOT}/.gitignore"; then
-        git add "${REPO_ROOT}/.gitignore"
-        git commit -m "chore: update .gitignore from automation-core"
-        log "Committed .gitignore changes"
-    else
-        log "No changes to .gitignore, skipping commit"
-    fi
 }
 
 # Downloads Makefile from automation-core template
 download_makefile() {
     log_function "download_makefile"
 
-    # Check for uncommitted local changes before downloading
-    if has_changes "${REPO_ROOT}/Makefile"; then
-        echo "ERROR: Makefile has uncommitted changes. This file is managed by automation-core." >&2
-        echo "Changes must be made in automation-core branch (templates/make-template-file) and propagated via pull-scripts." >&2
-        echo "Discard your local changes before running pull-scripts." >&2
-        exit 1
-    fi
-
     log "Downloading Makefile from automation-core..."
     git show "${REMOTE}/${AUTOMATION_BRANCH}:templates/make-template-file" > "${REPO_ROOT}/Makefile"
     log "Makefile updated from automation-core"
-
-    if has_changes "${REPO_ROOT}/Makefile"; then
-        git add "${REPO_ROOT}/Makefile"
-        git commit -m "chore: update Makefile from automation-core"
-        log "Committed Makefile changes"
-    else
-        log "No changes to Makefile, skipping commit"
-    fi
 }
 
 main() {
     log "=== pull-scripts started ==="
+    # git operations
+    detect_upstream_remote
+    fetch_automation_core
+    # infra files downloads
+    download_gitignore
+    download_makefile
+    download_automation_core_scripts
+
     if [[ "${SKIP_PS}" == "true" ]]; then
         echo "WARNING: SKIP_PS is set — skipping all downloads, only verifying existing binary" >&2
         if [[ ! -f "${REPO_ROOT}/bin/charts-build-scripts" ]]; then
@@ -313,13 +278,7 @@ main() {
         log "=== pull-scripts completed (SKIP_PS mode) ==="
         return
     fi
-    # git operations
-    detect_upstream_remote
-    fetch_automation_core
-    # infra files downloads
-    download_gitignore
-    download_makefile
-    download_automation_core_scripts
+
     # charts-build-scripts
     resolve_version
     check_existing_binary
