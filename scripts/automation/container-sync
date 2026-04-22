@@ -120,6 +120,31 @@ stage_and_commit() {
     echo "[PASS] Committed changes for: $path"
 }
 
+generate_pr_body() {
+    local current_date
+    current_date=$(date +%Y-%m-%d)
+
+    local cbs_version
+    cbs_version=$(/repo/bin/charts-build-scripts --version | awk '{print $3}')
+
+    cat <<EOF
+## Summary
+
+Automated propagation Sync from \`automation-core\` branch:
+
+- .gitignore
+- Makefile
+- .github/workflows
+- scripts/pull-scripts
+
+---
+
+Built for charts-build-scripts version: $cbs_version
+
+$current_date
+EOF
+}
+
 push_and_create_pr() {
     local propagate_branch=$1
 
@@ -131,7 +156,18 @@ push_and_create_pr() {
     git push -u upstream "$propagate_branch" --force
 
     echo "[PASS] Pushed to upstream/$propagate_branch"
-    echo "TODO: gh pr create"
+
+    echo "[INFO] Creating pull request..."
+    local pr_body
+    pr_body=$(generate_pr_body)
+
+    gh pr create \
+        --base "$BRANCH" \
+        --head "$propagate_branch" \
+        --title "[$BRANCH] infra propagation" \
+        --body "$pr_body"
+
+    echo "[PASS] Pull request created"
 }
 
 # ============================================================================
