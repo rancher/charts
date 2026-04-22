@@ -88,13 +88,22 @@ start_container() {
 
         log_debug "Using git identity: $git_user_name <$git_user_email>"
 
+        # Extract GitHub token for gh CLI authentication
+        local gh_token
+        gh_token=$(gh auth token)
+        if [[ -z "$gh_token" ]]; then
+            log_error "Failed to get GitHub token from gh CLI"
+            log_error "Run: gh auth login"
+            return 1
+        fi
+
         if ! docker run -d \
             --name "$container_name" \
             -e "GIT_AUTHOR_NAME=$git_user_name" \
             -e "GIT_AUTHOR_EMAIL=$git_user_email" \
             -e "GIT_COMMITTER_NAME=$git_user_name" \
             -e "GIT_COMMITTER_EMAIL=$git_user_email" \
-            -v ~/.config/gh:/root/.config/gh:ro \
+            -e "GH_TOKEN=$gh_token" \
             "$docker_image" \
             tail -f /dev/null; then
             log_error "Failed to create container: $container_name"
@@ -112,11 +121,27 @@ start_container() {
 
     # Step 3: Execute sync script inside container
     log_info "Executing sync for branch: $branch"
-    if ! docker exec "$container_name" bash /sync.sh "$branch"; then
+
+    # Capture output while still displaying it
+    local output
+    output=$(docker exec "$container_name" bash /sync.sh "$branch" 2>&1 | tee /dev/tty)
+    local exit_code=$?
+
+    if [[ $exit_code -ne 0 ]]; then
         log_error "Sync failed for branch: $branch"
         return 1
     fi
 
+    # Extract PR URL from output
+    local pr_url
+    pr_url=$(echo "$output" | grep "PROPAGATE_PR_URL=" | cut -d= -f2)
+
     log_success "Completed: $container_name"
+
+    echo ""
+    echo "================================================================="
+    echo "Setup completed successfully"
+    echo "================================================================="
+    echo "CONTAINER_SETUP_PR_URL=$pr_url"
     return 0
 }

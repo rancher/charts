@@ -69,6 +69,7 @@ declare -a DEV_BRANCHES
 declare -a RELEASE_BRANCHES
 declare -a ALL_BRANCHES
 declare -a CONTAINER_NAMES
+declare -A PR_URLS  # Associative array: branch -> PR URL
 
 # ============================================================================
 # Logging Functions
@@ -228,17 +229,119 @@ sync_all_branches() {
         log_info "[$count/${#ALL_BRANCHES[@]}] Processing branch: $branch"
         print_separator
 
-        if ! start_container "$container_name" "$branch"; then
+        # Capture output from start_container
+        local output
+        output=$(start_container "$container_name" "$branch")
+        local exit_code=$?
+
+        if [[ $exit_code -ne 0 ]]; then
             log_error "Sync failed for branch: $branch"
             log_error "Aborting remaining branches (fail-fast mode)"
             exit 1
         fi
+
+        # Extract PR URL from marker
+        local pr_url
+        pr_url=$(echo "$output" | grep "CONTAINER_SETUP_PR_URL=" | cut -d= -f2)
+
+        # Store PR URL
+        PR_URLS["$branch"]="$pr_url"
+        log_debug "Stored PR URL for $branch: $pr_url"
 
         log_success "Completed: $branch"
         echo ""
     done
 
     log_success "All branches synced successfully"
+    echo ""
+
+    # Display created PRs
+    print_header "Created Propagation PRs"
+    for branch in "${ALL_BRANCHES[@]}"; do
+        echo "  - $branch: ${PR_URLS[$branch]}"
+    done
+    echo ""
+}
+
+create_meta_pr() {
+    log_success "create_meta_pr"
+    log_info "Creating meta-PR against automation-core..."
+    echo ""
+
+    # Generate branch name with date
+    local meta_branch="propagate-batch-$(date +%Y-%m-%d)"
+
+    log_debug "Meta branch: $meta_branch"
+
+    # Create meta branch from current HEAD
+    log_info "Creating meta branch: $meta_branch"
+    git checkout -B "$meta_branch"
+
+    # Stage and commit propagate.yaml
+    log_info "Committing propagate.yaml..."
+    git add scripts/automation/propagate.yaml
+    git commit -m "chore(automation): propagate infrastructure to ${#ALL_BRANCHES[@]} branches"
+
+    # Push meta branch
+    log_info "Pushing meta branch to upstream..."
+    git push -u upstream "$meta_branch" --force
+
+    # Generate PR body from template
+    local current_date
+    current_date=$(date +%Y-%m-%d)
+
+    local cbs_version
+    cbs_version=$(./bin/charts-build-scripts --version | awk '{print $3}')
+
+    local pr_list=""
+    for branch in "${ALL_BRANCHES[@]}"; do
+        pr_list+="- ${PR_URLS[$branch]}"$'\n'
+    done
+
+    local pr_body
+    pr_body=$(cat scripts/automation/propagate-meta-template.md)
+    pr_body="${pr_body//\{\{BRANCH_COUNT\}\}/${#ALL_BRANCHES[@]}}"
+    pr_body="${pr_body//\{\{PR_LIST\}\}/$pr_list}"
+    pr_body="${pr_body//\{\{CBS_VERSION\}\}/$cbs_version}"
+    pr_body="${pr_body//\{\{DATE\}\}/$current_date}"
+
+    # Create meta-PR
+    log_info "Creating meta-PR..."
+    local meta_pr_url
+    meta_pr_url=$(gh pr create \
+        --base automation-core \
+        --head "$meta_branch" \
+        --title "[automation-core] propagate infra" \
+        --body "$pr_body")
+
+    log_success "Meta-PR created: $meta_pr_url"
+    echo ""
+
+    # Return meta-PR URL
+    echo "$meta_pr_url"
+}
+
+ask_stop_containers() {
+    echo ""
+    log_info "Containers are still running for inspection"
+    echo -n "Stop all propagate containers? (y/N): "
+    read -r response
+
+    if [[ "$response" =~ ^[Yy]$ ]]; then
+        log_info "Stopping propagate containers..."
+        local container_ids
+        container_ids=$(docker ps --filter "name=_propagate" -q)
+
+        if [[ -n "$container_ids" ]]; then
+            echo "$container_ids" | xargs docker stop &> /dev/null
+            local count=$(echo "$container_ids" | wc -l)
+            log_success "Stopped $count container(s)"
+        else
+            log_debug "No running containers found"
+        fi
+    else
+        log_info "Containers kept running - use 'make reset-propagate' to clean up"
+    fi
     echo ""
 }
 
@@ -349,8 +452,19 @@ main() {
     # Sync all branches sequentially (fail-fast)
     sync_all_branches
 
+    # Create meta-PR against automation-core
+    local meta_pr_url
+    meta_pr_url=$(create_meta_pr)
+
+    # Display meta-PR URL
+    print_header "Meta-PR Created"
+    echo "  $meta_pr_url"
+    echo ""
+
+    # Ask user if they want to stop containers
+    ask_stop_containers
+
     log_success "Propagation completed successfully"
-    log_info "Containers persist for inspection - use 'make reset-propagate' to clean up"
     log_debug "Script completed"
 }
 
