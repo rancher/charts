@@ -229,9 +229,9 @@ sync_all_branches() {
         log_info "[$count/${#ALL_BRANCHES[@]}] Processing branch: $branch"
         print_separator
 
-        # Capture PR URL from start_container
-        local pr_url
-        pr_url=$(start_container "$container_name" "$branch")
+        # Capture output from start_container
+        local output
+        output=$(start_container "$container_name" "$branch")
         local exit_code=$?
 
         if [[ $exit_code -ne 0 ]]; then
@@ -239,6 +239,10 @@ sync_all_branches() {
             log_error "Aborting remaining branches (fail-fast mode)"
             exit 1
         fi
+
+        # Extract PR URL from marker
+        local pr_url
+        pr_url=$(echo "$output" | grep "CONTAINER_SETUP_PR_URL=" | cut -d= -f2)
 
         # Store PR URL
         PR_URLS["$branch"]="$pr_url"
