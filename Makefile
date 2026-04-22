@@ -1,32 +1,25 @@
+.DEFAULT_GOAL := help
+
 help:
-	./bin/charts-build-scripts --help
+	@echo "Automation-Core Makefile"
+	@echo ""
+	@echo "Available targets:"
+	@echo "  update-dependencies  - Check SUSE package versions/checksums and update dependencies action"
+	@echo "  test-dependencies    - Test dependencies action locally using act (requires Docker)"
+	@echo "  propagate            - Propagate automation-core infrastructure to active branches"
+	@echo "  reset-propagate      - Clean up propagate containers, image, and temp files"
+	@echo "  help                 - Show this help message"
 
-pull-scripts:
-	./scripts/pull-scripts
+update-dependencies:
+	./scripts/automation/update-dependencies
 
-remove:
-	./scripts/remove-asset
+test-dependencies:
+	act -j test-dependencies --container-architecture linux/amd64
 
-forward-port:
-	./scripts/forward-port
+propagate:
+	./scripts/automation/propagate
 
-validate:
-	@./scripts/pull-scripts
-	@./scripts/check-release-yaml
-	@./bin/charts-build-scripts validate $(if $(filter true,$(remote)),--remote) $(if $(filter true,$(local)),--local)
+reset-propagate:
+	./scripts/automation/reset-propagate
 
-chart-bump:
-	@if [ -z "$(package)" ] || [ -z "$(branch)" ] || [ -z "$(override)" ]; then \
-		echo "Error: package, branch and override arguments are required."; \
-		exit 1; \
-	fi
-	@./scripts/pull-scripts
-	@./bin/charts-build-scripts chart-bump --package="$(package)" --branch="$(branch)" --override="$(override)" $(if $(multirc),--multirc="$(multirc)")
-
-TARGETS := prepare patch clean clean-cache charts list index unzip zip standardize template regsync check-images check-rc enforce-lifecycle lifecycle-status auto-forward-port icon
-
-$(TARGETS):
-	@./scripts/pull-scripts
-	@./bin/charts-build-scripts $@
-
-.PHONY: $(TARGETS)
+.PHONY: help update-dependencies test-dependencies propagate reset-propagate

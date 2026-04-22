@@ -1,0 +1,140 @@
+#!/bin/bash
+set -e  # Exit on any error
+set -x  # Print commands as they execute
+
+# ============================================================================
+# Container Sync Script - Automation-core propagation for a single branch
+# ============================================================================
+#
+# This script runs inside Docker containers to sync automation-core
+# infrastructure to a specific branch.
+#
+# Usage: /sync.sh <branch-name>
+#   Example: /sync.sh dev-v2.15
+#
+# ============================================================================
+
+BRANCH=$1
+
+if [[ -z "$BRANCH" ]]; then
+    echo "ERROR: Branch name required" >&2
+    echo "Usage: $0 <branch-name>" >&2
+    exit 1
+fi
+
+# ============================================================================
+# Internal Functions
+# ============================================================================
+# Dependencies pre-installed in Docker image
+
+checkout_target_branch() {
+    echo "[INFO] Fetching branch: $BRANCH"
+    git fetch upstream $BRANCH --depth 1
+    git checkout FETCH_HEAD
+    git checkout -b $BRANCH
+    git pull upstream $BRANCH --depth 1
+    echo "[PASS] Branch checked out: $BRANCH"
+}
+
+fetch_automation_core() {
+    echo '[INFO] Fetching automation-core...'
+    git fetch upstream automation-core:refs/remotes/upstream/automation-core --depth 1
+    echo '[DEBUG] Available refs:'
+    git show-ref
+    echo '[PASS] automation-core fetched'
+}
+
+sync_pull_scripts() {
+    echo '[INFO] Updating pull-scripts from automation-core...'
+    git show upstream/automation-core:scripts/pull-scripts > scripts/pull-scripts
+    chmod +x scripts/pull-scripts
+    echo '[PASS] pull-scripts updated'
+}
+
+run_pull_scripts() {
+    echo '[INFO] Running pull-scripts (syncs .gitignore and Makefile)...'
+    pull-scripts # add SKIP_PS in the next PR
+    echo '[PASS] pull-scripts completed'
+}
+
+import_workflows() {
+    if [[ "$BRANCH" == release-v* ]]; then
+        echo '[INFO] Importing workflows (release mode)...'
+        ./scripts/import-workflows --release
+    else
+        echo '[INFO] Importing workflows (dev mode)...'
+        ./scripts/import-workflows
+    fi
+    echo '[PASS] Workflows imported'
+}
+
+stage_and_commit() {
+    local path=$1
+
+    if [[ -z "$path" ]]; then
+        echo '[ERROR] stage_and_commit requires a path argument'
+        return 1
+    fi
+
+    # Check if there are changes at the specified path
+    if git diff --quiet "$path" && git diff --cached --quiet "$path"; then
+        echo "[DEBUG] No changes to commit for: $path"
+        return 0
+    fi
+
+    # Stage the path
+    echo "[DEBUG] Staging: $path"
+    git add "$path"
+
+    # Generate dynamic commit message based on path
+    commit_msg="chore(automation-core): sync $path from automation-core"
+
+    echo "[DEBUG] Creating commit: $commit_msg"
+    git commit -m "$commit_msg"
+    echo "[PASS] Committed changes for: $path"
+}
+
+# ============================================================================
+# Main Execution
+# ============================================================================
+
+main() {
+    echo '================================================================='
+    echo "Branch Sync - $BRANCH"
+    echo '================================================================='
+    echo ''
+
+    cd /repo
+
+    # Setup workspace and git
+    checkout_target_branch
+    fetch_automation_core
+
+    # Sync automation-core infrastructure
+    sync_pull_scripts
+    run_pull_scripts
+    import_workflows
+
+    # Files/directories modified during sync that need to be committed
+    local paths_to_commit=(
+        ".gitignore"
+        "Makefile"
+        ".github/workflows/"
+    )
+
+    # Stage and commit changes
+    echo '[INFO] Processing sync changes...'
+    for path in "${paths_to_commit[@]}"; do
+        stage_and_commit "$path"
+    done
+
+    git status
+    echo ''
+    echo '================================================================='
+    echo 'Sync completed successfully'
+    echo '================================================================='
+
+    # TODO: Push and create PR
+}
+
+main

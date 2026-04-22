@@ -1,0 +1,357 @@
+#!/bin/bash
+set -e
+
+# ============================================================================
+# Propagate Automation-Core - Sync infrastructure to active branches
+# ============================================================================
+#
+# WHAT IS THIS?
+#   Propagates automation-core infrastructure changes (scripts, workflows,
+#   Makefile, .gitignore) to active dev-v* and release-v* branches using
+#   Docker containers for isolation. Creates PRs for each branch.
+#
+# HOW IT WORKS:
+#   1. Reads branch list from scripts/automation/propagate.yaml
+#   2. Validates authentication (git + gh cli)
+#   3. For each branch (in parallel):
+#      - Spins up Docker container
+#      - Fresh clone of repository
+#      - Creates feature branch
+#      - Runs sync-branch script (pull-scripts + import-workflows)
+#      - Pushes and creates PR
+#   4. Monitors container logs and reports results
+#
+# USAGE:
+#   make propagate
+#
+#   The script will:
+#   - Read branches from propagate.yaml
+#   - Show summary and ask for confirmation
+#   - Launch parallel Docker containers for each branch
+#   - Create PRs for successful syncs
+#   - Report failures
+#
+# REQUIREMENTS:
+#   - Docker installed and running
+#   - Git authenticated (push access to rancher/charts)
+#   - GitHub CLI authenticated (gh auth status)
+#   - yq installed (for YAML parsing)
+#
+# ============================================================================
+
+cd "$(dirname "$0")"
+cd ../..
+
+# Source the container setup functions
+source "$(dirname "$0")/container-setup"
+
+# ============================================================================
+# Global Variables
+# ============================================================================
+
+# Paths
+CONFIG_FILE="scripts/automation/propagate.yaml"
+LOG_DIR="logs/propagate"
+
+# Docker configuration
+DOCKER_IMAGE="registry.suse.com/bci/bci-base:latest"
+
+# Colors
+RESET='\033[0m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;95m'
+
+# Branch tracking
+declare -a DEV_BRANCHES
+declare -a RELEASE_BRANCHES
+declare -a ALL_BRANCHES
+declare -a CONTAINER_NAMES
+
+# ============================================================================
+# Logging Functions
+# ============================================================================
+
+log_info() {
+    echo -e "${BLUE}[INFO]${RESET} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[PASS]${RESET} $1"
+}
+
+log_warning() {
+    echo -e "${YELLOW}[WARN]${RESET} $1"
+}
+
+log_error() {
+    echo -e "${RED}[FAIL]${RESET} $1" >&2
+}
+
+log_debug() {
+    echo -e "${MAGENTA}[DEBUG]${RESET} $1"
+}
+
+print_header() {
+    echo "================================================================="
+    echo "$1"
+    echo "================================================================="
+}
+
+print_separator() {
+    echo "-------------------------------------------------------------------"
+}
+
+# ============================================================================
+# Validation Functions
+# ============================================================================
+
+validate_dependencies() {
+    log_success "validate_dependencies"
+    log_info "Checking required tools..."
+
+    # Check Docker
+    if ! command -v docker &> /dev/null; then
+        log_error "Docker not found. Install Docker first."
+        exit 1
+    fi
+
+    if ! docker info &> /dev/null; then
+        log_error "Docker daemon not running. Start Docker first."
+        exit 1
+    fi
+    log_debug "✓ Docker available"
+
+    # Check yq
+    if ! command -v yq &> /dev/null; then
+        log_error "yq not found. Install yq for YAML parsing."
+        exit 1
+    fi
+    log_debug "✓ yq available"
+
+    # Check gh
+    if ! command -v gh &> /dev/null; then
+        log_error "GitHub CLI (gh) not found. Install gh first."
+        exit 1
+    fi
+    log_debug "✓ gh available"
+
+    # Check gh authentication
+    if ! gh auth status &> /dev/null; then
+        log_error "GitHub CLI not authenticated. Run 'gh auth login' first."
+        exit 1
+    fi
+    log_debug "✓ gh authenticated"
+
+    # Check git authentication
+    if ! git config user.email &> /dev/null; then
+        log_error "Git user.email not configured. Run 'git config --global user.email <email>'"
+        exit 1
+    fi
+    log_debug "✓ git configured"
+
+    log_success "All dependencies validated"
+    echo ""
+}
+
+validate_config_file() {
+    log_success "validate_config_file"
+    log_info "Checking configuration file..."
+
+    if [[ ! -f "$CONFIG_FILE" ]]; then
+        log_error "Configuration file not found: $CONFIG_FILE"
+        exit 1
+    fi
+    log_debug "✓ Configuration file exists"
+
+    # Validate YAML structure
+    if ! yq '.dev' "$CONFIG_FILE" &> /dev/null; then
+        log_error "Invalid YAML: missing 'dev' section"
+        exit 1
+    fi
+
+    if ! yq '.release' "$CONFIG_FILE" &> /dev/null; then
+        log_error "Invalid YAML: missing 'release' section"
+        exit 1
+    fi
+    log_debug "✓ YAML structure valid"
+
+    log_success "Configuration file validated"
+    echo ""
+}
+
+# ============================================================================
+# Container Management
+# ============================================================================
+
+build_docker_image() {
+    log_success "build_docker_image"
+    local dockerfile="scripts/automation/Dockerfile"
+    local image_tag="rancher-charts-propagate:local"
+
+    # Check if image already exists
+    if docker images --format "{{.Repository}}:{{.Tag}}" | grep -q "^${image_tag}$"; then
+        log_info "Image already exists: $image_tag"
+        log_debug "Skipping build (use 'make reset-propagate' to rebuild)"
+        echo ""
+        return 0
+    fi
+
+    log_info "Building Docker image with dependencies..."
+    echo ""
+
+    if ! docker build -t "$image_tag" -f "$dockerfile" scripts/automation/; then
+        log_error "Failed to build Docker image"
+        exit 1
+    fi
+
+    log_success "Image built: $image_tag"
+    echo ""
+}
+
+# start_container function is sourced from container-setup script
+
+sync_all_branches() {
+    log_success "sync_all_branches"
+    log_info "Syncing ${#ALL_BRANCHES[@]} branch(es) sequentially..."
+    echo ""
+
+    local count=0
+    for i in "${!ALL_BRANCHES[@]}"; do
+        local branch="${ALL_BRANCHES[$i]}"
+        local container_name="${CONTAINER_NAMES[$i]}"
+        count=$((count + 1))
+
+        print_separator
+        log_info "[$count/${#ALL_BRANCHES[@]}] Processing branch: $branch"
+        print_separator
+
+        if ! start_container "$container_name" "$branch"; then
+            log_error "Sync failed for branch: $branch"
+            log_error "Aborting remaining branches (fail-fast mode)"
+            exit 1
+        fi
+
+        log_success "Completed: $branch"
+        echo ""
+    done
+
+    log_success "All branches synced successfully"
+    echo ""
+}
+
+# Cleanup handled by reset-propagate script instead of automatic cleanup
+
+# ============================================================================
+# Configuration Parsing
+# ============================================================================
+
+parse_branches() {
+    log_success "parse_branches"
+    log_info "Reading branches from $CONFIG_FILE..."
+
+    # Parse dev branches
+    for version in $(yq '.dev[]' "$CONFIG_FILE"); do
+        DEV_BRANCHES+=("dev-v2.$version")
+    done
+
+    # Parse release branches
+    for version in $(yq '.release[]' "$CONFIG_FILE"); do
+        RELEASE_BRANCHES+=("release-v2.$version")
+    done
+
+    # Combine all branches
+    ALL_BRANCHES=("${DEV_BRANCHES[@]}" "${RELEASE_BRANCHES[@]}")
+
+    log_debug "Dev branches: ${#DEV_BRANCHES[@]}"
+    log_debug "Release branches: ${#RELEASE_BRANCHES[@]}"
+    log_success "Parsed ${#ALL_BRANCHES[@]} total branch(es)"
+    echo ""
+}
+
+build_container_names() {
+    log_success "build_container_names"
+    log_info "Building container names..."
+
+    for branch in "${ALL_BRANCHES[@]}"; do
+        CONTAINER_NAMES+=("${branch}_propagate")
+    done
+
+    log_debug "Container names: ${#CONTAINER_NAMES[@]}"
+    log_success "Container names built"
+    echo ""
+}
+
+display_summary() {
+    log_success "display_summary"
+    print_header "Propagation Summary"
+    echo ""
+
+    echo "Dev branches (${#DEV_BRANCHES[@]}):"
+    for branch in "${DEV_BRANCHES[@]}"; do
+        echo "  - $branch"
+    done
+    echo ""
+
+    echo "Release branches (${#RELEASE_BRANCHES[@]}):"
+    for branch in "${RELEASE_BRANCHES[@]}"; do
+        echo "  - $branch"
+    done
+    echo ""
+
+    echo "Total branches: ${#ALL_BRANCHES[@]}"
+    echo ""
+}
+
+ask_confirmation() {
+    log_success "ask_confirmation"
+    print_separator
+
+    read -p "Propagate automation-core to these branches? [y/N]: " -n 1 -r
+    echo ""
+
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        log_warning "User aborted"
+        exit 0
+    fi
+
+    log_debug "User confirmed"
+    echo ""
+}
+
+# ============================================================================
+# Main
+# ============================================================================
+
+main() {
+    log_success "main"
+    log_debug "Script started"
+    log_debug "Working directory: $(pwd)"
+
+    print_header "Propagate Automation-Core"
+    echo ""
+
+    # Validate environment
+    validate_dependencies
+    validate_config_file
+
+    # Parse configuration
+    parse_branches
+    build_container_names
+    display_summary
+    ask_confirmation
+
+    # Build Docker image with dependencies and rancher/charts clone
+    build_docker_image
+
+    # Sync all branches sequentially (fail-fast)
+    sync_all_branches
+
+    log_success "Propagation completed successfully"
+    log_info "Containers persist for inspection - use 'make reset-propagate' to clean up"
+    log_debug "Script completed"
+}
+
+main "$@"

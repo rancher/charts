@@ -1,0 +1,122 @@
+#!/bin/bash
+
+# ============================================================================
+# Container Setup - Docker container lifecycle management for branch sync
+# ============================================================================
+#
+# This script contains the start_container function used by propagate script.
+# Manages container creation, startup, and sync script execution.
+#
+# Usage: Source this file to use the start_container function
+#   source scripts/automation/container-setup
+#   start_container "dev-v2.15_propagate" "dev-v2.15"
+#
+# ============================================================================
+
+# ============================================================================
+# Global Variables
+# ============================================================================
+
+# Colors
+RESET='\033[0m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;95m'
+
+# ============================================================================
+# Logging Functions
+# ============================================================================
+
+log_info() {
+    echo -e "${BLUE}[INFO]${RESET} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[PASS]${RESET} $1"
+}
+
+log_warning() {
+    echo -e "${YELLOW}[WARN]${RESET} $1"
+}
+
+log_error() {
+    echo -e "${RED}[FAIL]${RESET} $1" >&2
+}
+
+log_debug() {
+    echo -e "${MAGENTA}[DEBUG]${RESET} $1"
+}
+
+# ============================================================================
+# Container Management
+# ============================================================================
+
+start_container() {
+    local container_name=$1
+    local branch=$2
+    local docker_image="rancher-charts-propagate:local"
+    local sync_script="scripts/automation/container-sync"
+
+    log_info "Processing container: $container_name"
+
+    # Step 1: Ensure container is running
+    if docker ps --format '{{.Names}}' | grep -q "^${container_name}$"; then
+        log_debug "Container already running: $container_name"
+    elif docker ps -a --format '{{.Names}}' | grep -q "^${container_name}$"; then
+        log_debug "Container exists but stopped, starting: $container_name"
+        if ! docker start "$container_name"; then
+            log_error "Failed to start container: $container_name"
+            return 1
+        fi
+    else
+        log_debug "Creating new container: $container_name"
+
+        # Extract git identity from local config
+        local git_user_name
+        local git_user_email
+        git_user_name=$(git config user.name)
+        git_user_email=$(git config user.email)
+
+        if [[ -z "$git_user_name" ]] || [[ -z "$git_user_email" ]]; then
+            log_error "Git user.name and user.email must be configured"
+            log_error "Run: git config user.name 'Your Name'"
+            log_error "Run: git config user.email 'your.email@example.com'"
+            return 1
+        fi
+
+        log_debug "Using git identity: $git_user_name <$git_user_email>"
+
+        if ! docker run -d \
+            --name "$container_name" \
+            -e "GIT_AUTHOR_NAME=$git_user_name" \
+            -e "GIT_AUTHOR_EMAIL=$git_user_email" \
+            -e "GIT_COMMITTER_NAME=$git_user_name" \
+            -e "GIT_COMMITTER_EMAIL=$git_user_email" \
+            -v ~/.config/gh:/root/.config/gh:ro \
+            "$docker_image" \
+            tail -f /dev/null; then
+            log_error "Failed to create container: $container_name"
+            return 1
+        fi
+        log_debug "Container created and running"
+    fi
+
+    # Step 2: Copy sync script into container
+    log_debug "Copying sync script into container"
+    if ! docker cp "$sync_script" "$container_name:/sync.sh"; then
+        log_error "Failed to copy sync script"
+        return 1
+    fi
+
+    # Step 3: Execute sync script inside container
+    log_info "Executing sync for branch: $branch"
+    if ! docker exec "$container_name" bash /sync.sh "$branch"; then
+        log_error "Sync failed for branch: $branch"
+        return 1
+    fi
+
+    log_success "Completed: $container_name"
+    return 0
+}
