@@ -259,6 +259,72 @@ sync_all_branches() {
     echo ""
 }
 
+create_meta_pr() {
+    log_success "create_meta_pr"
+    log_info "Creating meta-PR against automation-core..."
+    echo ""
+
+    # Generate branch name with date
+    local meta_branch="propagate-batch-$(date +%Y-%m-%d)"
+    local current_branch
+    current_branch=$(git branch --show-current)
+
+    log_debug "Current branch: $current_branch"
+    log_debug "Meta branch: $meta_branch"
+
+    # Checkout automation-core and create meta branch
+    log_info "Creating meta branch: $meta_branch"
+    git fetch upstream automation-core --depth 1
+    git checkout -B automation-core upstream/automation-core
+    git checkout -B "$meta_branch"
+
+    # Stage and commit propagate.yaml
+    log_info "Committing propagate.yaml..."
+    git add scripts/automation/propagate.yaml
+    git commit -m "chore(automation): propagate infrastructure to ${#ALL_BRANCHES[@]} branches"
+
+    # Push meta branch
+    log_info "Pushing meta branch to upstream..."
+    git push -u upstream "$meta_branch" --force
+
+    # Generate PR body from template
+    local current_date
+    current_date=$(date +%Y-%m-%d)
+
+    local cbs_version
+    cbs_version=$(./bin/charts-build-scripts --version | awk '{print $3}')
+
+    local pr_list=""
+    for branch in "${ALL_BRANCHES[@]}"; do
+        pr_list+="- $branch: ${PR_URLS[$branch]}"$'\n'
+    done
+
+    local pr_body
+    pr_body=$(cat scripts/automation/propagate-meta-template.md)
+    pr_body="${pr_body//\{\{BRANCH_COUNT\}\}/${#ALL_BRANCHES[@]}}"
+    pr_body="${pr_body//\{\{PR_LIST\}\}/$pr_list}"
+    pr_body="${pr_body//\{\{CBS_VERSION\}\}/$cbs_version}"
+    pr_body="${pr_body//\{\{DATE\}\}/$current_date}"
+
+    # Create meta-PR
+    log_info "Creating meta-PR..."
+    local meta_pr_url
+    meta_pr_url=$(gh pr create \
+        --base automation-core \
+        --head "$meta_branch" \
+        --title "[automation-core] propagate infrastructure to ${#ALL_BRANCHES[@]} branches" \
+        --body "$pr_body")
+
+    # Return to original branch
+    git checkout "$current_branch"
+
+    log_success "Meta-PR created: $meta_pr_url"
+    echo ""
+
+    # Return meta-PR URL
+    echo "$meta_pr_url"
+}
+
 ask_stop_containers() {
     echo ""
     log_info "Containers are still running for inspection"
@@ -389,6 +455,15 @@ main() {
 
     # Sync all branches sequentially (fail-fast)
     sync_all_branches
+
+    # Create meta-PR against automation-core
+    local meta_pr_url
+    meta_pr_url=$(create_meta_pr)
+
+    # Display meta-PR URL
+    print_header "Meta-PR Created"
+    echo "  $meta_pr_url"
+    echo ""
 
     # Ask user if they want to stop containers
     ask_stop_containers
