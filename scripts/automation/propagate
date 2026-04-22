@@ -42,6 +42,9 @@ set -e
 cd "$(dirname "$0")"
 cd ../..
 
+# Source the container setup functions
+source "$(dirname "$0")/container-setup"
+
 # ============================================================================
 # Global Variables
 # ============================================================================
@@ -65,8 +68,7 @@ MAGENTA='\033[0;95m'
 declare -a DEV_BRANCHES
 declare -a RELEASE_BRANCHES
 declare -a ALL_BRANCHES
-declare -a FAILED_BRANCHES
-declare -a SUCCESS_BRANCHES
+declare -a CONTAINER_NAMES
 
 # ============================================================================
 # Logging Functions
@@ -181,6 +183,68 @@ validate_config_file() {
 }
 
 # ============================================================================
+# Container Management
+# ============================================================================
+
+build_docker_image() {
+    log_success "build_docker_image"
+    local dockerfile="scripts/automation/Dockerfile"
+    local image_tag="rancher-charts-propagate:local"
+
+    # Check if image already exists
+    if docker images --format "{{.Repository}}:{{.Tag}}" | grep -q "^${image_tag}$"; then
+        log_info "Image already exists: $image_tag"
+        log_debug "Skipping build (use 'make reset-propagate' to rebuild)"
+        echo ""
+        return 0
+    fi
+
+    log_info "Building Docker image with dependencies..."
+    echo ""
+
+    if ! docker build -t "$image_tag" -f "$dockerfile" scripts/automation/; then
+        log_error "Failed to build Docker image"
+        exit 1
+    fi
+
+    log_success "Image built: $image_tag"
+    echo ""
+}
+
+# start_container function is sourced from container-setup script
+
+sync_all_branches() {
+    log_success "sync_all_branches"
+    log_info "Syncing ${#ALL_BRANCHES[@]} branch(es) sequentially..."
+    echo ""
+
+    local count=0
+    for i in "${!ALL_BRANCHES[@]}"; do
+        local branch="${ALL_BRANCHES[$i]}"
+        local container_name="${CONTAINER_NAMES[$i]}"
+        count=$((count + 1))
+
+        print_separator
+        log_info "[$count/${#ALL_BRANCHES[@]}] Processing branch: $branch"
+        print_separator
+
+        if ! start_container "$container_name" "$branch"; then
+            log_error "Sync failed for branch: $branch"
+            log_error "Aborting remaining branches (fail-fast mode)"
+            exit 1
+        fi
+
+        log_success "Completed: $branch"
+        echo ""
+    done
+
+    log_success "All branches synced successfully"
+    echo ""
+}
+
+# Cleanup handled by reset-propagate script instead of automatic cleanup
+
+# ============================================================================
 # Configuration Parsing
 # ============================================================================
 
@@ -204,6 +268,19 @@ parse_branches() {
     log_debug "Dev branches: ${#DEV_BRANCHES[@]}"
     log_debug "Release branches: ${#RELEASE_BRANCHES[@]}"
     log_success "Parsed ${#ALL_BRANCHES[@]} total branch(es)"
+    echo ""
+}
+
+build_container_names() {
+    log_success "build_container_names"
+    log_info "Building container names..."
+
+    for branch in "${ALL_BRANCHES[@]}"; do
+        CONTAINER_NAMES+=("${branch}_propagate")
+    done
+
+    log_debug "Container names: ${#CONTAINER_NAMES[@]}"
+    log_success "Container names built"
     echo ""
 }
 
@@ -262,12 +339,18 @@ main() {
 
     # Parse configuration
     parse_branches
+    build_container_names
     display_summary
     ask_confirmation
 
-    # TODO: Implement propagation logic
-    log_info "Propagation logic not yet implemented"
+    # Build Docker image with dependencies and rancher/charts clone
+    build_docker_image
 
+    # Sync all branches sequentially (fail-fast)
+    sync_all_branches
+
+    log_success "Propagation completed successfully"
+    log_info "Containers persist for inspection - use 'make reset-propagate' to clean up"
     log_debug "Script completed"
 }
 
