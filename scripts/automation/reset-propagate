@@ -1,0 +1,77 @@
+#!/bin/bash
+
+# ============================================================================
+# Reset Propagate - Clean up containers and image
+# ============================================================================
+#
+# WHAT IS THIS?
+#   Removes all propagate-related Docker artifacts.
+#   Forces fresh image build (with updated rancher/charts clone) on next run.
+#
+# USAGE:
+#   make reset-propagate
+#
+# WHAT IT CLEANS:
+#   - All *_propagate containers (stopped and running)
+#   - rancher-charts-propagate:local Docker image (includes baked rancher/charts clone)
+#
+# ============================================================================
+
+# Colors
+RESET='\033[0m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;95m'
+
+log_info() {
+    echo -e "${BLUE}[INFO]${RESET} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[PASS]${RESET} $1"
+}
+
+log_debug() {
+    echo -e "${MAGENTA}[DEBUG]${RESET} $1"
+}
+
+print_header() {
+    echo "================================================================="
+    echo "$1"
+    echo "================================================================="
+}
+
+main() {
+    print_header "Reset Propagate Environment"
+    echo ""
+
+    # Remove containers
+    log_info "Removing propagate containers..."
+    local container_ids
+    container_ids=$(docker ps -a --filter "name=_propagate" -q)
+
+    if [[ -n "$container_ids" ]]; then
+        echo "$container_ids" | xargs docker rm -f &> /dev/null
+        local count=$(echo "$container_ids" | wc -l)
+        log_success "Removed $count container(s)"
+    else
+        log_debug "No containers to remove"
+    fi
+    echo ""
+
+    # Remove image
+    log_info "Removing Docker image..."
+    if docker images --format "{{.Repository}}:{{.Tag}}" | grep -q "^rancher-charts-propagate:local$"; then
+        docker rmi rancher-charts-propagate:local &> /dev/null
+        log_success "Removed image: rancher-charts-propagate:local"
+    else
+        log_debug "Image does not exist"
+    fi
+    echo ""
+
+    log_success "Reset complete - next propagate run will rebuild image with fresh rancher/charts clone"
+}
+
+main "$@"
