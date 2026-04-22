@@ -181,6 +181,22 @@ push_and_create_pr() {
     fi
 }
 
+substitute_branch_placeholders() {
+    echo '[INFO] Substituting branch placeholders in workflows...'
+
+    # Replace {{BRANCH}} with actual branch name in workflows only
+    find .github/workflows/ -type f \( -name "*.yaml" -o -name "*.yml" \) | while read -r file; do
+        if grep -q "{{BRANCH}}" "$file"; then
+            sed -i "s/{{BRANCH}}/$BRANCH/g" "$file"
+            echo "[DEBUG] Substituted {{BRANCH}} in: $file"
+        else
+            echo "[DEBUG] No placeholders found in: $file"
+        fi
+    done
+
+    echo '[PASS] Workflow branch placeholders substituted'
+}
+
 # ============================================================================
 # Main Execution
 # ============================================================================
@@ -206,6 +222,7 @@ main() {
     sync_pull_scripts
     run_pull_scripts
     import_workflows
+    substitute_branch_placeholders
 
     # Files/directories modified during sync that need to be committed
     local paths_to_commit=(
