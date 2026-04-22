@@ -47,3 +47,26 @@ Review & merge meta-PR
   ↓
 make reset-propagate (optional cleanup)
 ```
+
+---
+
+## Renovate Update Flow
+
+When Renovate merges GitHub Actions updates, propagate changes to all branches:
+
+```
+Renovate creates PR
+  ↓
+CI validates
+  ↓
+Manual review & merge
+  ↓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ↓
+Trigger End-to-End Propagation Flow
+  (see above - starting from "make propagate")
+```
+
+**Why propagate:** Renovate updates workflows at automation-core. These workflows must be propagated to active branches. Composite actions are automatically propagated since workflows import them via `@automation-core` references.
+
+**Details:** See [renovate.md](renovate.md) for configuration rationale.
