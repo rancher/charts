@@ -69,6 +69,7 @@ declare -a DEV_BRANCHES
 declare -a RELEASE_BRANCHES
 declare -a ALL_BRANCHES
 declare -a CONTAINER_NAMES
+declare -A PR_URLS  # Associative array: branch -> PR URL
 
 # ============================================================================
 # Logging Functions
@@ -228,17 +229,33 @@ sync_all_branches() {
         log_info "[$count/${#ALL_BRANCHES[@]}] Processing branch: $branch"
         print_separator
 
-        if ! start_container "$container_name" "$branch"; then
+        # Capture PR URL from start_container
+        local pr_url
+        pr_url=$(start_container "$container_name" "$branch")
+        local exit_code=$?
+
+        if [[ $exit_code -ne 0 ]]; then
             log_error "Sync failed for branch: $branch"
             log_error "Aborting remaining branches (fail-fast mode)"
             exit 1
         fi
+
+        # Store PR URL
+        PR_URLS["$branch"]="$pr_url"
+        log_debug "Stored PR URL for $branch: $pr_url"
 
         log_success "Completed: $branch"
         echo ""
     done
 
     log_success "All branches synced successfully"
+    echo ""
+
+    # Display created PRs
+    print_header "Created Propagation PRs"
+    for branch in "${ALL_BRANCHES[@]}"; do
+        echo "  - $branch: ${PR_URLS[$branch]}"
+    done
     echo ""
 }
 

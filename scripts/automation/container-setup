@@ -121,11 +121,24 @@ start_container() {
 
     # Step 3: Execute sync script inside container
     log_info "Executing sync for branch: $branch"
-    if ! docker exec "$container_name" bash /sync.sh "$branch"; then
+
+    # Capture output while still displaying it
+    local output
+    output=$(docker exec "$container_name" bash /sync.sh "$branch" 2>&1 | tee /dev/tty)
+    local exit_code=$?
+
+    if [[ $exit_code -ne 0 ]]; then
         log_error "Sync failed for branch: $branch"
         return 1
     fi
 
+    # Extract PR URL from output
+    local pr_url
+    pr_url=$(echo "$output" | grep "PROPAGATE_PR_URL=" | cut -d= -f2)
+
     log_success "Completed: $container_name"
+
+    # Return PR URL via stdout
+    echo "$pr_url"
     return 0
 }
