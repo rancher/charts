@@ -270,16 +270,11 @@ create_meta_pr() {
 
     # Generate branch name with date
     local meta_branch="propagate-batch-$(date +%Y-%m-%d)"
-    local current_branch
-    current_branch=$(git branch --show-current)
 
-    log_debug "Current branch: $current_branch"
     log_debug "Meta branch: $meta_branch"
 
-    # Checkout automation-core and create meta branch
+    # Create meta branch from current HEAD
     log_info "Creating meta branch: $meta_branch"
-    git fetch upstream automation-core --depth 1
-    git checkout -B automation-core upstream/automation-core
     git checkout -B "$meta_branch"
 
     # Stage and commit propagate.yaml
@@ -300,7 +295,7 @@ create_meta_pr() {
 
     local pr_list=""
     for branch in "${ALL_BRANCHES[@]}"; do
-        pr_list+="- $branch: ${PR_URLS[$branch]}"$'\n'
+        pr_list+="- ${PR_URLS[$branch]}"$'\n'
     done
 
     local pr_body
@@ -316,11 +311,8 @@ create_meta_pr() {
     meta_pr_url=$(gh pr create \
         --base automation-core \
         --head "$meta_branch" \
-        --title "[automation-core] propagate infrastructure to ${#ALL_BRANCHES[@]} branches" \
+        --title "[automation-core] propagate infra" \
         --body "$pr_body")
-
-    # Return to original branch
-    git checkout "$current_branch"
 
     log_success "Meta-PR created: $meta_pr_url"
     echo ""
