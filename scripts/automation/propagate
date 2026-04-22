@@ -242,6 +242,30 @@ sync_all_branches() {
     echo ""
 }
 
+ask_stop_containers() {
+    echo ""
+    log_info "Containers are still running for inspection"
+    echo -n "Stop all propagate containers? (y/N): "
+    read -r response
+
+    if [[ "$response" =~ ^[Yy]$ ]]; then
+        log_info "Stopping propagate containers..."
+        local container_ids
+        container_ids=$(docker ps --filter "name=_propagate" -q)
+
+        if [[ -n "$container_ids" ]]; then
+            echo "$container_ids" | xargs docker stop &> /dev/null
+            local count=$(echo "$container_ids" | wc -l)
+            log_success "Stopped $count container(s)"
+        else
+            log_debug "No running containers found"
+        fi
+    else
+        log_info "Containers kept running - use 'make reset-propagate' to clean up"
+    fi
+    echo ""
+}
+
 # Cleanup handled by reset-propagate script instead of automatic cleanup
 
 # ============================================================================
@@ -349,8 +373,10 @@ main() {
     # Sync all branches sequentially (fail-fast)
     sync_all_branches
 
+    # Ask user if they want to stop containers
+    ask_stop_containers
+
     log_success "Propagation completed successfully"
-    log_info "Containers persist for inspection - use 'make reset-propagate' to clean up"
     log_debug "Script completed"
 }
 
