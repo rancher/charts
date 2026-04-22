@@ -1,14 +1,14 @@
 #!/bin/bash
 
 # ============================================================================
-# Branch Container - Docker container initialization for branch sync
+# Container Setup - Docker container lifecycle management for branch sync
 # ============================================================================
 #
 # This script contains the start_container function used by propagate script.
-# Extracted for isolation and independent testing.
+# Manages container creation, startup, and sync script execution.
 #
 # Usage: Source this file to use the start_container function
-#   source scripts/automation/branch_container
+#   source scripts/automation/container-setup
 #   start_container "dev-v2.15_propagate" "dev-v2.15"
 #
 # ============================================================================
@@ -56,152 +56,67 @@ log_debug() {
 start_container() {
     local container_name=$1
     local branch=$2
-    local repo_dir="/tmp/rancher-charts-propagate"
-    local docker_image="registry.suse.com/bci/bci-base:latest"
+    local docker_image="rancher-charts-propagate:local"
+    local sync_script="scripts/automation/container-sync"
 
-    log_info "Starting container: $container_name"
+    log_info "Processing container: $container_name"
 
-    # Remove existing container if present
-    if docker ps -a --format '{{.Names}}' | grep -q "^${container_name}$"; then
-        log_debug "Removing existing container: $container_name"
-        docker rm -f "$container_name" &> /dev/null
+    # Step 1: Ensure container is running
+    if docker ps --format '{{.Names}}' | grep -q "^${container_name}$"; then
+        log_debug "Container already running: $container_name"
+    elif docker ps -a --format '{{.Names}}' | grep -q "^${container_name}$"; then
+        log_debug "Container exists but stopped, starting: $container_name"
+        if ! docker start "$container_name"; then
+            log_error "Failed to start container: $container_name"
+            return 1
+        fi
+    else
+        log_debug "Creating new container: $container_name"
+
+        # Extract git identity from local config
+        local git_user_name
+        local git_user_email
+        git_user_name=$(git config user.name)
+        git_user_email=$(git config user.email)
+
+        if [[ -z "$git_user_name" ]] || [[ -z "$git_user_email" ]]; then
+            log_error "Git user.name and user.email must be configured"
+            log_error "Run: git config user.name 'Your Name'"
+            log_error "Run: git config user.email 'your.email@example.com'"
+            return 1
+        fi
+
+        log_debug "Using git identity: $git_user_name <$git_user_email>"
+
+        if ! docker run -d \
+            --name "$container_name" \
+            -e "GIT_AUTHOR_NAME=$git_user_name" \
+            -e "GIT_AUTHOR_EMAIL=$git_user_email" \
+            -e "GIT_COMMITTER_NAME=$git_user_name" \
+            -e "GIT_COMMITTER_EMAIL=$git_user_email" \
+            -v ~/.config/gh:/root/.config/gh:ro \
+            "$docker_image" \
+            tail -f /dev/null; then
+            log_error "Failed to create container: $container_name"
+            return 1
+        fi
+        log_debug "Container created and running"
     fi
 
-    # Start container with initialization script
-    if ! docker run -d \
-        --name "$container_name" \
-        -v "$repo_dir:/repo:ro" \
-        -v ~/.gitconfig:/root/.gitconfig:ro \
-        -v ~/.config/gh:/root/.config/gh:ro \
-        "$docker_image" \
-        bash -c "
-            set -e  # Exit on any error
-            set -x  # Print commands as they execute
-
-            # ================================================================
-            # Internal Functions
-            # ================================================================
-
-            install_system_dependencies() {
-                echo '[INFO] Installing system dependencies via zypper...'
-                zypper --non-interactive refresh
-                zypper --non-interactive install git make gawk jq go
-                echo '[PASS] System dependencies installed'
-            }
-
-            install_gh_cli() {
-                echo '[INFO] Installing gh CLI from GitHub releases...'
-                GH_VERSION='v2.89.0'
-                curl -sL \"https://github.com/cli/cli/releases/download/\${GH_VERSION}/gh_\${GH_VERSION#v}_linux_amd64.tar.gz\" -o /tmp/gh.tar.gz
-                tar -xzf /tmp/gh.tar.gz -C /tmp
-                mv \"/tmp/gh_\${GH_VERSION#v}_linux_amd64/bin/gh\" /usr/bin/gh
-                chmod +x /usr/bin/gh
-                rm -rf /tmp/gh.tar.gz \"/tmp/gh_\${GH_VERSION#v}_linux_amd64\"
-                echo \"[PASS] gh installed: \$(gh --version)\"
-            }
-
-            install_yq() {
-                echo '[INFO] Installing yq from GitHub releases...'
-                YQ_VERSION='v4.52.5'
-                curl -sL \"https://github.com/mikefarah/yq/releases/download/\${YQ_VERSION}/yq_linux_amd64\" -o /usr/bin/yq
-                chmod +x /usr/bin/yq
-                echo \"[PASS] yq installed: \$(yq --version)\"
-            }
-
-            setup_workspace() {
-                echo '[INFO] Setting up workspace...'
-                cp -r /repo /workspace
-                cd /workspace
-                echo '[PASS] Workspace ready'
-            }
-
-            configure_git_remote() {
-                echo '[INFO] Configuring git remote...'
-                git remote rename origin upstream
-                git remote -v
-                echo '[PASS] Git remote configured'
-            }
-
-            checkout_target_branch() {
-                echo '[INFO] Fetching branch: $branch'
-                git fetch upstream $branch --depth 1
-                git checkout FETCH_HEAD
-                git checkout -b $branch
-                git pull upstream $branch --depth 1
-                echo '[PASS] Branch checked out: $branch'
-            }
-
-            fetch_automation_core() {
-                echo '[INFO] Fetching automation-core...'
-                git fetch upstream automation-core:refs/remotes/upstream/automation-core --depth 1
-                echo '[DEBUG] Available refs:'
-                git show-ref
-                echo '[PASS] automation-core fetched'
-            }
-
-            sync_pull_scripts() {
-                echo '[INFO] Updating pull-scripts from automation-core...'
-                git show upstream/automation-core:scripts/pull-scripts > scripts/pull-scripts
-                chmod +x scripts/pull-scripts
-                echo '[PASS] pull-scripts updated'
-            }
-
-            run_pull_scripts() {
-                echo '[INFO] Running pull-scripts (syncs .gitignore and Makefile)...'
-                make pull-scripts
-                echo '[PASS] pull-scripts completed'
-            }
-
-            import_workflows() {
-                if [[ \"$branch\" == release-v* ]]; then
-                    echo '[INFO] Importing workflows (release mode)...'
-                    ./scripts/import-workflows --release
-                else
-                    echo '[INFO] Importing workflows (dev mode)...'
-                    ./scripts/import-workflows
-                fi
-                echo '[PASS] Workflows imported'
-            }
-
-            # ================================================================
-            # Main Execution
-            # ================================================================
-
-            echo '================================================================='
-            echo 'Branch Sync - $branch'
-            echo '================================================================='
-            echo ''
-
-            # Install dependencies
-            install_system_dependencies
-            install_gh_cli
-            install_yq
-
-            # Setup workspace and git
-            setup_workspace
-            configure_git_remote
-            checkout_target_branch
-            fetch_automation_core
-
-            # Sync automation-core infrastructure
-            sync_pull_scripts
-            run_pull_scripts
-            import_workflows
-
-            echo ''
-            echo '================================================================='
-            echo 'Sync completed successfully'
-            echo '================================================================='
-
-            # TODO: Push and create PR
-
-            # Keep container alive
-            tail -f /dev/null
-        "; then
-        log_error "Failed to start container: $container_name"
+    # Step 2: Copy sync script into container
+    log_debug "Copying sync script into container"
+    if ! docker cp "$sync_script" "$container_name:/sync.sh"; then
+        log_error "Failed to copy sync script"
         return 1
     fi
 
-    log_success "Started: $container_name"
+    # Step 3: Execute sync script inside container
+    log_info "Executing sync for branch: $branch"
+    if ! docker exec "$container_name" bash /sync.sh "$branch"; then
+        log_error "Sync failed for branch: $branch"
+        return 1
+    fi
+
+    log_success "Completed: $container_name"
     return 0
 }
