@@ -38,7 +38,7 @@ checkout_target_branch() {
 
 fetch_automation_core() {
     echo '[INFO] Fetching automation-core...'
-    git fetch upstream automation-core:refs/remotes/upstream/automation-core --depth 1
+    git fetch upstream +automation-core:refs/remotes/upstream/automation-core --depth 1
     echo '[DEBUG] Available refs:'
     git show-ref
     echo '[PASS] automation-core fetched'
@@ -53,7 +53,7 @@ sync_pull_scripts() {
 
 run_pull_scripts() {
     echo '[INFO] Running pull-scripts (syncs .gitignore and Makefile)...'
-    pull-scripts # add SKIP_PS in the next PR
+    SKIP_PS=true ./scripts/pull-scripts
     echo '[PASS] pull-scripts completed'
 }
 
@@ -66,6 +66,32 @@ import_workflows() {
         ./scripts/import-workflows
     fi
     echo '[PASS] Workflows imported'
+}
+
+derive_propagate_branch_name() {
+    local target_branch=$1
+    local propagate_branch=""
+
+    if [[ "$target_branch" =~ ^dev-v2\.([0-9]+)$ ]]; then
+        # dev-v2.15 → propagate-dev-15
+        propagate_branch="propagate-dev-${BASH_REMATCH[1]}"
+    elif [[ "$target_branch" =~ ^release-v2\.([0-9]+)$ ]]; then
+        # release-v2.14 → propagate-rel-14
+        propagate_branch="propagate-rel-${BASH_REMATCH[1]}"
+    else
+        echo "[ERROR] Unknown branch pattern: $target_branch" >&2
+        return 1
+    fi
+
+    echo "$propagate_branch"
+}
+
+checkout_propagate_branch() {
+    local propagate_branch=$1
+
+    echo "[INFO] Creating propagate branch: $propagate_branch"
+    git checkout -b "$propagate_branch"
+    echo "[PASS] Checked out propagate branch: $propagate_branch"
 }
 
 stage_and_commit() {
@@ -94,6 +120,20 @@ stage_and_commit() {
     echo "[PASS] Committed changes for: $path"
 }
 
+push_and_create_pr() {
+    local propagate_branch=$1
+
+    # Configure git to use gh for authentication
+    git config --global credential.helper ""
+    git config --global --add credential.helper '!gh auth git-credential'
+
+    echo "[INFO] Pushing to upstream: $propagate_branch"
+    git push -u upstream "$propagate_branch" --force
+
+    echo "[PASS] Pushed to upstream/$propagate_branch"
+    echo "TODO: gh pr create"
+}
+
 # ============================================================================
 # Main Execution
 # ============================================================================
@@ -109,6 +149,11 @@ main() {
     # Setup workspace and git
     checkout_target_branch
     fetch_automation_core
+
+    # Derive propagate branch name and checkout
+    local propagate_branch
+    propagate_branch=$(derive_propagate_branch_name "$BRANCH")
+    checkout_propagate_branch "$propagate_branch"
 
     # Sync automation-core infrastructure
     sync_pull_scripts
@@ -128,13 +173,14 @@ main() {
         stage_and_commit "$path"
     done
 
+    # Push and create PR
+    push_and_create_pr "$propagate_branch"
+
     git status
     echo ''
     echo '================================================================='
     echo 'Sync completed successfully'
     echo '================================================================='
-
-    # TODO: Push and create PR
 }
 
 main
