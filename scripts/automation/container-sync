@@ -31,7 +31,7 @@ checkout_target_branch() {
     echo "[INFO] Fetching branch: $BRANCH"
     git fetch upstream $BRANCH --depth 1
     git checkout FETCH_HEAD
-    git checkout -b $BRANCH
+    git checkout -B $BRANCH
     git pull upstream $BRANCH --depth 1
     echo "[PASS] Branch checked out: $BRANCH"
 }
@@ -90,7 +90,7 @@ checkout_propagate_branch() {
     local propagate_branch=$1
 
     echo "[INFO] Creating propagate branch: $propagate_branch"
-    git checkout -b "$propagate_branch"
+    git checkout -B "$propagate_branch"
     echo "[PASS] Checked out propagate branch: $propagate_branch"
 }
 
@@ -149,7 +149,7 @@ push_and_create_pr() {
     local propagate_branch=$1
 
     # Configure git to use gh for authentication
-    git config --global credential.helper ""
+    git config --global --unset-all credential.helper || true
     git config --global --add credential.helper '!gh auth git-credential'
 
     echo "[INFO] Pushing to upstream: $propagate_branch"
