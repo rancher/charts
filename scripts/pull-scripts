@@ -6,17 +6,18 @@ set -e # Exit immediately if a command exits with a non-zero status.
 # ============================================================================
 #
 # WHAT:
-#   Downloads build scripts, Makefile, and charts-build-scripts binary.
+#   Downloads build scripts, .gitignore, Makefile, and charts-build-scripts binary.
 #   automation-core branch is the single source of truth for all scripts
 #   and configuration.
 #
 # HOW IT WORKS:
 #   1. Detects upstream remote (https or ssh URL)
 #   2. Fetches automation-core branch (shallow, --depth 1)
-#   3. Downloads scripts listed in AUTOMATION_CORE_SCRIPTS array
-#   4. Downloads Makefile from automation-core
-#   5. Resolves charts-build-scripts version (latest or pinned)
-#   6. Downloads platform-specific binary from GitHub releases
+#   3. Downloads .gitignore from automation-core template
+#   4. Downloads Makefile from automation-core template
+#   5. Downloads scripts listed in AUTOMATION_CORE_SCRIPTS array
+#   6. Resolves charts-build-scripts version (latest or pinned)
+#   7. Downloads platform-specific binary from GitHub releases
 #
 # USAGE:
 #   make pull-scripts
@@ -239,16 +240,34 @@ download_automation_core_scripts() {
     done
 }
 
-# Downloads Makefile from automation-core (source of truth)
+# Downloads .gitignore from automation-core template
+download_gitignore() {
+    log_function "download_gitignore"
+
+    log "Downloading .gitignore from automation-core..."
+    git show "${REMOTE}/${AUTOMATION_BRANCH}:templates/ignore-template-git" > "${REPO_ROOT}/.gitignore"
+    log ".gitignore updated from automation-core"
+}
+
+# Downloads Makefile from automation-core template
 download_makefile() {
     log_function "download_makefile"
+
     log "Downloading Makefile from automation-core..."
-    git show "${REMOTE}/${AUTOMATION_BRANCH}:Makefile" > "${REPO_ROOT}/Makefile"
+    git show "${REMOTE}/${AUTOMATION_BRANCH}:templates/make-template-file" > "${REPO_ROOT}/Makefile"
     log "Makefile updated from automation-core"
 }
 
 main() {
     log "=== pull-scripts started ==="
+    # git operations
+    detect_upstream_remote
+    fetch_automation_core
+    # infra files downloads
+    download_gitignore
+    download_makefile
+    download_automation_core_scripts
+
     if [[ "${SKIP_PS}" == "true" ]]; then
         echo "WARNING: SKIP_PS is set — skipping all downloads, only verifying existing binary" >&2
         if [[ ! -f "${REPO_ROOT}/bin/charts-build-scripts" ]]; then
@@ -259,10 +278,8 @@ main() {
         log "=== pull-scripts completed (SKIP_PS mode) ==="
         return
     fi
-    detect_upstream_remote
-    fetch_automation_core
-    download_automation_core_scripts
-    download_makefile
+
+    # charts-build-scripts
     resolve_version
     check_existing_binary
     detect_platform
