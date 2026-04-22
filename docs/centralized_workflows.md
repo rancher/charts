@@ -41,9 +41,20 @@ Run `make pull-scripts` to fetch:
 
 ### Workflow Import
 
-Run `./scripts/import-build-workflow` to pull workflow templates from automation-core and commit locally.
+Workflows are templates with branch-specific placeholders (e.g., `{{BRANCH}}`). When imported, placeholders are replaced with actual branch names.
 
-**Propagation:** Manual—import and commit to active branch.
+**Dev branches** receive:
+- `build.yaml` - PR validation
+- `auto-bump.yaml` - Chart version bumping
+- `auto-bump-manual-trigger.yaml` - Manual bump trigger
+- `fossa.yml` - License/security scanning
+
+**Release branches** receive:
+- `build.yaml` - PR validation
+- `scan-registry.yaml` - Registry scanning (label-triggered)
+- `sync-registry.yaml` - Registry syncing (label-triggered)
+
+**Propagation:** Automated via `make propagate` (see PROCESSES.md for details).
 
 ## Dependency Chain
 
