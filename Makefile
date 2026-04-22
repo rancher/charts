@@ -15,6 +15,7 @@ validate:
 	@./scripts/check-release-yaml
 	@./bin/charts-build-scripts validate $(if $(filter true,$(remote)),--remote) $(if $(filter true,$(local)),--local)
 
+# only to be used at dev-v2.X branches
 chart-bump:
 	@if [ -z "$(package)" ] || [ -z "$(branch)" ] || [ -z "$(override)" ]; then \
 		echo "Error: package, branch and override arguments are required."; \
@@ -23,7 +24,8 @@ chart-bump:
 	@./scripts/pull-scripts
 	@./bin/charts-build-scripts chart-bump --package="$(package)" --branch="$(branch)" --override="$(override)" $(if $(multirc),--multirc="$(multirc)")
 
-TARGETS := prepare patch clean clean-cache charts list index unzip zip standardize template regsync check-images check-rc enforce-lifecycle lifecycle-status auto-forward-port icon
+TARGETS := prepare patch clean clean-cache charts list index unzip zip standardize template regsync check-images check-rc enforce-lifecycle lifecycle-status auto-forward-port icon validate-release-charts compare-index-files
+
 
 $(TARGETS):
 	@./scripts/pull-scripts
