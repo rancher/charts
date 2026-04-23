@@ -103,15 +103,15 @@ stage_and_commit() {
         return 1
     fi
 
-    # Check if there are changes at the specified path
-    if git diff --quiet "$path" && git diff --cached --quiet "$path"; then
+    # Stage the path first (handles both modified and untracked files)
+    echo "[DEBUG] Staging: $path"
+    git add "$path"
+
+    # Check if anything was staged
+    if git diff --cached --quiet "$path"; then
         echo "[DEBUG] No changes to commit for: $path"
         return 0
     fi
-
-    # Stage the path
-    echo "[DEBUG] Staging: $path"
-    git add "$path"
 
     # Generate dynamic commit message based on path
     commit_msg="chore(automation-core): sync $path from automation-core"
