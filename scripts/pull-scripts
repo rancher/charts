@@ -170,7 +170,7 @@ detect_platform() {
 }
 
 # Wipes bin/, then downloads the release binary from CHARTS_BUILD_SCRIPTS_REPO.
-# Exits 1 on non-200 HTTP response.
+# Exits 1 on non-200 HTTP response or checksum mismatch.
 download_binary() {
     log_function "download_binary"
     local url="${CHARTS_BUILD_SCRIPTS_REPO%.git}/releases/download/${CHARTS_BUILD_SCRIPT_VERSION}/${BINARY_NAME}"
@@ -188,6 +188,23 @@ download_binary() {
         exit 1
     fi
     log "Downloaded ${BINARY_NAME} to ${REPO_ROOT}/bin/charts-build-scripts}"
+
+    # Verify checksum (only for linux_amd64, others not supported yet)
+    if [[ "$OS" == "linux" && "$ARCH" == "amd64" ]]; then
+        log "Verifying checksum"
+        local actual_checksum
+        actual_checksum=$(sha256sum "${REPO_ROOT}/bin/charts-build-scripts" | awk '{print $1}')
+
+        if [[ "$actual_checksum" != "$CHARTS_BUILD_SCRIPT_CHECKSUM_LINUX_AMD64" ]]; then
+            echo "Error: Checksum verification failed for ${BINARY_NAME}" >&2
+            echo "  Expected: ${CHARTS_BUILD_SCRIPT_CHECKSUM_LINUX_AMD64}" >&2
+            echo "  Actual:   ${actual_checksum}" >&2
+            exit 1
+        fi
+        log "Checksum verified successfully"
+    else
+        log "WARNING: Checksum verification not implemented for ${OS}/${ARCH}"
+    fi
 }
 
 # Sanity-checks the downloaded binary with file(1), makes it executable, and runs --version.
