@@ -157,7 +157,7 @@ jobs:
         continue-on-error: false
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
         with:
-          token: ${{ steps.app-token.outputs.token }}
+          token: ${{ steps.app_token.outputs.token }}
 
       # ====================================================================
       # REPOSITORY SETUP
@@ -206,14 +206,14 @@ jobs:
       - name: Push Scan Results
         continue-on-error: false
         run: |
-          echo "Checking for changes..."
-          if [[ -n "$(git status --porcelain)" ]]; then
-            echo "Changes detected from registry scan"
-            git status --short
+          echo "Checking for new commits..."
+          if [[ -n "$(git log origin/${{ github.event.pull_request.head.ref }}..HEAD)" ]]; then
+            echo "New commits detected from registry scan"
+            git log --oneline origin/${{ github.event.pull_request.head.ref }}..HEAD
             echo ""
             echo "Pushing to branch: ${{ github.event.pull_request.head.ref }}"
             git push origin ${{ github.event.pull_request.head.ref }}
             echo "✓ Scan results pushed successfully"
           else
-            echo "No changes to push"
+            echo "No new commits to push"
           fi

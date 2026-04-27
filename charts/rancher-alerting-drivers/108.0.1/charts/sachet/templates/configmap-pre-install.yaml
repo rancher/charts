@@ -1,0 +1,34 @@
+{{/*This file is applied when the operation is helm install and the target confimap does not exist. */}}
+{{- if not (lookup "v1" "ConfigMap" (include "sachet.namespace" . ) (include "sachet.fullname" .)) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ include "sachet.namespace" . }}
+  name: {{ include "sachet.fullname" . }}
+  labels: {{ include "sachet.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install, pre-upgrade
+    "helm.sh/hook-weight": "3"
+    "helm.sh/resource-policy": keep
+data:
+  config.yaml: |-
+    {{- if and (not .Values.sachet.providers) (not .Values.sachet.receivers) }}
+    # please refer to the upstream documentation for configuration options:
+    #   https://github.com/messagebird/sachet
+    #
+    # providers:
+    #   aliyun:
+    #     region_id:
+    #     ...
+    # receivers:
+    #   - name: 'team-sms'
+    #     provider: 'aliyu'
+    #     ...
+    {{- end }}
+    {{- with .Values.sachet.providers }}
+    providers: {{ toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.sachet.receivers }}
+    receivers: {{ toYaml . | nindent 6 }}
+    {{- end }}
+{{- end }}
