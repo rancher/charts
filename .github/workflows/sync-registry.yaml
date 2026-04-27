@@ -229,21 +229,3 @@ jobs:
           echo "Syncing images to Prime registry..."
           ./bin/charts-build-scripts sync-registries
           echo "✓ Registry sync completed"
-
-      # ====================================================================
-      # PUSH CHANGES
-      # ====================================================================
-      - name: Push Sync Results
-        continue-on-error: false
-        run: |
-          echo "Checking for changes..."
-          if [[ -n "$(git status --porcelain)" ]]; then
-            echo "Changes detected from registry sync"
-            git status --short
-            echo ""
-            echo "Pushing to branch: ${{ github.event.pull_request.head.ref }}"
-            git push origin ${{ github.event.pull_request.head.ref }}
-            echo "✓ Sync results pushed successfully"
-          else
-            echo "No changes to push"
-          fi
