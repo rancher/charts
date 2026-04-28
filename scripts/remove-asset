@@ -1,34 +1,141 @@
 #!/bin/bash
-
 set -e
 
-cd $(dirname $0)
+# ============================================================================
+# Remove Asset - Remove chart version from repository
+# ============================================================================
+
+cd "$(dirname "$0")"
 cd ..
 
+# Colors
+RESET='\033[0m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+
+# Logging functions
+log_info() {
+    echo -e "${BLUE}[INFO]${RESET} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[PASS]${RESET} $1"
+}
+
+log_warning() {
+    echo -e "${YELLOW}[WARN]${RESET} $1"
+}
+
+log_error() {
+    echo -e "${RED}[FAIL]${RESET} $1" >&2
+}
+
+# ============================================================================
+# Validate Input Parameters
+# ============================================================================
+
 if [[ -z ${CHART} ]] || [[ -z ${VERSION} ]]; then
+    log_error "Missing required parameters"
     echo "Usage: CHART=<chart> VERSION=<version> make remove"
     exit 1
 fi
 
-if [[ -d charts/${CHART}/${VERSION} ]] && [[ -f  assets/${CHART}/${CHART}-${VERSION}.tgz ]]; then
-    rm -rf charts/${CHART}/${VERSION}
-    rm -rf assets/${CHART}/${CHART}-${VERSION}.tgz
-else
-    [[ -d charts/${CHART}/${VERSION} ]] || echo "Could not find charts/${CHART}/${VERSION}"
-    [[ -f  assets/${CHART}/${CHART}-${VERSION}.tgz ]] || echo "Could not find assets/${CHART}/${CHART}-${VERSION}.tgz"
-    echo "No action was taken."
+log_info "Removing chart: ${CHART} version: ${VERSION}"
+echo ""
+
+# ============================================================================
+# Verify Paths Exist
+# ============================================================================
+
+CHART_PATH="charts/${CHART}/${VERSION}"
+ASSET_PATH="assets/${CHART}/${CHART}-${VERSION}.tgz"
+
+log_info "Checking paths..."
+
+if [[ ! -d "${CHART_PATH}" ]]; then
+    log_error "Chart directory not found: ${CHART_PATH}"
     exit 1
 fi
+log_success "Found chart directory: ${CHART_PATH}"
 
-# Prune empty directories
+if [[ ! -f "${ASSET_PATH}" ]]; then
+    log_error "Asset tarball not found: ${ASSET_PATH}"
+    exit 1
+fi
+log_success "Found asset tarball: ${ASSET_PATH}"
+
+echo ""
+
+# ============================================================================
+# Remove Files
+# ============================================================================
+
+log_info "Removing chart and asset..."
+
+rm -rf "${CHART_PATH}"
+log_success "Removed chart directory: ${CHART_PATH}"
+
+rm -rf "${ASSET_PATH}"
+log_success "Removed asset tarball: ${ASSET_PATH}"
+
+echo ""
+
+# ============================================================================
+# Prune Empty Directories
+# ============================================================================
+
+log_info "Pruning empty directories..."
+
 set +e
-rmdir charts/${CHART} >/dev/null 2>&1
-rmdir charts >/dev/null 2>&1
-rmdir assets/${CHART} >/dev/null 2>&1
-rmdir assets >/dev/null 2>&1
+if rmdir "charts/${CHART}" >/dev/null 2>&1; then
+    log_success "Removed empty directory: charts/${CHART}"
+fi
+
+if rmdir "charts" >/dev/null 2>&1; then
+    log_success "Removed empty directory: charts"
+fi
+
+if rmdir "assets/${CHART}" >/dev/null 2>&1; then
+    log_success "Removed empty directory: assets/${CHART}"
+fi
+
+if rmdir "assets" >/dev/null 2>&1; then
+    log_success "Removed empty directory: assets"
+fi
 set -e
+
+echo ""
+
+# ============================================================================
+# Update release.yaml
+# ============================================================================
+
+log_info "Updating release.yaml..."
 
 touch release.yaml
 yq e -i ".${CHART} = ((.${CHART} + [\"${VERSION}\"]) | unique)" release.yaml
 
-make index
+log_success "Added ${CHART}:${VERSION} to release.yaml"
+echo ""
+
+# ============================================================================
+# Regenerate index.yaml
+# ============================================================================
+
+log_info "Regenerating index.yaml..."
+
+SKIP_PS=true LOG="INFO" make index
+
+# Verify index.yaml was actually updated
+if [[ -z "$(git status --porcelain index.yaml)" ]]; then
+    log_error "index.yaml was not updated after removing chart!"
+    log_error "Files were removed successfully, but index.yaml remains unchanged"
+    log_error "This indicates a bug in the index regeneration process"
+    exit 1
+fi
+
+log_success "index.yaml updated successfully"
+log_success "Chart ${CHART} version ${VERSION} removed successfully"
+echo ""
