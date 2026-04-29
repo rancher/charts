@@ -1,0 +1,17 @@
+{{- if and .Values.grafana.enabled .Values.grafana.defaultDashboardsEnabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Values.grafana.defaultDashboards.namespace }}
+  name: rancher-default-dashboards-workloads
+  annotations:
+{{ toYaml .Values.grafana.sidecar.dashboards.annotations | indent 4 }}
+  labels:
+    {{- if $.Values.grafana.sidecar.dashboards.label }}
+    {{ $.Values.grafana.sidecar.dashboards.label }}: "1"
+    {{- end }}
+    app: {{ template "kube-prometheus-stack.name" $ }}-grafana
+{{ include "kube-prometheus-stack.labels" $ | indent 4 }}
+data:
+{{ (.Files.Glob "files/rancher/workloads/*").AsConfig | indent 2 }}
+{{- end }}
