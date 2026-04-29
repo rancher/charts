@@ -1,0 +1,49 @@
+suite: Security Context
+templates:
+  - deployment.yaml
+  - s3-secret.yaml
+  - pvc.yaml
+  - _helpers.tpl
+tests:
+  - it: should set runAsNonRoot true by default
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsNonRoot
+          value: true
+  - it: should set runAsUser 1000 when runAsNonRoot is true
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsUser
+          value: 1000
+  - it: should set runAsGroup 1000 when runAsNonRoot is true
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsGroup
+          value: 1000
+  - it: should set runAsNonRoot false when disabled
+    set:
+      securityContext.runAsNonRoot: false
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsNonRoot
+          value: false
+  - it: should set runAsUser 0 when runAsNonRoot is false
+    set:
+      securityContext.runAsNonRoot: false
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsUser
+          value: 0
+  - it: should set runAsGroup 0 when runAsNonRoot is false
+    set:
+      securityContext.runAsNonRoot: false
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsGroup
+          value: 0
