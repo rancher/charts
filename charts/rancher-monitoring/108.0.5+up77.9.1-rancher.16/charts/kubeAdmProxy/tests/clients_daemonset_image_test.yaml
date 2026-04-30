@@ -1,0 +1,98 @@
+suite: Clients Image Override Tests
+templates:
+  - pushprox-clients.yaml
+
+# Baseline values for the entire test suite.
+# Each 'test' will inherit these values unless explicitly overridden.
+set:
+  component: "client-unittest"
+  clients:
+    image:
+      tag: unittest-clients
+  proxy:
+    image:
+      tag: unittest-proxy
+
+tests:
+  - it: should be named pushprox-client-unittest-proxy
+    documentSelector:
+      path: kind
+      value: DaemonSet
+    asserts:
+      - equal:
+          path: metadata.name
+          value: pushprox-client-unittest-client
+
+  - it: should have a container named pushprox-client
+    documentSelector:
+      path: kind
+      value: DaemonSet
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].name
+          value: pushprox-client
+
+  - it: should use default clients image (from suite-level set)
+    documentSelector:
+      path: kind
+      value: DaemonSet
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: rancher/pushprox:unittest-clients
+
+  - it: should use (local) clients override tag
+    documentSelector:
+      path: kind
+      value: DaemonSet
+    set:
+      clients:
+        image:
+          tag: another-clients-tag
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: rancher/pushprox:another-clients-tag
+
+  - it: should use (local) clients override repository
+    documentSelector:
+      path: kind
+      value: DaemonSet
+    set:
+      clients:
+        image:
+          repository: unittest-repo/pushprox-clients
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: unittest-repo/pushprox-clients:unittest-clients
+
+  - it: should use (global) clients override tag and repository
+    documentSelector:
+      path: kind
+      value: DaemonSet
+    set:
+      global:
+        pushProx:
+          clientsImage:
+            repository: rancher-global/pushprox-clients
+            tag: "global-clients-tag"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: rancher-global/pushprox-clients:global-clients-tag
+
+  - it: should use (global) generic image override if clientsImage isn't defined
+    documentSelector:
+      path: kind
+      value: DaemonSet
+    set:
+      global:
+        pushProx:
+          image:
+            repository: generic-global/image
+            tag: "generic-tag"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: generic-global/image:generic-tag
