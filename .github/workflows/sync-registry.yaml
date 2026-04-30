@@ -229,21 +229,3 @@ jobs:
           echo "Syncing images to Prime registry..."
           ./bin/charts-build-scripts sync-registries
           echo "✓ Registry sync completed"
-
-      # ====================================================================
-      # PUSH CHANGES
-      # ====================================================================
-      - name: Push Sync Results
-        continue-on-error: false
-        run: |
-          echo "Checking for new commits..."
-          if [[ -n "$(git log origin/${{ github.event.pull_request.head.ref }}..HEAD)" ]]; then
-            echo "New commits detected from registry sync"
-            git log --oneline origin/${{ github.event.pull_request.head.ref }}..HEAD
-            echo ""
-            echo "Pushing to branch: ${{ github.event.pull_request.head.ref }}"
-            git push origin ${{ github.event.pull_request.head.ref }}
-            echo "✓ Sync results pushed successfully"
-          else
-            echo "No new commits to push"
-          fi
