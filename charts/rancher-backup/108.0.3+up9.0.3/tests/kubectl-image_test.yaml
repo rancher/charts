@@ -1,0 +1,40 @@
+suite: Kubectl Image
+templates:
+  - hardened.yaml
+tests:
+  - it: should use default kubectl image in patch-sa Job
+    documentIndex: 0
+    template: hardened.yaml
+    asserts:
+      - isKind:
+          of: Job
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: "rancher/kuberlr-kubectl:v6.0.3$"
+  - it: should override kubectl tag
+    documentIndex: 0
+    set:
+      global.kubectl.tag: "v1.2.3"
+    template: hardened.yaml
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ":v1.2.3$"
+  - it: should override kubectl repository
+    documentIndex: 0
+    set:
+      global.kubectl.repository: "test/kubectl"
+    template: hardened.yaml
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: "^test/kubectl:"
+  - it: should use systemDefaultRegistry prefix with kubectl image
+    documentIndex: 0
+    set:
+      global.cattle.systemDefaultRegistry: "registry.test.com:8000"
+    template: hardened.yaml
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: "^registry.test.com:8000/"
