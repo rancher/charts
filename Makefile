@@ -5,7 +5,8 @@ pull-scripts:
 	./scripts/pull-scripts
 
 remove:
-	./scripts/remove-asset
+	@./scripts/pull-scripts
+	@./bin/charts-build-scripts remove --chart="$(CHART)" --version="$(VERSION)"
 
 forward-port:
 	./scripts/forward-port
