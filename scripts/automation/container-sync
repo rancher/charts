@@ -52,6 +52,13 @@ sync_pull_scripts() {
     echo '[PASS] pull-scripts updated'
 }
 
+sync_version() {
+    echo '[INFO] Updating scripts/version from automation-core...'
+    git show upstream/automation-core:scripts/version > scripts/version
+    chmod +x scripts/version
+    echo '[PASS] scripts/version updated'
+}
+
 run_pull_scripts() {
     echo '[INFO] Running pull-scripts (syncs .gitignore and Makefile)...'
     SKIP_PS=true ./scripts/pull-scripts
@@ -220,6 +227,7 @@ main() {
 
     # Sync automation-core infrastructure
     sync_pull_scripts
+    sync_version
     run_pull_scripts
     import_workflows
     substitute_branch_placeholders
@@ -230,6 +238,7 @@ main() {
         "Makefile"
         ".github/workflows/"
         "scripts/pull-scripts"
+        "scripts/version"
     )
 
     # Stage and commit changes
