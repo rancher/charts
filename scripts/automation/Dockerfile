@@ -41,17 +41,16 @@ RUN git --version && \
     yq --version
 
 # Clone rancher/charts repository and download charts-build-scripts binary
-# Strategy: Checkout dev-v2.15 temporarily to run pull-scripts, then return to automation-core
-# The binary persists (untracked), while modified files (.gitignore, Makefile) are discarded
-RUN git clone --depth 1 --branch dev-v2.15 https://github.com/rancher/charts.git /repo && \
+# Sources scripts/version from automation-core for CBS version/checksum
+RUN git clone --depth 1 --branch automation-core https://github.com/rancher/charts.git /repo && \
     cd /repo && \
     git remote rename origin upstream && \
     git config user.name "Automation Build" && \
     git config user.email "automation@rancher.com" && \
-    git fetch upstream automation-core:refs/remotes/upstream/automation-core --depth 1 && \
-    make pull-scripts && \
-    (git add . && git commit -m "DELETE_ME: download charts-build-scripts binary" || true) && \
-    git checkout -b automation-core upstream/automation-core && \
-    git branch -D dev-v2.15
+    mkdir -p bin && \
+    source scripts/version && \
+    curl -sL "${CHARTS_BUILD_SCRIPTS_REPO%.git}/releases/download/${CHARTS_BUILD_SCRIPT_VERSION}/charts-build-scripts_linux_amd64" -o bin/charts-build-scripts && \
+    echo "${CHARTS_BUILD_SCRIPT_CHECKSUM_LINUX_AMD64}  bin/charts-build-scripts" | sha256sum -c && \
+    chmod +x bin/charts-build-scripts && bin/charts-build-scripts --version
 
 WORKDIR /workspace
