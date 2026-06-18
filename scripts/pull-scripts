@@ -153,14 +153,14 @@ check_existing_binary() {
     log "Version mismatch - will download ${CHARTS_BUILD_SCRIPT_VERSION}"
 }
 
-# Derives OS and ARCH from the local Go installation.
+# Derives OS and ARCH from system (uname).
 # Sets globals OS, ARCH, BINARY_NAME used by download_binary.
 detect_platform() {
     log_function "detect_platform"
-    OS=$(go version | cut -d' ' -f4 | cut -d'/' -f1)
-    ARCH=$(go version | cut -d' ' -f4 | cut -d'/' -f2)
+    OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+    ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
-    if [[ "$OS" == "windows" ]]; then
+    if [[ "$OS" == "windows" || "$OS" =~ ^mingw|^msys|^cygwin ]]; then
         BINARY_NAME="charts-build-scripts_${OS}_${ARCH}.exe"
     else
         BINARY_NAME="charts-build-scripts_${OS}_${ARCH}"
