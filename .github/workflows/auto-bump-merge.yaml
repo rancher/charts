@@ -1,0 +1,157 @@
+name: Auto Merge Auto-Bump PRs
+
+# workflow_run is safe here because PR discovery excludes fork PRs and
+# same-repo checks are enforced using PR metadata before Vault credential use.
+on: # zizmor: ignore[dangerous-triggers]
+  workflow_run:
+    workflows: ["Build"]
+    types:
+      - completed
+
+jobs:
+  auto-merge:
+    name: Approve and Merge
+    runs-on: ubuntu-latest
+    # Only proceed when:
+    #   1. The Build workflow succeeded
+    #   2. It was triggered by a pull_request event (not push)
+    #   3. The source branch is an auto-bump branch
+    # Same-repo PR checks are validated in the PR discovery step.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      startsWith(github.event.workflow_run.head_branch, 'auto-bump_')
+    permissions:
+      contents: read
+      id-token: write    # Required for OIDC authentication with Vault
+      pull-requests: read
+
+    steps:
+      # ====================================================================
+      # WORKFLOW CONTEXT
+      # ====================================================================
+      - name: Display workflow context
+        env:
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "================================================================="
+          echo "Auto Merge Auto-Bump PRs"
+          echo "================================================================="
+          echo "Build Workflow:  $WORKFLOW_NAME"
+          echo "Conclusion:      $CONCLUSION"
+          echo "Head Branch:     $HEAD_BRANCH"
+          echo "Repository:      $REPO"
+          echo "================================================================="
+
+      # ====================================================================
+      # IDENTIFY THE AUTO-BUMP PULL REQUEST
+      # ====================================================================
+      - name: Find open PR for auto-bump branch
+        id: get_pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "Searching for open PR with head branch: $BRANCH"
+
+          # Exclude forks directly in the query result selection.
+          if ! PR_JSON=$(gh pr list \
+            --repo "$REPO" \
+            --head "$BRANCH" \
+            --json number,title,author,isCrossRepository,headRepositoryOwner,headRepository \
+            --jq 'first(.[] | select(.isCrossRepository == false))'); then
+            echo "Failed to query PR data from GitHub."
+            exit 1
+          fi
+
+          if [[ -z "$PR_JSON" || "$PR_JSON" == "null" ]]; then
+            echo "No open PR found for branch: $BRANCH"
+            exit 0
+          fi
+
+          PR_NUMBER=$(echo "$PR_JSON" | jq -r '.number')
+          PR_TITLE=$(echo "$PR_JSON" | jq -r '.title')
+          PR_AUTHOR=$(echo "$PR_JSON" | jq -r '.author.login')
+          PR_AUTHOR_IS_BOT=$(echo "$PR_JSON" | jq -r '.author.is_bot')
+          PR_HEAD_REPO_OWNER=$(echo "$PR_JSON" | jq -r '.headRepositoryOwner.login')
+          PR_HEAD_REPO_NAME=$(echo "$PR_JSON" | jq -r '.headRepository.name')
+
+          REPO_OWNER="${REPO%%/*}"
+          REPO_NAME="${REPO##*/}"
+
+          echo "Found PR #$PR_NUMBER: $PR_TITLE"
+          echo "PR metadata: author=$PR_AUTHOR is_bot=$PR_AUTHOR_IS_BOT head_repo=$PR_HEAD_REPO_OWNER/$PR_HEAD_REPO_NAME"
+
+          # Forks are already filtered in the query; keep this as a strict
+          # same-repo assertion before loading credentials from Vault.
+          if [[ "$PR_HEAD_REPO_OWNER" != "$REPO_OWNER" || "$PR_HEAD_REPO_NAME" != "$REPO_NAME" ]]; then
+            echo "PR does not originate from $REPO, skipping."
+            echo "Got: head_repo=$PR_HEAD_REPO_OWNER/$PR_HEAD_REPO_NAME"
+            exit 0
+          fi
+
+          # Verify the PR was opened by the rancher-pr-and-push-webhook GitHub App.
+          # This prevents a user who mimics the branch name and title from triggering
+          # an auto-merge.
+          if [[ "$PR_AUTHOR" != "app/rancher-pr-and-push-webhook" || "$PR_AUTHOR_IS_BOT" != "true" ]]; then
+            echo "PR author is not app/rancher-pr-and-push-webhook bot, skipping."
+            echo "Got: author=$PR_AUTHOR is_bot=$PR_AUTHOR_IS_BOT"
+            exit 0
+          fi
+
+          # Verify title matches the auto-bump pattern: "[<branch>] auto: <chart> <version>"
+          if [[ "$PR_TITLE" != *"] auto: "* ]]; then
+            echo "PR title does not match auto-bump pattern, skipping."
+            echo "Expected title containing '] auto: ', got: $PR_TITLE"
+            exit 0
+          fi
+
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+
+      # ====================================================================
+      # SECRETS MANAGEMENT (OIDC vault authentication)
+      # ====================================================================
+      - name: Load App Credentials from Vault
+        uses: rancher-eio/read-vault-secrets@0da85151ad1f19ed7986c41587e45aac1ace74b6 # v3
+        with:
+          secrets: |
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY
+
+      - name: Create GitHub App Token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: app-token
+        with:
+          app-id: ${{ env.APP_ID }}
+          private-key: ${{ env.PRIVATE_KEY }}
+          permission-pull-requests: write
+          permission-contents: write
+
+      # ====================================================================
+      # APPROVE AND MERGE
+      # ====================================================================
+      - name: Approve PR
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ steps.get_pr.outputs.pr_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr review "$PR_NUMBER" \
+            --repo "$REPO" \
+            --approve \
+            --body "Auto-approving: CI passed and PR was generated by auto-bump."
+
+      - name: Merge PR
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ steps.get_pr.outputs.pr_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr merge "$PR_NUMBER" \
+            --repo "$REPO" \
+            --merge \
+            --delete-branch
