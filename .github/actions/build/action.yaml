@@ -131,6 +131,13 @@ runs:
           echo "✓ gawk: $(gawk --version | head -1)"
         fi
 
+        if ! command -v gh &> /dev/null; then
+          echo "ERROR: gh not found"
+          DEPS_MISSING=1
+        else
+          echo "✓ gh: $(gh --version | head -1)"
+        fi
+
         if [[ $DEPS_MISSING -eq 1 ]]; then
           echo ""
           echo "ERROR: Missing dependencies. Ensure dependencies action runs before this action."
@@ -266,7 +273,7 @@ runs:
         # Get changed files between base branch and current HEAD
         CHANGED_FILES=$(git diff --name-only origin/${BASE_REF}...HEAD)
 
-        echo "Changed files:"
+        echo ""
         printf '%s\n' "$CHANGED_FILES"
         echo ""
 
