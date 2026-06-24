@@ -267,18 +267,20 @@ runs:
       shell: bash
       env:
         BASE_REF: ${{ inputs.base_ref }}
+        PR_NUMBER: ${{ inputs.pr_number }}
       run: |
-        echo "Checking which files changed in this PR..."
-
-        # Get changed files between base branch and current HEAD
-        CHANGED_FILES=$(git diff --name-only origin/${BASE_REF}...HEAD)
-
-        echo ""
-        printf '%s\n' "$CHANGED_FILES"
+        echo "Checking which files changed in this PR with GH + JQ..."
         echo ""
 
-        # Check if any package/chart/asset files changed
-        if printf '%s\n' "$CHANGED_FILES" | grep -qE '^(packages/|charts/|assets/|index\.yaml|release\.yaml|scripts/version)'; then
+        # Check if any package/chart/asset files changed using GitHub API
+        if gh pr view ${PR_NUMBER} --json files --jq '.files[].path' | \
+          grep -q \
+            -e 'packages/' \
+            -e 'charts/' \
+            -e 'assets/' \
+            -e 'index.yaml' \
+            -e 'release.yaml' \
+            -e 'scripts/version'; then
           echo "needs_validation=true" >> $GITHUB_OUTPUT
           echo "✓ Package/chart files detected - full validation required"
         else
