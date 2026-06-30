@@ -1,0 +1,114 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pre-delete-job
+  namespace: '{{ .Values.namespace }}'
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-weight": "-2"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pre-delete-job-delete-capiproviders
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-weight": "-2"
+rules:
+- apiGroups:
+  - turtles-capi.cattle.io
+  resources:
+  - capiproviders
+  - clusterctlconfigs
+  verbs:
+  - get
+  - list
+  - patch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pre-delete-job-capiprovider-cleanup
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-weight": "-2"
+subjects:
+  - kind: ServiceAccount
+    name: pre-delete-job
+    namespace: '{{ .Values.namespace }}'
+roleRef:
+  kind: ClusterRole
+  name: pre-delete-job-delete-capiproviders
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rancher-capiprovider-cleanup
+  namespace: '{{ .Values.namespace }}'
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-weight": "-1"
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      serviceAccountName: pre-delete-job
+      containers:
+      - name: rancher-capiprovider-cleanup
+        image: '{{ template "system_default_registry" . }}{{ .Values.shellImage.image.repository }}:{{ .Values.shellImage.image.tag }}'
+        command: ["kubectl"]
+        args:
+        - delete
+        - capiprovider
+        - cluster-api
+        - -n
+        - {{ index .Values "cluster-api-operator" "cluster-api" "core" "namespace" }}
+        - --ignore-not-found=true
+        - --cascade=foreground
+        securityContext:
+          seccompProfile:
+            type: RuntimeDefault
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 1000
+      restartPolicy: Never
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rancher-clusterctlconfig-cleanup
+  namespace: '{{ .Values.namespace }}'
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-weight": "-1"
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      serviceAccountName: pre-delete-job
+      containers:
+      - name: rancher-clusterctlconfig-cleanup
+        image: '{{ template "system_default_registry" . }}{{ .Values.shellImage.image.repository }}:{{ .Values.shellImage.image.tag }}'
+        command: ["kubectl"]
+        args:
+        - delete
+        - clusterctlconfigs.turtles-capi.cattle.io
+        - --all
+        - --all-namespaces
+        - --ignore-not-found=true
+        securityContext:
+          seccompProfile:
+            type: RuntimeDefault
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 1000
+      restartPolicy: Never
