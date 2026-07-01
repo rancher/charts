@@ -76,6 +76,12 @@ import_workflows() {
     echo '[PASS] Workflows imported'
 }
 
+sync_codeowners() {
+    echo '[INFO] Syncing CODEOWNERS from templates/CODEOWNERS...'
+    git show upstream/automation-core:templates/CODEOWNERS > .github/CODEOWNERS
+    echo '[PASS] CODEOWNERS synced'
+}
+
 derive_propagate_branch_name() {
     local target_branch=$1
     local propagate_branch=""
@@ -143,6 +149,7 @@ Automated propagation Sync from \`automation-core\` branch:
 - .gitignore
 - Makefile
 - .github/workflows
+- .github/CODEOWNERS
 - scripts/pull-scripts
 - scripts/version
 
@@ -231,6 +238,7 @@ main() {
     sync_version
     run_pull_scripts
     import_workflows
+    sync_codeowners
     substitute_branch_placeholders
 
     # Files/directories modified during sync that need to be committed
@@ -238,6 +246,7 @@ main() {
         ".gitignore"
         "Makefile"
         ".github/workflows/"
+        ".github/CODEOWNERS"
         "scripts/pull-scripts"
         "scripts/version"
     )
