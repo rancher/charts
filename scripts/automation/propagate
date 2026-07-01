@@ -51,10 +51,6 @@ source "$(dirname "$0")/container-setup"
 
 # Paths
 CONFIG_FILE="scripts/automation/propagate.yaml"
-LOG_DIR="logs/propagate"
-
-# Docker configuration
-DOCKER_IMAGE="registry.suse.com/bci/bci-base:latest"
 
 # Colors
 RESET='\033[0m'
@@ -110,8 +106,7 @@ print_separator() {
 # ============================================================================
 
 validate_dependencies() {
-    log_success "validate_dependencies"
-    log_info "Checking required tools..."
+    log_info "validate_dependencies"
 
     # Check Docker
     if ! command -v docker &> /dev/null; then
@@ -158,8 +153,7 @@ validate_dependencies() {
 }
 
 validate_config_file() {
-    log_success "validate_config_file"
-    log_info "Checking configuration file..."
+    log_info "validate_config_file"
 
     if [[ ! -f "$CONFIG_FILE" ]]; then
         log_error "Configuration file not found: $CONFIG_FILE"
@@ -188,7 +182,7 @@ validate_config_file() {
 # ============================================================================
 
 build_docker_image() {
-    log_success "build_docker_image"
+    log_info "build_docker_image"
     local dockerfile="scripts/automation/Dockerfile"
     local image_tag="rancher-charts-propagate:local"
 
@@ -200,10 +194,10 @@ build_docker_image() {
         return 0
     fi
 
-    log_info "Building Docker image with dependencies..."
+    log_info "Building Docker image with dependencies (no cache - fresh rancher/charts clone)..."
     echo ""
 
-    if ! docker build -t "$image_tag" -f "$dockerfile" scripts/automation/; then
+    if ! docker build --no-cache -t "$image_tag" -f "$dockerfile" scripts/automation/; then
         log_error "Failed to build Docker image"
         exit 1
     fi
@@ -215,7 +209,7 @@ build_docker_image() {
 # start_container function is sourced from container-setup script
 
 sync_all_branches() {
-    log_success "sync_all_branches"
+    log_info "sync_all_branches"
     log_info "Syncing ${#ALL_BRANCHES[@]} branch(es) sequentially..."
     echo ""
 
@@ -269,8 +263,8 @@ create_meta_pr() {
     echo ""
 
     # Generate branch name with date
-    local meta_branch="propagate-batch-$(date +%Y-%m-%d)"
-
+    local meta_branch
+    meta_branch="propagate-batch-$(date +%Y-%m-%d)"
     log_debug "Meta branch: $meta_branch"
 
     # Create meta branch from current HEAD
@@ -278,8 +272,9 @@ create_meta_pr() {
     git checkout -B "$meta_branch"
 
     # Stage and commit propagate.yaml
-    log_info "Committing propagate.yaml..."
+    log_debug "add scripts/automation/propagate.yaml"
     git add scripts/automation/propagate.yaml
+    log_debug "commit -> chore(automation): propagate infrastructure to ${#ALL_BRANCHES[@]} branches"
     git commit -m "chore(automation): propagate infrastructure to ${#ALL_BRANCHES[@]} branches"
 
     # Push meta branch
@@ -376,7 +371,6 @@ parse_branches() {
 
 build_container_names() {
     log_success "build_container_names"
-    log_info "Building container names..."
 
     for branch in "${ALL_BRANCHES[@]}"; do
         CONTAINER_NAMES+=("${branch}_propagate")
@@ -389,7 +383,6 @@ build_container_names() {
 
 display_summary() {
     log_success "display_summary"
-    print_header "Propagation Summary"
     echo ""
 
     echo "Dev branches (${#DEV_BRANCHES[@]}):"

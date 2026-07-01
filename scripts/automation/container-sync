@@ -1,6 +1,5 @@
 #!/bin/bash
 set -e  # Exit on any error
-set -x  # Print commands as they execute
 
 # ============================================================================
 # Container Sync Script - Automation-core propagation for a single branch
@@ -29,11 +28,15 @@ fi
 # Dependencies pre-installed in Docker image
 
 checkout_target_branch() {
-    echo "[INFO] Fetching branch: $BRANCH"
-    git fetch upstream $BRANCH --depth 1
+    echo "[INFO] checkout_target_branch: $BRANCH"
+    echo "fetch..."
+    git fetch upstream "$BRANCH" --depth 1
+    echo "checkout..."
     git checkout FETCH_HEAD
-    git checkout -B $BRANCH
-    git pull upstream $BRANCH --depth 1
+    echo "checkout -B..."
+    git checkout -B "$BRANCH"
+    echo "pull..."
+    git pull upstream "$BRANCH" --depth 1
     echo "[PASS] Branch checked out: $BRANCH"
 }
 
@@ -93,6 +96,8 @@ sync_codeowners() {
 derive_propagate_branch_name() {
     local target_branch=$1
     local propagate_branch=""
+
+    echo '[INFO] derive_propagate_branch_name'
 
     if [[ "$target_branch" =~ ^dev-v2\.([0-9]+)$ ]]; then
         # dev-v2.15 → propagate-dev-15
