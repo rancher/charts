@@ -1,0 +1,155 @@
+# Default values for the rancher-monitoring dashboard artifact prototype.
+
+commonLabels: {}
+extraManifests: []
+
+global:
+  disableProxyIPv6: false
+  cattle:
+    systemDefaultRegistry: ""
+    clusterId: ""
+    clusterName: ""
+  kubectl:
+    repository: rancher/kuberlr-kubectl
+    tag: v7.0.1
+    pullPolicy: IfNotPresent
+  rbac:
+    create: true
+    userRoles:
+      create: true
+      aggregateToDefaultRoles: true
+
+dashboardArtifacts:
+  enabled: true
+  namespace: cattle-dashboards
+  useExistingNamespace: false
+  cleanupOnUninstall: false
+  label: grafana_dashboard
+  labelValue: "1"
+  annotations: {}
+  groups:
+    rancherCore: true
+    fleet: true
+    ingressNginx: true
+    performance: true
+    logging:
+      fluentd: true
+      fluentbit: true
+    backupRestore: true
+
+# Integration configuration for connecting to an existing monitoring stack.
+# This chart creates "bridge" Services with hardcoded names (rancher-monitoring-*)
+# that Rancher Dashboard expects, using pod selectors to route to your actual monitoring stack.
+#
+# DEFAULT CONFIGURATION:
+# The default selectors match kube-prometheus-stack with release name "kube-prometheus-stack".
+# If you use a different release name, update the selectors to match your pod labels.
+#
+# To find the correct labels for your installation:
+#   kubectl get pods -n cattle-monitoring-system -l app.kubernetes.io/name=prometheus --show-labels
+#
+# LIMITATIONS:
+# - Services can only target pods in the SAME namespace (cattle-monitoring-system)
+# - For external/cross-namespace monitoring, use URL-based integration (future feature)
+#
+# See INTEGRATION-GUIDE.md for detailed scenarios and troubleshooting.
+dashboardIntegration:
+  grafanaURL: ""
+  prometheusURL: ""
+
+# A single nginx pod (monitoringProxy) sits in front of Grafana, Prometheus,
+# and Alertmanager so the Kubernetes API server's service proxy (used by Rancher
+# UI) can reach them reliably. It solves:
+#   - Grafana: rewrites appSubUrl so static assets resolve under the proxy path.
+#   - Alertmanager: strips Accept-Encoding so alertmanager v0.32+ does not
+#     return brotli-compressed responses, which kube-apiserver's service proxy
+#     cannot forward (returns HTTP 500 "stream error ... INTERNAL_ERROR").
+#   - Prometheus: same Accept-Encoding stripping, preemptive in case the
+#     prometheus/common web stack adopts the same brotli middleware.
+#
+# Each per-backend block below controls a single `server` block inside the
+# shared nginx config. Setting enabled: false drops that server block (the
+# bridge Service is also skipped). The shared pod's image, resources, and
+# scheduling live under monitoringProxy.
+
+# Grafana server block. Needs sub_filter to rewrite appSubUrl so static assets
+# resolve under the kube-apiserver service proxy path.
+grafanaProxy:
+  enabled: true
+  upstreamService: kube-prometheus-stack-grafana
+  upstreamPort: 80
+  # The proxy path that will be used by Rancher (e.g., /api/v1/namespaces/cattle-monitoring-system/services/http:rancher-monitoring-grafana:80/proxy)
+  proxyPath: /api/v1/namespaces/cattle-monitoring-system/services/http:rancher-monitoring-grafana:80/proxy
+
+# Prometheus server block. Strips Accept-Encoding preemptively.
+prometheusProxy:
+  enabled: true
+  upstreamService: kube-prometheus-stack-prometheus
+  upstreamPort: 9090
+
+# Alertmanager server block. Stripping Accept-Encoding is REQUIRED for
+# alertmanager v0.32+ (see PR prometheus/alertmanager#5133).
+alertmanagerProxy:
+  enabled: true
+  upstreamService: kube-prometheus-stack-alertmanager
+  upstreamPort: 9093
+
+# Shared nginx pod fronting all three backends.
+monitoringProxy:
+  replicas: 1
+  image:
+    repository: rancher/mirrored-library-nginx
+    tag: 1.31.2-alpine
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Compatibility knobs retained for dashboard query compatibility and gradual migration.
+kubeTargetVersionOverride: ""
+rancherMonitoring:
+  enabled: true
+  selector: {}  # Optional: override selector for Rancher service monitor
+  # ServiceAccount used by Prometheus — must match the SA of the Prometheus pod
+  # so the ranchermetrics ClusterRole is bound to the right identity.
+  # Default matches kube-prometheus-stack with release name "kube-prometheus-stack".
+  prometheusServiceAccount: kube-prometheus-stack-prometheus
+hardenedNodeExporter:
+  enabled: false
+kubeStateMetrics:
+  enabled: false
+nodeExporter:
+  enabled: false
+hardened:
+  enabled: false
+  k3s:
+    networkPolicy:
+      enabled: false
+defaultRules:
+  create: false
+etcd:
+  enabled: false
+k3sServer:
+  enabled: true
+
+# Legacy Grafana settings are no longer authoritative for rendering, but these
+# values are kept as explicit compatibility fields for consumers that still look
+# for the old label/namespace conventions.
+grafana:
+  enabled: false
+  forceDeployDashboards: false
+  defaultDashboardsEnabled: true
+  defaultDashboards:
+    namespace: cattle-dashboards
+  sidecar:
+    dashboards:
+      label: grafana_dashboard
+      labelValue: "1"
+      annotations: {}
