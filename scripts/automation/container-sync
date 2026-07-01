@@ -77,8 +77,13 @@ import_workflows() {
 }
 
 sync_codeowners() {
-    echo '[INFO] Syncing CODEOWNERS from templates/CODEOWNERS...'
-    git show upstream/automation-core:templates/CODEOWNERS > .github/CODEOWNERS
+    if [[ "$BRANCH" == release-v* ]]; then
+        echo '[INFO] Syncing CODEOWNERS from templates/CODEOWNERS_RELEASE...'
+        git show upstream/automation-core:templates/CODEOWNERS_RELEASE > .github/CODEOWNERS
+    else
+        echo '[INFO] Syncing CODEOWNERS from templates/CODEOWNERS_DEV...'
+        git show upstream/automation-core:templates/CODEOWNERS_DEV > .github/CODEOWNERS
+    fi
     echo '[PASS] CODEOWNERS synced'
 }
 
