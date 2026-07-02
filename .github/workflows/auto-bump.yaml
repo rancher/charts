@@ -26,6 +26,11 @@ on:
         required: false
         type: boolean
         default: false
+      auto-merge:
+        description: "Auto-merge when CI passes"
+        required: false
+        type: boolean
+        default: false
 
 
 jobs:
@@ -48,6 +53,7 @@ jobs:
           echo "VERSION_OVERRIDE: ${{ inputs.version-override }}"
           echo "MULTI_RC:         ${{ inputs.multi-rc }}"
           echo "NEW_CHART:        ${{ inputs.new-chart }}"
+          echo "AUTO_MERGE:       ${{ inputs.auto-merge }}"
           echo "================================================================="
 
       # ====================================================================
@@ -149,6 +155,7 @@ jobs:
           echo "BUMP_VERSION: ${{ env.BUMP_VERSION }}"
           echo "MULTI_RC:     ${{ inputs.multi-rc }}"
           echo "NEW_CHART:    ${{ inputs.new-chart }}"
+          echo "AUTO_MERGE:   ${{ inputs.auto-merge }}"
           echo "================================================================="
 
       - name: Create and checkout new branch
@@ -165,8 +172,15 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          gh pr create \
-            --base "${{ inputs.branch }}" \
-            --head "${{ env.NEW_BRANCH }}" \
-            --title "[${{ inputs.branch }}] auto: ${{ inputs.chart }} ${{ env.BUMP_VERSION }}" \
+          PR_ARGS=(
+            --base "${{ inputs.branch }}"
+            --head "${{ env.NEW_BRANCH }}"
+            --title "[${{ inputs.branch }}] auto: ${{ inputs.chart }} ${{ env.BUMP_VERSION }}"
             --body-file '.github/auto_bump_template.md'
+          )
+
+          if [[ "${{ inputs.auto-merge }}" == "true" ]]; then
+            PR_ARGS+=(--label auto-merge)
+          fi
+
+          gh pr create "${PR_ARGS[@]}"
