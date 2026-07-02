@@ -3,7 +3,7 @@
 This chart deploys an operator that manages Project Monitoring Stacks composed of the following set of resources that are scoped to project namespaces:
 - [Prometheus](https://prometheus.io/) (managed externally by [Prometheus Operator](https://github.com/prometheus-operator/prometheus-operator))
 - [Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) (managed externally by [Prometheus Operator](https://github.com/prometheus-operator/prometheus-operator))
-- [Grafana](https://github.com/helm/charts/tree/master/stable/grafana) (deployed via an embedded Helm chart)
+- [Grafana](https://github.com/helm/charts/tree/master/stable/grafana) (deployed by an operator-approved project monitoring chart)
 - Default PrometheusRules and Grafana dashboards based on the collection of community-curated resources from [kube-prometheus](https://github.com/prometheus-operator/kube-prometheus/)
 - Default ServiceMonitors that watch the deployed Prometheus, Grafana, and Alertmanager
 
