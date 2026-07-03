@@ -1,3 +1,4 @@
+import { parseIssueBody, findChartRow } from '../parser.js';
 import { validateCommonInputs } from './validation.js';
 
 /**
@@ -11,19 +12,40 @@ import { validateCommonInputs } from './validation.js';
  * @param options.chart - Chart name to remove
  * @param options.version - Chart version to match
  * @returns Updated HTML with chart row removed
- * @throws Error if chart not found in table
+ * @throws Error if validation fails or chart not found
  */
 export function removeChart(options: {
   html: string;
   chart: string;
   version: string;
 }): string {
-    // Validate inputs
+  // Validate inputs
   validateCommonInputs(options.html, options.chart, options.version);
-  // TODO: Parse HTML with cheerio
-  // TODO: Find row by data-chart and data-version
-  // TODO: Remove entire <tr> element
-  // TODO: Return updated HTML
 
-  return options.html;
+  const $ = parseIssueBody(options.html);
+
+  // Check table exists
+  const table = $('table');
+  if (table.length === 0) {
+    throw new Error(`Could not find release tracking table.
+This issue may not be set up correctly.
+
+Please contact @rancher/release-team
+`);
+  }
+
+  // Find chart row
+  const row = findChartRow($, options.chart, options.version);
+  if (row.length === 0) {
+    throw new Error(`Chart "${options.chart}" version "${options.version}" is not in the release table.
+
+Check the chart name and version are correct.
+If you made a typo in your comment, please post a new comment with the correct values.
+`);
+  }
+
+  // Remove row
+  row.remove();
+
+  return $.html();
 }
