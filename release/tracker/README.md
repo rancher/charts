@@ -59,9 +59,21 @@ permissions:
 ```
 src/
 ├── cli.ts            # CLI entry point (stdin → test/output.md)
+├── commands/         # Domain logic (add, update, remove operations)
 ├── adapters/         # External format adapters (HTML, CODEOWNERS)
-└── commands/         # Domain logic (add, update, remove operations)
+└── utils/            # Shared utilities (errors, validation)
 ```
+
+### Dependency Rules (Prevent Circular Imports)
+
+| Layer | Can Import | Cannot Import |
+|-------|-----------|---------------|
+| **cli.ts** | commands, adapters, utils | - |
+| **commands/** | adapters, utils | cli.ts, other commands |
+| **adapters/** | utils | cli.ts, commands |
+| **utils/** | - | cli.ts, commands, adapters |
+
+**Why:** Bottom-up dependency flow prevents circular imports. utils is pure (no dependencies), adapters depend only on utils, commands orchestrate adapters + utils, cli orchestrates everything.
 
 ## Commands
 
