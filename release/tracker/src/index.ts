@@ -59,8 +59,14 @@ switch (command) {
   case 'update-unrc': {
     // Mark Un-RC complete for chart
     // Finds row by chart+version, sets data-unrc="true", updates cell text
-    console.log({ command })
-    // result = updateUnRC(input, chart, version);
+    const chart = args[1];
+    const version = args[2];
+
+    result = updateUnRC({
+      html: input,
+      chart,
+      version
+    });
     break;
   }
   case 'mark-released': {
