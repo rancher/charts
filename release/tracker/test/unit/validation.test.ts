@@ -1,56 +1,57 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
-import { validateInputs } from '../../src/commands/validation.js';
+import { validateCommonInputs, validateOwner } from '../../src/commands/validation.js';
 
-test('validateInputs - throws when html empty', () => {
+test('validateCommonInputs - throws when html empty', () => {
   assert.throws(
-    () => validateInputs({ html: '' }),
+    () => validateCommonInputs('', 'fleet', '1.0.0'),
     /HTML input is required/
   );
 });
 
-test('validateInputs - throws when html whitespace', () => {
+test('validateCommonInputs - throws when html whitespace', () => {
   assert.throws(
-    () => validateInputs({ html: '   ' }),
+    () => validateCommonInputs('   ', 'fleet', '1.0.0'),
     /HTML input is required/
   );
 });
 
-test('validateInputs - throws when chart empty', () => {
+test('validateCommonInputs - throws when chart empty', () => {
   assert.throws(
-    () => validateInputs({ chart: '' }),
+    () => validateCommonInputs('<table></table>', '', '1.0.0'),
     /{chart} is required/
   );
 });
 
-test('validateInputs - throws when version empty', () => {
+test('validateCommonInputs - throws when version empty', () => {
   assert.throws(
-    () => validateInputs({ version: '' }),
+    () => validateCommonInputs('<table></table>', 'fleet', ''),
     /{version} is required/
   );
 });
 
-test('validateInputs - throws when owner empty', () => {
+test('validateCommonInputs - passes when all valid', () => {
+  assert.doesNotThrow(() => {
+    validateCommonInputs('<table></table>', 'fleet', '1.0.0');
+  });
+});
+
+test('validateOwner - throws when owner empty', () => {
   assert.throws(
-    () => validateInputs({ owner: '' }),
+    () => validateOwner(''),
     /owner is required/
   );
 });
 
-test('validateInputs - passes when all valid', () => {
-  assert.doesNotThrow(() => {
-    validateInputs({
-      html: '<table></table>',
-      chart: 'fleet',
-      version: '1.0.0',
-      owner: '@user'
-    });
-  });
+test('validateOwner - throws when owner whitespace', () => {
+  assert.throws(
+    () => validateOwner('   '),
+    /owner is required/
+  );
 });
 
-test('validateInputs - skips undefined fields', () => {
-  // Should not throw when fields are undefined (not provided)
+test('validateOwner - passes when valid', () => {
   assert.doesNotThrow(() => {
-    validateInputs({ html: '<table></table>' });
+    validateOwner('@user');
   });
 });
