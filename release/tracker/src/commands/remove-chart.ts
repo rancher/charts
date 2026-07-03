@@ -1,3 +1,5 @@
+import { validateCommonInputs } from './validation.js';
+
 /**
  * Removes chart row from release tracking table
  *
@@ -16,11 +18,12 @@ export function removeChart(options: {
   chart: string;
   version: string;
 }): string {
+    // Validate inputs
+  validateCommonInputs(options.html, options.chart, options.version);
   // TODO: Parse HTML with cheerio
   // TODO: Find row by data-chart and data-version
   // TODO: Remove entire <tr> element
   // TODO: Return updated HTML
 
-  console.log({ options });
   return options.html;
 }

@@ -1,3 +1,5 @@
+import { validateCommonInputs } from './validation.js';
+
 /**
  * Marks chart as released
  *
@@ -16,12 +18,15 @@ export function markReleased(options: {
   chart: string;
   version: string;
 }): string {
+  // Validate inputs
+  validateCommonInputs(options.html, options.chart, options.version);
+
+
   // TODO: Parse HTML with cheerio
   // TODO: Find row by data-chart and data-version
   // TODO: Set data-released="true"
   // TODO: Update td.released text to "yes"
   // TODO: Return updated HTML
 
-  console.log({ options });
   return options.html;
 }

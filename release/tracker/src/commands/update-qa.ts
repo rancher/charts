@@ -1,3 +1,5 @@
+import { validateCommonInputs } from './validation.js';
+
 /**
  * Marks QA sign-off complete for a chart
  *
@@ -16,12 +18,12 @@ export function updateQA(options: {
   chart: string;
   version: string;
 }): string {
+    validateCommonInputs(options.html, options.chart, options.version);
   // TODO: Parse HTML with cheerio
   // TODO: Find row by data-chart and data-version
   // TODO: Set data-qa="true"
   // TODO: Update td.qa text to "yes"
   // TODO: Return updated HTML
 
-  console.log({ options });
   return options.html;
 }

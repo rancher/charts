@@ -1,3 +1,5 @@
+import { validateCommonInputs } from './validation.js';
+
 /**
  * Marks Un-RC complete for a chart
  *
@@ -16,12 +18,13 @@ export function updateUnRC(options: {
   chart: string;
   version: string;
 }): string {
+  validateCommonInputs(options.html, options.chart, options.version);
+
   // TODO: Parse HTML with cheerio
   // TODO: Find row by data-chart and data-version
   // TODO: Set data-unrc="true"
   // TODO: Update td.unrc text to "yes"
   // TODO: Return updated HTML
 
-  console.log({ options });
   return options.html;
 }
