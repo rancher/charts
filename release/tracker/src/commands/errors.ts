@@ -15,4 +15,14 @@ Please contact @rancher/release-team`,
 
 Check the chart name and version are correct.
 If you made a typo in your comment, please post a new comment with the correct values.`,
+
+  chartAlreadyExists: (chart: string, version: string) => `Chart "${chart}" version "${version}" already exists in table.
+
+To update this chart, use QA:, UnRC:, etc.
+To remove and re-add, first use: Remove: ${chart} ${version}`,
+
+  markerNotFound: () => `Chart data END marker not found in table.
+This issue may not be set up correctly.
+
+Please contact @rancher/release-team`,
 };

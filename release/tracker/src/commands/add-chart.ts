@@ -1,5 +1,6 @@
 import { parseIssueBody, getNextRowNumber, findChartRow } from '../parser.js';
 import { validateCommonInputs, validateOwner } from './validation.js';
+import { Errors } from './errors.js';
 
 /**
  * Adds chart row to release tracking table
@@ -30,13 +31,13 @@ export function addChart(options: {
   // Check table exists
   const table = $('table');
   if (table.length === 0) {
-    throw new Error('Release tracking table not found in HTML');
+    throw new Error(Errors.tableNotFound());
   }
 
   // Check for duplicates
   const existing = findChartRow($, options.chart, options.version);
   if (existing.length > 0) {
-    throw new Error(`Chart ${options.chart} ${options.version} already exists in table`);
+    throw new Error(Errors.chartAlreadyExists(options.chart, options.version));
   }
 
   const rowNumber = getNextRowNumber($);
@@ -55,7 +56,7 @@ export function addChart(options: {
   // Verify marker exists
   const currentHTML = table.html() || '';
   if (!currentHTML.includes('<!-- END: CHART_DATA -->')) {
-    throw new Error('Chart data END marker not found in table');
+    throw new Error(Errors.markerNotFound());
   }
 
   // Insert row before END marker
