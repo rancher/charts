@@ -16,17 +16,29 @@ const command = args[0];
 //
 // Commands parse HTML table with data attributes, perform CRUD operations on chart rows
 
-// TODO: Parse command line arguments (command, chart, version, owner)
 // TODO: Detect stdin vs file mode
 // TODO: Read input (stdin or file)
+
+const input = ""; // TODO: Load from stdin or file
+let result = '';
 
 switch (command) {
   case 'add-chart': {
     // Add new chart row to tracking table
     // Sets data-chart, data-version, data-owner attributes
     // Inserts before <!-- END: CHART_DATA --> marker
-    console.log({command})
-    // result = addChart(input, chart, version, owner);
+    console.log({ command })
+
+    const chart = args[1];
+    const version = args[2];
+    const owner = args[3];
+
+    result = addChart({
+      html: input,
+      chart,
+      version,
+      owner
+    });
     break;
   }
   case 'update-qa': {
