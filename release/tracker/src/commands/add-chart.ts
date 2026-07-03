@@ -1,3 +1,5 @@
+import { parseIssueBody, getNextRowNumber } from '../parser.js';
+
 /**
  * Adds chart row to release tracking table
  *
@@ -17,12 +19,28 @@ export function addChart(options: {
   version: string;
   owner: string;
 }): string {
-  // TODO: Parse HTML with cheerio
-  // TODO: Get next row number
-  // TODO: Create new <tr> with data attributes
-  // TODO: Insert before <!-- END: CHART_DATA -->
-  // TODO: Return updated HTML
+  const $ = parseIssueBody(options.html);
+  const rowNumber = getNextRowNumber($);
 
-  console.log({ options })
-  return options.html;
+  const newRow = `
+<tr id="chart-row-${rowNumber}" data-chart="${options.chart}" data-version="${options.version}" data-team="" data-owner="${options.owner}" data-qa="false" data-unrc="false">
+  <td class="chart">${options.chart}</td>
+  <td class="version">${options.version}</td>
+  <td class="team"></td>
+  <td class="owner">${options.owner}</td>
+  <td class="qa"></td>
+  <td class="unrc"></td>
+</tr>
+`;
+
+  // Find table and insert row before END marker
+  const table = $('table');
+  const currentHTML = table.html() || '';
+  const updatedHTML = currentHTML.replace(
+    /<!-- END: CHART_DATA -->/,
+    `${newRow}<!-- END: CHART_DATA -->`
+  );
+  table.html(updatedHTML);
+
+  return $.html();
 }
