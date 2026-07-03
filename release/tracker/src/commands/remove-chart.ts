@@ -1,5 +1,6 @@
 import { parseIssueBody, findChartRow } from '../parser.js';
 import { validateCommonInputs } from './validation.js';
+import { Errors } from './errors.js';
 
 /**
  * Removes chart row from release tracking table
@@ -27,21 +28,13 @@ export function removeChart(options: {
   // Check table exists
   const table = $('table');
   if (table.length === 0) {
-    throw new Error(`Could not find release tracking table.
-This issue may not be set up correctly.
-
-Please contact @rancher/release-team
-`);
+    throw new Error(Errors.tableNotFound());
   }
 
   // Find chart row
   const row = findChartRow($, options.chart, options.version);
   if (row.length === 0) {
-    throw new Error(`Chart "${options.chart}" version "${options.version}" is not in the release table.
-
-Check the chart name and version are correct.
-If you made a typo in your comment, please post a new comment with the correct values.
-`);
+    throw new Error(Errors.chartNotFound(options.chart, options.version));
   }
 
   // Remove row
