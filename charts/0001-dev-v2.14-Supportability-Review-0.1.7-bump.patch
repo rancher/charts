@@ -1,0 +1,1431 @@
+From 271cee253caca0fda9b883d0ad2d58b5a00f1f6f Mon Sep 17 00:00:00 2001
+From: Masashi Honma <masashi.honma@gmail.com>
+Date: Fri, 3 Jul 2026 09:39:05 +0900
+Subject: [PATCH] [dev-v2.14] Supportability Review 0.1.7 bump
+
+Signed-off-by: Masashi Honma <masashi.honma@gmail.com>
+---
+ ...portability-review-crd-109.0.1+up0.1.7.tgz | Bin 0 -> 1077 bytes
+ ...-supportability-review-109.0.1+up0.1.7.tgz | Bin 0 -> 5286 bytes
+ .../109.0.1+up0.1.7/Chart.yaml                |  10 +
+ .../109.0.1+up0.1.7/README.md                 |   2 +
+ .../templates}/reviewbundle.yaml              |   3 +
+ .../109.0.1+up0.1.7/Chart.yaml                |  22 ++
+ .../109.0.1+up0.1.7/README.md                 |   9 +
+ .../109.0.1+up0.1.7/app-readme.md             |   3 +
+ .../109.0.1+up0.1.7/questions.yaml            | 227 ++++++++++++++++++
+ .../109.0.1+up0.1.7/templates/_helpers.tpl    | 102 ++++++++
+ .../templates/app-frontend-resource.yaml      |  49 ++++
+ .../templates/clusterrole.yaml                |   8 +
+ .../templates/clusterrolebinding.yaml         |  12 +
+ .../templates/db-resource.yaml                |  54 +++++
+ .../109.0.1+up0.1.7/templates/deployment.yaml |  60 +++++
+ .../templates/network_policy_allow_all.yaml   |  13 +
+ .../109.0.1+up0.1.7/templates/secret.yaml     |  35 +++
+ .../templates/serviceaccount.yaml             |  13 +
+ .../templates/validate-install-crd.yaml       |  14 ++
+ .../109.0.1+up0.1.7/values.yaml               | 134 +++++++++++
+ .../charts-crd/Chart.yaml                     |  10 +
+ .../charts-crd/README.md                      |   2 +
+ .../charts-crd/templates/reviewbundle.yaml    | 148 ++++++++++++
+ .../charts/Chart.yaml                         |   4 +-
+ .../charts/questions.yaml                     |  16 +-
+ .../charts/templates/secret.yaml              |   1 +
+ .../templates/validate-install-crd.yaml       |  14 ++
+ .../charts/values.yaml                        |   7 +-
+ .../package.yaml                              |   2 +-
+ .../templates/crd-template/Chart.yaml         |   2 +-
+ release.yaml                                  |   4 +
+ 31 files changed, 972 insertions(+), 8 deletions(-)
+ create mode 100644 assets/rancher-supportability-review-crd/rancher-supportability-review-crd-109.0.1+up0.1.7.tgz
+ create mode 100644 assets/rancher-supportability-review/rancher-supportability-review-109.0.1+up0.1.7.tgz
+ create mode 100644 charts/rancher-supportability-review-crd/109.0.1+up0.1.7/Chart.yaml
+ create mode 100644 charts/rancher-supportability-review-crd/109.0.1+up0.1.7/README.md
+ rename {packages/rancher-supportability-review/charts/crds => charts/rancher-supportability-review-crd/109.0.1+up0.1.7/templates}/reviewbundle.yaml (98%)
+ mode change 100755 => 100644
+ create mode 100644 charts/rancher-supportability-review/109.0.1+up0.1.7/Chart.yaml
+ create mode 100644 charts/rancher-supportability-review/109.0.1+up0.1.7/README.md
+ create mode 100644 charts/rancher-supportability-review/109.0.1+up0.1.7/app-readme.md
+ create mode 100644 charts/rancher-supportability-review/109.0.1+up0.1.7/questions.yaml
+ create mode 100644 charts/rancher-supportability-review/109.0.1+up0.1.7/templates/_helpers.tpl
+ create mode 100644 charts/rancher-supportability-review/109.0.1+up0.1.7/templates/app-frontend-resource.yaml
+ create mode 100644 charts/rancher-supportability-review/109.0.1+up0.1.7/templates/clusterrole.yaml
+ create mode 100644 charts/rancher-supportability-review/109.0.1+up0.1.7/templates/clusterrolebinding.yaml
+ create mode 100644 charts/rancher-supportability-review/109.0.1+up0.1.7/templates/db-resource.yaml
+ create mode 100644 charts/rancher-supportability-review/109.0.1+up0.1.7/templates/deployment.yaml
+ create mode 100644 charts/rancher-supportability-review/109.0.1+up0.1.7/templates/network_policy_allow_all.yaml
+ create mode 100644 charts/rancher-supportability-review/109.0.1+up0.1.7/templates/secret.yaml
+ create mode 100644 charts/rancher-supportability-review/109.0.1+up0.1.7/templates/serviceaccount.yaml
+ create mode 100644 charts/rancher-supportability-review/109.0.1+up0.1.7/templates/validate-install-crd.yaml
+ create mode 100644 charts/rancher-supportability-review/109.0.1+up0.1.7/values.yaml
+ create mode 100755 packages/rancher-supportability-review/charts-crd/Chart.yaml
+ create mode 100755 packages/rancher-supportability-review/charts-crd/README.md
+ create mode 100755 packages/rancher-supportability-review/charts-crd/templates/reviewbundle.yaml
+ create mode 100755 packages/rancher-supportability-review/charts/templates/validate-install-crd.yaml
+
+diff --git a/assets/rancher-supportability-review-crd/rancher-supportability-review-crd-109.0.1+up0.1.7.tgz b/assets/rancher-supportability-review-crd/rancher-supportability-review-crd-109.0.1+up0.1.7.tgz
+new file mode 100644
+index 0000000000000000000000000000000000000000..e9fc489e1868a61c49fde3dc06f423d73ba1db2d
+GIT binary patch
+literal 1077
+zcmV-51j_p#iwG0|00000|0w_~VMtOiV@ORlOnEsqVl!4SWK%V1T2nbTPgYhoO;>Dc
+zVQyr3R8em|NM&qo0PI*xbK5o$_F2CIlO8)_Ncq+3=E^zbkklimxv#*Lh!_Mg*o7LU
+z)BoN9N%<jBlBLo~J=J&75LoO3*!=*l2O|sgeG1N5&oEJ1@uKf>uJF&k^!eLS0iKfu
+zl=|dAq-mO7oSjv_X_~J7rso&gNp?OMWT$7R7lZ61%`Pv`vlEdXYH%L}V(=&FzqYj+
+z+$#YXV;NXkL&KgB5*W0dB@&o5Cd$5*=vhq_=0nlsN~>6*@*K@jykQ^kO{<8363KzY
+zp&;M44n45-eOeG>*}B4`Mj-6RmG|a1r)m$J`i!2GHA6AadO4Ex%5nAm-VlS<B)C8^
+z8efx`TEAUq(tEC9UN{^Ia84^(ZDw!2^dn1uP0}R$Ik+^*lFQzYKJXRnu7AeTX<($c
+z_249!T;o23u)Y4XG`k!;t^dL4S(+Z}|9jwZ$$(S%mC?j6O74E4ScCJdcc)A~6r(_F
+z%Q2D-Ug9-Ql~Glym&lL<L*$R9U>+q3CFCDUx<?LW6r6b*TqJ@=bM^9yhlHq&jw?;S
+zRhp_{r-KK*VxpQMWoAKxe>&F_f~1YrInsf+Vy~t)D?@z&d0xc<`o=56=towE(ll=L
+z#TT;X2DliCgcvwb!m31KC|xD74Eoc`Xw3=4UYS|%L2RDY-pT??7&fxjp}D$w|M~Rx
+z$*>U4N1kN0+?5*3O?*JRTm%@<i*MLOzcwv|Vk}#Rg)l*Dm}ne|$muNtYZ30Tx?xQ3
+zVX-nNt=1^{^*Eg4B+S<RsTWMF)d*&7$$Y;BXrgP^!0`KI8mPWx4pDLA)m&+uVZPt$
+z!V-Us34GYTweESr>~6gMy69Rdb*|Oe&Q&__pf&1Io$q^}Cs|`B!7e`DKdU-)ZmB$y
+znhm_kv&fgTic_D=**k0r=5TM=>iAe(a`sbfq=U_zSOce1lr5n>%iEnk*SN!$oaxfQ
+z@)`ZIRvr%E7Ns@$h8^9@Tzl@+n1c>2`P^Md^|YOQLCIa+1RHeLkA~-7*Rnu)H%1D&
+zB{L7NAX(q0BOA<~#T<`YbzOQIh(CESRB4VR^RoFH?fv0$V0?L7B@)5xg^hRwYP&GH
+zw9%HhUE8PxURj+Bkt=c<_J0j*FAMa36OV6u2Z&uc_l$kqv5PSiUQ9XP^MEof&uFnT
+z{4HlZRT{f~wMLz{>RXG>Z8X~SS3ZE!oxY5ge>%HU+Pa-<gM@yL`6J!L*2fflG!iDh
+z=@#7Qd&4Q>ufP9mjj;bIcK83r@2;*tyi3abU>m#o|JlW0wf}#5?Eifq{Pc|O_LUgd
+vGC~&MS#SX?)LK715awdC*ws`2(GeeU#1Tgv5%Es|00960FC5AC03ZMW&t4oD
+
+literal 0
+HcmV?d00001
+
+diff --git a/assets/rancher-supportability-review/rancher-supportability-review-109.0.1+up0.1.7.tgz b/assets/rancher-supportability-review/rancher-supportability-review-109.0.1+up0.1.7.tgz
+new file mode 100644
+index 0000000000000000000000000000000000000000..e25282ccb1637099f8aeedb12a180cdc735c2582
+GIT binary patch
+literal 5286
+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
+
+literal 0
+HcmV?d00001
+
+diff --git a/charts/rancher-supportability-review-crd/109.0.1+up0.1.7/Chart.yaml b/charts/rancher-supportability-review-crd/109.0.1+up0.1.7/Chart.yaml
+new file mode 100644
+index 000000000..70876b529
+--- /dev/null
++++ b/charts/rancher-supportability-review-crd/109.0.1+up0.1.7/Chart.yaml
+@@ -0,0 +1,10 @@
++annotations:
++  catalog.cattle.io/certified: rancher
++  catalog.cattle.io/hidden: "true"
++  catalog.cattle.io/namespace: sr-operator-system
++  catalog.cattle.io/release-name: rancher-supportability-review-crd
++apiVersion: v1
++description: Installs the CRDs for rancher-supportability-review.
++name: rancher-supportability-review-crd
++type: application
++version: 109.0.1+up0.1.7
+diff --git a/charts/rancher-supportability-review-crd/109.0.1+up0.1.7/README.md b/charts/rancher-supportability-review-crd/109.0.1+up0.1.7/README.md
+new file mode 100644
+index 000000000..75a817d3b
+--- /dev/null
++++ b/charts/rancher-supportability-review-crd/109.0.1+up0.1.7/README.md
+@@ -0,0 +1,2 @@
++# rancher-supportability-review-crd
++A Rancher chart that installs the CRDs used by rancher-supportability-review.
+diff --git a/packages/rancher-supportability-review/charts/crds/reviewbundle.yaml b/charts/rancher-supportability-review-crd/109.0.1+up0.1.7/templates/reviewbundle.yaml
+old mode 100755
+new mode 100644
+similarity index 98%
+rename from packages/rancher-supportability-review/charts/crds/reviewbundle.yaml
+rename to charts/rancher-supportability-review-crd/109.0.1+up0.1.7/templates/reviewbundle.yaml
+index 62e761a16..e4f1e2b2f
+--- a/packages/rancher-supportability-review/charts/crds/reviewbundle.yaml
++++ b/charts/rancher-supportability-review-crd/109.0.1+up0.1.7/templates/reviewbundle.yaml
+@@ -49,6 +49,9 @@ spec:
+               httpsProxy:
+                 nullable: true
+                 type: string
++              noProxy:
++                nullable: true
++                type: string
+               parallelCollection:
+                 type: boolean
+               sonobuoyNamespace:
+diff --git a/charts/rancher-supportability-review/109.0.1+up0.1.7/Chart.yaml b/charts/rancher-supportability-review/109.0.1+up0.1.7/Chart.yaml
+new file mode 100644
+index 000000000..b3b908403
+--- /dev/null
++++ b/charts/rancher-supportability-review/109.0.1+up0.1.7/Chart.yaml
+@@ -0,0 +1,22 @@
++annotations:
++  catalog.cattle.io/auto-install: rancher-supportability-review-crd=match
++  catalog.cattle.io/certified: rancher
++  catalog.cattle.io/display-name: Supportability Review
++  catalog.cattle.io/kube-version: '>= 1.33.0-0 < 1.36.0-0'
++  catalog.cattle.io/namespace: sr-operator-system
++  catalog.cattle.io/os: linux
++  catalog.cattle.io/permits-os: linux
++  catalog.cattle.io/provides-gvr: sr.cattle.io.reviewbundles/v1
++  catalog.cattle.io/rancher-version: '>= 2.14.0 < 2.15.0'
++  catalog.cattle.io/release-name: rancher-supportability-review
++  catalog.cattle.io/type: cluster-tool
++  catalog.cattle.io/ui-component: rancher-supportability-review
++apiVersion: v1
++appVersion: 0.1.7
++description: The rancher-supportability-review operator enables the functionality
++  of Supportability Reviews for Rancher.
++icon: file://assets/logos/rancher-supportability-review.png
++keywords:
++- support
++name: rancher-supportability-review
++version: 109.0.1+up0.1.7
+diff --git a/charts/rancher-supportability-review/109.0.1+up0.1.7/README.md b/charts/rancher-supportability-review/109.0.1+up0.1.7/README.md
+new file mode 100644
+index 000000000..f23e157e6
+--- /dev/null
++++ b/charts/rancher-supportability-review/109.0.1+up0.1.7/README.md
+@@ -0,0 +1,9 @@
++# Rancher Supportability Review Chart
++
++The supportability-review-operator enables running Supportability Reviews.
++
++# Installation
++
++```
++helm install rancher-supportability-review ./ --create-namespace -n sr-operator-system
++```
+diff --git a/charts/rancher-supportability-review/109.0.1+up0.1.7/app-readme.md b/charts/rancher-supportability-review/109.0.1+up0.1.7/app-readme.md
+new file mode 100644
+index 000000000..d25a2fd1f
+--- /dev/null
++++ b/charts/rancher-supportability-review/109.0.1+up0.1.7/app-readme.md
+@@ -0,0 +1,3 @@
++# Rancher Supportability Review
++
++This chart is used for Supportability Review of Rancher.
+diff --git a/charts/rancher-supportability-review/109.0.1+up0.1.7/questions.yaml b/charts/rancher-supportability-review/109.0.1+up0.1.7/questions.yaml
+new file mode 100644
+index 000000000..1139814bf
+--- /dev/null
++++ b/charts/rancher-supportability-review/109.0.1+up0.1.7/questions.yaml
+@@ -0,0 +1,227 @@
++questions:
++- variable: image.useDefaultImages
++  label: Use Default Images
++  default: true
++  description: "Use default Supportability Review images"
++  type: boolean
++  required: true
++  show_subquestion_if: false
++  subquestions:
++    - variable: privateRegistry.registrySecret
++      label: Private registry secret name
++      description: "Kubernetes secret that allows you to pull images from a private registry. This setting applies only when creation of private registry secrets is enabled. You must include the private registry name in the secret name."
++      type: string
++      default: ""
++      show_if: "image.useDefaultImages=false"
++    - variable: privateRegistry.createSecret
++      default: "true"
++      description: "Setting that allows you to create a private registry secret."
++      type: boolean
++      label: Create Secret for Private Registry Settings
++      show_if: "image.useDefaultImages=false"
++    - variable: privateRegistry.registryUser
++      label: Private registry user
++      description: "User account used for authenticating with a private registry."
++      type: string
++      default: ""
++      show_if: "image.useDefaultImages=false&&privateRegistry.createSecret=true"
++    - variable: privateRegistry.registryPasswd
++      label: Private registry password
++      description: "Password for authenticating with a private registry."
++      type: password
++      default: ""
++      show_if: "image.useDefaultImages=false&&privateRegistry.createSecret=true"
++
++    - variable: image.collector.repository
++      label: Collector image Repository
++      default: "rancher/supportability-review"
++      description: "The repository of Collector image"
++      type: string
++      required: false
++    - variable: image.collector.tag
++      label: Collector image Tag
++      default: "latest"
++      description: "The repository of Collector Tag"
++      type: string
++      required: false
++    - variable: image.sonobuoy.repository
++      label: Collector image Repository
++      default: "rancher/mirrored-sonobuoy-sonobuoy"
++      description: "The repository of sonobuoy image"
++      type: string
++      required: false
++    - variable: image.sonobuoy.tag
++      label: Collector image Tag
++      default: "v0.57.3"
++      description: "The repository of sonobuoy Tag"
++      type: string
++      required: false
++    - variable: image.analyzer.repository
++      label: Analyzer image Repository
++      default: "rancher/supportability-review-internal"
++      description: "The repository of Analyzer image"
++      type: string
++      required: false
++    - variable: image.analyzer.tag
++      label: Analyzer image Tag
++      default: "latest"
++      description: "The tag of Analyzer image"
++      type: string
++      required: false
++    - variable: image.operator.repository
++      label: Operator image Repository
++      default: "rancher/supportability-review-operator"
++      description: "The repository of Operator image"
++      type: string
++      required: false
++    - variable: image.operator.tag
++      label: Operator image tag
++      default: "v0.23.0"
++      description: "The tag of Operator image"
++      type: string
++      required: false
++    - variable: image.appFrontend.repository
++      label: App frontend image Repository
++      default: "rancher/supportability-review-app-frontend"
++      description: "The repository of App frontend image"
++      type: string
++      required: false
++    - variable: image.appFrontend.tag
++      label: App frontend image tag
++      default: "v0.23.0"
++      description: "The tag of App frontend image"
++      type: string
++      required: false
++    - variable: image.redis.repository
++      label: Redis image Repository
++      default: "rancher/appco-redis"
++      description: "The repository of Redis image"
++      type: string
++      required: false
++    - variable: image.redis.tag
++      label: Redis image tag
++      default: "8.0.3-2.1"
++      description: "The tag of Redis image"
++      type: string
++      required: false
++  group: Images
++
++- variable: resources.collector.requests.cpu
++  label: Pod CPU request
++  default: 10m
++  description: "Pod CPU request"
++  type: string
++  required: false
++  group: Collector Configuration
++
++- variable: resources.collector.requests.memory
++  label: Pod memory request
++  default: 50Mi
++  description: "Pod memory request"
++  type: string
++  required: false
++  group: Collector Configuration
++
++- variable: resources.collector.limits.cpu
++  label: Pod CPU limit
++  default: 100m
++  description: "Pod CPU limit"
++  type: string
++  required: false
++  group: Collector Configuration
++
++- variable: resources.collector.limits.memory
++  label: Pod memory limit
++  default: 500Mi
++  description: "Pod memory limit"
++  type: string
++  required: false
++  group: Collector Configuration
++
++- variable: resources.analyzer.requests.cpu
++  label: Pod CPU request
++  default: 10m
++  description: "Pod CPU request"
++  type: string
++  required: false
++  group: Analyzer Configuration
++
++- variable: resources.analyzer.requests.memory
++  label: Pod memory request
++  default: 50Mi
++  description: "Pod memory request"
++  type: string
++  required: false
++  group: Analyzer Configuration
++
++- variable: resources.analyzer.limits.cpu
++  label: Pod CPU limit
++  default: 100m
++  description: "Pod CPU limit"
++  type: string
++  required: false
++  group: Analyzer Configuration
++
++- variable: resources.analyzer.limits.memory
++  label: Pod memory limit
++  default: 500Mi
++  description: "Pod memory limit"
++  type: string
++  required: false
++  group: Analyzer Configuration
++
++- variable: resources.redis.requests.cpu
++  label: Pod CPU request
++  default: 10m
++  description: "Pod CPU request"
++  type: string
++  required: false
++  group: Redis Configuration
++
++- variable: resources.redis.requests.memory
++  label: Pod memory request
++  default: 100Mi
++  description: "Pod memory request"
++  type: string
++  required: false
++  group: Redis Configuration
++
++- variable: resources.redis.requests.ephemeralStorage
++  label: Pod ephemeral storage request
++  default: 1Gi
++  description: "Pod ephemeral storage request"
++  type: string
++  required: false
++  group: Redis Configuration
++
++- variable: resources.redis.limits.cpu
++  label: Pod CPU limit
++  default: 100m
++  description: "Pod CPU limit"
++  type: string
++  required: false
++  group: Redis Configuration
++
++- variable: resources.redis.limits.memory
++  label: Pod memory limit
++  default: 1Gi
++  description: "Pod memory limit"
++  type: string
++  required: false
++  group: Redis Configuration
++
++- variable: resources.redis.limits.ephemeralStorage
++  label: Pod ephemeral storage limit
++  default: 10Gi
++  description: "Pod ephemeral storage limit"
++  type: string
++  required: false
++  group: Redis Configuration
++
++- variable: support.mail
++  label: Support Contact Email
++  default: "ranchersupportnow@suse.com"
++  description: "Support Contact Email"
++  type: string
++  required: false
++  group: Other Configuration
+diff --git a/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/_helpers.tpl b/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/_helpers.tpl
+new file mode 100644
+index 000000000..5a9a6a7db
+--- /dev/null
++++ b/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/_helpers.tpl
+@@ -0,0 +1,102 @@
++{{/*
++Expand the name of the chart.
++*/}}
++{{- define "rancher-supportability-review.name" -}}
++{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
++{{- end }}
++
++{{/*
++Create a default fully qualified app name.
++We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
++If release name contains chart name it will be used as a full name.
++*/}}
++{{- define "rancher-supportability-review.fullname" -}}
++{{- if .Values.fullnameOverride }}
++{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
++{{- else }}
++{{- $name := default .Chart.Name .Values.nameOverride }}
++{{- if contains $name .Release.Name }}
++{{- .Release.Name | trunc 63 | trimSuffix "-" }}
++{{- else }}
++{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
++{{- end }}
++{{- end }}
++{{- end }}
++
++{{/*
++Create chart name and version as used by the chart label.
++*/}}
++{{- define "rancher-supportability-review.chart" -}}
++{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
++{{- end }}
++
++{{/*
++Common labels
++*/}}
++{{- define "rancher-supportability-review.labels" -}}
++helm.sh/chart: {{ include "rancher-supportability-review.chart" . }}
++{{ include "rancher-supportability-review.selectorLabels" . }}
++{{- if .Chart.AppVersion }}
++app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
++{{- end }}
++app.kubernetes.io/managed-by: {{ .Release.Service }}
++{{- end }}
++
++{{/*
++Selector labels
++*/}}
++{{- define "rancher-supportability-review.selectorLabels" -}}
++app.kubernetes.io/name: {{ include "rancher-supportability-review.name" . }}
++app.kubernetes.io/instance: {{ .Release.Name }}
++{{- end }}
++
++{{/*
++Create the name of the service account to use
++*/}}
++{{- define "rancher-supportability-review.serviceAccountName" -}}
++{{- if .Values.serviceAccount.create }}
++{{- default (include "rancher-supportability-review.fullname" .) .Values.serviceAccount.name }}
++{{- else }}
++{{- default "default" .Values.serviceAccount.name }}
++{{- end }}
++{{- end }}
++
++{{/* Ensure namespace is set the same everywhere */}}
++{{- define "sr.namespace" -}}
++  {{- .Release.Namespace | default "sr-operator-system" -}}
++{{- end -}}
++
++{{- define "system_default_registry" -}}
++{{- if .Values.global.cattle.systemDefaultRegistry -}}
++{{- printf "%s/" .Values.global.cattle.systemDefaultRegistry -}}
++{{- else -}}
++{{- "" -}}
++{{- end -}}
++{{- end -}}
++
++{{- define "registry_url" -}}
++{{- if .Values.privateRegistry.registryUrl -}}
++{{- printf "%s/" .Values.privateRegistry.registryUrl -}}
++{{- else -}}
++{{ include "system_default_registry" . }}
++{{- end -}}
++{{- end -}}
++
++{{- define "secret" }}
++{{- printf "{\"auths\": {\"%s\": {\"username\": \"%s\",\"password\": \"%s\",\"auth\": \"%s\"}}}" .Values.global.cattle.systemDefaultRegistry .Values.privateRegistry.registryUser .Values.privateRegistry.registryPasswd (printf "%s:%s" .Values.privateRegistry.registryUser .Values.privateRegistry.registryPasswd | b64enc) | b64enc }}
++{{- end }}
++
++{{/*
++Windows cluster will add default taint for linux nodes,
++add below linux tolerations to workloads could be scheduled to those linux nodes
++*/}}
++{{- define "linux-node-tolerations" -}}
++- key: "cattle.io/os"
++  value: "linux"
++  effect: "NoSchedule"
++  operator: "Equal"
++{{- end -}}
++
++{{- define "linux-node-selector" -}}
++kubernetes.io/os: linux
++{{- end -}}
+diff --git a/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/app-frontend-resource.yaml b/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/app-frontend-resource.yaml
+new file mode 100644
+index 000000000..f62e36b1c
+--- /dev/null
++++ b/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/app-frontend-resource.yaml
+@@ -0,0 +1,49 @@
++apiVersion: apps/v1
++kind: Deployment
++metadata:
++  name: sr-bundle-app-frontend-deployment
++  namespace: {{ .Release.Namespace }}
++spec:
++  replicas: 1
++  selector:
++    matchLabels:
++      sr-app: app-frontend
++  template:
++    metadata:
++      labels:
++        sr-app: app-frontend
++    spec:
++      {{- if .Values.privateRegistry.registrySecret }}
++      imagePullSecrets:
++      - name: {{ .Values.privateRegistry.registrySecret }}
++      {{- end }}
++      containers:
++      - name: app-frontend
++        image: {{ template "registry_url" . }}{{ .Values.image.appFrontend.repository }}:{{ .Values.image.appFrontend.tag }}
++        imagePullPolicy: {{ .Values.image.pullPolicy }}
++        ports:
++        - containerPort: 80
++        resources:
++          requests:
++            memory: "100Mi"
++            cpu: "10m"
++            ephemeral-storage: "1Gi"
++          limits:
++            memory: "1Gi"
++            cpu: "100m"
++            ephemeral-storage: "10Gi"
++      nodeSelector:
++        kubernetes.io/os: linux
++---
++apiVersion: v1
++kind: Service
++metadata:
++  name: sr-bundle-app-frontend-service
++  namespace: {{ .Release.Namespace }}
++spec:
++  ports:
++  - port: 80
++    protocol: TCP
++    targetPort: 80
++  selector:
++    sr-app: app-frontend
+diff --git a/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/clusterrole.yaml b/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/clusterrole.yaml
+new file mode 100644
+index 000000000..9fda2aea2
+--- /dev/null
++++ b/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/clusterrole.yaml
+@@ -0,0 +1,8 @@
++apiVersion: rbac.authorization.k8s.io/v1
++kind: ClusterRole
++metadata:
++  name: {{ include "rancher-supportability-review.fullname" . }}-cr
++rules:
++- apiGroups: ["*"]
++  resources: ["*"]
++  verbs: ["*"]
+diff --git a/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/clusterrolebinding.yaml b/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/clusterrolebinding.yaml
+new file mode 100644
+index 000000000..e329c7ece
+--- /dev/null
++++ b/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/clusterrolebinding.yaml
+@@ -0,0 +1,12 @@
++apiVersion: rbac.authorization.k8s.io/v1
++kind: ClusterRoleBinding
++metadata:
++  name: {{ include "rancher-supportability-review.fullname" . }}-crb
++roleRef:
++  apiGroup: rbac.authorization.k8s.io
++  kind: ClusterRole
++  name: {{ include "rancher-supportability-review.fullname" . }}-cr
++subjects:
++- kind: ServiceAccount
++  name: {{ include "rancher-supportability-review.serviceAccountName" . }}
++  namespace: {{ .Release.Namespace }}
+diff --git a/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/db-resource.yaml b/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/db-resource.yaml
+new file mode 100644
+index 000000000..439984a51
+--- /dev/null
++++ b/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/db-resource.yaml
+@@ -0,0 +1,54 @@
++apiVersion: apps/v1
++kind: Deployment
++metadata:
++  name: sr-bundle-db-deployment
++  namespace: {{ .Release.Namespace }}
++spec:
++  replicas: 1
++  selector:
++    matchLabels:
++      sr-app: db
++  template:
++    metadata:
++      labels:
++        sr-app: db
++    spec:
++      {{- if .Values.privateRegistry.registrySecret }}
++      imagePullSecrets:
++      - name: {{ .Values.privateRegistry.registrySecret }}
++      {{- end }}
++      containers:
++      - args:
++        - --maxmemory
++        - 1gb
++        - --maxmemory-policy
++        - noeviction
++        image: {{ template "registry_url" . }}{{ .Values.image.redis.repository }}:{{ .Values.image.redis.tag }}
++        imagePullPolicy: {{ .Values.image.pullPolicy }}
++        name: redis
++        ports:
++        - containerPort: 6379
++        resources:
++          requests:
++            memory: {{ .Values.resources.redis.requests.memory }}
++            cpu: {{ .Values.resources.redis.requests.cpu }}
++            ephemeral-storage: {{ .Values.resources.redis.requests.ephemeralStorage }}
++          limits:
++            memory: {{ .Values.resources.redis.limits.memory }}
++            cpu: {{ .Values.resources.redis.limits.cpu }}
++            ephemeral-storage: {{ .Values.resources.redis.limits.ephemeralStorage }}
++      nodeSelector:
++        kubernetes.io/os: linux
++---
++apiVersion: v1
++kind: Service
++metadata:
++  name: sr-bundle-db-service
++  namespace: {{ .Release.Namespace }}
++spec:
++  ports:
++  - port: 6379
++    protocol: TCP
++    targetPort: 6379
++  selector:
++    sr-app: db
+diff --git a/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/deployment.yaml b/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/deployment.yaml
+new file mode 100644
+index 000000000..850eec6ba
+--- /dev/null
++++ b/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/deployment.yaml
+@@ -0,0 +1,60 @@
++apiVersion: apps/v1
++kind: Deployment
++metadata:
++  name: {{ include "rancher-supportability-review.fullname" . }}
++  labels:
++    {{- include "rancher-supportability-review.labels" . | nindent 4 }}
++spec:
++  {{- if not .Values.autoscaling.enabled }}
++  replicas: {{ .Values.replicaCount }}
++  {{- end }}
++  selector:
++    matchLabels:
++      {{- include "rancher-supportability-review.selectorLabels" . | nindent 6 }}
++  template:
++    metadata:
++      {{- with .Values.podAnnotations }}
++      annotations:
++        {{- toYaml . | nindent 8 }}
++      {{- end }}
++      labels:
++        {{- include "rancher-supportability-review.labels" . | nindent 8 }}
++        {{- with .Values.podLabels }}
++        {{- toYaml . | nindent 8 }}
++        {{- end }}
++    spec:
++      {{- if .Values.privateRegistry.registrySecret }}
++      imagePullSecrets:
++      - name: {{ .Values.privateRegistry.registrySecret }}
++      {{- end }}
++      serviceAccountName: {{ include "rancher-supportability-review.serviceAccountName" . }}
++      securityContext:
++        {{- toYaml .Values.podSecurityContext | nindent 8 }}
++      containers:
++        - name: {{ .Chart.Name }}
++          securityContext:
++            {{- toYaml .Values.securityContext | nindent 12 }}
++          image: {{ template "registry_url" . }}{{ .Values.image.operator.repository }}:{{ .Values.image.operator.tag }}
++          imagePullPolicy: {{ .Values.image.pullPolicy }}
++          resources:
++            {{- toYaml .Values.resources.operator | nindent 12 }}
++          {{- with .Values.volumeMounts }}
++          volumeMounts:
++            {{- toYaml . | nindent 12 }}
++          {{- end }}
++      {{- with .Values.volumes }}
++      volumes:
++        {{- toYaml . | nindent 8 }}
++      {{- end }}
++      {{- with .Values.nodeSelector }}
++      nodeSelector:
++        {{- toYaml . | nindent 8 }}
++      {{- end }}
++      {{- with .Values.affinity }}
++      affinity:
++        {{- toYaml . | nindent 8 }}
++      {{- end }}
++      {{- with .Values.tolerations }}
++      tolerations:
++        {{- toYaml . | nindent 8 }}
++      {{- end }}
+diff --git a/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/network_policy_allow_all.yaml b/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/network_policy_allow_all.yaml
+new file mode 100644
+index 000000000..926ceea6d
+--- /dev/null
++++ b/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/network_policy_allow_all.yaml
+@@ -0,0 +1,13 @@
++apiVersion: networking.k8s.io/v1
++kind: NetworkPolicy
++metadata:
++  name: default-allow-all
++spec:
++  podSelector: {}
++  ingress:
++  - {}
++  egress:
++  - {}
++  policyTypes:
++  - Ingress
++  - Egress
+diff --git a/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/secret.yaml b/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/secret.yaml
+new file mode 100644
+index 000000000..fcf56113f
+--- /dev/null
++++ b/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/secret.yaml
+@@ -0,0 +1,35 @@
++apiVersion: v1
++kind: Secret
++metadata:
++  name: {{ .Values.rancher.secretName }}
++  namespace: {{ .Release.Namespace }}
++type: Opaque
++stringData:
++  collectorImageRepository: {{ template "registry_url" . }}{{ .Values.image.collector.repository }}:{{ .Values.image.collector.tag }}
++  sonobuoyImageRepository: {{ template "registry_url" . }}{{ .Values.image.sonobuoy.repository }}:{{ .Values.image.sonobuoy.tag }}
++  analyzerImageRepository: {{ template "registry_url" . }}{{ .Values.image.analyzer.repository }}:{{ .Values.image.analyzer.tag }}
++  collectorRequestsCPU: {{ .Values.resources.collector.requests.cpu }}
++  collectorRequestsMemory: {{ .Values.resources.collector.requests.memory }}
++  collectorLimitsCPU: {{ .Values.resources.collector.limits.cpu }}
++  collectorLimitsMemory: {{ .Values.resources.collector.limits.memory }}
++  analyzerRequestsCPU: {{ .Values.resources.analyzer.requests.cpu }}
++  analyzerRequestsMemory: {{ .Values.resources.analyzer.requests.memory }}
++  analyzerLimitsCPU: {{ .Values.resources.analyzer.limits.cpu }}
++  analyzerLimitsMemory: {{ .Values.resources.analyzer.limits.memory }}
++  {{- if .Values.privateRegistry.registrySecret }}
++  imagePullSecretName: {{ .Values.privateRegistry.registrySecret }}
++  {{- end }}
++  supportMail: {{ .Values.support.mail }}
++---
++{{- if .Values.privateRegistry.createSecret }}
++{{- if .Values.privateRegistry.registrySecret }}
++apiVersion: v1
++kind: Secret
++metadata:
++  name: {{ .Values.privateRegistry.registrySecret }}
++  namespace: {{ .Release.Namespace }}
++type: kubernetes.io/dockerconfigjson
++data:
++  .dockerconfigjson: {{ template "secret" . }}
++{{- end }}
++{{- end }}
+diff --git a/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/serviceaccount.yaml b/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/serviceaccount.yaml
+new file mode 100644
+index 000000000..64e565e5a
+--- /dev/null
++++ b/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/serviceaccount.yaml
+@@ -0,0 +1,13 @@
++{{- if .Values.serviceAccount.create -}}
++apiVersion: v1
++kind: ServiceAccount
++metadata:
++  name: {{ include "rancher-supportability-review.serviceAccountName" . }}
++  labels:
++    {{- include "rancher-supportability-review.labels" . | nindent 4 }}
++  {{- with .Values.serviceAccount.annotations }}
++  annotations:
++    {{- toYaml . | nindent 4 }}
++  {{- end }}
++automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
++{{- end }}
+diff --git a/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/validate-install-crd.yaml b/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/validate-install-crd.yaml
+new file mode 100644
+index 000000000..ab7d90631
+--- /dev/null
++++ b/charts/rancher-supportability-review/109.0.1+up0.1.7/templates/validate-install-crd.yaml
+@@ -0,0 +1,14 @@
++#{{- if gt (len (lookup "rbac.authorization.k8s.io/v1" "ClusterRole" "" "")) 0 -}}
++# {{- $found := dict -}}
++# {{- set $found "sr.cattle.io/v1/ReviewBundle" false -}}
++# {{- range .Capabilities.APIVersions -}}
++# {{- if hasKey $found (toString .) -}}
++# 	{{- set $found (toString .) true -}}
++# {{- end -}}
++# {{- end -}}
++# {{- range $_, $exists := $found -}}
++# {{- if (eq $exists false) -}}
++# 	{{- required "Required CRDs are missing. Please install the corresponding CRD chart before installing this chart." "" -}}
++# {{- end -}}
++# {{- end -}}
++#{{- end -}}
+\ No newline at end of file
+diff --git a/charts/rancher-supportability-review/109.0.1+up0.1.7/values.yaml b/charts/rancher-supportability-review/109.0.1+up0.1.7/values.yaml
+new file mode 100644
+index 000000000..9f6552390
+--- /dev/null
++++ b/charts/rancher-supportability-review/109.0.1+up0.1.7/values.yaml
+@@ -0,0 +1,134 @@
++# Default values for rancher-supportability-review.
++# This is a YAML-formatted file.
++# Declare variables to be passed into your templates.
++
++replicaCount: 1
++
++rancher:
++  secretName: "sr-api-details"
++
++image:
++  useDefaultImages: true
++  operator:
++    repository: rancher/supportability-review-operator
++    tag: v0.23.0
++  collector:
++    repository: rancher/supportability-review
++    tag: latest
++  sonobuoy:
++    repository: rancher/mirrored-sonobuoy-sonobuoy
++    tag: v0.57.3
++  analyzer:
++    repository: rancher/supportability-review-internal
++    tag: latest
++  appFrontend:
++    repository: rancher/supportability-review-app-frontend
++    tag: v0.23.0
++  redis:
++    repository: rancher/appco-redis
++    tag: 8.0.3-2.1
++  pullPolicy: Always
++
++imagePullSecrets: []
++nameOverride: ""
++fullnameOverride: ""
++
++serviceAccount:
++  # Specifies whether a service account should be created
++  create: true
++  # Automatically mount a ServiceAccount's API credentials?
++  automount: true
++  # Annotations to add to the service account
++  annotations: {}
++  # The name of the service account to use.
++  # If not set and create is true, a name is generated using the fullname template
++  name: ""
++
++podAnnotations: {}
++podLabels: {}
++
++podSecurityContext: {}
++  # fsGroup: 2000
++
++securityContext: {}
++  # capabilities:
++  #   drop:
++  #   - ALL
++  # readOnlyRootFilesystem: true
++  # runAsNonRoot: true
++  # runAsUser: 1000
++
++resources:
++  # We usually recommend not to specify default resources and to leave this as a conscious
++  # choice for the user. This also increases chances charts run on environments with little
++  # resources, such as Minikube. If you do want to specify resources, uncomment the following
++  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
++  operator:
++  collector:
++    requests:
++      cpu: 10m
++      memory: 50Mi
++    limits:
++      cpu: 100m
++      memory: 500Mi
++  analyzer:
++    requests:
++      cpu: 10m
++      memory: 50Mi
++    limits:
++      cpu: 100m
++      memory: 500Mi
++  redis:
++    requests:
++      cpu: 10m
++      memory: 100Mi
++      ephemeralStorage: 1Gi
++    limits:
++      cpu: 100m
++      memory: 1Gi
++      ephemeralStorage: 10Gi
++
++support:
++  mail: "ranchersupportnow@suse.com"
++
++autoscaling:
++  enabled: false
++  minReplicas: 1
++  maxReplicas: 100
++  targetCPUUtilizationPercentage: 80
++  # targetMemoryUtilizationPercentage: 80
++
++# Additional volumes on the output Deployment definition.
++volumes: []
++# - name: foo
++#   secret:
++#     secretName: mysecret
++#     optional: false
++
++# Additional volumeMounts on the output Deployment definition.
++volumeMounts: []
++# - name: foo
++#   mountPath: "/etc/foo"
++#   readOnly: true
++
++nodeSelector: {}
++
++tolerations: []
++
++affinity: {}
++
++global:
++  cattle:
++    systemDefaultRegistry: ""
++
++privateRegistry:
++  # -- Setting that allows you to create a private registry secret.
++  createSecret: ~
++  # -- URL of a private registry. When unspecified, SR uses the default system registry.
++  registryUrl: ~
++  # -- User account used for authenticating with a private registry.
++  registryUser: ~
++  # -- Password for authenticating with a private registry.
++  registryPasswd: ~
++  # -- Kubernetes secret that allows you to pull images from a private registry. This setting applies only when creation of private registry secrets is enabled. You must include the private registry name in the secret name.
++  registrySecret: ~
+diff --git a/packages/rancher-supportability-review/charts-crd/Chart.yaml b/packages/rancher-supportability-review/charts-crd/Chart.yaml
+new file mode 100755
+index 000000000..ed5e7ba01
+--- /dev/null
++++ b/packages/rancher-supportability-review/charts-crd/Chart.yaml
+@@ -0,0 +1,10 @@
++apiVersion: v1
++version: 109.0.1+up0.1.7
++description: Installs the CRDs for rancher-supportability-review.
++name: rancher-supportability-review-crd
++type: application
++annotations:
++  catalog.cattle.io/hidden: "true"
++  catalog.cattle.io/release-name: rancher-supportability-review-crd
++  catalog.cattle.io/certified: rancher
++  catalog.cattle.io/namespace: sr-operator-system
+diff --git a/packages/rancher-supportability-review/charts-crd/README.md b/packages/rancher-supportability-review/charts-crd/README.md
+new file mode 100755
+index 000000000..75a817d3b
+--- /dev/null
++++ b/packages/rancher-supportability-review/charts-crd/README.md
+@@ -0,0 +1,2 @@
++# rancher-supportability-review-crd
++A Rancher chart that installs the CRDs used by rancher-supportability-review.
+diff --git a/packages/rancher-supportability-review/charts-crd/templates/reviewbundle.yaml b/packages/rancher-supportability-review/charts-crd/templates/reviewbundle.yaml
+new file mode 100755
+index 000000000..e4f1e2b2f
+--- /dev/null
++++ b/packages/rancher-supportability-review/charts-crd/templates/reviewbundle.yaml
+@@ -0,0 +1,148 @@
++apiVersion: apiextensions.k8s.io/v1
++kind: CustomResourceDefinition
++metadata:
++  name: reviewbundles.sr.cattle.io
++spec:
++  group: sr.cattle.io
++  names:
++    kind: ReviewBundle
++    plural: reviewbundles
++    singular: reviewbundle
++  scope: Cluster
++  versions:
++  - additionalPrinterColumns:
++    - jsonPath: .status.timestamp
++      name: Timestamp
++      type: string
++    name: v1
++    schema:
++      openAPIV3Schema:
++        properties:
++          spec:
++            properties:
++              analyzeClusters:
++                items:
++                  nullable: true
++                  type: string
++                nullable: true
++                type: array
++              collectClusters:
++                items:
++                  nullable: true
++                  type: string
++                nullable: true
++                type: array
++              debug:
++                type: boolean
++              dev:
++                type: boolean
++              enableDataObfuscation:
++                type: boolean
++              enablePrivileged:
++                type: boolean
++              hostName:
++                nullable: true
++                type: string
++              httpProxy:
++                nullable: true
++                type: string
++              httpsProxy:
++                nullable: true
++                type: string
++              noProxy:
++                nullable: true
++                type: string
++              parallelCollection:
++                type: boolean
++              sonobuoyNamespace:
++                nullable: true
++                type: string
++              sonobuoyTimeout:
++                type: integer
++              token:
++                nullable: true
++                type: string
++              tolerations:
++                items:
++                  properties:
++                    effect:
++                      nullable: true
++                      type: string
++                    key:
++                      nullable: true
++                      type: string
++                    operator:
++                      nullable: true
++                      type: string
++                    tolerationSeconds:
++                      nullable: true
++                      type: integer
++                    value:
++                      nullable: true
++                      type: string
++                  type: object
++                nullable: true
++                type: array
++            type: object
++          status:
++            properties:
++              checkResult:
++                nullable: true
++                type: string
++              clusterCount:
++                type: integer
++              conditions:
++                items:
++                  properties:
++                    lastTransitionTime:
++                      nullable: true
++                      type: string
++                    lastUpdateTime:
++                      nullable: true
++                      type: string
++                    message:
++                      nullable: true
++                      type: string
++                    reason:
++                      nullable: true
++                      type: string
++                    status:
++                      nullable: true
++                      type: string
++                    type:
++                      nullable: true
++                      type: string
++                  type: object
++                nullable: true
++                type: array
++              display:
++                nullable: true
++                properties:
++                  error:
++                    type: boolean
++                  message:
++                    nullable: true
++                    type: string
++                  state:
++                    nullable: true
++                    type: string
++                  transitioning:
++                    type: boolean
++                type: object
++              fileName:
++                nullable: true
++                type: string
++              fileSize:
++                type: integer
++              supportMail:
++                nullable: true
++                type: string
++              timestamp:
++                nullable: true
++                type: string
++            type: object
++        type: object
++    served: true
++    storage: true
++    subresources:
++      status: {}
+diff --git a/packages/rancher-supportability-review/charts/Chart.yaml b/packages/rancher-supportability-review/charts/Chart.yaml
+index 880390e83..b3b908403 100644
+--- a/packages/rancher-supportability-review/charts/Chart.yaml
++++ b/packages/rancher-supportability-review/charts/Chart.yaml
+@@ -12,11 +12,11 @@ annotations:
+   catalog.cattle.io/type: cluster-tool
+   catalog.cattle.io/ui-component: rancher-supportability-review
+ apiVersion: v1
+-appVersion: 0.1.6
++appVersion: 0.1.7
+ description: The rancher-supportability-review operator enables the functionality
+   of Supportability Reviews for Rancher.
+ icon: file://assets/logos/rancher-supportability-review.png
+ keywords:
+ - support
+ name: rancher-supportability-review
+-version: 109.0.0+up0.1.6
++version: 109.0.1+up0.1.7
+diff --git a/packages/rancher-supportability-review/charts/questions.yaml b/packages/rancher-supportability-review/charts/questions.yaml
+index 44ac498ff..1139814bf 100644
+--- a/packages/rancher-supportability-review/charts/questions.yaml
++++ b/packages/rancher-supportability-review/charts/questions.yaml
+@@ -44,6 +44,18 @@ questions:
+       description: "The repository of Collector Tag"
+       type: string
+       required: false
++    - variable: image.sonobuoy.repository
++      label: Collector image Repository
++      default: "rancher/mirrored-sonobuoy-sonobuoy"
++      description: "The repository of sonobuoy image"
++      type: string
++      required: false
++    - variable: image.sonobuoy.tag
++      label: Collector image Tag
++      default: "v0.57.3"
++      description: "The repository of sonobuoy Tag"
++      type: string
++      required: false
+     - variable: image.analyzer.repository
+       label: Analyzer image Repository
+       default: "rancher/supportability-review-internal"
+@@ -64,7 +76,7 @@ questions:
+       required: false
+     - variable: image.operator.tag
+       label: Operator image tag
+-      default: "v0.19.0"
++      default: "v0.23.0"
+       description: "The tag of Operator image"
+       type: string
+       required: false
+@@ -76,7 +88,7 @@ questions:
+       required: false
+     - variable: image.appFrontend.tag
+       label: App frontend image tag
+-      default: "v0.19.0"
++      default: "v0.23.0"
+       description: "The tag of App frontend image"
+       type: string
+       required: false
+diff --git a/packages/rancher-supportability-review/charts/templates/secret.yaml b/packages/rancher-supportability-review/charts/templates/secret.yaml
+index 6a1ee581e..fcf56113f 100644
+--- a/packages/rancher-supportability-review/charts/templates/secret.yaml
++++ b/packages/rancher-supportability-review/charts/templates/secret.yaml
+@@ -6,6 +6,7 @@ metadata:
+ type: Opaque
+ stringData:
+   collectorImageRepository: {{ template "registry_url" . }}{{ .Values.image.collector.repository }}:{{ .Values.image.collector.tag }}
++  sonobuoyImageRepository: {{ template "registry_url" . }}{{ .Values.image.sonobuoy.repository }}:{{ .Values.image.sonobuoy.tag }}
+   analyzerImageRepository: {{ template "registry_url" . }}{{ .Values.image.analyzer.repository }}:{{ .Values.image.analyzer.tag }}
+   collectorRequestsCPU: {{ .Values.resources.collector.requests.cpu }}
+   collectorRequestsMemory: {{ .Values.resources.collector.requests.memory }}
+diff --git a/packages/rancher-supportability-review/charts/templates/validate-install-crd.yaml b/packages/rancher-supportability-review/charts/templates/validate-install-crd.yaml
+new file mode 100755
+index 000000000..ab7d90631
+--- /dev/null
++++ b/packages/rancher-supportability-review/charts/templates/validate-install-crd.yaml
+@@ -0,0 +1,14 @@
++#{{- if gt (len (lookup "rbac.authorization.k8s.io/v1" "ClusterRole" "" "")) 0 -}}
++# {{- $found := dict -}}
++# {{- set $found "sr.cattle.io/v1/ReviewBundle" false -}}
++# {{- range .Capabilities.APIVersions -}}
++# {{- if hasKey $found (toString .) -}}
++# 	{{- set $found (toString .) true -}}
++# {{- end -}}
++# {{- end -}}
++# {{- range $_, $exists := $found -}}
++# {{- if (eq $exists false) -}}
++# 	{{- required "Required CRDs are missing. Please install the corresponding CRD chart before installing this chart." "" -}}
++# {{- end -}}
++# {{- end -}}
++#{{- end -}}
+\ No newline at end of file
+diff --git a/packages/rancher-supportability-review/charts/values.yaml b/packages/rancher-supportability-review/charts/values.yaml
+index 57c44db83..9f6552390 100644
+--- a/packages/rancher-supportability-review/charts/values.yaml
++++ b/packages/rancher-supportability-review/charts/values.yaml
+@@ -11,16 +11,19 @@ image:
+   useDefaultImages: true
+   operator:
+     repository: rancher/supportability-review-operator
+-    tag: v0.19.0
++    tag: v0.23.0
+   collector:
+     repository: rancher/supportability-review
+     tag: latest
++  sonobuoy:
++    repository: rancher/mirrored-sonobuoy-sonobuoy
++    tag: v0.57.3
+   analyzer:
+     repository: rancher/supportability-review-internal
+     tag: latest
+   appFrontend:
+     repository: rancher/supportability-review-app-frontend
+-    tag: v0.19.0
++    tag: v0.23.0
+   redis:
+     repository: rancher/appco-redis
+     tag: 8.0.3-2.1
+diff --git a/packages/rancher-supportability-review/package.yaml b/packages/rancher-supportability-review/package.yaml
+index d1b6669ea..906ba0c8e 100644
+--- a/packages/rancher-supportability-review/package.yaml
++++ b/packages/rancher-supportability-review/package.yaml
+@@ -1,5 +1,5 @@
+ url: local
+-version: 109.0.0+up0.1.6
++version: 109.0.1+up0.1.7
+ additionalCharts:
+   - workingDir: charts-crd
+     crdOptions:
+diff --git a/packages/rancher-supportability-review/templates/crd-template/Chart.yaml b/packages/rancher-supportability-review/templates/crd-template/Chart.yaml
+index 5a12fd5af..ed5e7ba01 100644
+--- a/packages/rancher-supportability-review/templates/crd-template/Chart.yaml
++++ b/packages/rancher-supportability-review/templates/crd-template/Chart.yaml
+@@ -1,5 +1,5 @@
+ apiVersion: v1
+-version: 109.0.0+up0.1.6
++version: 109.0.1+up0.1.7
+ description: Installs the CRDs for rancher-supportability-review.
+ name: rancher-supportability-review-crd
+ type: application
+diff --git a/release.yaml b/release.yaml
+index c0cc10be8..281fd5ced 100644
+--- a/release.yaml
++++ b/release.yaml
+@@ -125,6 +125,10 @@ rancher-monitoring:
+   - 109.0.3+up80.9.1-rancher.14
+ rancher-monitoring-crd:
+   - 109.0.3+up80.9.1-rancher.14
++rancher-supportability-review:
++  - 109.0.1+up0.1.7
++rancher-supportability-review-crd:
++  - 109.0.1+up0.1.7
+ rancher-turtles:
+   - 109.0.4+up0.26.4-rc.0
+   - 109.0.3+up0.26.3-rc.0
+-- 
+2.43.0
+
