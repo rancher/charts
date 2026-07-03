@@ -45,7 +45,15 @@ switch (command) {
     // Mark QA sign-off complete for chart
     // Finds row by chart+version, sets data-qa="true", updates cell text
     console.log({ command })
-    // result = updateQA(input, chart, version);
+
+    const chart = args[1];
+    const version = args[2];
+
+    result = updateQA({
+      html: input,
+      chart,
+      version
+    });
     break;
   }
   case 'update-unrc': {
