@@ -3,7 +3,7 @@
 This chart is deploys a Helm Project Operator (based on the [rancher/helm-project-operator](https://github.com/rancher/helm-project-operator)), an operator that manages deploying Helm charts each containing a Project Monitoring Stack, where each stack contains:
 - [Prometheus](https://prometheus.io/) (managed externally by [Prometheus Operator](https://github.com/prometheus-operator/prometheus-operator))
 - [Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) (managed externally by [Prometheus Operator](https://github.com/prometheus-operator/prometheus-operator))
-- [Grafana](https://github.com/helm/charts/tree/master/stable/grafana) (deployed via an embedded Helm chart)
+- [Grafana](https://github.com/helm/charts/tree/master/stable/grafana) (deployed by an operator-approved project monitoring chart)
 - Default PrometheusRules and Grafana dashboards based on the collection of community-curated resources from [kube-prometheus](https://github.com/prometheus-operator/kube-prometheus/)
 - Default ServiceMonitors that watch the deployed resources
 
@@ -63,9 +63,7 @@ In Prometheus Federator, a Project is a group of namespaces that can be identifi
 
 ### Configuring the Helm release created by a ProjectHelmChart
 
-The `spec.values` of this ProjectHelmChart resources will correspond to the `values.yaml` override to be supplied to the underlying Helm chart deployed by the operator on the user's behalf; to see the underlying chart's `values.yaml` spec, either:
-- View to the chart's definition located at [`rancher/prometheus-federator` under `charts/rancher-project-monitoring`](https://github.com/rancher/prometheus-federator/blob/main/charts/rancher-project-monitoring) (where the chart version will be tied to the version of this operator)
-- Look for the ConfigMap named `monitoring.cattle.io.v1alpha1` that is automatically created in each Project Registration Namespace, which will contain both the `values.yaml` and `questions.yaml` that was used to configure the chart (which was embedded directly into the `prometheus-federator` binary).
+The `spec.values` of this ProjectHelmChart resources will correspond to the `values.yaml` override supplied to the approved project monitoring chart deployed by the operator on the user's behalf. Configure that approved chart source with `helmProjectOperator.chartSource.name`, `helmProjectOperator.chartSource.repo`, and `helmProjectOperator.chartSource.version`.
 
 ### Namespaces
 
