@@ -54,37 +54,58 @@ permissions:
   issues: write
 ```
 
+## Architecture
+
+```
+src/
+├── cli.ts            # CLI entry point (stdin → test/output.md)
+├── adapters/         # External format adapters (HTML, CODEOWNERS)
+└── commands/         # Domain logic (add, update, remove operations)
+```
+
 ## Commands
 
-- `add-chart <chart> <version> <owner>` - Add chart row to tracking table
+- `add-chart <chart> <version> <owner>` - Add chart row (auto-populates team from CODEOWNERS_DEV)
 - `remove-chart <chart> <version>` - Remove chart from tracking table
 - `update-qa <chart> <version>` - Mark QA sign-off complete
 - `update-unrc <chart> <version>` - Mark Un-RC complete
-- `mark-released <chart> <version>` - Mark chart released
+- `mark-released <chart> <version>` - Mark chart released (stub)
 
-## Local Testing
+## Local Development
 
 ```bash
 # Install deps
 npm install
 
-# Run unit tests
+# Run all tests
 npm test
 
-# Manual testing
+# Run unit tests only
+npm run test:unit
+
+# Run integration tests only
+npm run test:integration
+
+# Manual testing (file-based)
 npm run dev add-chart longhorn 109.3.1 @nick
 npm run dev update-qa longhorn 109.3.1
 npm run dev remove-chart longhorn 109.3.1
+
+# Direct CLI usage (stdin → test/output.md)
+cat test/fixtures/issue-body.md | npm run cli add-chart fleet 1.0.0 @user
 ```
 
-Local mode reads from `test/output.md` (if exists) or `test/fixtures/issue-body.md`, writes to `test/output.md`.
+Test harness (`npm run dev`) reads from `test/output.md` (if exists) or `test/fixtures/issue-body.md`, writes to `test/output.md`.
 
 ## Production Use (GHA)
 
-Stdin/stdout mode automatically detected when piped:
+CLI reads stdin, writes to `test/output.md`:
 
 ```bash
-BODY=$(gh issue view $ISSUE --json body -q .body)
-UPDATED=$(echo "$BODY" | npm run dev update-qa fleet 110.0.0)
-gh issue edit $ISSUE --body "$UPDATED"
+# In GHA workflow
+cd release/tracker
+gh issue view $ISSUE --json body -q .body | npx tsx src/cli.ts add-chart fleet 110.0.0 @user
+gh issue edit $ISSUE --body "$(cat test/output.md)"
 ```
+
+Debug logs (console.log) go to GHA console, not file output.
