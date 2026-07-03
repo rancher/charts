@@ -1,4 +1,6 @@
+import { parseIssueBody, findChartRow } from '../parser.js';
 import { validateCommonInputs } from './validation.js';
+import { Errors } from './errors.js';
 
 /**
  * Marks Un-RC complete for a chart
@@ -11,20 +13,33 @@ import { validateCommonInputs } from './validation.js';
  * @param options.chart - Chart name to update
  * @param options.version - Chart version to match
  * @returns Updated HTML with UnRC marked
- * @throws Error if chart not found in table
+ * @throws Error if validation fails or chart not found
  */
 export function updateUnRC(options: {
   html: string;
   chart: string;
   version: string;
 }): string {
+  // Validate inputs
   validateCommonInputs(options.html, options.chart, options.version);
 
-  // TODO: Parse HTML with cheerio
-  // TODO: Find row by data-chart and data-version
-  // TODO: Set data-unrc="true"
-  // TODO: Update td.unrc text to "yes"
-  // TODO: Return updated HTML
+  const $ = parseIssueBody(options.html);
 
-  return options.html;
+  // Check table exists
+  const table = $('table');
+  if (table.length === 0) {
+    throw new Error(Errors.tableNotFound());
+  }
+
+  // Find chart row
+  const row = findChartRow($, options.chart, options.version);
+  if (row.length === 0) {
+    throw new Error(Errors.chartNotFound(options.chart, options.version));
+  }
+
+  // Update UnRC status
+  row.attr('data-unrc', 'true');
+  row.find('td.unrc').text('yes');
+
+  return $.html();
 }
