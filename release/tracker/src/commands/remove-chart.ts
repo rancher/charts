@@ -1,4 +1,4 @@
-import { parseIssueBody, findChartRow } from '../parser.js';
+import { parseIssueBody, findChartRow } from '../adapters/html.js';
 import { validateCommonInputs } from './validation.js';
 import { Errors } from './errors.js';
 
