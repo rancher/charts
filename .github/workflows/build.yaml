@@ -16,7 +16,7 @@ jobs:
   build:
     name: Validate
     runs-on: org-${{ github.repository_owner_id }}-amd64-k8s
-    container: registry.suse.com/bci/bci-base:latest
+    container: ghcr.io/rancher/ci-image/charts:20260618-20
     permissions:
       contents: read
       id-token: write  # Required for OIDC authentication with Vault
@@ -37,12 +37,6 @@ jobs:
           echo "Repository:      ${{ github.repository }}"
           echo "Commit SHA:      ${{ github.event.pull_request.head.sha }}"
           echo "================================================================="
-
-      # ====================================================================
-      # DEPENDENCY INSTALLATION
-      # ====================================================================
-      - name: Install Dependencies
-        uses: rancher/charts/.github/actions/dependencies@automation-core
 
       # ====================================================================
       # SECRETS MANAGEMENT (OIDC vault authentication)
@@ -121,7 +115,7 @@ jobs:
 
       - name: Create App Token
         continue-on-error: true
-        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         id: app_token
         with:
           app-id: ${{ steps.secrets.outputs.app_id }}
@@ -149,7 +143,7 @@ jobs:
       # REPOSITORY SETUP
       # ====================================================================
       - name: Checkout repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
