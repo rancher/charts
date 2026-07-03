@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rancher-monitoring.name" . }}-monitoring-proxy
+  namespace: {{ include "rancher-monitoring.namespace" . }}
+  labels:
+{{ include "rancher-monitoring.labels" . | indent 4 }}
+    app.kubernetes.io/component: monitoring-proxy
+spec:
+  replicas: {{ .Values.monitoringProxy.replicas }}
+  selector:
+    matchLabels:
+{{ include "rancher-monitoring.selectorLabels" . | indent 6 }}
+      app.kubernetes.io/component: monitoring-proxy
+  template:
+    metadata:
+      labels:
+{{ include "rancher-monitoring.selectorLabels" . | indent 8 }}
+        app.kubernetes.io/component: monitoring-proxy
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/rancher-monitoring/monitoring-proxy-configmap.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.monitoringProxy.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+      {{- end }}
+      {{- with .Values.monitoringProxy.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+      {{- end }}
+      {{- with .Values.monitoringProxy.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+      {{- end }}
+      securityContext:
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+        runAsNonRoot: true
+      containers:
+      - name: nginx
+        image: {{ template "system_default_registry" . }}{{ .Values.monitoringProxy.image.repository }}:{{ .Values.monitoringProxy.image.tag }}
+        imagePullPolicy: {{ .Values.monitoringProxy.image.pullPolicy }}
+        args:
+        - nginx
+        - -g
+        - daemon off;
+        - -c
+        - /nginx/nginx.conf
+        ports:
+        {{- if .Values.grafanaProxy.enabled }}
+        - containerPort: 8080
+          name: http-grafana
+          protocol: TCP
+        {{- end }}
+        {{- if .Values.prometheusProxy.enabled }}
+        - containerPort: 8090
+          name: http-prom
+          protocol: TCP
+        {{- end }}
+        {{- if .Values.alertmanagerProxy.enabled }}
+        - containerPort: 8093
+          name: http-am
+          protocol: TCP
+        {{- end }}
+        volumeMounts:
+        - mountPath: /nginx
+          name: nginx-config
+        - mountPath: /var/cache/nginx
+          name: nginx-cache
+        resources:
+{{ toYaml .Values.monitoringProxy.resources | indent 10 }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: {{ include "rancher-monitoring.name" . }}-monitoring-proxy-config
+          items:
+          - key: nginx.conf
+            mode: 438
+            path: nginx.conf
+      - name: nginx-cache
+        emptyDir: {}

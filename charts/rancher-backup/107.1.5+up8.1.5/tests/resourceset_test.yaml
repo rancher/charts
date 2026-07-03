@@ -1,0 +1,19 @@
+suite: ResourceSet optional kubewarden resources
+tests:
+  - it: basic ResourceSet should not include kubewarden selectors
+    template: rancher-resourceset-basic.yaml
+    asserts:
+      - notContains:
+          path: resourceSelectors
+          any: true
+          content:
+            resourceNameRegexp: "^cattle-kubewarden-|^kubewarden"
+  - it: full ResourceSet should not include kubewarden secret selectors
+    template: rancher-resourceset-full.yaml
+    asserts:
+      - notContains:
+          path: resourceSelectors
+          any: true
+          content:
+            kindsRegexp: "^secrets$"
+            namespaceRegexp: "^cattle-kubewarden-|^kubewarden"
