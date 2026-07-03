@@ -5,33 +5,33 @@ import { updateUnRC } from './commands/update-unrc.js';
 import { markReleased } from './commands/mark-released.js';
 import { removeChart } from './commands/remove-chart.js';
 
-const args = process.argv.slice(2);
-const command = args[0];
+/**
+ * Executes release tracking command on HTML input
+ *
+ * Pure transformation function - no I/O, just HTML in → HTML out.
+ * Routes command to appropriate handler function.
+ *
+ * @param command - Command name (add-chart, update-qa, update-unrc, mark-released, remove-chart)
+ * @param input - Issue body HTML containing release tracking table
+ * @param args - Command arguments (chart, version, owner depending on command)
+ * @returns Updated HTML with command applied
+ * @throws Error if command unknown or operation fails
+ */
+export function runCommand(command: string, input: string, args: string[]): string {
+  let result = '';
 
-// CLI entry point for release tracking table operations
-//
-// Dual mode operation:
-// 1. Local testing: reads from test/output.md or test/fixtures/issue-body.md, writes to test/output.md
-// 2. GHA production: reads from stdin, writes to stdout (when piped)
-//
-// Commands parse HTML table with data attributes, perform CRUD operations on chart rows
+  console.log({ command })
+  console.log({ input })
+  console.log({ args })
 
-// TODO: Detect stdin vs file mode
-// TODO: Read input (stdin or file)
-
-const input = ""; // TODO: Load from stdin or file
-let result = '';
-
-switch (command) {
+  switch (command) {
   case 'add-chart': {
     // Add new chart row to tracking table
     // Sets data-chart, data-version, data-owner attributes
     // Inserts before <!-- END: CHART_DATA --> marker
-    console.log({ command })
-
-    const chart = args[1];
-    const version = args[2];
-    const owner = args[3];
+    const chart = args[0];
+    const version = args[1];
+    const owner = args[2];
 
     result = addChart({
       html: input,
@@ -44,10 +44,8 @@ switch (command) {
   case 'update-qa': {
     // Mark QA sign-off complete for chart
     // Finds row by chart+version, sets data-qa="true", updates cell text
-    console.log({ command })
-
-    const chart = args[1];
-    const version = args[2];
+    const chart = args[0];
+    const version = args[1];
 
     result = updateQA({
       html: input,
@@ -59,10 +57,8 @@ switch (command) {
   case 'update-unrc': {
     // Mark Un-RC complete for chart
     // Finds row by chart+version, sets data-unrc="true", updates cell text
-    console.log({ command })
-
-    const chart = args[1];
-    const version = args[2];
+    const chart = args[0];
+    const version = args[1];
 
     result = updateUnRC({
       html: input,
@@ -74,10 +70,8 @@ switch (command) {
   case 'mark-released': {
     // Mark chart as released
     // Finds row by chart+version, sets data-released="true", updates cell text
-    console.log({ command })
-
-    const chart = args[1];
-    const version = args[2];
+    const chart = args[0];
+    const version = args[1];
 
     result = markReleased({
       html: input,
@@ -89,9 +83,8 @@ switch (command) {
   case 'remove-chart': {
     // Remove chart row from tracking table
     // Finds row by chart+version, removes entire <tr> element
-    console.log({ command })
-    const chart = args[1];
-    const version = args[2];
+    const chart = args[0];
+    const version = args[1];
 
     result = removeChart({
       html: input,
@@ -101,8 +94,8 @@ switch (command) {
     break;
   }
   default:
-    console.error('Unknown command:', command);
-    process.exit(1);
-}
+    throw new Error(`Unknown command: ${command}`);
+  }
 
-// TODO: Write output (stdout or file)
+  return result;
+}
