@@ -1,4 +1,5 @@
-import { parseIssueBody, getNextRowNumber } from '../parser.js';
+import { parseIssueBody, getNextRowNumber, findChartRow } from '../parser.js';
+import { validateInputs } from './validation.js';
 
 /**
  * Adds chart row to release tracking table
@@ -12,6 +13,7 @@ import { parseIssueBody, getNextRowNumber } from '../parser.js';
  * @param options.version - Chart version (e.g. "110.0.0+up0.16.0")
  * @param options.owner - GitHub username (e.g. "@thardeck")
  * @returns Updated HTML with new chart row
+ * @throws Error if validation fails or table structure invalid
  */
 export function addChart(options: {
   html: string;
@@ -19,7 +21,28 @@ export function addChart(options: {
   version: string;
   owner: string;
 }): string {
+  // Validate inputs
+  validateInputs({
+    html: options.html,
+    chart: options.chart,
+    version: options.version,
+    owner: options.owner
+  });
+
   const $ = parseIssueBody(options.html);
+
+  // Check table exists
+  const table = $('table');
+  if (table.length === 0) {
+    throw new Error('Release tracking table not found in HTML');
+  }
+
+  // Check for duplicates
+  const existing = findChartRow($, options.chart, options.version);
+  if (existing.length > 0) {
+    throw new Error(`Chart ${options.chart} ${options.version} already exists in table`);
+  }
+
   const rowNumber = getNextRowNumber($);
 
   const newRow = `
@@ -33,9 +56,13 @@ export function addChart(options: {
 </tr>
 `;
 
-  // Find table and insert row before END marker
-  const table = $('table');
+  // Verify marker exists
   const currentHTML = table.html() || '';
+  if (!currentHTML.includes('<!-- END: CHART_DATA -->')) {
+    throw new Error('Chart data END marker not found in table');
+  }
+
+  // Insert row before END marker
   const updatedHTML = currentHTML.replace(
     /<!-- END: CHART_DATA -->/,
     `${newRow}<!-- END: CHART_DATA -->`
