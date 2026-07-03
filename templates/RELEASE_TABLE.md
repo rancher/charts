@@ -1,6 +1,6 @@
 <!-- release-tracking-metadata
-branch: release-v2.14
-version: 2.14.4
+branch: {branch}
+rancher-version: {rancher-version}
 -->
 
 ### Do not edit Issue body!
@@ -9,22 +9,22 @@ Comment Actions, Issue body will be updated automatically!
 
 **Add Chart to Release:**
 ```
-ToRelease: <chart> <version>
+ToRelease: {chart} {version}
 ```
 
 **Remove Chart from Release:** in case of typos, remove and add again.
 ```
-Remove: <chart> <version>
+Remove: {chart} {version}
 ```
 
 **QA Sign-Off:**
 ```
-QA: <chart> <version>
+QA: {chart} {version}
 ```
 
 **UnRC:** even if chart doesn't use pattern.
 ```
-UnRC: <chart> <version>
+UnRC: {chart} {version}
 ```
 
 ---
