@@ -1,6 +1,7 @@
-import { parseIssueBody, getNextRowNumber, findChartRow } from '../parser.js';
+import { parseIssueBody, getNextRowNumber, findChartRow } from '../adapters/html.js';
 import { validateCommonInputs, validateOwner } from './validation.js';
 import { Errors } from './errors.js';
+import { lookupTeam } from '../adapters/codeowners.js';
 
 /**
  * Adds chart row to release tracking table
@@ -41,12 +42,13 @@ export function addChart(options: {
   }
 
   const rowNumber = getNextRowNumber($);
+  const team = lookupTeam(options.chart);
 
   const newRow = `
-<tr id="chart-row-${rowNumber}" data-chart="${options.chart}" data-version="${options.version}" data-team="" data-owner="${options.owner}" data-qa="false" data-unrc="false">
+<tr id="chart-row-${rowNumber}" data-chart="${options.chart}" data-version="${options.version}" data-team="${team}" data-owner="${options.owner}" data-qa="false" data-unrc="false">
   <td class="chart">${options.chart}</td>
   <td class="version">${options.version}</td>
-  <td class="team"></td>
+  <td class="team">${team}</td>
   <td class="owner">${options.owner}</td>
   <td class="qa"></td>
   <td class="unrc"></td>
