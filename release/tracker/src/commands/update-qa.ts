@@ -1,4 +1,6 @@
+import { parseIssueBody, findChartRow } from '../parser.js';
 import { validateCommonInputs } from './validation.js';
+import { Errors } from './errors.js';
 
 /**
  * Marks QA sign-off complete for a chart
@@ -11,19 +13,33 @@ import { validateCommonInputs } from './validation.js';
  * @param options.chart - Chart name to update
  * @param options.version - Chart version to match
  * @returns Updated HTML with QA marked
- * @throws Error if chart not found in table
+ * @throws Error if validation fails or chart not found
  */
 export function updateQA(options: {
   html: string;
   chart: string;
   version: string;
 }): string {
-    validateCommonInputs(options.html, options.chart, options.version);
-  // TODO: Parse HTML with cheerio
-  // TODO: Find row by data-chart and data-version
-  // TODO: Set data-qa="true"
-  // TODO: Update td.qa text to "yes"
-  // TODO: Return updated HTML
+  // Validate inputs
+  validateCommonInputs(options.html, options.chart, options.version);
 
-  return options.html;
+  const $ = parseIssueBody(options.html);
+
+  // Check table exists
+  const table = $('table');
+  if (table.length === 0) {
+    throw new Error(Errors.tableNotFound());
+  }
+
+  // Find chart row
+  const row = findChartRow($, options.chart, options.version);
+  if (row.length === 0) {
+    throw new Error(Errors.chartNotFound(options.chart, options.version));
+  }
+
+  // Update QA status
+  row.attr('data-qa', 'true');
+  row.find('td.qa').text('yes');
+
+  return $.html();
 }
