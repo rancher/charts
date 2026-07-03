@@ -90,11 +90,19 @@ switch (command) {
     // Remove chart row from tracking table
     // Finds row by chart+version, removes entire <tr> element
     console.log({ command })
-    // result = removeChart(input, chart, version);
+    const chart = args[1];
+    const version = args[2];
+
+    result = removeChart({
+      html: input,
+      chart,
+      version
+    });
     break;
   }
   default:
-    // TODO: Error handling for unknown commands
+    console.error('Unknown command:', command);
+    process.exit(1);
 }
 
 // TODO: Write output (stdout or file)
