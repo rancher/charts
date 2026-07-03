@@ -1,5 +1,5 @@
 import { parseIssueBody, getNextRowNumber, findChartRow } from '../parser.js';
-import { validateInputs } from './validation.js';
+import { validateCommonInputs, validateOwner } from './validation.js';
 
 /**
  * Adds chart row to release tracking table
@@ -22,12 +22,8 @@ export function addChart(options: {
   owner: string;
 }): string {
   // Validate inputs
-  validateInputs({
-    html: options.html,
-    chart: options.chart,
-    version: options.version,
-    owner: options.owner
-  });
+  validateCommonInputs(options.html, options.chart, options.version);
+  validateOwner(options.owner);
 
   const $ = parseIssueBody(options.html);
 
