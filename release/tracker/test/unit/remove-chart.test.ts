@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
 import { removeChart } from '../../src/commands/remove-chart.js';
-import { Errors } from '../../src/commands/errors.js';
+import { Errors } from '../../src/utils/errors.js';
 
 const emptyTableHTML = `
 <table>

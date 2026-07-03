@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
 import { addChart } from '../../src/commands/add-chart.js';
-import { Errors } from '../../src/commands/errors.js';
+import { Errors } from '../../src/utils/errors.js';
 
 const validTableHTML = `
 <table>

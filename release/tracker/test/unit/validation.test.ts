@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
-import { validateCommonInputs, validateOwner } from '../../src/commands/validation.js';
+import { validateCommonInputs, validateOwner } from '../../src/utils/validation.js';
 
 test('validateCommonInputs - throws when html empty', () => {
   assert.throws(
