@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { runCommand } from '../src/index.js';
+import { runCommand } from '../src/cli.js';
 
 // Test harness - file-based I/O for local testing
 // Use output.md if exists (for chaining commands), else use fixture
