@@ -1,4 +1,4 @@
-import { validateCommonInputs } from './validation.js';
+import { validateCommonInputs } from '../utils/validation.js';
 
 /**
  * Marks chart as released
