@@ -1,6 +1,6 @@
 import { parseIssueBody, findChartRow } from '../adapters/html.js';
-import { validateCommonInputs } from './validation.js';
-import { Errors } from './errors.js';
+import { validateCommonInputs } from '../utils/validation.js';
+import { Errors } from '../utils/errors.js';
 
 /**
  * Removes chart row from release tracking table

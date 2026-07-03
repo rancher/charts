@@ -1,6 +1,6 @@
 import { parseIssueBody, getNextRowNumber, findChartRow } from '../adapters/html.js';
-import { validateCommonInputs, validateOwner } from './validation.js';
-import { Errors } from './errors.js';
+import { validateCommonInputs, validateOwner } from '../utils/validation.js';
+import { Errors } from '../utils/errors.js';
 import { lookupTeam } from '../adapters/codeowners.js';
 
 /**
