@@ -5,6 +5,8 @@ import { updateQA } from './commands/update-qa.js';
 import { updateUnRC } from './commands/update-unrc.js';
 import { markReleased } from './commands/mark-released.js';
 import { removeChart } from './commands/remove-chart.js';
+import { parseComment } from './adapters/github.js';
+import { parseFlags } from './adapters/flags.js';
 
 const OUTPUT_FILE = 'test/output.md';
 
@@ -105,31 +107,21 @@ export function runCommand(command: string, input: string, args: string[]): stri
 
 // CLI entry point - only runs when executed directly, not when imported
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const args = process.argv.slice(2);
-  const command = args[0];
-  const commandArgs = args.slice(1);
+  const argv = process.argv.slice(2);
 
-  if (!command) {
-    console.error('Usage: index.ts <command> [args...] < input.html > output.html');
+  try {
+    const flags = parseFlags(argv);
+    const parsed = parseComment(flags.commentBody, flags.commentUser);
+
+    console.log(`Command: ${parsed.command}`);
+    console.log(`Args: ${parsed.args.join(', ')}`);
+
+    const result = runCommand(parsed.command, flags.issueBody, parsed.args);
+    writeFileSync(OUTPUT_FILE, result);
+    console.log(`Updated ${OUTPUT_FILE}`);
+    process.exit(0);
+  } catch (err) {
+    console.error(`Error: ${(err as Error).message}`);
     process.exit(1);
   }
-
-  // Read stdin
-  let input = '';
-  process.stdin.setEncoding('utf-8');
-  process.stdin.on('data', (chunk) => {
-    input += chunk;
-  });
-
-  process.stdin.on('end', () => {
-    try {
-      const result = runCommand(command, input, commandArgs);
-      writeFileSync(OUTPUT_FILE, result);
-      console.log(`Updated ${OUTPUT_FILE}`);
-      process.exit(0);
-    } catch (err) {
-      console.error(`Error: ${(err as Error).message}`);
-      process.exit(1);
-    }
-  });
 }
