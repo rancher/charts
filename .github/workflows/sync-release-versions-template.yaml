@@ -1,0 +1,47 @@
+name: Sync Release Versions Template
+
+on:
+  pull_request:
+    branches:
+      - automation-core
+    paths:
+      - 'config/chart-families.yaml'
+
+permissions:
+  contents: write
+
+jobs:
+  sync-template:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install yq
+        run: |
+          wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          chmod +x /usr/local/bin/yq
+
+      - name: Generate release versions template
+        run: make release-versions-template
+
+      - name: Check for changes
+        id: check
+        run: |
+          if git diff --quiet templates/release-versions.yaml; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit updated template
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add templates/release-versions.yaml
+          git commit -m "chore(release-tracker): regenerate release-versions.yaml from chart-families.yaml"
+          git push
