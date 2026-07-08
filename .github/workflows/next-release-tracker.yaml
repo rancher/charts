@@ -36,6 +36,44 @@ jobs:
           echo "Repository:      ${{ github.repository }}"
           echo "================================================================="
 
+      - name: Validate inputs
+        run: |
+          # Validate versions input
+          if [[ -z "${{ github.event.inputs.versions }}" ]]; then
+            echo "Error: versions input is empty" >&2
+            exit 1
+          fi
+
+          # Validate month input
+          if [[ -z "${{ github.event.inputs.month }}" ]]; then
+            echo "Error: month input is empty" >&2
+            exit 1
+          fi
+
+          # Validate year input
+          if [[ -z "${{ github.event.inputs.year }}" ]]; then
+            echo "Error: year input is empty" >&2
+            exit 1
+          fi
+
+          # Validate versions format (basic check for semicolon-separated)
+          IFS=';' read -ra VERSIONS <<< "${{ github.event.inputs.versions }}"
+          if [[ ${#VERSIONS[@]} -eq 0 ]]; then
+            echo "Error: No versions found in input" >&2
+            exit 1
+          fi
+
+          # Validate each version matches pattern (e.g., 2.14.4)
+          for version in "${VERSIONS[@]}"; do
+            if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "Error: Invalid version format: '$version' (expected X.Y.Z)" >&2
+              exit 1
+            fi
+          done
+
+          echo "Input validation passed"
+          echo "Found ${#VERSIONS[@]} version(s) to process"
+
       - name: Checkout automation-core
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -120,6 +158,14 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: automation-core
+
+      - name: Verify gh CLI availability
+        run: |
+          if ! command -v gh &> /dev/null; then
+            echo "Error: gh CLI not found" >&2
+            exit 1
+          fi
+          echo "gh CLI version: $(gh --version | head -1)"
 
       - name: Create parent issue
         id: parent
