@@ -23,6 +23,7 @@ permissions:
 jobs:
   create-releases:
     runs-on: ubuntu-latest
+    container: ghcr.io/rancher/ci-image/charts:20260618-20
     steps:
       - name: Display Workflow Context
         run: |
@@ -80,10 +81,13 @@ jobs:
           ref: automation-core
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install yq
+      - name: Verify yq availability
         run: |
-          wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-          chmod +x /usr/local/bin/yq
+          if ! command -v yq &> /dev/null; then
+            echo "Error: yq not found" >&2
+            exit 1
+          fi
+          echo "yq version: $(yq --version)"
 
       - name: Delete old release YAML files
         run: |
@@ -153,6 +157,7 @@ jobs:
   create-issues:
     needs: create-releases
     runs-on: ubuntu-latest
+    container: ghcr.io/rancher/ci-image/charts:20260618-20
     steps:
       - name: Checkout automation-core
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
