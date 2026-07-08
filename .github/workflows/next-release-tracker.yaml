@@ -52,11 +52,24 @@ jobs:
           # Check if any .yaml files exist in release/ directory
           if ls release/*.yaml 1> /dev/null 2>&1; then
             echo "Deleting old release YAML files..."
-            git rm release/*.yaml
+            git rm release/*.yaml || {
+              echo "Error: Failed to remove old release files" >&2
+              exit 1
+            }
+
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git commit -m "chore(release-tracker): delete old release files for new release cycle"
-            git push
+
+            git commit -m "chore(release-tracker): delete old release files for new release cycle" || {
+              echo "Error: Failed to commit deleted files" >&2
+              exit 1
+            }
+
+            git push || {
+              echo "Error: Failed to push deletion commit" >&2
+              exit 1
+            }
+            echo "Successfully deleted old release files"
           else
             echo "No existing release YAML files to delete"
           fi
@@ -75,16 +88,36 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add releases/
-          git commit -m "chore(release-tracker): create release files for ${{ github.event.inputs.versions }}"
-          git push
+
+          git add release/ || {
+            echo "Error: Failed to stage release files" >&2
+            exit 1
+          }
+
+          # Check if there are changes to commit
+          if git diff --cached --quiet; then
+            echo "Warning: No new release files were created"
+            exit 1
+          fi
+
+          git commit -m "chore(release-tracker): create release files for ${{ github.event.inputs.versions }}" || {
+            echo "Error: Failed to commit new release files" >&2
+            exit 1
+          }
+
+          git push || {
+            echo "Error: Failed to push new release files" >&2
+            exit 1
+          }
+
+          echo "Successfully created and pushed release files"
 
   create-issues:
     needs: create-releases
     runs-on: ubuntu-latest
     steps:
       - name: Checkout automation-core
-        uses: actions/checkout@v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: automation-core
 
