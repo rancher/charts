@@ -1,0 +1,173 @@
+name: Next Release Tracker
+
+on:
+  workflow_dispatch:
+    inputs:
+      versions:
+        description: 'Semicolon-separated release versions (e.g., 2.14.4;2.13.9)'
+        required: true
+        type: string
+      month:
+        description: 'Release month (e.g., June)'
+        required: true
+        type: string
+      year:
+        description: 'Release year (e.g., 2026)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  create-releases:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout automation-core
+        uses: actions/checkout@v4
+        with:
+          ref: automation-core
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install yq
+        run: |
+          wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          chmod +x /usr/local/bin/yq
+
+      - name: Delete old release YAML files
+        run: |
+          # Check if any .yaml files exist in release/ directory
+          if ls release/*.yaml 1> /dev/null 2>&1; then
+            echo "Deleting old release YAML files..."
+            git rm release/*.yaml
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore(release-tracker): delete old release files for new release cycle"
+            git push
+          else
+            echo "No existing release YAML files to delete"
+          fi
+
+      - name: Create new release YAML files
+        run: |
+          IFS=';' read -ra VERSIONS <<< "${{ github.event.inputs.versions }}"
+
+          for version in "${VERSIONS[@]}"; do
+            echo "Creating release file for version: $version"
+            cp templates/release-versions.yaml "release/${version}.yaml"
+            echo "Created release/${version}.yaml"
+          done
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add releases/
+          git commit -m "chore(release-tracker): create release files for ${{ github.event.inputs.versions }}"
+          git push
+
+  create-issues:
+    needs: create-releases
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout automation-core
+        uses: actions/checkout@v4
+        with:
+          ref: automation-core
+
+      - name: Create parent issue
+        id: parent
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Read template
+          if [[ ! -f templates/charts-release-issue.md ]]; then
+            echo "Error: templates/charts-release-issue.md not found" >&2
+            exit 1
+          fi
+
+          template=$(cat templates/charts-release-issue.md)
+          if [[ -z "$template" ]]; then
+            echo "Error: templates/charts-release-issue.md is empty" >&2
+            exit 1
+          fi
+
+          # Replace version placeholder with bullet list
+          IFS=';' read -ra VERSIONS <<< "${{ github.event.inputs.versions }}"
+          version_list=""
+          for version in "${VERSIONS[@]}"; do
+            version_list="${version_list}- ${version}\n"
+          done
+          body=$(echo "$template" | sed "s|<<-- VERSION_INPUTS -->>|${version_list}|")
+
+          # Create parent issue
+          issue_url=$(gh issue create \
+            --title "[charts] Release ${{ github.event.inputs.month }} ${{ github.event.inputs.year }}" \
+            --body "$body" \
+            --label "release-tracking" \
+            --repo ${{ github.repository }})
+
+          issue_number=$(echo "$issue_url" | grep -oE '[0-9]+$')
+
+          if [[ -z "$issue_number" ]] || [[ "$issue_number" == "0" ]]; then
+            echo "Error: Failed to extract valid issue number from: $issue_url" >&2
+            exit 1
+          fi
+
+          echo "parent_number=$issue_number" >> $GITHUB_OUTPUT
+          echo "Created parent issue: $issue_url"
+
+      - name: Create sub-issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          parent_number="${{ steps.parent.outputs.parent_number }}"
+
+          # Verify template exists
+          if [[ ! -f templates/charts-release-subissue.md ]]; then
+            echo "Error: templates/charts-release-subissue.md not found" >&2
+            exit 1
+          fi
+
+          IFS=';' read -ra VERSIONS <<< "${{ github.event.inputs.versions }}"
+          subissue_count=0
+
+          for version in "${VERSIONS[@]}"; do
+            # Read sub-issue template
+            template=$(cat templates/charts-release-subissue.md)
+            if [[ -z "$template" ]]; then
+              echo "Error: templates/charts-release-subissue.md is empty" >&2
+              exit 1
+            fi
+
+            # Replace version placeholder
+            body=$(echo "$template" | sed "s|<--version-->|${version}|g")
+
+            # Prepend parent link
+            body="Parent: #${parent_number}\n\n${body}"
+
+            issue_url=$(gh issue create \
+              --title "${version}" \
+              --body "$body" \
+              --label "release-tracking" \
+              --repo ${{ github.repository }})
+
+            issue_number=$(echo "$issue_url" | grep -oE '[0-9]+$')
+
+            if [[ -z "$issue_number" ]] || [[ "$issue_number" == "0" ]]; then
+              echo "Error: Failed to create sub-issue for version ${version}" >&2
+              exit 1
+            fi
+
+            echo "Created sub-issue #${issue_number} for ${version}"
+            ((subissue_count++))
+          done
+
+          # Sanity check: ensure at least one sub-issue was created
+          if [[ $subissue_count -eq 0 ]]; then
+            echo "Error: No sub-issues were created" >&2
+            exit 1
+          fi
+
+          echo "Successfully created ${subissue_count} sub-issue(s)"
