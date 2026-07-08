@@ -59,3 +59,4 @@ Makefile                # Automation targets (propagate, release-versions-templa
 - **[development.md](docs/development.md)** - Local testing with act
 - **[chart_families.md](docs/chart_families.md)** - Chart family configuration
 - **[release_versions_template.md](docs/release_versions_template.md)** - Release tracking template generation
+- **[next_release_tracker.md](docs/next_release_tracker.md)** - Initialize new release cycle workflow
