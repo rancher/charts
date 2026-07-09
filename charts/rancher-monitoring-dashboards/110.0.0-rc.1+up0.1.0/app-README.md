@@ -1,2 +1,0 @@
-# Rancher Monitoring dashboards
-TODO
