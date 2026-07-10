@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, readdirSync } from 'fs';
 import * as yaml from 'js-yaml';
 
 /**
@@ -112,4 +112,38 @@ export function parseIndexYaml(content: string): ChartVersion[] {
   }
 
   return results;
+}
+
+/**
+ * Find release YAML file for minor version
+ *
+ * Scans release/ directory for X.Y.Z.yaml matching minor version.
+ * Errors if 0 or >1 files found.
+ *
+ * @param minorVersion - Minor version (e.g., "2.14")
+ * @returns YAML path and full release version
+ * @throws Error if validation fails or file not found
+ */
+export function findReleaseYaml(minorVersion: string): { yamlPath: string; releaseVersion: string } {
+  // Validate format
+  if (!minorVersion.match(/^\d+\.\d+$/)) {
+    throw new Error(`Invalid minor version format: ${minorVersion}. Expected format: X.Y (e.g., 2.14)`);
+  }
+
+  // Find matching YAML file
+  const pattern = new RegExp(`^${minorVersion.replace('.', '\\.')}\\.\\d+\\.yaml$`);
+  const yamlFiles = readdirSync('release').filter(f => pattern.test(f));
+
+  if (yamlFiles.length === 0) {
+    throw new Error(`No release YAML found matching ${minorVersion}.X.yaml in release/`);
+  }
+
+  if (yamlFiles.length > 1) {
+    throw new Error(`Multiple YAML files found for ${minorVersion}: ${yamlFiles.join(', ')}. Expected exactly one.`);
+  }
+
+  return {
+    yamlPath: `release/${yamlFiles[0]}`,
+    releaseVersion: yamlFiles[0].replace('.yaml', '')
+  };
 }

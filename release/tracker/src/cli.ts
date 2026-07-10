@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { populateReleaseCharts } from './commands/populate-release-charts.js';
+import { findReleaseYaml } from './adapters/yaml.js';
 
 // CLI entry point
 if (import.meta.url === `file://${process.argv[1]}`) {
@@ -10,21 +11,23 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   try {
     switch (command) {
     case 'populate-release-charts': {
-      // Usage: populate-release-charts <version> <yaml-path> <dev-branch> <release-branch>
-      const releaseVersion = argv[1];
-      const yamlPath = argv[2];
-      const devBranch = argv[3];
-      const releaseBranch = argv[4];
+      // Usage: populate-release-charts <minor-version>
+      const minorVersion = argv[1]; // "2.14"
 
-      if (!releaseVersion || !yamlPath || !devBranch || !releaseBranch) {
-        console.error('Usage: populate-release-charts <version> <yaml-path> <dev-branch> <release-branch>');
+      if (!minorVersion) {
+        console.error('Usage: populate-release-charts <minor-version>');
+        console.error('Example: populate-release-charts 2.14');
         process.exit(1);
       }
 
-      console.log(`Populating release ${releaseVersion}`);
-      console.log(`  YAML: ${yamlPath}`);
-      console.log(`  Dev: ${devBranch}`);
-      console.log(`  Release: ${releaseBranch}`);
+      const { yamlPath, releaseVersion } = findReleaseYaml(minorVersion);
+      const devBranch = `dev-v${minorVersion}`;
+      const releaseBranch = `release-v${minorVersion}`;
+
+      console.log(`Found: ${yamlPath}`);
+      console.log(`Version: ${releaseVersion}`);
+      console.log(`Dev: ${devBranch}`);
+      console.log(`Release: ${releaseBranch}`);
 
       const result = await populateReleaseCharts({
         releaseVersion,
