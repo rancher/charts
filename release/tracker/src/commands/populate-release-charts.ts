@@ -169,12 +169,19 @@ export function findChartsToRelease(devCharts: ChartVersion[], inDevBaseVersions
   // Merge stable charts with RC-based releases (checks which base versions aren't yet released)
   const chartsToReleaseMap = addRCBasedReleases(baseVersionMap, releasedChartsMap, stableChartsMap, getHighestVersion);
 
-  // Convert map back to array format for return
+  // Convert map back to array format
   const toReleaseCharts = Array.from(chartsToReleaseMap.entries()).flatMap(([chart, versions]) =>
     versions.map(version => ({chart, version}))
   )
 
-  return toReleaseCharts
+  // Deduplicate chart@version combinations (stable path + RC path can overlap)
+  const seen = new Set<string>();
+  return toReleaseCharts.filter(cv => {
+    const key = `${cv.chart}@${cv.version}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 
