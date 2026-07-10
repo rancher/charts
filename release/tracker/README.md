@@ -1,87 +1,95 @@
-# Release Tracking CLI
+# Release Tracking CLI (V2)
 
-TypeScript CLI for managing release tracking tables in GitHub issues. Parses HTML table structure with data attributes, supports add/remove/update operations via comment-driven workflow.
+TypeScript CLI for automating Rancher chart releases across minor versions (2.14, 2.13, 2.12, 2.11). Compares dev vs release branches, generates YAML tracking files, handles complex version formats with RC/prerelease markers.
 
 ## Security Mitigation
 
 ### CVE/Supply Chain Defense
 
-1. **Minimal dependencies** - Only `cheerio` (stable, widely-used)
-2. **Lock file committed** - `package-lock.json` pins exact versions
+1. **Minimal dependencies** - Only `js-yaml` (66M+ weekly downloads, stable)
+2. **Lock file committed** - `package-lock.json` pins exact versions + checksums
 3. **Audit regularly**:
    ```bash
    npm audit
-   npm audit fix
+   npm audit fix  # patch only
    ```
-4. **Renovate with human gate** - Auto-PR for updates, manual merge only
-5. **Subresource Integrity** - GHA uses `actions/setup-node@v4` with hash pinning
-6. **No runtime execution** - Pure HTML parsing, no `eval()`, no dynamic imports
+4. **Renovate with human gate** - Auto-PR for updates, manual merge required
+5. **GHA action pinning** - Use SHA hashes not tags (`actions/setup-node@<sha>`)
+6. **No code execution** - Pure YAML parsing, git operations via spawn
+7. **Restricted permissions**:
+   ```yaml
+   permissions:
+     contents: read
+     issues: write
+   ```
 
 ### Dependency Policy
 
 **Allowed:**
-- `cheerio` - HTML parser (required)
-- `typescript`, `tsx`, `@types/node` - dev only, not in production
+- `js-yaml` - YAML parser (required for release.yaml / index.yaml)
+- `typescript`, `tsx`, `@types/node` - dev dependencies only
 
 **Blocked:**
-- Any package with critical CVEs
-- Packages with <1M weekly downloads
-- Packages abandoned >1 year
+- Packages with critical CVEs
+- Packages <1M weekly downloads (low trust)
+- Abandoned packages (>1 year no updates)
 
-### Update Strategy
-
-```bash
-# Check for vulnerabilities
-npm audit
-
-# Update only patch versions (safe)
-npm update
-
-# Major/minor updates require testing
-npm outdated
-npm install cheerio@latest  # test locally first
-```
-
-### GHA Security
-
-```yaml
-# Pin action versions with SHA
-- uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8  # v4.0.2
-
-# Run in restricted mode
-permissions:
-  contents: read
-  issues: write
-```
+**Update Strategy:**
+- Patch updates: Auto-apply after audit passes
+- Minor updates: Test locally, review changelog
+- Major updates: Thorough testing, assess breaking changes
 
 ## Architecture
 
 ```
 src/
-├── cli.ts            # CLI entry point (stdin → test/output.md)
-├── commands/         # Domain logic (add, update, remove operations)
-├── adapters/         # External format adapters (HTML, CODEOWNERS)
-└── utils/            # Shared utilities (errors, validation)
+├── cli.ts               # CLI entry point
+├── commands/            # Business logic (populate-release-charts)
+├── domain/              # Pure domain functions (chart comparison logic)
+├── adapters/            # External integrations (git, yaml, versions)
+└── utils/               # Shared utilities
 ```
 
 ### Dependency Rules (Prevent Circular Imports)
 
-| Layer | Can Import | Cannot Import |
-|-------|-----------|---------------|
-| **cli.ts** | commands, adapters, utils | - |
-| **commands/** | adapters, utils | cli.ts, other commands |
-| **adapters/** | utils | cli.ts, commands |
-| **utils/** | - | cli.ts, commands, adapters |
+| Layer         | Can Import                        | Cannot Import            |
+|-------        |-----------                        |---------------           |
+| **cli.ts**    | commands, domain, adapters, utils | -                        |
+| **commands/** | domain, adapters, utils           | cli.ts                   |
+| **domain/**   | adapters, utils                   | cli.ts, commands         |
+| **adapters/** | utils                             | cli.ts, commands, domain |
+| **utils/**    | -                                 | All other layers         |
 
-**Why:** Bottom-up dependency flow prevents circular imports. utils is pure (no dependencies), adapters depend only on utils, commands orchestrate adapters + utils, cli orchestrates everything.
+**Why:** Bottom-up dependency flow. utils = pure (no deps). adapters = external integrations. domain = business logic. commands = orchestration. cli = entry point.
 
 ## Commands
 
-- `add-chart <chart> <version> <owner>` - Add chart row (auto-populates team from CODEOWNERS_DEV)
-- `remove-chart <chart> <version>` - Remove chart from tracking table
-- `update-qa <chart> <version>` - Mark QA sign-off complete
-- `update-unrc <chart> <version>` - Mark Un-RC complete
-- `mark-released <chart> <version>` - Mark chart released (stub)
+### `populate-release-charts`
+
+Populate release YAML with chart versions from dev branch.
+
+**Usage:**
+```bash
+npx tsx src/cli.ts populate-release-charts <version> <yaml-path> <dev-branch> <release-branch>
+
+# Example
+npx tsx src/cli.ts populate-release-charts 2.14.4 release/2.14.4.yaml dev-v2.14 release-v2.14
+```
+
+**What it does:**
+1. Reads `release.yaml` from dev branch (source of truth for "what to release")
+2. Reads `index.yaml` from release and dev branch (what's already shipped vs what is present)
+3. Compares versions, finds new charts (stable + highest RC per base)
+4. Populates tracking YAML with chart@version entries
+
+**RC Handling:**
+- Stable version in dev not in release → add it
+- Only RCs for base version → pick highest RC
+- Base version = before `+up` metadata (e.g., `109.0.2` from `109.0.2+up0.15.7-rc.17`)
+
+### `sync-table` (TODO)
+
+Sync tracking YAML state to GitHub issue table (future feature).
 
 ## Local Development
 
@@ -95,29 +103,13 @@ npm test
 # Run unit tests only
 npm run test:unit
 
-# Run integration tests only
-npm run test:integration
-
-# Manual testing (file-based)
-npm run dev add-chart longhorn 109.3.1 @nick
-npm run dev update-qa longhorn 109.3.1
-npm run dev remove-chart longhorn 109.3.1
-
-# Direct CLI usage (stdin → test/output.md)
-cat test/fixtures/issue-body.md | npm run cli add-chart fleet 1.0.0 @user
+# Test populate command
+npx tsx src/cli.ts populate-release-charts 2.14.4 release/2.14.4.yaml dev-v2.14 release-v2.14
 ```
 
-Test harness (`npm run dev`) reads from `test/output.md` (if exists) or `test/fixtures/issue-body.md`, writes to `test/output.md`.
+## Testing
 
-## Production Use (GHA)
+- **Unit tests:** `test/unit/` - domain functions, adapters
+- **Integration tests:** `test/integration/` - full workflows (TODO)
+- Node.js built-in test runner (`node:test`)
 
-CLI reads stdin, writes to `test/output.md`:
-
-```bash
-# In GHA workflow
-cd release/tracker
-gh issue view $ISSUE --json body -q .body | npx tsx src/cli.ts add-chart fleet 110.0.0 @user
-gh issue edit $ISSUE --body "$(cat test/output.md)"
-```
-
-Debug logs (console.log) go to GHA console, not file output.
