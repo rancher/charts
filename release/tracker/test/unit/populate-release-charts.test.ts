@@ -3,13 +3,18 @@ import assert from 'node:assert';
 import { findChartsToRelease } from '../../src/commands/populate-release-charts.js';
 import { ChartVersion } from '../../src/adapters/yaml.js';
 
-// TODO: Update tests for new signature (devCharts, devReleaseBase, releaseCharts)
-describe.skip('findChartsToRelease', () => {
-  it('finds new chart versions in dev not in release', () => {
+describe('findChartsToRelease', () => {
+  it('finds stable versions in dev not in release', () => {
     const devCharts: ChartVersion[] = [
       { chart: 'fleet', version: '109.0.0+up0.15.0' },
       { chart: 'fleet', version: '109.0.1+up0.15.1' },
       { chart: 'longhorn', version: '103.5.0+up1.7.0' }
+    ];
+
+    const devReleaseBase: ChartVersion[] = [
+      { chart: 'fleet', version: '109.0.0' },
+      { chart: 'fleet', version: '109.0.1' },
+      { chart: 'longhorn', version: '103.5.0' }
     ];
 
     const releaseCharts: ChartVersion[] = [
@@ -17,7 +22,7 @@ describe.skip('findChartsToRelease', () => {
       { chart: 'longhorn', version: '103.4.0+up1.6.0' }
     ];
 
-    const result = devBumpedVersionsToRelease(devCharts, releaseCharts);
+    const result = findChartsToRelease(devCharts, devReleaseBase, releaseCharts);
 
     assert.deepStrictEqual(result, [
       { chart: 'fleet', version: '109.0.1+up0.15.1' },
@@ -25,17 +30,66 @@ describe.skip('findChartsToRelease', () => {
     ]);
   });
 
-  it('returns all dev charts when release is empty', () => {
+  it('picks highest RC when only RCs exist for base version', () => {
+    const devCharts: ChartVersion[] = [
+      { chart: 'fleet', version: '109.0.3+up0.15.3-rc.1' },
+      { chart: 'fleet', version: '109.0.3+up0.15.3-rc.5' },
+      { chart: 'fleet', version: '109.0.3+up0.15.3-rc.2' }
+    ];
+
+    const devReleaseBase: ChartVersion[] = [
+      { chart: 'fleet', version: '109.0.3' }
+    ];
+
+    const releaseCharts: ChartVersion[] = [];
+
+    const result = findChartsToRelease(devCharts, devReleaseBase, releaseCharts);
+
+    // Should pick highest RC (rc.5 -> strips to 109.0.3+up0.15.3)
+    assert.deepStrictEqual(result, [
+      { chart: 'fleet', version: '109.0.3+up0.15.3' }
+    ]);
+  });
+
+  it('skips base version if any version for that base already released', () => {
+    const devCharts: ChartVersion[] = [
+      { chart: 'fleet', version: '109.0.2+up0.15.5-rc.1' },
+      { chart: 'fleet', version: '109.0.2+up0.15.5-rc.2' }
+    ];
+
+    const devReleaseBase: ChartVersion[] = [
+      { chart: 'fleet', version: '109.0.2' }
+    ];
+
+    const releaseCharts: ChartVersion[] = [
+      { chart: 'fleet', version: '109.0.2+up0.15.4' } // Different +up, but same base
+    ];
+
+    const result = findChartsToRelease(devCharts, devReleaseBase, releaseCharts);
+
+    // Base 109.0.2 already released, skip RCs
+    assert.deepStrictEqual(result, []);
+  });
+
+  it('returns all dev stable charts when release is empty', () => {
     const devCharts: ChartVersion[] = [
       { chart: 'fleet', version: '109.0.0+up0.15.0' },
       { chart: 'longhorn', version: '103.5.0+up1.7.0' }
     ];
 
+    const devReleaseBase: ChartVersion[] = [
+      { chart: 'fleet', version: '109.0.0' },
+      { chart: 'longhorn', version: '103.5.0' }
+    ];
+
     const releaseCharts: ChartVersion[] = [];
 
-    const result = devBumpedVersionsToRelease(devCharts, releaseCharts);
+    const result = findChartsToRelease(devCharts, devReleaseBase, releaseCharts);
 
-    assert.deepStrictEqual(result, devCharts);
+    assert.deepStrictEqual(result, [
+      { chart: 'fleet', version: '109.0.0+up0.15.0' },
+      { chart: 'longhorn', version: '103.5.0+up1.7.0' }
+    ]);
   });
 
   it('returns empty when all dev versions already in release', () => {
@@ -44,67 +98,41 @@ describe.skip('findChartsToRelease', () => {
       { chart: 'longhorn', version: '103.5.0+up1.7.0' }
     ];
 
+    const devReleaseBase: ChartVersion[] = [
+      { chart: 'fleet', version: '109.0.0' },
+      { chart: 'longhorn', version: '103.5.0' }
+    ];
+
     const releaseCharts: ChartVersion[] = [
       { chart: 'fleet', version: '109.0.0+up0.15.0' },
       { chart: 'longhorn', version: '103.5.0+up1.7.0' }
     ];
 
-    const result = devBumpedVersionsToRelease(devCharts, releaseCharts);
+    const result = findChartsToRelease(devCharts, devReleaseBase, releaseCharts);
 
     assert.deepStrictEqual(result, []);
   });
 
-  it('handles multiple versions per chart', () => {
+  it('handles mixed stable and RC versions', () => {
     const devCharts: ChartVersion[] = [
-      { chart: 'fleet', version: '109.0.0+up0.15.0' },
+      { chart: 'fleet', version: '109.0.1+up0.15.1' }, // Stable
+      { chart: 'fleet', version: '109.0.2+up0.15.2-rc.1' }, // RC only for base 109.0.2
+      { chart: 'fleet', version: '109.0.2+up0.15.2-rc.3' }
+    ];
+
+    const devReleaseBase: ChartVersion[] = [
+      { chart: 'fleet', version: '109.0.1' },
+      { chart: 'fleet', version: '109.0.2' }
+    ];
+
+    const releaseCharts: ChartVersion[] = [];
+
+    const result = findChartsToRelease(devCharts, devReleaseBase, releaseCharts);
+
+    // Stable 109.0.1 + highest RC for 109.0.2
+    assert.deepStrictEqual(result, [
       { chart: 'fleet', version: '109.0.1+up0.15.1' },
       { chart: 'fleet', version: '109.0.2+up0.15.2' }
-    ];
-
-    const releaseCharts: ChartVersion[] = [
-      { chart: 'fleet', version: '109.0.0+up0.15.0' },
-      { chart: 'fleet', version: '109.0.1+up0.15.1' }
-    ];
-
-    const result = devBumpedVersionsToRelease(devCharts, releaseCharts);
-
-    assert.deepStrictEqual(result, [
-      { chart: 'fleet', version: '109.0.2+up0.15.2' }
-    ]);
-  });
-
-  it('identifies new chart not present in release at all', () => {
-    const devCharts: ChartVersion[] = [
-      { chart: 'fleet', version: '109.0.0+up0.15.0' },
-      { chart: 'neuvector', version: '103.0.0+up2.8.0' }
-    ];
-
-    const releaseCharts: ChartVersion[] = [
-      { chart: 'fleet', version: '109.0.0+up0.15.0' }
-    ];
-
-    const result = devBumpedVersionsToRelease(devCharts, releaseCharts);
-
-    assert.deepStrictEqual(result, [
-      { chart: 'neuvector', version: '103.0.0+up2.8.0' }
-    ]);
-  });
-
-  it('excludes dev version if same chart has different version in release', () => {
-    const devCharts: ChartVersion[] = [
-      { chart: 'fleet', version: '106.1.14+up0.12.16' } // Old version
-    ];
-
-    const releaseCharts: ChartVersion[] = [
-      { chart: 'fleet', version: '109.0.0+up0.15.0' },
-      { chart: 'fleet', version: '109.0.1+up0.15.1' }
-    ];
-
-    const result = devBumpedVersionsToRelease(devCharts, releaseCharts);
-
-    // 106.1.14 not in release versions, so should be added
-    assert.deepStrictEqual(result, [
-      { chart: 'fleet', version: '106.1.14+up0.12.16' }
     ]);
   });
 });
