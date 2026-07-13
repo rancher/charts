@@ -1,0 +1,83 @@
+name: Sync Release Versions Template
+
+on:
+  pull_request:
+    branches:
+      - automation-core
+    paths:
+      - 'config/chart-families.yaml'
+
+permissions:
+  contents: write
+
+jobs:
+  sync-template:
+    runs-on: ubuntu-latest
+    container: ghcr.io/rancher/ci-image/charts:20260618-20
+    steps:
+      - name: Display PR Context
+        run: |
+          echo "================================================================="
+          echo "Sync Release Versions Template Workflow"
+          echo "================================================================="
+          echo "PR Number:       ${{ github.event.pull_request.number }}"
+          echo "Target Branch:   ${{ github.base_ref }}"
+          echo "Source Branch:   ${{ github.head_ref }}"
+          echo "Author:          ${{ github.event.pull_request.user.login }}"
+          echo "Repository:      ${{ github.repository }}"
+          echo "================================================================="
+
+      - name: Checkout PR branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify yq availability
+        run: |
+          if ! command -v yq &> /dev/null; then
+            echo "Error: yq not found" >&2
+            exit 1
+          fi
+          echo "yq version: $(yq --version)"
+
+      - name: Generate release versions template
+        run: |
+          make release-versions-template || {
+            echo "Error: Failed to generate release versions template" >&2
+            exit 1
+          }
+
+      - name: Check for changes
+        id: check
+        run: |
+          if git diff --quiet templates/release-versions.yaml; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No changes detected in template"
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Template changes detected"
+          fi
+
+      - name: Commit updated template
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add templates/release-versions.yaml || {
+            echo "Error: Failed to stage template file" >&2
+            exit 1
+          }
+
+          git commit -m "chore(release-tracker): regenerate release-versions.yaml from chart-families.yaml" || {
+            echo "Error: Failed to commit template changes" >&2
+            exit 1
+          }
+
+          git push || {
+            echo "Error: Failed to push template changes" >&2
+            exit 1
+          }
+
+          echo "Successfully committed and pushed template changes"

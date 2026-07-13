@@ -21,6 +21,7 @@ The `automation-core` branch centralizes all automation infrastructure (workflow
 | **Scripts** (`scripts/`) | Pulled on-demand via `make pull-scripts` |
 | **Makefile** | Pulled on-demand via `make pull-scripts` |
 | **Propagation System** (`scripts/automation/`) | Docker-based sync to active branches |
+| **Release Tracking** (`config/`, `templates/`) | Chart families config and release tracking templates |
 
 ## How to use it
 
@@ -34,12 +35,21 @@ See **[docs/PROCESSES.md](docs/PROCESSES.md)** for all operations (`make update-
 ├── actions/            # Composite actions (dependencies, build validation)
 └── renovate.json       # Automated dependency updates
 
+config/
+└── chart-families.yaml # Chart family definitions (source of truth)
+
 scripts/
 ├── automation/         # Propagation system (Docker-based sync)
 ├── release-validation/ # Release validation scripts
 └── pull-scripts        # Bootstrap: pull scripts/Makefile from automation-core
 
-Makefile                # Automation targets (update-dependencies, propagate, etc.)
+release/
+└── scripts/            # Release tracking scripts (template generation)
+
+templates/
+└── release-versions.yaml # Release tracking template (auto-generated)
+
+Makefile                # Automation targets (propagate, release-versions-template, etc.)
 ```
 
 ## Documentation
@@ -47,3 +57,6 @@ Makefile                # Automation targets (update-dependencies, propagate, et
 - **[PROCESSES.md](docs/PROCESSES.md)** - Start here: all make targets and workflows
 - **[propagate_architecture.md](docs/propagate_architecture.md)** - How propagation works
 - **[development.md](docs/development.md)** - Local testing with act
+- **[chart_families.md](docs/chart_families.md)** - Chart family configuration
+- **[release_versions_template.md](docs/release_versions_template.md)** - Release tracking template generation
+- **[next_release_tracker.md](docs/next_release_tracker.md)** - Initialize new release cycle workflow

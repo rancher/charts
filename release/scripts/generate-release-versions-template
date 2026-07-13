@@ -1,0 +1,95 @@
+#!/bin/bash
+set -euo pipefail
+
+# Generate templates/release-versions.yaml from config/chart-families.yaml
+#
+# Usage: ./release/scripts/generate-release-template.sh
+#
+# Output: templates/release-versions.yaml
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+CONFIG_FILE="$REPO_ROOT/config/chart-families.yaml"
+OUTPUT_FILE="$REPO_ROOT/templates/release-versions.yaml"
+
+# Output file header
+FILE_HEADER='# Release Versions Template
+#
+# Purpose: Template for creating new release tracking files
+# Generated from: config/chart-families.yaml
+# Used by: next-release-tracker GHA workflow
+#
+# Structure:
+#   chart-name:
+#     "<version>":      # Literal placeholder string
+#       QA: false       # QA sign-off complete
+#       UnRC: false     # Un-RC complete (even if no RC pattern)
+#       Released: false # Merged to release branch
+#
+# Workflow:
+# 1. next-release-tracker GHA copies this template to releases/X.Y.Z.yaml
+# 2. Dev branch GHA replaces "<version>" with real version on chart bump
+# 3. Chart owner opens PR to flip QA/UnRC to true
+# 4. Release branch GHA flips Released to true on merge
+#
+# DO NOT EDIT MANUALLY - regenerate with:
+#   ./release/scripts/generate-release-template.sh
+
+'
+
+# Template entry structure
+CHART_ENTRY_TEMPLATE='CHART_NAME:
+  "<version>":
+    QA: false
+    UnRC: false
+    Released: false'
+
+verify() {
+    echo "Verifying yq..."
+    if ! command -v yq &> /dev/null; then
+        echo "Error: yq is required but not installed" >&2
+        echo "Install: https://github.com/mikefarah/yq" >&2
+        exit 1
+    fi
+
+    echo "Verifying $CONFIG_FILE exists..."
+    if [[ ! -f "$CONFIG_FILE" ]]; then
+        echo "Error: $CONFIG_FILE not found" >&2
+        exit 1
+    fi
+}
+
+write_template() {
+    local families="$1"
+
+    echo "Writing template header to $OUTPUT_FILE..."
+    printf '%s' "$FILE_HEADER" > "$OUTPUT_FILE"
+
+    echo "Processing families and writing charts..."
+    for family in ${families}; do
+        charts=$(yq eval ".${family}[]" "$CONFIG_FILE")
+        for chart in ${charts}; do
+            printf '%s\n\n' "${CHART_ENTRY_TEMPLATE/CHART_NAME/$chart}" >> "$OUTPUT_FILE"
+        done
+    done
+}
+
+main() {
+    verify
+
+    echo "Reading family names from $CONFIG_FILE..."
+    local families
+    families=$(yq eval 'keys | .[]' "$CONFIG_FILE")
+
+    write_template "$families"
+
+    echo "Verifying chart count..."
+    local chart_count
+    chart_count=$(yq eval 'keys | length' "$OUTPUT_FILE")
+
+    echo "Generated: $OUTPUT_FILE"
+    echo "Total charts: $chart_count"
+}
+
+main
