@@ -23,6 +23,7 @@ jobs:
           OUTPUT=$(.github/scripts/validate-versions.sh "${{ github.event.inputs.versions }}")
           echo "::notice::${OUTPUT}"
           echo "${OUTPUT}" >> $GITHUB_OUTPUT
+
       - name: Build YAML filenames
         id: filenames
         continue-on-error: false
@@ -30,12 +31,14 @@ jobs:
           OUTPUT=$(.github/scripts/build-filenames.sh "${{ steps.validate.outputs.versions }}")
           echo "::notice::${OUTPUT}"
           echo "${OUTPUT}" >> $GITHUB_OUTPUT
+
       - name: Checkout automation-core branch
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
         continue-on-error: false
         with:
           ref: automation-core
           fetch-depth: 1
+
       - name: Verify structure and check existing files
         id: check
         continue-on-error: false
@@ -43,6 +46,7 @@ jobs:
           OUTPUT=$(.github/scripts/check-structure.sh "${{ steps.validate.outputs.versions }}")
           echo "::notice::${OUTPUT}"
           echo "${OUTPUT}" >> $GITHUB_OUTPUT
+
       - name: Create release YAML files
         continue-on-error: false
         run: .github/scripts/create-release-yamls.sh "${{ steps.filenames.outputs.filenames }}"
@@ -53,6 +57,7 @@ jobs:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: release/tracker/package-lock.json
+
       - name: Install CLI dependencies
         continue-on-error: false
         run: |
@@ -65,9 +70,11 @@ jobs:
           echo "::endgroup::"
 
           echo "::notice::Dependencies installed"
+
       - name: Populate release YAMLs
         continue-on-error: false
         run: .github/scripts/populate-release-yamls.sh "${{ steps.validate.outputs.versions }}"
+
       - name: Commit and push changes
         continue-on-error: false
         env:
