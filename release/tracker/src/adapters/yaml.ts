@@ -52,10 +52,16 @@ export function readReleaseTrackingYaml(filepath: string): ReleaseYAML {
  * Write release YAML file
  */
 export function writeReleaseYAML(filepath: string, data: ReleaseYAML): void {
-  const content = yaml.dump(data, {
+  // Sort chart names alphabetically, preserve version field order
+  const sortedData: ReleaseYAML = {};
+  for (const chart of Object.keys(data).sort()) {
+    sortedData[chart] = data[chart];
+  }
+
+  const content = yaml.dump(sortedData, {
     lineWidth: -1,
     noRefs: true,
-    sortKeys: true
+    sortKeys: false
   });
   writeFileSync(filepath, content, 'utf-8');
 }
