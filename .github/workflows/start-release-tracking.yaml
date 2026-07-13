@@ -1,0 +1,221 @@
+name: Start Release Tracking
+
+on:
+  workflow_dispatch:
+    inputs:
+      versions:
+        description: 'Comma-separated release versions (e.g., 2.14.4,2.13.8)'
+        required: true
+        type: string
+      month:
+        description: 'Release month (e.g., July)'
+        required: true
+        type: string
+      year:
+        description: 'Release year (e.g., 2026)'
+        required: true
+        type: string
+
+jobs:
+  start-tracking:
+    runs-on: ubuntu-latest
+    container: ghcr.io/rancher/ci-image/charts:20260618-20
+
+    permissions:
+      contents: write        # Commit and push
+      id-token: write        # Required for OIDC authentication with Vault
+      pull-requests: write   # Create PR
+
+    steps:
+      - name: Display Workflow Context
+        run: |
+          echo "================================================================="
+          echo "Start Release Tracking Workflow"
+          echo "================================================================="
+          echo "Versions:        ${{ github.event.inputs.versions }}"
+          echo "Month:           ${{ github.event.inputs.month }}"
+          echo "Year:            ${{ github.event.inputs.year }}"
+          echo "Triggered by:    ${{ github.actor }}"
+          echo "Repository:      ${{ github.repository }}"
+          echo "================================================================="
+
+      - name: Validate input format
+        id: validate
+        continue-on-error: false
+        run: |
+          OUTPUT=$(.github/scripts/validate-versions.sh "${{ github.event.inputs.versions }}")
+          echo "::notice::${OUTPUT}"
+          echo "${OUTPUT}" >> $GITHUB_OUTPUT
+      - name: Load Secrets from Vault
+        continue-on-error: true
+        id: vault
+        uses: rancher-eio/read-vault-secrets@7282bf97898cd1c16c89f837e0bb442e6d384c89 # main
+        with:
+          secrets: |
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY ;
+
+      - name: Export Vault Secrets as Outputs
+        id: secrets
+        continue-on-error: false
+        run: |
+          # Export as step outputs (empty values OK if Vault fails)
+          echo "app_id=${{ env.APP_ID }}" >> $GITHUB_OUTPUT
+
+          # Use heredoc format for private_key (multi-line PEM certificate)
+          {
+            echo "private_key<<EOF"
+            echo "${{ env.PRIVATE_KEY }}"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+      - name: Create App Token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: app_token
+        with:
+          app-id: ${{ steps.secrets.outputs.app_id }}
+          private-key: ${{ steps.secrets.outputs.private_key }}
+
+      - name: Build YAML filenames
+        id: filenames
+        continue-on-error: false
+        run: |
+          OUTPUT=$(.github/scripts/build-filenames.sh "${{ steps.validate.outputs.versions }}")
+          echo "::notice::${OUTPUT}"
+          echo "${OUTPUT}" >> $GITHUB_OUTPUT
+
+      - name: Checkout automation-core branch
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
+        continue-on-error: false
+        with:
+          ref: automation-core
+          fetch-depth: 1
+
+      - name: Verify structure and check existing files
+        id: check
+        continue-on-error: false
+        run: |
+          OUTPUT=$(.github/scripts/check-structure.sh "${{ steps.validate.outputs.versions }}")
+          echo "::notice::${OUTPUT}"
+          echo "${OUTPUT}" >> $GITHUB_OUTPUT
+
+      - name: Create release YAML files
+        continue-on-error: false
+        run: .github/scripts/create-release-yamls.sh "${{ steps.filenames.outputs.filenames }}"
+      - name: Setup Node.js
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8  # v4.0.2
+        continue-on-error: false
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: release/tracker/package-lock.json
+
+      - name: Install CLI dependencies
+        continue-on-error: false
+        run: |
+          set -euo pipefail
+
+          cd release/tracker
+
+          echo "::group::npm ci"
+          npm ci
+          echo "::endgroup::"
+
+          echo "::notice::Dependencies installed"
+
+      - name: Populate release YAMLs
+        continue-on-error: false
+        run: .github/scripts/populate-release-yamls.sh "${{ steps.validate.outputs.versions }}"
+
+      - name: Configure Git for Commit
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+
+      - name: Commit and push changes
+        continue-on-error: false
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+        run: |
+          set -euo pipefail
+
+          FILENAMES="${{ steps.filenames.outputs.filenames }}"
+          VERSIONS="${{ steps.validate.outputs.versions }}"
+          BRANCH="release-tracking-init-$(date +%s)"
+
+          git checkout -b "${BRANCH}"
+
+          # Stage YAML files
+          IFS=',' read -ra FILENAME_ARRAY <<< "${FILENAMES}"
+          for FILENAME in "${FILENAME_ARRAY[@]}"; do
+            git add "release/${FILENAME}"
+          done
+
+          # Verify staged changes exist
+          git diff --cached --exit-code --quiet && { echo "::error::No changes staged"; exit 1; } || true
+
+          git commit -m "chore(release-tracking): initialize tracking for ${VERSIONS}"
+
+          git push origin "${BRANCH}"
+
+          # Create PR
+          PR_URL=$(gh pr create \
+            --base automation-core \
+            --head "${BRANCH}" \
+            --title "Initialize release tracking for ${VERSIONS}" \
+            --body-file .github/release-tracking-init-pr.md)
+
+          echo "::notice::PR created: ${PR_URL}"
+
+      - name: Create parent issue
+        id: parent
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+        run: |
+          template=$(cat templates/charts-release-issue.md)
+
+          # Build version list
+          VERSIONS="${{ steps.validate.outputs.versions }}"
+          IFS=',' read -ra VERSION_ARRAY <<< "${VERSIONS}"
+          version_list=""
+          for version in "${VERSION_ARRAY[@]}"; do
+            version_list="${version_list}- ${version}\n"
+          done
+
+          body=$(echo "$template" | sed "s|<<-- VERSION_INPUTS -->>|${version_list}|")
+
+          # Create parent issue
+          issue_url=$(gh issue create \
+            --title "[charts] Release ${{ github.event.inputs.month }} ${{ github.event.inputs.year }}" \
+            --body "$body" \
+            --label "release-tracking" \
+            --repo ${{ github.repository }})
+
+          issue_number=$(echo "$issue_url" | grep -oE '[0-9]+$')
+
+          echo "parent_number=$issue_number" >> $GITHUB_OUTPUT
+          echo "::notice::Created parent issue: $issue_url"
+
+      - name: Create sub-issues
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+        run: |
+          parent_number="${{ steps.parent.outputs.parent_number }}"
+          template=$(cat templates/charts-release-subissue.md)
+
+          VERSIONS="${{ steps.validate.outputs.versions }}"
+          IFS=',' read -ra VERSION_ARRAY <<< "${VERSIONS}"
+
+          for version in "${VERSION_ARRAY[@]}"; do
+            body=$(echo "$template" | sed "s|<--version-->|${version}|g")
+            body="Parent: #${parent_number}\n\n${body}"
+
+            issue_url=$(gh issue create \
+              --title "${version}" \
+              --body "$body" \
+              --label "release-tracking" \
+              --repo ${{ github.repository }})
+
+            issue_number=$(echo "$issue_url" | grep -oE '[0-9]+$')
+            echo "::notice::Created sub-issue #${issue_number} for ${version}"
+          done
