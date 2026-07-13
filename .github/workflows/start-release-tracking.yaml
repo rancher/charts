@@ -25,6 +25,7 @@ jobs:
       contents: write        # Commit and push
       id-token: write        # Required for OIDC authentication with Vault
       pull-requests: write   # Create PR
+      issues: write          # Create issues
 
     steps:
       - name: Display Workflow Context
@@ -182,7 +183,7 @@ jobs:
       - name: Create parent issue
         id: parent
         env:
-          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           template=$(cat templates/charts-release-issue.md)
 
@@ -210,7 +211,7 @@ jobs:
 
       - name: Create sub-issues
         env:
-          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           parent_number="${{ steps.parent.outputs.parent_number }}"
           template=$(cat templates/charts-release-subissue.md)
