@@ -18,8 +18,8 @@ function getRancherChartsRemote(): string {
       const [, remoteName, url] = match;
 
       // Match https or ssh URLs
-      if (url.includes('github.com/rancher/charts.git') ||
-          url.includes('github.com:rancher/charts.git')) {
+      if (url.includes('github.com/rancher/charts') ||
+          url.includes('github.com:rancher/charts')) {
         return remoteName;
       }
     }
