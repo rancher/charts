@@ -30,9 +30,10 @@ export async function populateReleaseCharts(options: {
   const added: string[] = [];
 
   for (const { chart, version } of newCharts) {
-    // Chart must exist in tracking YAML - if not, data integrity issue
+    // Auto-add missing chart (handles deprecated-later scenarios)
     if (!data[chart]) {
-      throw new Error(`Chart "${chart}" found in comparison but missing from tracking YAML at ${options.yamlPath}`);
+      console.warn(`WARNING: Chart "${chart}" missing from tracking YAML at ${options.yamlPath}. Auto-adding.`);
+      data[chart] = {};
     }
 
     // Skip if version already exists
