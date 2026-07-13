@@ -31,3 +31,17 @@ jobs:
           OUTPUT=$(.github/scripts/build-filenames.sh "${{ steps.validate.outputs.versions }}")
           echo "::notice::${OUTPUT}"
           echo "${OUTPUT}" >> $GITHUB_OUTPUT
+      - name: Checkout automation-core branch
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
+        continue-on-error: false
+        with:
+          ref: automation-core
+          fetch-depth: 1
+      - name: Verify structure and check existing files
+        id: check
+        continue-on-error: false
+        run: |
+          OUTPUT=$(.github/scripts/check-structure.sh "${{ steps.validate.outputs.versions }}")
+          echo "::notice::${OUTPUT}"
+          echo "${OUTPUT}" >> $GITHUB_OUTPUT
+
