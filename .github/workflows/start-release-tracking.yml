@@ -68,3 +68,41 @@ jobs:
       - name: Populate release YAMLs
         continue-on-error: false
         run: .github/scripts/populate-release-yamls.sh "${{ steps.validate.outputs.versions }}"
+      - name: Commit and push changes
+        continue-on-error: false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          FILENAMES="${{ steps.filenames.outputs.filenames }}"
+          VERSIONS="${{ steps.validate.outputs.versions }}"
+          BRANCH="release-tracking-init-$(date +%s)"
+
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git checkout -b "${BRANCH}"
+
+          # Stage YAML files
+          IFS=',' read -ra FILENAME_ARRAY <<< "${FILENAMES}"
+          for FILENAME in "${FILENAME_ARRAY[@]}"; do
+            git add "release/${FILENAME}"
+          done
+
+          # Verify staged changes exist
+          git diff --cached --exit-code --quiet && { echo "::error::No changes staged"; exit 1; } || true
+
+          git commit -m "chore(release-tracking): initialize tracking for ${VERSIONS}"
+
+          git push origin "${BRANCH}"
+
+          # Create PR
+          PR_URL=$(gh pr create \
+            --base automation-core \
+            --head "${BRANCH}" \
+            --title "Initialize release tracking for ${VERSIONS}" \
+            --body-file .github/release-tracking-init-pr.md)
+
+          echo "::notice::PR created: ${PR_URL}"
