@@ -13,7 +13,9 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write  # Commit
+      contents: write        # Commit and push
+      id-token: write        # Required for OIDC authentication with Vault
+      pull-requests: write   # Create PR
 
     steps:
       - name: Validate input format
@@ -23,6 +25,35 @@ jobs:
           OUTPUT=$(.github/scripts/validate-versions.sh "${{ github.event.inputs.versions }}")
           echo "::notice::${OUTPUT}"
           echo "${OUTPUT}" >> $GITHUB_OUTPUT
+      - name: Load Secrets from Vault
+        continue-on-error: true
+        id: vault
+        uses: rancher-eio/read-vault-secrets@7282bf97898cd1c16c89f837e0bb442e6d384c89 # main
+        with:
+          secrets: |
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY ;
+
+      - name: Export Vault Secrets as Outputs
+        id: secrets
+        continue-on-error: false
+        run: |
+          # Export as step outputs (empty values OK if Vault fails)
+          echo "app_id=${{ env.APP_ID }}" >> $GITHUB_OUTPUT
+
+          # Use heredoc format for private_key (multi-line PEM certificate)
+          {
+            echo "private_key<<EOF"
+            echo "${{ env.PRIVATE_KEY }}"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+      - name: Create App Token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: app_token
+        with:
+          app-id: ${{ steps.secrets.outputs.app_id }}
+          private-key: ${{ steps.secrets.outputs.private_key }}
 
       - name: Build YAML filenames
         id: filenames
@@ -75,20 +106,21 @@ jobs:
         continue-on-error: false
         run: .github/scripts/populate-release-yamls.sh "${{ steps.validate.outputs.versions }}"
 
+      - name: Configure Git for Commit
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+
       - name: Commit and push changes
         continue-on-error: false
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
         run: |
           set -euo pipefail
 
           FILENAMES="${{ steps.filenames.outputs.filenames }}"
           VERSIONS="${{ steps.validate.outputs.versions }}"
           BRANCH="release-tracking-init-$(date +%s)"
-
-          # Configure git
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
 
           git checkout -b "${BRANCH}"
 
