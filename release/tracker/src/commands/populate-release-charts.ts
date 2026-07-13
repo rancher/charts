@@ -51,6 +51,7 @@ export async function populateReleaseCharts(options: {
 
     // Case 2: Add new version (multi-version scenario like CVE fix)
     data[chart][version] = {
+      ToRelease: false,
       QA: false,
       UnRC: false,
       Released: false
