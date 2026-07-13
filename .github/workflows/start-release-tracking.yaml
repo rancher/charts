@@ -134,6 +134,7 @@ jobs:
           git config --global user.email "actions@github.com"
 
       - name: Commit and push changes
+        id: commit
         continue-on-error: false
         env:
           GH_TOKEN: ${{ steps.app_token.outputs.token }}
@@ -166,6 +167,7 @@ jobs:
             --title "Initialize release tracking for ${VERSIONS}" \
             --body-file .github/release-tracking-init-pr.md)
 
+          echo "pr_url=${PR_URL}" >> $GITHUB_OUTPUT
           echo "::notice::PR created: ${PR_URL}"
 
       - name: Create parent issue
@@ -196,6 +198,19 @@ jobs:
 
           echo "parent_number=$issue_number" >> $GITHUB_OUTPUT
           echo "::notice::Created parent issue: $issue_url"
+
+      - name: Link PR and parent issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_URL="${{ steps.commit.outputs.pr_url }}"
+          PARENT_NUM="${{ steps.parent.outputs.parent_number }}"
+
+          # Comment on parent issue with PR link
+          gh issue comment "${PARENT_NUM}" --body "Tracking PR: ${PR_URL}"
+
+          # Comment on PR with parent issue link
+          gh pr comment "${PR_URL}" --body "Parent tracking issue: #${PARENT_NUM}"
 
       - name: Create sub-issues
         env:
