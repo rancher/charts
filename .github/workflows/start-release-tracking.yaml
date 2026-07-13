@@ -7,10 +7,19 @@ on:
         description: 'Comma-separated release versions (e.g., 2.14.4,2.13.8)'
         required: true
         type: string
+      month:
+        description: 'Release month (e.g., July)'
+        required: true
+        type: string
+      year:
+        description: 'Release year (e.g., 2026)'
+        required: true
+        type: string
 
 jobs:
   start-tracking:
     runs-on: ubuntu-latest
+    container: ghcr.io/rancher/ci-image/charts:20260618-20
 
     permissions:
       contents: write        # Commit and push
@@ -18,6 +27,18 @@ jobs:
       pull-requests: write   # Create PR
 
     steps:
+      - name: Display Workflow Context
+        run: |
+          echo "================================================================="
+          echo "Start Release Tracking Workflow"
+          echo "================================================================="
+          echo "Versions:        ${{ github.event.inputs.versions }}"
+          echo "Month:           ${{ github.event.inputs.month }}"
+          echo "Year:            ${{ github.event.inputs.year }}"
+          echo "Triggered by:    ${{ github.actor }}"
+          echo "Repository:      ${{ github.repository }}"
+          echo "================================================================="
+
       - name: Validate input format
         id: validate
         continue-on-error: false
@@ -145,3 +166,56 @@ jobs:
             --body-file .github/release-tracking-init-pr.md)
 
           echo "::notice::PR created: ${PR_URL}"
+
+      - name: Create parent issue
+        id: parent
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+        run: |
+          template=$(cat templates/charts-release-issue.md)
+
+          # Build version list
+          VERSIONS="${{ steps.validate.outputs.versions }}"
+          IFS=',' read -ra VERSION_ARRAY <<< "${VERSIONS}"
+          version_list=""
+          for version in "${VERSION_ARRAY[@]}"; do
+            version_list="${version_list}- ${version}\n"
+          done
+
+          body=$(echo "$template" | sed "s|<<-- VERSION_INPUTS -->>|${version_list}|")
+
+          # Create parent issue
+          issue_url=$(gh issue create \
+            --title "[charts] Release ${{ github.event.inputs.month }} ${{ github.event.inputs.year }}" \
+            --body "$body" \
+            --label "release-tracking" \
+            --repo ${{ github.repository }})
+
+          issue_number=$(echo "$issue_url" | grep -oE '[0-9]+$')
+
+          echo "parent_number=$issue_number" >> $GITHUB_OUTPUT
+          echo "::notice::Created parent issue: $issue_url"
+
+      - name: Create sub-issues
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+        run: |
+          parent_number="${{ steps.parent.outputs.parent_number }}"
+          template=$(cat templates/charts-release-subissue.md)
+
+          VERSIONS="${{ steps.validate.outputs.versions }}"
+          IFS=',' read -ra VERSION_ARRAY <<< "${VERSIONS}"
+
+          for version in "${VERSION_ARRAY[@]}"; do
+            body=$(echo "$template" | sed "s|<--version-->|${version}|g")
+            body="Parent: #${parent_number}\n\n${body}"
+
+            issue_url=$(gh issue create \
+              --title "${version}" \
+              --body "$body" \
+              --label "release-tracking" \
+              --repo ${{ github.repository }})
+
+            issue_number=$(echo "$issue_url" | grep -oE '[0-9]+$')
+            echo "::notice::Created sub-issue #${issue_number} for ${version}"
+          done
