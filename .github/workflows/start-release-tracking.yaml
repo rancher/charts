@@ -47,18 +47,6 @@ jobs:
           ref: automation-core
           fetch-depth: 1
 
-      - name: Configure git remote
-        run: |
-          git remote add origin https://github.com/rancher/charts.git || true
-          git fetch --depth 1 origin
-
-      - name: Debug git remote
-        run: |
-          echo "=== Git remotes ==="
-          git remote -v
-          echo "=== Origin URL ==="
-          git remote get-url origin || echo "No origin"
-
       - name: Validate input format
         id: validate
         continue-on-error: false
@@ -146,6 +134,7 @@ jobs:
           git config --global user.email "actions@github.com"
 
       - name: Commit and push changes
+        id: commit
         continue-on-error: false
         env:
           GH_TOKEN: ${{ steps.app_token.outputs.token }}
@@ -175,9 +164,10 @@ jobs:
           PR_URL=$(gh pr create \
             --base automation-core \
             --head "${BRANCH}" \
-            --title "Initialize release tracking for ${VERSIONS}" \
+            --title "Init Release Tracking ${{ github.event.inputs.month }} ${{ github.event.inputs.year }}" \
             --body-file .github/release-tracking-init-pr.md)
 
+          echo "pr_url=${PR_URL}" >> $GITHUB_OUTPUT
           echo "::notice::PR created: ${PR_URL}"
 
       - name: Create parent issue
@@ -209,6 +199,19 @@ jobs:
           echo "parent_number=$issue_number" >> $GITHUB_OUTPUT
           echo "::notice::Created parent issue: $issue_url"
 
+      - name: Link PR and parent issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_URL="${{ steps.commit.outputs.pr_url }}"
+          PARENT_NUM="${{ steps.parent.outputs.parent_number }}"
+
+          # Comment on parent issue with PR link
+          gh issue comment "${PARENT_NUM}" --body "Tracking PR: ${PR_URL}"
+
+          # Comment on PR with parent issue link
+          gh pr comment "${PR_URL}" --body "Parent tracking issue: #${PARENT_NUM}"
+
       - name: Create sub-issues
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -221,7 +224,7 @@ jobs:
 
           for version in "${VERSION_ARRAY[@]}"; do
             body=$(echo "$template" | sed "s|<--version-->|${version}|g")
-            body="Parent: #${parent_number}\n\n${body}"
+            body=$(printf "Parent: #%s\n\n%s" "${parent_number}" "${body}")
 
             issue_url=$(gh issue create \
               --title "${version}" \
