@@ -1,0 +1,27 @@
+name: Start Release Tracking
+
+on:
+  workflow_dispatch:
+    inputs:
+      versions:
+        description: 'Comma-separated release versions (e.g., 2.14.4,2.13.8)'
+        required: true
+        type: string
+
+jobs:
+  start-tracking:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write  # Commit
+
+    steps:
+      - name: Validate input format
+        id: validate
+        continue-on-error: false
+        run: |
+          OUTPUT=$(.github/scripts/validate-versions.sh "${{ github.event.inputs.versions }}")
+          echo "::notice::${OUTPUT}"
+          echo "${OUTPUT}" >> $GITHUB_OUTPUT
+
+
