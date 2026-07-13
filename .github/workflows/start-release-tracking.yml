@@ -23,7 +23,6 @@ jobs:
           OUTPUT=$(.github/scripts/validate-versions.sh "${{ github.event.inputs.versions }}")
           echo "::notice::${OUTPUT}"
           echo "${OUTPUT}" >> $GITHUB_OUTPUT
-
       - name: Build YAML filenames
         id: filenames
         continue-on-error: false
@@ -44,9 +43,28 @@ jobs:
           OUTPUT=$(.github/scripts/check-structure.sh "${{ steps.validate.outputs.versions }}")
           echo "::notice::${OUTPUT}"
           echo "${OUTPUT}" >> $GITHUB_OUTPUT
-
       - name: Create release YAML files
         continue-on-error: false
         run: .github/scripts/create-release-yamls.sh "${{ steps.filenames.outputs.filenames }}"
+      - name: Setup Node.js
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8  # v4.0.2
+        continue-on-error: false
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: release/tracker/package-lock.json
+      - name: Install CLI dependencies
+        continue-on-error: false
+        run: |
+          set -euo pipefail
 
+          cd release/tracker
 
+          echo "::group::npm ci"
+          npm ci
+          echo "::endgroup::"
+
+          echo "::notice::Dependencies installed"
+      - name: Populate release YAMLs
+        continue-on-error: false
+        run: .github/scripts/populate-release-yamls.sh "${{ steps.validate.outputs.versions }}"
