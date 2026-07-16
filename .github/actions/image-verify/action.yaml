@@ -27,6 +27,7 @@ runs:
         PR_NUMBER: ${{ inputs.pr_number }}
         DOCKER_USERNAME: ${{ inputs.docker_username }}
         DOCKER_PASSWORD: ${{ inputs.docker_password }}
+        GH_TOKEN: ${{ inputs.github_token }}
       run: |
         echo "================================================================="
         echo "Build Validation - PR #${PR_NUMBER}
@@ -46,8 +47,11 @@ runs:
         fi
 
         if [[ -z "$DOCKER_USERNAME" ]] || [[ -z "$DOCKER_PASSWORD" ]]; then
-          echo "WARNING: Docker credentials are empty (expected for fork PRs)"
-          echo "  Impact: Docker image checks may be rate-limited"
+          echo "WARNING: Docker credentials are empty"
+        fi
+
+        if [[ -z "$GH_TOKEN" ]]; then
+          echo "WARNING: Github Token empty"
         fi
 
         # Log validated inputs
@@ -55,6 +59,7 @@ runs:
         echo "  pr_number: ${PR_NUMBER}"
         echo "  docker_username: $(if [[ -n "$DOCKER_USERNAME" ]]; then echo '***REDACTED***'; else echo '(empty)'; fi)"
         echo "  docker_password: $(if [[ -n "$DOCKER_PASSWORD" ]]; then echo '***REDACTED***'; else echo '(empty)'; fi)"
+        echo "  github_token: $(if [[ -n "$GH_TOKEN" ]]; then echo '***REDACTED***'; else echo '(empty)'; fi)"
         echo "================================================================="
 
     # ====================================================================
