@@ -187,3 +187,42 @@ runs:
     - name: Record start time
       shell: bash
       run: echo "BUILD_START_TIME=$(date +%s)" >> $GITHUB_ENV
+
+      # ====================================================================
+      # CHANGE DETECTION
+      # Find charts added/changed in this PR
+      # ====================================================================
+    - name: Detect changed charts
+      id: detect_charts
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+      run: |
+        echo "Detecting changed chart packages under assets/ ..."
+
+        CHARTS_FILE=$(mktemp)
+        gh pr view "${PR_NUMBER}" -R "${{ github.repository }}" --json files --jq '.files[] | select(.status != "removed") | .path' \
+          | grep -E '^assets/[^/]+/[^/]+\.tgz$' \
+          | while IFS= read -r path; do
+              chart_name=$(echo "$path" | cut -d'/' -f2)
+              filename=$(basename "$path" .tgz)
+              version=${filename#"${chart_name}-"}
+              echo "${chart_name} ${version}"
+            done | sort -u > "$CHARTS_FILE" || true
+
+        if [[ ! -s "$CHARTS_FILE" ]]; then
+          echo "No chart package changes detected in assets/ - nothing to validate"
+          echo "has_charts=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        echo "Detected charts:"
+        cat "$CHARTS_FILE"
+        echo "has_charts=true" >> "$GITHUB_OUTPUT"
+
+        {
+          echo "charts<<EOF"
+          cat "$CHARTS_FILE"
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"
+        echo "================================================================="
