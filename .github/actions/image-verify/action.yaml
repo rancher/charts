@@ -177,7 +177,7 @@ runs:
         echo "Detecting changed chart packages under assets/ ..."
 
         CHARTS_FILE=$(mktemp)
-        gh pr view "${PR_NUMBER}" -R "${{ github.repository }}" --json files --jq '.files[] | select(.status != "removed") | .path' \
+        gh pr view "${PR_NUMBER}" -R "${GITHUB_REPOSITORY}" --json files --jq '.files[] | select(.status != "removed") | .path' \
           | grep -E '^assets/[^/]+/[^/]+\.tgz$' \
           | while IFS= read -r path; do
               chart_name=$(echo "$path" | cut -d'/' -f2)
@@ -248,7 +248,7 @@ runs:
         GH_TOKEN: ${{ inputs.github_token }}
         PR_NUMBER: ${{ inputs.pr_number }}
       run: |
-        if ! gh pr view "${PR_NUMBER}" -R "${{ github.repository }}" --json number &>/dev/null; then
+        if ! gh pr view "${PR_NUMBER}" -R "${GITHUB_REPOSITORY}" --json number &>/dev/null; then
           echo "WARNING: Cannot access PR - skipping comment"
           exit 0
         fi
@@ -276,7 +276,7 @@ runs:
           fi
         } > "$BODY_FILE"
 
-        gh pr comment "${PR_NUMBER}" -R "${{ github.repository }}" --body-file "${BODY_FILE}" || echo "Failed to post comment"
+        gh pr comment "${PR_NUMBER}" -R "${GITHUB_REPOSITORY}" --body-file "${BODY_FILE}" || echo "Failed to post comment"
 
 
     - name: Fail if any image needs an update
