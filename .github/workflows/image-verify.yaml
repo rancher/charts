@@ -1,0 +1,283 @@
+# This workflow detects chart packages added/changed in a PR
+# and runs ./bin/charts-build-scripts validate-image-versions on each,
+# posting a PR comment with the results and failing if any image is outdated.
+
+name: Image Verify
+
+on:
+  pull_request:
+    branches:
+      - dev-v2.15
+
+jobs:
+  build:
+    name: Verify Images
+    runs-on: org-${{ github.repository_owner_id }}-amd64-k8s
+    container: ghcr.io/rancher/ci-image/charts:20260618-20
+    permissions:
+      contents: read
+      id-token: write  # Required for OIDC authentication with Vault
+      pull-requests: write  # Required for posting build validation summary comment
+    steps:
+      # ====================================================================
+      # WORKFLOW CONTEXT
+      # ====================================================================
+      - name: Display PR Context
+        run: |
+          echo "================================================================="
+          echo "Build Validation Workflow"
+          echo "================================================================="
+          echo "PR Number:       ${{ github.event.pull_request.number }}"
+          echo "Target Branch:   ${{ github.base_ref }}"
+          echo "Source Branch:   ${{ github.head_ref }}"
+          echo "Author:          ${{ github.event.pull_request.user.login }}"
+          echo "Repository:      ${{ github.repository }}"
+          echo "Commit SHA:      ${{ github.event.pull_request.head.sha }}"
+          echo "================================================================="
+
+      # ====================================================================
+      # SECRETS MANAGEMENT (OIDC vault authentication)
+      # ====================================================================
+      - name: Load Secrets from Vault
+        continue-on-error: true
+        id: vault
+        uses: rancher-eio/read-vault-secrets@7282bf97898cd1c16c89f837e0bb442e6d384c89 # main
+        with:
+          secrets: |
+            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKER_USERNAME ;
+            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKER_PASSWORD ;
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY ;
+
+      - name: Check Vault Status
+        run: |
+          if [[ "${{ steps.vault.outcome }}" == "failure" ]]; then
+            echo "================================================================="
+            echo "WARNING: Vault authentication failed"
+            echo "================================================================="
+            echo ""
+            echo "This is expected if you are opening a PR from a fork."
+            echo ""
+            echo "Impact:"
+            echo "  - Docker image checks may be rate-limited (slower)"
+            echo "  - Some validation features may be limited"
+            echo "  - Build will still run and validate your changes"
+            echo ""
+            echo "Recommendation for fork contributors:"
+            echo "  Open PRs against upstream using feature branch names that"
+            echo "  do NOT match dev-v* or release-v* patterns to avoid triggering"
+            echo "  this workflow. Branches are auto-deleted after merge."
+            echo ""
+            echo "================================================================="
+          else
+            echo "Vault authentication successful"
+          fi
+
+      - name: Export Vault Secrets as Outputs
+        id: secrets
+        continue-on-error: false
+        run: |
+          # Check if secrets were loaded (will be empty for fork PRs)
+          if [[ -z "${{ env.DOCKER_USERNAME }}" ]] || [[ -z "${{ env.DOCKER_PASSWORD }}" ]]; then
+            echo "WARNING: Docker credentials not available from Vault"
+            echo "  This is expected for fork PRs (no Vault access)"
+            echo "  Docker image checks may be rate-limited"
+          else
+            echo "Docker credentials loaded successfully"
+            echo "::add-mask::${{ env.DOCKER_USERNAME }}"
+            echo "::add-mask::${{ env.DOCKER_PASSWORD }}"
+          fi
+
+          if [[ -z "${{ env.APP_ID }}" ]] || [[ -z "${{ env.PRIVATE_KEY }}" ]]; then
+            echo "WARNING: GitHub App credentials not available from Vault"
+            echo "  This is expected for fork PRs (no Vault access)"
+            echo "  Some validation features may be limited"
+          else
+            echo "GitHub App credentials loaded successfully"
+            echo "::add-mask::${{ env.APP_ID }}"
+            echo "::add-mask::${{ env.PRIVATE_KEY }}"
+          fi
+
+          # Export as step outputs (empty values are OK for fork PRs)
+          echo "docker_username=${{ env.DOCKER_USERNAME }}" >> $GITHUB_OUTPUT
+          echo "docker_password=${{ env.DOCKER_PASSWORD }}" >> $GITHUB_OUTPUT
+          echo "app_id=${{ env.APP_ID }}" >> $GITHUB_OUTPUT
+
+          # Use heredoc format for private_key (multi-line PEM certificate)
+          {
+            echo "private_key<<EOF"
+            echo "${{ env.PRIVATE_KEY }}"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+      - name: Create App Token
+        continue-on-error: true
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: app_token
+        with:
+          app-id: ${{ steps.secrets.outputs.app_id }}
+          private-key: ${{ steps.secrets.outputs.private_key }}
+
+      - name: Check App Token Status
+        run: |
+          if [[ "${{ steps.app_token.outcome }}" == "failure" ]]; then
+            echo "================================================================="
+            echo "WARNING: GitHub App token creation failed"
+            echo "================================================================="
+            echo ""
+            echo "This is expected if Vault authentication failed (fork PRs)."
+            echo ""
+            echo "Impact:"
+            echo "  - Some GitHub API-based validation features may be limited"
+            echo "  - Build will still run and validate your changes"
+            echo ""
+            echo "================================================================="
+          else
+            echo "GitHub App token created successfully"
+          fi
+
+      # ====================================================================
+      # REPOSITORY SETUP
+      # ====================================================================
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      # ====================================================================
+      # Build Tools
+      # Download charts-build-scripts binary and automation-core scripts
+      # ====================================================================
+      - name: (make pull-scripts) Download charts-build-scripts binary
+        shell: bash
+        env:
+          GH_TOKEN: ${{ inputs.github_token }}
+        run: |
+          echo "::group::make pull-scripts"
+          make pull-scripts
+          echo "::endgroup::"
+
+      # ====================================================================
+      # CHANGE DETECTION
+      # Find charts added/changed in this PR
+      # ====================================================================
+      - name: Detect changed charts
+        id: detect_charts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          echo "Detecting changed chart packages under assets/ ..."
+
+          CHARTS_FILE=$(mktemp)
+          gh pr view "${PR_NUMBER}" -R "${{ github.repository }}" --json files --jq '.files[] | select(.status != "removed") | .path' \
+            | grep -E '^assets/[^/]+/[^/]+\.tgz$' \
+            | while IFS= read -r path; do
+                chart_name=$(echo "$path" | cut -d'/' -f2)
+                filename=$(basename "$path" .tgz)
+                version=${filename#"${chart_name}-"}
+                echo "${chart_name} ${version}"
+              done | sort -u > "$CHARTS_FILE" || true
+
+          if [[ ! -s "$CHARTS_FILE" ]]; then
+            echo "No chart package changes detected in assets/ - nothing to validate"
+            echo "has_charts=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Detected charts:"
+          cat "$CHARTS_FILE"
+          echo "has_charts=true" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "charts<<EOF"
+            cat "$CHARTS_FILE"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+          echo "================================================================="
+
+      # ====================================================================
+      # IMAGE VERSION VALIDATION
+      # ====================================================================
+      - name: Validate image versions
+        id: validate_images
+        if: steps.detect_charts.outputs.has_charts == 'true'
+        env:
+          DOCKER_USERNAME: ${{ steps.secrets.outputs.docker_username }}
+          DOCKER_PASSWORD: ${{ steps.secrets.outputs.docker_password }}
+          CHARTS: ${{ steps.detect_charts.outputs.charts }}
+        run: |
+          RESULTS_FILE=/tmp/results.jsonl
+          > "$RESULTS_FILE"
+
+          while IFS=' ' read -r chart version; do
+            [[ -z "$chart" ]] && continue
+
+            echo "::group::validate-image-versions ${chart}@${version}"
+            ERR_LOG=$(mktemp)
+            if ! OUTPUT=$(./bin/charts-build-scripts validate-image-versions --chart "$chart" --version "$version" 2>"$ERR_LOG"); then
+              cat "$ERR_LOG"
+              rm -f "$ERR_LOG"
+              echo "::endgroup::"
+              echo "ERROR: validate-image-versions failed for ${chart}@${version}"
+              exit 1
+            fi
+            rm -f "$ERR_LOG"
+            echo "$OUTPUT"
+            echo "$OUTPUT" | jq -c --arg version "$version" '. + {version: $version}' >> "$RESULTS_FILE"
+            echo "::endgroup::"
+          done <<< "$CHARTS"
+
+          echo "================================================================="
+
+      # ====================================================================
+      # RESULTS
+      # Post/update a PR comment with a summary
+      # ====================================================================
+      - name: Post PR comment with image validation results
+        if: steps.detect_charts.outputs.has_charts == 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if ! gh pr view "${PR_NUMBER}" -R "${{ github.repository }}" --json number &>/dev/null; then
+            echo "WARNING: Cannot access PR - skipping comment"
+            exit 0
+          fi
+
+          BODY_FILE=$(mktemp)
+          {
+            echo "<!-- image-verify-summary -->"
+            echo "## Image Version Validation"
+            echo ""
+            echo "| Chart | Version | Status | Details |"
+            echo "|---|---|---|---|"
+            jq -r '
+              if .needsUpdate then
+                ((.images // []) | map(select(.needsUpdate)) | map("`\(.repository)`: \(.currentTag) → \(.latestAvailable)") | join("<br>")) as $details
+                | "| \(.chart) | \(.version) | Needs update | \($details) |"
+              else
+                "| \(.chart) | \(.version) | Up to date | - |"
+              end
+            ' /tmp/results.jsonl
+            echo ""
+            if grep -q '"needsUpdate":true' /tmp/results.jsonl; then
+              echo "**Result:** One or more charts reference images that are not on the latest minor/patch version. Update the image tags before merging."
+            else
+              echo "**Result:** All chart images are up to date."
+            fi
+          } > "$BODY_FILE"
+
+          gh pr comment "${PR_NUMBER}" -R "${{ github.repository }}" --body-file "${BODY_FILE}" || echo "Failed to post comment"
+          
+
+      - name: Fail if any image needs an update
+        if: steps.detect_charts.outputs.has_charts == 'true'
+        run: |
+          if grep -q '"needsUpdate":true' /tmp/results.jsonl; then
+            echo "One or more charts reference outdated images. See the PR comment for details."
+            exit 1
+          fi
+          echo "All chart images are up to date."
+
