@@ -227,9 +227,9 @@ runs:
         } >> "$GITHUB_OUTPUT"
         echo "================================================================="
 
- # ====================================================================
-      # IMAGE VERSION VALIDATION
-      # ====================================================================
+    # ====================================================================
+    # IMAGE VERSION VALIDATION
+    # ====================================================================
     - name: Validate image versions
       id: validate_images
       if: steps.detect_charts.outputs.has_charts == 'true'
@@ -260,3 +260,54 @@ runs:
         done <<< "$CHARTS"
 
         echo "================================================================="
+
+    # ====================================================================
+    # RESULTS
+    # Post/update a PR comment with a summary
+    # ====================================================================
+    - name: Post PR comment with image validation results
+      if: steps.detect_charts.outputs.has_charts == 'true'
+      continue-on-error: true
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+      run: |
+        if ! gh pr view "${PR_NUMBER}" -R "${{ github.repository }}" --json number &>/dev/null; then
+          echo "WARNING: Cannot access PR - skipping comment"
+          exit 0
+        fi
+
+        BODY_FILE=$(mktemp)
+        {
+          echo "<!-- image-verify-summary -->"
+          echo "## Image Version Validation"
+          echo ""
+          echo "| Chart | Version | Status | Details |"
+          echo "|---|---|---|---|"
+          jq -r '
+            if .needsUpdate then
+              ((.images // []) | map(select(.needsUpdate)) | map("`\(.repository)`: \(.currentTag) → \(.latestAvailable)") | join("<br>")) as $details
+              | "| \(.chart) | \(.version) | Needs update | \($details) |"
+            else
+              "| \(.chart) | \(.version) | Up to date | - |"
+            end
+          ' /tmp/results.jsonl
+          echo ""
+          if grep -q '"needsUpdate":true' /tmp/results.jsonl; then
+            echo "**Result:** One or more charts reference images that are not on the latest minor/patch version. Update the image tags before merging."
+          else
+            echo "**Result:** All chart images are up to date."
+          fi
+        } > "$BODY_FILE"
+
+        gh pr comment "${PR_NUMBER}" -R "${{ github.repository }}" --body-file "${BODY_FILE}" || echo "Failed to post comment"
+
+
+    - name: Fail if any image needs an update
+      if: steps.detect_charts.outputs.has_charts == 'true'
+      run: |
+        if grep -q '"needsUpdate":true' /tmp/results.jsonl; then
+          echo "One or more charts reference outdated images. See the PR comment for details."
+          exit 1
+        fi
+        echo "All chart images are up to date."
