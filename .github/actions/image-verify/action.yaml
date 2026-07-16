@@ -191,7 +191,7 @@ runs:
         echo "Detecting changed chart packages under assets/ ..."
 
         CHARTS_FILE=$(mktemp)
-        gh pr view "${PR_NUMBER}" -R "${GITHUB_REPOSITORY}" --json files --jq '.files[] | select(.status != "removed") | .path' \
+        gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" --paginate --jq '.[] | select(.status != "removed") | .filename' \
           | grep -E '^assets/[^/]+/[^/]+\.tgz$' \
           | while IFS= read -r path; do
               chart_name=$(echo "$path" | cut -d'/' -f2)
