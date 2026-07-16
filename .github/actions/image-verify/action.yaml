@@ -6,13 +6,13 @@ inputs:
     required: true
   docker_username:
     description: "Docker Hub username from Vault secrets. Optional - may be empty for fork PRs. Used to authenticate for Docker image availability checks."
-    required: false
+    required: true
   docker_password:
     description: "Docker Hub password from Vault secrets. Optional - may be empty for fork PRs. Used to authenticate for Docker image availability checks."
-    required: false
+    required: true
   github_token:
     description: "GitHub token for authenticated API requests. Used by pull-scripts for gh api calls to avoid rate limiting."
-    required: false
+    required: true
 
 runs:
   using: composite
@@ -174,7 +174,7 @@ runs:
     - name: Detect changed charts
       id: detect_charts
       env:
-        GH_TOKEN: ${{ github.token }}
+        GH_TOKEN: ${{ inputs.github_token }}
         PR_NUMBER: ${{ inputs.pr_number }}
       run: |
         echo "Detecting changed chart packages under assets/ ..."
@@ -248,7 +248,7 @@ runs:
       if: steps.detect_charts.outputs.has_charts == 'true'
       continue-on-error: true
       env:
-        GH_TOKEN: ${{ github.token }}
+        GH_TOKEN: ${{ inputs.github_token }}
         PR_NUMBER: ${{ inputs.pr_number }}
       run: |
         if ! gh pr view "${PR_NUMBER}" -R "${{ github.repository }}" --json number &>/dev/null; then
