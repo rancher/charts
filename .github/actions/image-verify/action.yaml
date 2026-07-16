@@ -1,0 +1,289 @@
+name: Image Verify
+description: Detects chart packages/ added/changed in a PR, runs charts-build-scripts validate-image-versions on each. PR comment with the results.
+inputs:
+  pr_number:
+    description: "Pull request number from github.event.pull_request.number. Used to fetch and checkout the PR head for validation."
+    required: true
+  docker_username:
+    description: "Docker Hub username from Vault secrets. Optional - may be empty for fork PRs. Used to authenticate for Docker image availability checks."
+    required: true
+  docker_password:
+    description: "Docker Hub password from Vault secrets. Optional - may be empty for fork PRs. Used to authenticate for Docker image availability checks."
+    required: true
+  github_token:
+    description: "GitHub token for authenticated API requests. Used by pull-scripts for gh api calls to avoid rate limiting."
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # ====================================================================
+    # Input Validation
+    # Verify all required inputs are provided and display build context
+    # ====================================================================
+    - name: Validate inputs and display build context
+      shell: bash
+      env:
+        PR_NUMBER: ${{ inputs.pr_number }}
+        DOCKER_USERNAME: ${{ inputs.docker_username }}
+        DOCKER_PASSWORD: ${{ inputs.docker_password }}
+        GH_TOKEN: ${{ inputs.github_token }}
+      run: |
+        echo "================================================================="
+        echo "Build Validation - PR #${PR_NUMBER}
+        echo "================================================================="
+
+        # Validate required inputs
+        VALIDATION_FAILED=0
+
+        if [[ -z "$PR_NUMBER" ]]; then
+          echo "ERROR: pr_number input is required but not provided"
+          VALIDATION_FAILED=1
+        fi
+
+        if [[ $VALIDATION_FAILED -eq 1 ]]; then
+          echo "Input validation failed"
+          exit 1
+        fi
+
+        if [[ -z "$DOCKER_USERNAME" ]] || [[ -z "$DOCKER_PASSWORD" ]]; then
+          echo "WARNING: Docker credentials are empty"
+        fi
+
+        if [[ -z "$GH_TOKEN" ]]; then
+          echo "WARNING: Github Token empty"
+        fi
+
+        # Log validated inputs
+        echo "Inputs validated:"
+        echo "  pr_number: ${PR_NUMBER}"
+        echo "  docker_username: $(if [[ -n "$DOCKER_USERNAME" ]]; then echo '***REDACTED***'; else echo '(empty)'; fi)"
+        echo "  docker_password: $(if [[ -n "$DOCKER_PASSWORD" ]]; then echo '***REDACTED***'; else echo '(empty)'; fi)"
+        echo "  github_token: $(if [[ -n "$GH_TOKEN" ]]; then echo '***REDACTED***'; else echo '(empty)'; fi)"
+        echo "================================================================="
+
+    # ====================================================================
+    # Dependency Check
+    # Verify all required tools are installed and available
+    # ====================================================================
+    - name: Verify required dependencies are installed
+      shell: bash
+      run: |
+        echo "Verifying dependencies..."
+        DEPS_MISSING=0
+
+        # Check each required tool
+        if ! command -v docker &> /dev/null; then
+          echo "ERROR: docker not found"
+          DEPS_MISSING=1
+        else
+          echo "✓ docker: $(docker --version)"
+        fi
+
+        if ! command -v jq &> /dev/null; then
+          echo "ERROR: jq not found"
+          DEPS_MISSING=1
+        else
+          echo "✓ jq: $(jq --version)"
+        fi
+
+        if ! command -v git &> /dev/null; then
+          echo "ERROR: git not found"
+          DEPS_MISSING=1
+        else
+          echo "✓ git: $(git --version)"
+        fi
+
+        if ! command -v make &> /dev/null; then
+          echo "ERROR: make not found"
+          DEPS_MISSING=1
+        else
+          echo "✓ make: $(make --version | head -1)"
+        fi
+
+        if ! command -v patch &> /dev/null; then
+          echo "ERROR: patch not found"
+          DEPS_MISSING=1
+        else
+          echo "✓ patch: $(patch --version | head -1)"
+        fi
+
+        if ! command -v gawk &> /dev/null; then
+          echo "ERROR: gawk not found"
+          DEPS_MISSING=1
+        else
+          echo "✓ gawk: $(gawk --version | head -1)"
+        fi
+
+        if ! command -v gh &> /dev/null; then
+          echo "ERROR: gh not found"
+          DEPS_MISSING=1
+        else
+          echo "✓ gh: $(gh --version | head -1)"
+        fi
+
+        if [[ $DEPS_MISSING -eq 1 ]]; then
+          echo ""
+          echo "ERROR: Missing dependencies. Ensure dependencies action runs before this action."
+          exit 1
+        fi
+
+        echo "All dependencies verified"
+        echo "================================================================="
+
+    # ====================================================================
+    # Script Verification
+    # Ensure core scripts (pull-scripts, version) exist before proceeding
+    # ====================================================================
+    - name: Verify required scripts are present
+      shell: bash
+      run: |
+        echo "Checking required scripts..."
+        SCRIPTS_MISSING=0
+
+        if [[ ! -f scripts/pull-scripts ]]; then
+          echo "ERROR: scripts/pull-scripts not found"
+          SCRIPTS_MISSING=1
+        else
+          echo "✓ scripts/pull-scripts exists"
+        fi
+
+        if [[ ! -f scripts/version ]]; then
+          echo "ERROR: scripts/version not found"
+          SCRIPTS_MISSING=1
+        else
+          echo "✓ scripts/version exists"
+        fi
+
+        if [[ $SCRIPTS_MISSING -eq 1 ]]; then
+          echo ""
+          echo "ERROR: Required scripts missing. These scripts must never be deleted."
+          exit 1
+        fi
+
+        echo "All required scripts present"
+        echo "================================================================="
+
+      # ====================================================================
+      # CHANGE DETECTION
+      # Find charts added/changed in this PR
+      # ====================================================================
+    - name: Detect changed charts
+      id: detect_charts
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        PR_NUMBER: ${{ inputs.pr_number }}
+      run: |
+        echo "Detecting changed chart packages under assets/ ..."
+
+        CHARTS_FILE=$(mktemp)
+        gh pr view "${PR_NUMBER}" -R "${GITHUB_REPOSITORY}" --json files --jq '.files[] | select(.status != "removed") | .path' \
+          | grep -E '^assets/[^/]+/[^/]+\.tgz$' \
+          | while IFS= read -r path; do
+              chart_name=$(echo "$path" | cut -d'/' -f2)
+              filename=$(basename "$path" .tgz)
+              version=${filename#"${chart_name}-"}
+              echo "${chart_name} ${version}"
+            done | sort -u > "$CHARTS_FILE" || true
+
+        if [[ ! -s "$CHARTS_FILE" ]]; then
+          echo "No chart package changes detected in assets/ - nothing to validate"
+          echo "has_charts=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        echo "Detected charts:"
+        cat "$CHARTS_FILE"
+        echo "has_charts=true" >> "$GITHUB_OUTPUT"
+
+        {
+          echo "charts<<EOF"
+          cat "$CHARTS_FILE"
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"
+        echo "================================================================="
+
+    # ====================================================================
+    # IMAGE VERSION VALIDATION
+    # ====================================================================
+    - name: Validate image versions
+      id: validate_images
+      if: steps.detect_charts.outputs.has_charts == 'true'
+      env:
+        DOCKER_USERNAME: ${{ inputs.docker_username }}
+        DOCKER_PASSWORD: ${{ inputs.docker_password }}
+        CHARTS: ${{ steps.detect_charts.outputs.charts }}
+      run: |
+        RESULTS_FILE=/tmp/results.jsonl
+        > "$RESULTS_FILE"
+
+        while IFS=' ' read -r chart version; do
+          [[ -z "$chart" ]] && continue
+
+          echo "::group::validate-image-versions ${chart}@${version}"
+          ERR_LOG=$(mktemp)
+          if ! OUTPUT=$(./bin/charts-build-scripts validate-image-versions --chart "$chart" --version "$version" 2>"$ERR_LOG"); then
+            cat "$ERR_LOG"
+            rm -f "$ERR_LOG"
+            echo "::endgroup::"
+            echo "ERROR: validate-image-versions failed for ${chart}@${version}"
+            exit 1
+          fi
+          rm -f "$ERR_LOG"
+          echo "$OUTPUT"
+          echo "$OUTPUT" | jq -c --arg version "$version" '. + {version: $version}' >> "$RESULTS_FILE"
+          echo "::endgroup::"
+        done <<< "$CHARTS"
+
+        echo "================================================================="
+
+    # ====================================================================
+    # RESULTS
+    # Post/update a PR comment with a summary
+    # ====================================================================
+    - name: Post PR comment with image validation results
+      if: steps.detect_charts.outputs.has_charts == 'true'
+      continue-on-error: true
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        PR_NUMBER: ${{ inputs.pr_number }}
+      run: |
+        if ! gh pr view "${PR_NUMBER}" -R "${GITHUB_REPOSITORY}" --json number &>/dev/null; then
+          echo "WARNING: Cannot access PR - skipping comment"
+          exit 0
+        fi
+
+        BODY_FILE=$(mktemp)
+        {
+          echo "<!-- image-verify-summary -->"
+          echo "## Image Version Validation"
+          echo ""
+          echo "| Chart | Version | Status | Details |"
+          echo "|---|---|---|---|"
+          jq -r '
+            if .needsUpdate then
+              ((.images // []) | map(select(.needsUpdate)) | map("`\(.repository)`: \(.currentTag) → \(.latestAvailable)") | join("<br>")) as $details
+              | "| \(.chart) | \(.version) | Needs update | \($details) |"
+            else
+              "| \(.chart) | \(.version) | Up to date | - |"
+            end
+          ' /tmp/results.jsonl
+          echo ""
+          if grep -q '"needsUpdate":true' /tmp/results.jsonl; then
+            echo "**Result:** One or more charts reference images that are not on the latest minor/patch version. Update the image tags before merging."
+          else
+            echo "**Result:** All chart images are up to date."
+          fi
+        } > "$BODY_FILE"
+
+        gh pr comment "${PR_NUMBER}" -R "${GITHUB_REPOSITORY}" --body-file "${BODY_FILE}" || echo "Failed to post comment"
+
+
+    - name: Fail if any image needs an update
+      if: steps.detect_charts.outputs.has_charts == 'true'
+      run: |
+        if grep -q '"needsUpdate":true' /tmp/results.jsonl; then
+          echo "One or more charts reference outdated images. See the PR comment for details."
+          exit 1
+        fi
+        echo "All chart images are up to date."
