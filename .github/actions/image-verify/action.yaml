@@ -4,9 +4,6 @@ inputs:
   pr_number:
     description: "Pull request number from github.event.pull_request.number. Used to fetch and checkout the PR head for validation."
     required: true
-  app_token:
-    description: "GitHub App token generated from Vault secrets. Optional - may be empty for fork PRs. Required for release PR validation API calls via gh CLI."
-    required: false
   docker_username:
     description: "Docker Hub username from Vault secrets. Optional - may be empty for fork PRs. Used to authenticate for Docker image availability checks."
     required: false
@@ -28,7 +25,6 @@ runs:
       shell: bash
       env:
         PR_NUMBER: ${{ inputs.pr_number }}
-        APP_TOKEN: ${{ inputs.app_token }}
         DOCKER_USERNAME: ${{ inputs.docker_username }}
         DOCKER_PASSWORD: ${{ inputs.docker_password }}
       run: |
@@ -49,12 +45,6 @@ runs:
           exit 1
         fi
 
-        # Check optional credentials (from Vault - may be empty for fork PRs)
-        if [[ -z "$APP_TOKEN" ]]; then
-          echo "WARNING: app_token is empty (expected for fork PRs)"
-          echo "  Impact: Release PR validation will be limited"
-        fi
-
         if [[ -z "$DOCKER_USERNAME" ]] || [[ -z "$DOCKER_PASSWORD" ]]; then
           echo "WARNING: Docker credentials are empty (expected for fork PRs)"
           echo "  Impact: Docker image checks may be rate-limited"
@@ -63,7 +53,6 @@ runs:
         # Log validated inputs
         echo "Inputs validated:"
         echo "  pr_number: ${PR_NUMBER}"
-        echo "  app_token: $(if [[ -n "$APP_TOKEN" ]]; then echo '***REDACTED***'; else echo '(empty)'; fi)"
         echo "  docker_username: $(if [[ -n "$DOCKER_USERNAME" ]]; then echo '***REDACTED***'; else echo '(empty)'; fi)"
         echo "  docker_password: $(if [[ -n "$DOCKER_PASSWORD" ]]; then echo '***REDACTED***'; else echo '(empty)'; fi)"
         echo "================================================================="
