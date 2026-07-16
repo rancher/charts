@@ -226,3 +226,37 @@ runs:
           echo "EOF"
         } >> "$GITHUB_OUTPUT"
         echo "================================================================="
+
+ # ====================================================================
+      # IMAGE VERSION VALIDATION
+      # ====================================================================
+    - name: Validate image versions
+      id: validate_images
+      if: steps.detect_charts.outputs.has_charts == 'true'
+      env:
+        DOCKER_USERNAME: ${{ steps.secrets.outputs.docker_username }}
+        DOCKER_PASSWORD: ${{ steps.secrets.outputs.docker_password }}
+        CHARTS: ${{ steps.detect_charts.outputs.charts }}
+      run: |
+        RESULTS_FILE=/tmp/results.jsonl
+        > "$RESULTS_FILE"
+
+        while IFS=' ' read -r chart version; do
+          [[ -z "$chart" ]] && continue
+
+          echo "::group::validate-image-versions ${chart}@${version}"
+          ERR_LOG=$(mktemp)
+          if ! OUTPUT=$(./bin/charts-build-scripts validate-image-versions --chart "$chart" --version "$version" 2>"$ERR_LOG"); then
+            cat "$ERR_LOG"
+            rm -f "$ERR_LOG"
+            echo "::endgroup::"
+            echo "ERROR: validate-image-versions failed for ${chart}@${version}"
+            exit 1
+          fi
+          rm -f "$ERR_LOG"
+          echo "$OUTPUT"
+          echo "$OUTPUT" | jq -c --arg version "$version" '. + {version: $version}' >> "$RESULTS_FILE"
+          echo "::endgroup::"
+        done <<< "$CHARTS"
+
+        echo "================================================================="
