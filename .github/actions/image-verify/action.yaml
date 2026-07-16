@@ -170,6 +170,7 @@ runs:
       # ====================================================================
     - name: Detect changed charts
       id: detect_charts
+      shell: bash
       env:
         GH_TOKEN: ${{ inputs.github_token }}
         PR_NUMBER: ${{ inputs.pr_number }}
@@ -209,6 +210,7 @@ runs:
     - name: Validate image versions
       id: validate_images
       if: steps.detect_charts.outputs.has_charts == 'true'
+      shell: bash
       env:
         DOCKER_USERNAME: ${{ inputs.docker_username }}
         DOCKER_PASSWORD: ${{ inputs.docker_password }}
@@ -244,6 +246,7 @@ runs:
     - name: Post PR comment with image validation results
       if: steps.detect_charts.outputs.has_charts == 'true'
       continue-on-error: true
+      shell: bash
       env:
         GH_TOKEN: ${{ inputs.github_token }}
         PR_NUMBER: ${{ inputs.pr_number }}
@@ -280,6 +283,7 @@ runs:
 
 
     - name: Fail if any image needs an update
+      shell: bash
       if: steps.detect_charts.outputs.has_charts == 'true'
       run: |
         if grep -q '"needsUpdate":true' /tmp/results.jsonl; then
