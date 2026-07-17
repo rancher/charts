@@ -1,6 +1,6 @@
 --- charts-original/templates/_helpers.tpl
 +++ charts/templates/_helpers.tpl
-@@ -47,22 +47,15 @@
+@@ -47,22 +47,37 @@
  {{- end -}}
  {{- end -}}
  
@@ -21,8 +21,6 @@
 -    {{- else }}
 -      {{- printf "%s/%s:%s" .Values.registry .Values.controller.image.repository .Values.tag }}
 -    {{- end }}
--  {{- end }}
--{{- end }}
 +{{- printf "%s/%s:%s" .Values.registry .Values.controller.image.repository .Values.tag }}
 +{{- end -}}
 +
@@ -31,5 +29,28 @@
 +{{- printf "%s/" .Values.global.cattle.systemDefaultRegistry -}}
 +{{- else -}}
 +{{- "" -}}
++{{- end -}}
++{{- end -}}
++
++{{/*
++Renders imagePullSecrets, accepting either object references ({ name: <secret> }) or plain strings.
++*/}}
++{{- define "neuvector.imagePullSecrets" -}}
++{{- $pullSecrets := list -}}
++{{- range .Values.global.cattle.imagePullSecrets -}}
++  {{- if kindIs "map" . -}}
++    {{- if .name -}}
++      {{- $pullSecrets = append $pullSecrets .name -}}
++    {{- end -}}
++  {{- else if not (empty .) -}}
++    {{- $pullSecrets = append $pullSecrets . -}}
++  {{- end -}}
++{{- end -}}
++{{- if not (empty $pullSecrets) -}}
++imagePullSecrets:
++  {{- range $pullSecrets | uniq }}
++  - name: {{ . }}
+   {{- end }}
+-{{- end }}
 +{{- end -}}
  {{- end -}}

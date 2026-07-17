@@ -1,6 +1,18 @@
 --- charts-original/templates/controller-deployment.yaml
 +++ charts/templates/controller-deployment.yaml
-@@ -90,7 +90,7 @@
+@@ -72,10 +72,7 @@
+       {{- if .Values.controller.schedulerName }}
+       schedulerName: {{ .Values.controller.schedulerName }}
+       {{- end }}
+-      {{- if .Values.imagePullSecrets }}
+-      imagePullSecrets:
+-        - name: {{ .Values.imagePullSecrets }}
+-      {{- end }}
++      {{- include "neuvector.imagePullSecrets" . | nindent 6 }}
+       {{- if .Values.controller.priorityClassName }}
+       priorityClassName: {{ .Values.controller.priorityClassName }}
+       {{- end }}
+@@ -90,7 +87,7 @@
        {{- if or .Values.internal.certmanager.enabled .Values.controller.internal.certificate.secret }}
        {{- else if and .Values.internal.autoGenerateCert (not $pre540) }}
          - name: init
@@ -9,7 +21,7 @@
            command: ["/usr/local/bin/upgrader", "create-upgrader-job" ]
            imagePullPolicy: {{ .Values.controller.certupgrader.imagePullPolicy }}
            resources:
-@@ -107,7 +107,7 @@
+@@ -107,7 +104,7 @@
            {{- if .Values.controller.prime.image.hash }}
            image: "{{ .Values.registry }}/{{ .Values.controller.prime.image.repository }}@{{ .Values.controller.prime.image.hash }}"
            {{- else }}
@@ -18,7 +30,7 @@
            {{- end }}
            imagePullPolicy: {{ .Values.controller.prime.image.imagePullPolicy }}
            resources: {}
-@@ -119,7 +119,7 @@
+@@ -119,7 +116,7 @@
        {{- end }}
        containers:
          - name: neuvector-controller-pod
@@ -27,7 +39,7 @@
            imagePullPolicy: {{ .Values.controller.image.imagePullPolicy }}
            {{- if $pre530 }}
            securityContext:
-@@ -166,18 +166,6 @@
+@@ -165,18 +162,6 @@
              - name: CTRL_PERSIST_CONFIG
                value: "1"
            {{- end }}
