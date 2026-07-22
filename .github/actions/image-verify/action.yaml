@@ -292,7 +292,10 @@ runs:
           fi
         } > "$BODY_FILE"
 
-        gh pr comment "${PR_NUMBER}" -R "${GITHUB_REPOSITORY}" --body-file "${BODY_FILE}" || echo "Failed to post comment"
+        if ! gh pr comment "${PR_NUMBER}" -R "${GITHUB_REPOSITORY}" --body-file "${BODY_FILE}"; then
+          echo "Failed to post comment - image-verify results:"
+          cat /tmp/results.jsonl
+        fi
 
 
     - name: Fail if any image needs an update
