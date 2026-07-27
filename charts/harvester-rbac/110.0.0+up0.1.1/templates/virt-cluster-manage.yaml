@@ -1,0 +1,61 @@
+apiVersion: management.cattle.io/v3
+builtin: false
+context: cluster
+description: Provides management access to all resources in Harvester
+displayName: Manage Virtualization Resources
+external: false
+hidden: false
+kind: RoleTemplate
+metadata:
+  labels:
+  {{- include "harvester-rbac.labels" . | nindent 4 }}
+  name: virt-cluster-manage
+roleTemplateNames:
+  - monitoring-ui-view
+  - cluster-member
+  - storage-manage
+  - nodes-manage
+  - projects-view
+  - edit
+  - projectroletemplatebindings-manage
+  - project-member
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - "*"
+  - apiGroups:
+      - loadbalancer.harvesterhci.io
+    resources:
+      - "*"
+    verbs:
+      - "*"
+  - apiGroups:
+      - network.harvesterhci.io
+    resources:
+      - "*"
+    verbs:
+      - "*"
+  - apiGroups:
+      - node.harvesterhci.io
+    resources:
+      - "*"
+    verbs:
+      - "*"
+  - apiGroups:
+      - devices.harvesterhci.io
+    resources:
+      - "*"
+    verbs:
+      - "*"
+  - apiGroups:
+      - harvesterhci.io
+    resources:
+      - "*"
+    verbs:
+      - "*"
+  {{- with .Values.clusterRole.virtClusterManage.additionalRules }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
