@@ -1,0 +1,165 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.1
+  name: restores.resources.cattle.io
+spec:
+  group: resources.cattle.io
+  names:
+    kind: Restore
+    listKind: RestoreList
+    plural: restores
+    singular: restore
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.backupSource
+      name: Backup-Source
+      type: string
+    - jsonPath: .spec.backupFilename
+      name: Backup-File
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - jsonPath: .status.conditions[?(@.type=="Ready")].message
+      name: Status
+      type: string
+    name: v1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              backupFilename:
+                type: string
+              deleteTimeoutSeconds:
+                maximum: 10
+                type: integer
+              encryptionConfigSecretName:
+                type: string
+              ignoreErrors:
+                description: When set to true, the controller ignores any errors during
+                  the restore process
+                type: boolean
+              prune:
+                default: true
+                description: prune is true by default when unset
+                nullable: true
+                type: boolean
+              storageLocation:
+                nullable: true
+                properties:
+                  s3:
+                    nullable: true
+                    properties:
+                      bucketName:
+                        type: string
+                      clientConfig:
+                        description: |-
+                          ClientConfig allows configuration of more advanced minio client settings
+                          any provider specific settings will be grouped accordingly, otherwise settings apply to all S3 providers.
+                        nullable: true
+                        properties:
+                          aws:
+                            description: AwsConfig holds AWS-specific S3 configuration.
+                            nullable: true
+                            properties:
+                              dualStack:
+                                default: true
+                                type: boolean
+                            required:
+                            - dualStack
+                            type: object
+                        type: object
+                      credentialSecretName:
+                        type: string
+                      credentialSecretNamespace:
+                        type: string
+                      endpoint:
+                        type: string
+                      endpointCA:
+                        type: string
+                      folder:
+                        type: string
+                      insecureTLSSkipVerify:
+                        type: boolean
+                      region:
+                        type: string
+                    required:
+                    - bucketName
+                    - endpoint
+                    type: object
+                type: object
+            required:
+            - backupFilename
+            type: object
+          status:
+            properties:
+              backupSource:
+                type: string
+              conditions:
+                items:
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another.
+                      type: string
+                    lastUpdateTime:
+                      description: The last time this condition was updated.
+                      type: string
+                    message:
+                      description: Human-readable message indicating details about
+                        last transition
+                      type: string
+                    reason:
+                      description: The reason for the condition's last transition.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type of cluster condition.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              observedGeneration:
+                format: int64
+                type: integer
+              restoreCompletionTs:
+                type: string
+              summary:
+                type: string
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
