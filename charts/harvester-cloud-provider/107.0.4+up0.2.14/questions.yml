@@ -1,0 +1,40 @@
+categories:
+- infrastructure
+- harvester
+namespace: kube-system
+questions:
+- variable: cloudConfigPath
+  label: Cloud config file path
+  description: "Specify the absolute path to the cloud-config file on the host. This serves as the default for legacy deployments, but will be overridden if a Cloud Config Secret Name is explicitly provided."
+  group: "Default"
+  type: string
+  default: "/var/lib/rancher/rke2/etc/config-files/cloud-provider-config"
+
+- variable: cloudConfig.secretName
+  label: Cloud Config Secret Name
+  description: "The name of the Kubernetes Secret containing the cloud provider configuration. If explicitly set, this takes absolute priority over the host file path."
+  group: "Cloud Config"
+  type: string
+  default: ""
+
+- variable: cloudConfig.secretKey
+  label: Cloud Config Secret Key
+  description: "The key within the Secret that holds the configuration data. Defaults to 'cloud-config'."
+  group: "Cloud Config"
+  type: string
+  default: "cloud-config"
+
+- variable: extraArgs
+  label: Extra Arguments
+  description: >-
+    Additional CLI flags for the deployment container. Used for Multi-NIC/IP setups
+    or to disable specific controllers. (Note: Avoid internal quotes like --flag="value"; use --flag=value).
+    * --controllers: Define active controllers. Omit 'loadbalancer' to disable Harvester LB support.
+    * --management-network: Explicitly set network name (e.g., default/vlan-100).
+    * --node-ip-cidr: CIDR range for accurate IP selection.
+    * --node-exclude-ip-ranges: Blacklist IPs/subnets (comma-separated); excluded IPs won't be reported as Node IPs.
+    * --disable-annotation-alpha-provided-ip-addr=true: Ignore legacy annotations in favor of CIDR logic.
+    * --show-full-help-on-error=true: Display full help menu on startup flag errors.
+  group: "Advanced"
+  type: array
+  default: []
