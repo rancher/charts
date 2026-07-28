@@ -1,0 +1,39 @@
+suite: Test Hardened Hook Resources
+templates:
+  - hardened.yaml
+tests:
+- it: should not set imagePullSecrets by default in Job
+  template: hardened.yaml
+  documentIndex: 0
+  asserts:
+    - isNull:
+        path: spec.template.spec.imagePullSecrets
+
+- it: should set imagePullSecrets in Job when defined
+  template: hardened.yaml
+  documentIndex: 0
+  set:
+    imagePullSecrets:
+      - name: my-secret
+  asserts:
+    - equal:
+        path: spec.template.spec.imagePullSecrets[0].name
+        value: my-secret
+
+- it: should not set imagePullSecrets by default in ServiceAccount
+  template: hardened.yaml
+  documentIndex: 1
+  asserts:
+    - isNull:
+        path: imagePullSecrets
+
+- it: should set imagePullSecrets in ServiceAccount
+  template: hardened.yaml
+  documentIndex: 1
+  set:
+    imagePullSecrets:
+      - name: my-secret
+  asserts:
+    - equal:
+        path: imagePullSecrets[0].name
+        value: my-secret
