@@ -1,0 +1,86 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  labels:
+  {{- include "harvester-cloud-provider.labels" . | nindent 4 }}
+  name: {{ include "harvester-cloud-provider.name" . }}
+spec:
+  replicas: {{ .Values.replicasCount }}
+  selector:
+    matchLabels:
+  {{- include "harvester-cloud-provider.selectorLabels" . | nindent 6 }}
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+    {{- include "harvester-cloud-provider.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "harvester-cloud-provider.name" . }}
+      hostNetwork: true
+      containers:
+        - name: {{ include "harvester-cloud-provider.name" . }}
+          image: {{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --cloud-config=/etc/kubernetes/cloud-config
+            {{- if ne .Values.global.cattle.clusterName "" }}
+            - --cluster-name={{ .Values.global.cattle.clusterName }}
+            {{- end }}
+            {{- /*
+               CRITICAL: Use 'range' instead of 'toYaml' to inject extraArgs (user-defined CLI arguments).
+               This ensures that the YAML parser strips any outer quotes from values.yaml,
+               passing the raw flag/value directly to the container.
+               Example:
+                 values.yaml:   - "--management-network=default/vlan-100"
+                 rendered here: - --management-network=default/vlan-100
+            */ -}}
+            {{- range .Values.extraArgs }}
+            - {{ . }}
+            {{- end }}
+          command:
+            - harvester-cloud-provider
+          resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: cloud-config
+              mountPath: /etc/kubernetes/cloud-config
+              readOnly: true
+              {{- if .Values.cloudConfig.secretName }}
+              subPath: cloud-config
+              {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: cloud-config
+        {{- if .Values.cloudConfig.secretName }}
+          secret:
+            secretName: {{ .Values.cloudConfig.secretName }}
+            items:
+              - key: {{ .Values.cloudConfig.secretKey | default "cloud-config" }}
+                path: cloud-config
+        {{- else if .Values.cloudConfigPath }}
+          hostPath:
+            path: {{ .Values.cloudConfigPath }}
+            type: File
+        {{- else if .Values.cloudConfig.hostPath }}
+          hostPath:
+            path: {{ .Values.cloudConfig.hostPath }}
+            type: File
+        {{- else }}
+          {{- fail "A valid cloudConfigPath, cloudConfig.secretName, or cloudConfig.hostPath is required." -}}
+        {{- end }}
