@@ -1,0 +1,12 @@
+{{- define "logging-operator.logging.gke" -}}
+{{- $individualValues := .Values.additionalLoggingSources.gke -}}
+metadata:
+  name: {{ .Release.Name }}-gke
+spec:
+  {{- include "logging-operator.individualLoggingRef" $individualValues | nindent 2 }}
+  fluentd:
+    {{- include "logging-operator.individualFluentd" $individualValues | nindent 4 }}
+{{- end -}}
+{{- if .Values.additionalLoggingSources.gke.enabled }}
+{{- include "logging-operator.logging" (list . "logging-operator.logging.gke") -}}
+{{- end }}
