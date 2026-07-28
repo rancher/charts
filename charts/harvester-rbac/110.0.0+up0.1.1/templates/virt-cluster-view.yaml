@@ -1,0 +1,76 @@
+apiVersion: management.cattle.io/v3
+builtin: false
+context: cluster
+description: Provides view-only access to all resources in Harvester
+displayName: View Virtualization Resources
+external: false
+hidden: false
+kind: RoleTemplate
+metadata:
+  labels:
+  {{- include "harvester-rbac.labels" . | nindent 4 }}
+  name: virt-view-cluster
+roleTemplateNames:
+  - projects-view
+  - monitoring-ui-view
+  - clusterroletemplatebindings-view
+  - nodes-view
+rules:
+  - apiGroups:
+      - harvesterhci.io
+    resources:
+      - supportbundles
+    verbs:
+      - "*"
+  - apiGroups:
+      - network.harvesterhci.io
+    resources:
+      - "*"
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - loadbalancer.harvesterhci.io
+    resources:
+      - "*"
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - devices.harvesterhci.io
+    resources:
+      - "*"
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - node.harvesterhci.io
+    resources:
+      - "*"
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - harvesterhci.io
+    resources:
+      - "*"
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - harvesterhci.io
+    resources:
+      - settings
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+  {{- with .Values.clusterRole.virtClusterView.additionalRules }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
