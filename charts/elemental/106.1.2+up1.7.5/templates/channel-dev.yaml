@@ -1,0 +1,13 @@
+# Unstable channel for testing isv:Rancher:Elemental OBS projects
+# it is only rendered if the registryUrl value includes a known OBS project reference
+{{ if and (hasPrefix "registry.opensuse.org" .Values.registryUrl) (contains "isv/rancher/elemental" .Values.registryUrl) }}
+apiVersion: elemental.cattle.io/v1beta1
+kind: ManagedOSVersionChannel
+metadata:
+  name: unstable-testing-channel
+  namespace: fleet-default
+spec:
+  options:
+    image: {{ .Values.registryUrl }}/rancher/elemental-unstable-channel:latest
+  type: custom
+{{ end }}
