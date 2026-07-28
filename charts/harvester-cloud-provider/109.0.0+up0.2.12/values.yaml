@@ -1,0 +1,174 @@
+# Default values for harvester-cloud-provider.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# -- Number of replicas for the cloud provider.
+replicasCount: 1
+
+# -- Additional command line arguments to pass to the harvester-cloud-provider deployment container.
+# Arguments must be provided as a YAML list of strings.
+#
+# Use these to configure both the Cloud Provider framework and Harvester-specific logic.
+#
+# 1. Framework & Controller Flags:
+#    - --controllers: List of controllers to enable. Omit a controller to disable it.
+#    - --v: Verbosity level for logging (e.g., "--v=5" for debug).
+#
+# 2. Harvester-specific Flags (Networking & IP Selection):
+#    - --management-network: Defines the network name to bypass "first-hit" selection
+#      logic in multi-NIC environments.
+#    - --node-ip-cidr: CIDR range to ensure precise IP selection in multi-IP setups.
+#    - --node-exclude-ip-ranges: Blacklist specific IPs or subnets (comma-separated).
+#      Any IP on this list will NOT be reported as an InternalIP or ExternalIP.
+#    - --disable-annotation-alpha-provided-ip-addr: (bool) Set to true to disable legacy
+#      alpha annotations and force modern CIDR-based selection.
+#    - --show-full-help-on-error: (bool) Set to true to automatically display the
+#      comprehensive help menu if a flag-related error occurs during startup.
+#
+# Example 1 (Recommended for Multi-NIC / Multi-IP setups with exclusions):
+# extraArgs:
+#   - "--management-network=default/vlan-100"
+#   - "--node-ip-cidr=192.168.1.0/24"
+#   - "--node-exclude-ip-ranges=192.168.1.1,192.168.1.254"
+#   - "--disable-annotation-alpha-provided-ip-addr=true"
+#   - "--show-full-help-on-error=true"
+#
+# Example 2 (Disable the LoadBalancer controller from harvester-cloud-provider):
+# extraArgs:
+#   - "--controllers=cloud-node-controller,cloud-node-lifecycle-controller,node-route-controller"
+#
+# NOTE: Avoid using internal quotes for values. The runtime passes these strings directly.
+#
+# Bad:  - "--cluster-name=\"my-cluster\""
+# Good: - "--cluster-name=my-cluster"
+extraArgs: []
+
+image:
+  repository: rancher/harvester-cloud-provider
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: v0.2.6
+
+# Configuration Precedence:
+# 1. cloudConfig.secretName: Primary priority for new deployments. If explicitly set,
+#    this takes absolute precedence over all other options and mounts a Kubernetes Secret.
+#    - cloudConfig.secretKey: The key within the Secret containing the config file data.
+#      Defaults to "cloud-config".
+# 2. cloudConfigPath (Legacy/Default): Used for backward compatibility with existing systems.
+#    If no secretName is set, this field takes priority.
+# 3. cloudConfig.hostPath: Final fallback / Deprecation Placeholder. Hidden from the UI to avoid confusion.
+#    Only evaluated if secretName is empty AND cloudConfigPath is manually cleared out ("") in the raw values.yaml.
+#    This serves as a structural placeholder to safely transition from root-level 'cloudConfigPath'
+#    to a nested 'cloudConfig.hostPath' structure in future major releases.
+
+# Note: Any host path used below must be a direct path to a file; directories will cause pod failure.
+cloudConfigPath: "/var/lib/rancher/rke2/etc/config-files/cloud-provider-config"
+
+cloudConfig:
+  secretName: ""
+  secretKey: "cloud-config"
+  hostPath: "/var/lib/rancher/rke2/etc/config-files/cloud-provider-config"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector:
+  kubernetes.io/os: linux
+
+tolerations:
+- effect: NoSchedule
+  key: node.cloudprovider.kubernetes.io/uninitialized
+  operator: Equal
+  value: "true"
+- effect: NoSchedule
+  key: node-role.kubernetes.io/control-plane
+  operator: Equal
+- effect: NoExecute
+  key: node-role.kubernetes.io/etcd
+  operator: Equal
+- key: cattle.io/os
+  operator: Equal
+  value: "linux"
+  effect: NoSchedule
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - harvester-cloud-provider
+        topologyKey: kubernetes.io/hostname
+
+global:
+  cattle:
+    systemDefaultRegistry: ""
+    clusterName: ""
+
+kube-vip:
+  enabled: true
+  tolerations:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/control-plane
+    operator: Exists
+  - effect: NoExecute
+    key: node-role.kubernetes.io/etcd
+    operator: Exists
+  image:
+    repository: rancher/mirrored-kube-vip-kube-vip-iptables
+    tag: v1.1.2
+  env:
+    vip_interface: ""
+    vip_arp: "true"
+    lb_enable: "true"
+    lb_port: "6443"
+    # vip_subnet defines the prefix length for the virtual IP
+    # vip_subnet: "32" for IPv4, vip_subnet: "32,128" for dual-stack
+    # Note: replaced legacy 'vip_cidr' which is no longer supported in newer kube-vip versions
+    vip_subnet: "32"
+    cp_enable: "false"
+    # svc_enable and svc_election replace old option `enable_service_security`
+    svc_enable: "true"
+    # To get service `externalTrafficPolicy: Local` working, set `svc_election` to "true"
+    # and also remove the following `affinity`, as kube-vip needs to be deployed on each node
+    svc_election: "false"
+    vip_leaderelection: "false"
+    prometheus_server: ":2112"
+  podMonitor:
+    enabled: false
+  # By default, kube-vip is deployed on control-plane
+  # if svc_election is enabled, remove the `affinity`
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        # For RKE1
+        - matchExpressions:
+          - key: node-role.kubernetes.io/controlplane
+            operator: Exists
+        # For RKE2
+        - matchExpressions:
+          - key: node-role.kubernetes.io/control-plane
+            operator: Exists
