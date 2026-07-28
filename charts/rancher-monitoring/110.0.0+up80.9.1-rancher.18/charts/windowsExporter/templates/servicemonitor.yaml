@@ -1,0 +1,75 @@
+{{- if .Values.prometheus.monitor.enabled }}
+apiVersion: {{ .Values.prometheus.monitor.apiVersion | default "monitoring.coreos.com/v1" }}
+kind: ServiceMonitor
+metadata:
+  name: {{ include "prometheus-windows-exporter.fullname" . }}
+  namespace: {{ include "prometheus-windows-exporter.monitor-namespace" . }}
+  labels:
+    {{- include "windowsExporter.labels" . | nindent 4 }}
+    {{- with .Values.prometheus.monitor.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  jobLabel: {{ default "app.kubernetes.io/name" .Values.prometheus.monitor.jobLabel }}
+  {{- include "servicemonitor.scrapeLimits" .Values.prometheus.monitor | nindent 2 }}
+  {{- with .Values.prometheus.monitor.podTargetLabels }}
+  podTargetLabels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels:
+    {{- with .Values.prometheus.monitor.selectorOverride }}
+      {{- toYaml . | nindent 6 }}
+    {{- else }}
+      {{- include "windowsExporter.labels" . | nindent 6 }}
+    {{- end }}
+  {{- with .Values.prometheus.monitor.attachMetadata }}
+  attachMetadata:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  endpoints:
+    - port: {{ .Values.service.portName }}
+      scheme: {{ .Values.prometheus.monitor.scheme }}
+      {{- with .Values.prometheus.monitor.basicAuth }}
+      basicAuth:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.prometheus.monitor.bearerTokenFile }}
+      bearerTokenFile: {{ . }}
+      {{- end }}
+      {{- with .Values.prometheus.monitor.tlsConfig }}
+      tlsConfig:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.prometheus.monitor.proxyUrl }}
+      proxyUrl: {{ . }}
+      {{- end }}
+      {{- with .Values.prometheus.monitor.interval }}
+      interval: {{ . }}
+      {{- end }}
+      {{- with .Values.prometheus.monitor.scrapeTimeout }}
+      scrapeTimeout: {{ . }}
+      {{- end }}
+      metricRelabelings:
+{{- include "windowsExporter.renamedMetricsRelabeling" . | nindent 6 -}}
+      - sourceLabels: [__name__]
+        regex: 'wmi_(.*)'
+        replacement: 'windows_$1'
+        targetLabel: __name__
+      - sourceLabels: [volume, nic]
+        regex: (.*);(.*)
+        separator: ''
+        targetLabel: device
+        action: replace
+        replacement: $1$2
+      - sourceLabels: [__name__]
+        regex: windows_cs_logical_processors
+        replacement: 'system'
+        targetLabel: mode
+      relabelings:
+      - separator: ':'
+        sourceLabels:
+        - __meta_kubernetes_pod_host_ip
+        - __meta_kubernetes_pod_container_port_number
+        targetLabel: instance
+{{- end }}
