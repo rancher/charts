@@ -1,0 +1,18 @@
+{{- define "logging-operator.logging.eks" -}}
+{{- $individualValues := .Values.additionalLoggingSources.eks -}}
+metadata:
+  name: {{ .Release.Name }}-eks
+spec:
+  {{- include "logging-operator.individualLoggingRef" $individualValues | nindent 2 }}
+  fluentd:
+    {{- include "logging-operator.individualFluentd" $individualValues | nindent 4 }}
+    {{- with .Values.loggingServiceAccountAnnotations.eks }}
+    serviceAccount:
+      metadata:
+        annotations:
+        {{ toYaml . | nindent 10 }}
+    {{- end }}
+{{- end -}}
+{{- if .Values.additionalLoggingSources.eks.enabled }}
+{{- include "logging-operator.logging" (list . "logging-operator.logging.eks") -}}
+{{- end }}
