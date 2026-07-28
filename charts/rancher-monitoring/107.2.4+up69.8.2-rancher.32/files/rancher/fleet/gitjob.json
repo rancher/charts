@@ -1,0 +1,395 @@
+{
+   "description": "GitJob",
+   "graphTooltip": 1,
+   "panels": [
+      {
+         "collapsed": false,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 0
+         },
+         "id": 1,
+         "title": "Time to fetch new commit",
+         "type": "row"
+      },
+      {
+         "datasource": {
+            "type": "datasource",
+            "uid": "-- Mixed --"
+         },
+         "fieldConfig": {
+            "defaults": {
+               "decimals": 0,
+               "unit": null
+            }
+         },
+         "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 0,
+            "y": 8
+         },
+         "id": 2,
+         "pluginVersion": "v11.0.0",
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "prometheus"
+               },
+               "expr": "histogram_quantile(0.99, sum(increase(fleet_gitrepo_fetch_latest_commit_duration_seconds_bucket{exported_namespace=~\"$namespace\",name=~\"$name\"}[$__rate_interval])) by (le, namespace, name)) > 0",
+               "legendFormat": "{{name}} in {{namespace}}"
+            }
+         ],
+         "title": "99th Percentile",
+         "type": "timeseries"
+      },
+      {
+         "datasource": {
+            "type": "datasource",
+            "uid": "-- Mixed --"
+         },
+         "fieldConfig": {
+            "defaults": {
+               "decimals": 0,
+               "unit": null
+            }
+         },
+         "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 8,
+            "y": 8
+         },
+         "id": 3,
+         "pluginVersion": "v11.0.0",
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "prometheus"
+               },
+               "expr": "histogram_quantile(0.90, sum(increase(fleet_gitrepo_fetch_latest_commit_duration_seconds_bucket{exported_namespace=~\"$namespace\",name=~\"$name\"}[$__rate_interval])) by (le, namespace, name)) > 0",
+               "legendFormat": "{{name}} in {{namespace}}"
+            }
+         ],
+         "title": "90th Percentile",
+         "type": "timeseries"
+      },
+      {
+         "datasource": {
+            "type": "datasource",
+            "uid": "-- Mixed --"
+         },
+         "fieldConfig": {
+            "defaults": {
+               "decimals": 0,
+               "unit": null
+            }
+         },
+         "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 16,
+            "y": 8
+         },
+         "id": 4,
+         "pluginVersion": "v11.0.0",
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "prometheus"
+               },
+               "expr": "histogram_quantile(0.50, sum(increase(fleet_gitrepo_fetch_latest_commit_duration_seconds_bucket{exported_namespace=~\"$namespace\",name=~\"$name\"}[$__rate_interval])) by (le, namespace, name)) > 0",
+               "legendFormat": "{{name}} in {{namespace}}"
+            }
+         ],
+         "title": "50th Percentile",
+         "type": "timeseries"
+      },
+      {
+         "datasource": {
+            "type": "datasource",
+            "uid": "-- Mixed --"
+         },
+         "fieldConfig": {
+            "defaults": {
+               "decimals": 0,
+               "unit": null
+            }
+         },
+         "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 16
+         },
+         "id": 5,
+         "pluginVersion": "v11.0.0",
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "prometheus"
+               },
+               "expr": "sum by (le) (increase(fleet_gitrepo_fetch_latest_commit_duration_seconds_bucket{exported_namespace=~\"$namespace\",name=~\"$name\"}[$__range]))",
+               "format": "heatmap"
+            }
+         ],
+         "title": "Total distribution",
+         "type": "bargauge"
+      },
+      {
+         "datasource": {
+            "type": "datasource",
+            "uid": "-- Mixed --"
+         },
+         "fieldConfig": {
+            "defaults": {
+               "decimals": 0,
+               "unit": null
+            }
+         },
+         "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 16
+         },
+         "id": 6,
+         "options": {
+            "color": {
+               "reverse": true
+            }
+         },
+         "pluginVersion": "v11.0.0",
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "prometheus"
+               },
+               "expr": "sum(increase(fleet_gitrepo_fetch_latest_commit_duration_seconds_bucket{exported_namespace=~\"$namespace\",name=~\"$name\"}[$__rate_interval])) by (le)",
+               "format": "heatmap",
+               "legendFormat": "{{name}} in {{namespace}}"
+            }
+         ],
+         "title": "Heatmap",
+         "type": "heatmap"
+      },
+      {
+         "collapsed": false,
+         "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 17
+         },
+         "id": 7,
+         "title": "Time to process GitRepo",
+         "type": "row"
+      },
+      {
+         "datasource": {
+            "type": "datasource",
+            "uid": "-- Mixed --"
+         },
+         "fieldConfig": {
+            "defaults": {
+               "decimals": 0,
+               "unit": null
+            }
+         },
+         "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 0,
+            "y": 25
+         },
+         "id": 8,
+         "pluginVersion": "v11.0.0",
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "prometheus"
+               },
+               "expr": "histogram_quantile(0.99, sum(increase(fleet_gitjob_duration_seconds_bucket{exported_namespace=~\"$namespace\",name=~\"$name\"}[$__rate_interval])) by (le, namespace, name)) > 0",
+               "legendFormat": "{{name}} in {{namespace}}"
+            }
+         ],
+         "title": "99th Percentile",
+         "type": "timeseries"
+      },
+      {
+         "datasource": {
+            "type": "datasource",
+            "uid": "-- Mixed --"
+         },
+         "fieldConfig": {
+            "defaults": {
+               "decimals": 0,
+               "unit": null
+            }
+         },
+         "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 8,
+            "y": 25
+         },
+         "id": 9,
+         "pluginVersion": "v11.0.0",
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "prometheus"
+               },
+               "expr": "histogram_quantile(0.90, sum(increase(fleet_gitjob_duration_seconds_bucket{exported_namespace=~\"$namespace\",name=~\"$name\"}[$__rate_interval])) by (le, namespace, name)) > 0",
+               "legendFormat": "{{name}} in {{namespace}}"
+            }
+         ],
+         "title": "90th Percentile",
+         "type": "timeseries"
+      },
+      {
+         "datasource": {
+            "type": "datasource",
+            "uid": "-- Mixed --"
+         },
+         "fieldConfig": {
+            "defaults": {
+               "decimals": 0,
+               "unit": null
+            }
+         },
+         "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 16,
+            "y": 25
+         },
+         "id": 10,
+         "pluginVersion": "v11.0.0",
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "prometheus"
+               },
+               "expr": "histogram_quantile(0.50, sum(increase(fleet_gitjob_duration_seconds_bucket{exported_namespace=~\"$namespace\",name=~\"$name\"}[$__rate_interval])) by (le, namespace, name)) > 0",
+               "legendFormat": "{{name}} in {{namespace}}"
+            }
+         ],
+         "title": "50th Percentile",
+         "type": "timeseries"
+      },
+      {
+         "datasource": {
+            "type": "datasource",
+            "uid": "-- Mixed --"
+         },
+         "fieldConfig": {
+            "defaults": {
+               "decimals": 0,
+               "unit": null
+            }
+         },
+         "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 33
+         },
+         "id": 11,
+         "pluginVersion": "v11.0.0",
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "prometheus"
+               },
+               "expr": "sum by (le) (increase(fleet_gitjob_duration_seconds_bucket{exported_namespace=~\"$namespace\",name=~\"$name\"}[$__range]))",
+               "format": "heatmap"
+            }
+         ],
+         "title": "Total distribution",
+         "type": "bargauge"
+      },
+      {
+         "datasource": {
+            "type": "datasource",
+            "uid": "-- Mixed --"
+         },
+         "fieldConfig": {
+            "defaults": {
+               "decimals": 0,
+               "unit": null
+            }
+         },
+         "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 33
+         },
+         "id": 12,
+         "options": {
+            "color": {
+               "reverse": true
+            }
+         },
+         "pluginVersion": "v11.0.0",
+         "targets": [
+            {
+               "datasource": {
+                  "type": "prometheus",
+                  "uid": "prometheus"
+               },
+               "expr": "sum(increase(fleet_gitjob_duration_seconds_bucket{exported_namespace=~\"$namespace\",name=~\"$name\"}[$__rate_interval])) by (le)",
+               "format": "heatmap",
+               "legendFormat": "{{name}} in {{namespace}}"
+            }
+         ],
+         "title": "Heatmap",
+         "type": "heatmap"
+      }
+   ],
+   "schemaVersion": 39,
+   "templating": {
+      "list": [
+         {
+            "datasource": {
+               "type": "prometheus",
+               "uid": "prometheus"
+            },
+            "name": "namespace",
+            "query": "label_values(fleet_gitrepo_fetch_latest_commit_duration_seconds_bucket, exported_namespace)",
+            "refresh": 2,
+            "type": "query"
+         },
+         {
+            "datasource": {
+               "type": "prometheus",
+               "uid": "prometheus"
+            },
+            "includeAll": true,
+            "name": "name",
+            "query": "label_values(fleet_gitrepo_fetch_latest_commit_duration_seconds_bucket{exported_namespace=~\"$namespace\"}, name)",
+            "refresh": 2,
+            "type": "query"
+         }
+      ]
+   },
+   "time": {
+      "from": "now-1h",
+      "to": "now"
+   },
+   "timezone": "utc",
+   "title": "Fleet / GitJob",
+   "uid": "fleet-gitjob"
+}
