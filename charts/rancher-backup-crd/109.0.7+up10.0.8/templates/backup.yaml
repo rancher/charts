@@ -1,0 +1,181 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.1
+  name: backups.resources.cattle.io
+spec:
+  group: resources.cattle.io
+  names:
+    kind: Backup
+    listKind: BackupList
+    plural: backups
+    singular: backup
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.storageLocation
+      name: Location
+      type: string
+    - jsonPath: .status.backupType
+      name: Type
+      type: string
+    - jsonPath: .status.filename
+      name: Latest-Backup
+      type: string
+    - jsonPath: .spec.resourceSetName
+      name: ResourceSet
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - jsonPath: .status.conditions[?(@.type=="Ready")].message
+      name: Status
+      type: string
+    name: v1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              encryptionConfigSecretName:
+                description: Name of the Secret containing the encryption config
+                type: string
+              resourceSetName:
+                description: Name of the ResourceSet CR to use for backup
+                type: string
+              retentionCount:
+                format: int64
+                minimum: 1
+                type: integer
+              schedule:
+                description: Cron schedule for recurring backups
+                example: |-
+                  Descriptors: '@midnight'
+                  Standard crontab specs: 0 0 * * *
+                type: string
+              storageLocation:
+                nullable: true
+                properties:
+                  s3:
+                    nullable: true
+                    properties:
+                      bucketName:
+                        type: string
+                      clientConfig:
+                        description: |-
+                          ClientConfig allows configuration of more advanced minio client settings
+                          any provider specific settings will be grouped accordingly, otherwise settings apply to all S3 providers.
+                        nullable: true
+                        properties:
+                          aws:
+                            description: AwsConfig holds AWS-specific S3 configuration.
+                            nullable: true
+                            properties:
+                              dualStack:
+                                default: true
+                                type: boolean
+                            required:
+                            - dualStack
+                            type: object
+                        type: object
+                      credentialSecretName:
+                        type: string
+                      credentialSecretNamespace:
+                        type: string
+                      endpoint:
+                        type: string
+                      endpointCA:
+                        type: string
+                      folder:
+                        type: string
+                      insecureTLSSkipVerify:
+                        type: boolean
+                      region:
+                        type: string
+                    required:
+                    - bucketName
+                    - endpoint
+                    type: object
+                type: object
+            required:
+            - resourceSetName
+            type: object
+          status:
+            properties:
+              backupType:
+                description: BackupType enforces the valid registration modes
+                enum:
+                - One-time
+                - Recurring
+                type: string
+              conditions:
+                items:
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another.
+                      type: string
+                    lastUpdateTime:
+                      description: The last time this condition was updated.
+                      type: string
+                    message:
+                      description: Human-readable message indicating details about
+                        last transition
+                      type: string
+                    reason:
+                      description: The reason for the condition's last transition.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type of cluster condition.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              filename:
+                type: string
+              lastSnapshotTs:
+                type: string
+              nextSnapshotAt:
+                type: string
+              observedGeneration:
+                format: int64
+                type: integer
+              storageLocation:
+                type: string
+              summary:
+                type: string
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

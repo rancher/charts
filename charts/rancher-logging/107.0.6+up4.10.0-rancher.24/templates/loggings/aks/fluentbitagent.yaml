@@ -1,0 +1,20 @@
+{{- define "logging-operator.fluentbitagent.aks" -}}
+{{- $logPath := "/var/log/azure/kubelet-status.log" -}}
+{{- $individualValues := .Values.additionalLoggingSources.aks.fluentbit -}}
+metadata:
+  name: {{ .Release.Name }}-aks
+spec:
+  disableKubernetesFilter: true
+  extraVolumeMounts:
+    - source: {{ $logPath }}
+      destination: {{ $logPath }}
+      readOnly: true
+  inputTail:
+    Tag: "aks"
+    Path: {{ $logPath }}
+{{- include "logging-operator.individualFluentbitLoggingRef" $individualValues | nindent 2 }}
+{{- include "logging-operator.individualFluentbit" $individualValues | nindent 2 }}
+{{- end -}}
+{{- if .Values.additionalLoggingSources.aks.enabled }}
+{{- include "logging-operator.fluentbitagent" (list . "logging-operator.fluentbitagent.aks") -}}
+{{- end }}
