@@ -1,0 +1,57 @@
+suite: Test PodDisruptionBudget
+templates:
+  - pdb.yaml
+
+tests:
+  - it: should not render a PDB by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render a PDB when podDisruptionBudget.enabled is true
+    set:
+      podDisruptionBudget.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: PodDisruptionBudget
+      - equal:
+          path: metadata.name
+          value: rancher-webhook
+      - equal:
+          path: spec.selector.matchLabels.app
+          value: rancher-webhook
+
+  - it: should use minAvailable by default when PDB is enabled
+    set:
+      podDisruptionBudget.enabled: true
+    asserts:
+      - equal:
+          path: spec.minAvailable
+          value: 1
+      - notExists:
+          path: spec.maxUnavailable
+
+  - it: should use a custom minAvailable value
+    set:
+      podDisruptionBudget.enabled: true
+      podDisruptionBudget.minAvailable: 2
+    asserts:
+      - equal:
+          path: spec.minAvailable
+          value: 2
+      - notExists:
+          path: spec.maxUnavailable
+
+  - it: should use maxUnavailable when minAvailable is unset
+    set:
+      podDisruptionBudget.enabled: true
+      podDisruptionBudget.minAvailable: 0
+      podDisruptionBudget.maxUnavailable: 1
+    asserts:
+      - equal:
+          path: spec.maxUnavailable
+          value: 1
+      - notExists:
+          path: spec.minAvailable
