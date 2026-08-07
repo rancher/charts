@@ -293,8 +293,15 @@ runs:
         } > "$BODY_FILE"
 
         if ! gh pr comment "${PR_NUMBER}" -R "${GITHUB_REPOSITORY}" --body-file "${BODY_FILE}"; then
-          echo "Failed to post comment - image-verify results:"
-          cat /tmp/results.jsonl
+          echo "WARNING: Failed to post PR comment (expected for PRs from forks, where GITHUB_TOKEN has read-only access). Logging results below instead."
+          echo "::group::Image Version Validation results"
+          cat "$BODY_FILE"
+          echo "::endgroup::"
+          {
+            echo "> **Note:** Could not post this as a PR comment (expected for PRs from forks)."
+            echo ""
+            cat "$BODY_FILE"
+          } >> "$GITHUB_STEP_SUMMARY"
         fi
 
 
