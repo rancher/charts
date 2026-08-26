@@ -31,7 +31,7 @@ export async function detectQaDone(
         })
     );
 
-    const dispatch: QADoneResult['dispatch'] = [];
+    const dispatchByFamily = new Map<string, QADoneResult['dispatch'][number]>();
     const skippedFamilies = new Map<string, string>();
 
     for (const {chart, version} of activationsPerFile.flat()) {
@@ -43,9 +43,12 @@ export async function detectQaDone(
             continue;
         }
 
-        dispatch.push({chart, version, family, ...target});
+        if (!dispatchByFamily.has(family)) {
+            dispatchByFamily.set(family, {chart, version, family, ...target});
+        }
     }
 
+    const dispatch = Array.from(dispatchByFamily.values());
     const skipped = Array.from(skippedFamilies, ([family, chart]) => ({family, chart}));
     return {dispatch, skipped};
 }
