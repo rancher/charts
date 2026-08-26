@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - automation-core
-      - auto-unrc  # remove later
     paths:
       - 'release/*.yaml'
 
@@ -16,24 +15,8 @@ jobs:
       matrix: ${{ steps.detect.outputs.matrix }}
 
     steps:
-      - name: Display Workflow Context
-        run: |
-          echo "================================================================="
-          echo "Start Dispatch unRcs Workflow"
-          echo "================================================================="
-          echo "Versions:        ${{ github.event.inputs.versions }}"
-          echo "Month:           ${{ github.event.inputs.month }}"
-          echo "Year:            ${{ github.event.inputs.year }}"
-          echo "Triggered by:    ${{ github.actor }}"
-          echo "Repository:      ${{ github.repository }}"
-          echo "================================================================="
-
       - name: Checkout
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
-        continue-on-error: false
-        with:
-          ref: automation-core
-          fetch-depth: 1
 
       - name: Fetch pre-merge commit
         run: git fetch --depth=1 origin "${{ github.event.before }}"
@@ -62,6 +45,8 @@ jobs:
     needs: detect
     if: needs.detect.outputs.matrix != '[]'
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # Required for OIDC authentication with Vault
     strategy:
       fail-fast: false
       matrix:
