@@ -45,6 +45,19 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       break;
     }
 
+    case 'detect-qa-done': {
+      // Usage: detect-qa-done <base-ref> <file1,file2,...>
+      const baseRef = argv[1];
+      const filesArg = argv[2];
+
+      if (!baseRef || !filesArg) {
+        console.error('Usage: detect-qa-done <base-ref> <file1,file2,...>');
+        process.exit(1);
+      }
+      process.exit(0);
+      break;
+    }
+
     case 'sync-table': {
       // Usage: sync-table <version> <yaml-path>
       const releaseVersion = argv[1];
@@ -67,6 +80,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       console.error(`Unknown command: ${command}`);
       console.error('Available commands:');
       console.error('  - populate-release-charts');
+      console.error('  - detect-qa-done');
       console.error('  - sync-table');
       process.exit(1);
     }
