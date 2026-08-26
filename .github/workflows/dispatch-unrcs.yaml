@@ -1,0 +1,96 @@
+name: Dispatch unRcs
+
+on:
+  push:
+    branches:
+      - automation-core
+      - auto-unrc  # remove later
+    paths:
+      - 'release/*.yaml'
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    container: ghcr.io/rancher/ci-image/charts:20260618-20
+    outputs:
+      matrix: ${{ steps.detect.outputs.matrix }}
+
+    steps:
+      - name: Display Workflow Context
+        run: |
+          echo "================================================================="
+          echo "Start Dispatch unRcs Workflow"
+          echo "================================================================="
+          echo "Versions:        ${{ github.event.inputs.versions }}"
+          echo "Month:           ${{ github.event.inputs.month }}"
+          echo "Year:            ${{ github.event.inputs.year }}"
+          echo "Triggered by:    ${{ github.actor }}"
+          echo "Repository:      ${{ github.repository }}"
+          echo "================================================================="
+
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
+        continue-on-error: false
+        with:
+          ref: automation-core
+          fetch-depth: 1
+
+      - name: Fetch pre-merge commit
+        run: git fetch --depth=1 origin "${{ github.event.before }}"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8  # v4.0.2
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: release/tracker/package-lock.json
+
+      - name: Install CLI dependencies
+        run: |
+          set -euo pipefail
+          cd release/tracker
+          npm ci
+
+      - name: Detect QA done
+        id: detect
+        run: |
+          set -euo pipefail
+          MATRIX=$(.github/scripts/detect-qa-done.sh "${{ github.event.before }}" "${{ github.event.after }}")
+          echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
+
+  dispatch:
+    needs: detect
+    if: needs.detect.outputs.matrix != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.detect.outputs.matrix) }}
+
+    steps:
+      # The app must have workflow_dispatch access on the target repos
+      - name: Load Secrets from Vault
+        id: vault
+        uses: rancher-eio/read-vault-secrets@7282bf97898cd1c16c89f837e0bb442e6d384c89 # main
+        with:
+          secrets: |
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY ;
+
+      - name: Create App Token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: app_token
+        with:
+          app-id: ${{ env.APP_ID }}
+          private-key: ${{ env.PRIVATE_KEY }}
+
+      - name: Trigger QA workflow in target repo
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+        run: |
+          set -euo pipefail
+          echo "::notice::Dispatching ${{ matrix.workflow }} in ${{ matrix.repo }} for ${{ matrix.chart }}@${{ matrix.version }}"
+          gh workflow run "${{ matrix.workflow }}" \
+            --repo "${{ matrix.repo }}" \
+            -f chart="${{ matrix.chart }}" \
+            -f version="${{ matrix.version }}"
