@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { populateReleaseCharts } from './commands/populate-release-charts.js';
+import { detectQaDone } from './commands/detect-qa-done.js';
 import { findReleaseYaml } from './adapters/yaml.js';
 
 // CLI entry point
@@ -54,6 +55,14 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         console.error('Usage: detect-qa-done <base-ref> <file1,file2,...>');
         process.exit(1);
       }
+
+      const result = await detectQaDone(baseRef, filesArg.split(','));
+
+      for (const { family, chart } of result.skipped) {
+        console.error(`WARNING: no dispatch target configured for family "${family}" (from chart "${chart}"), skipping`);
+      }
+
+      console.log(JSON.stringify(result.dispatch));
       process.exit(0);
       break;
     }
