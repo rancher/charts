@@ -44,6 +44,14 @@ jobs:
         with:
           ref: automation-core
           fetch-depth: 1
+      - name: Fetch required dev and release branches
+        run: |
+          for version in $(echo "${{ github.event.inputs.versions }}" | tr ',' ' '); do
+            minor=$(echo "$version" | grep -oE '^[0-9]+\.[0-9]+')
+            echo "Fetching branches for minor version ${minor}..."
+            git fetch origin "dev-v${minor}" --depth=1
+            git fetch origin "release-v${minor}" --depth=1
+          done
       - name: Validate input format
         id: validate
         continue-on-error: false
