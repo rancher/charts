@@ -82,9 +82,14 @@ jobs:
       - name: Merge PR via API
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+          REPO: ${{ github.repository }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           gh api \
             --method PUT \
-            "/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/merge" \
+            "/repos/$REPO/pulls/$PR_NUMBER/merge" \
+            -f sha="$COMMIT_SHA" \
             -f merge_method=squash \
-            -f commit_title="Auto-merge: ${{ github.event.pull_request.title }}"
+            -f commit_title="Auto-merge: $PR_TITLE"
