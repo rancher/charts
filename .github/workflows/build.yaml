@@ -26,16 +26,23 @@ jobs:
       # WORKFLOW CONTEXT
       # ====================================================================
       - name: Display PR Context
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          TARGET_BRANCH: ${{ github.base_ref }}
+          SOURCE_BRANCH: ${{ github.head_ref }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          REPOSITORY: ${{ github.repository }}
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           echo "================================================================="
           echo "Build Validation Workflow"
           echo "================================================================="
-          echo "PR Number:       ${{ github.event.pull_request.number }}"
-          echo "Target Branch:   ${{ github.base_ref }}"
-          echo "Source Branch:   ${{ github.head_ref }}"
-          echo "Author:          ${{ github.event.pull_request.user.login }}"
-          echo "Repository:      ${{ github.repository }}"
-          echo "Commit SHA:      ${{ github.event.pull_request.head.sha }}"
+          echo "PR Number:       $PR_NUMBER"
+          echo "Target Branch:   $TARGET_BRANCH"
+          echo "Source Branch:   $SOURCE_BRANCH"
+          echo "Author:          $AUTHOR"
+          echo "Repository:      $REPOSITORY"
+          echo "Commit SHA:      $COMMIT_SHA"
           echo "================================================================="
 
       # ====================================================================
@@ -79,39 +86,42 @@ jobs:
       - name: Export Vault Secrets as Outputs
         id: secrets
         continue-on-error: false
+        env:
+          DOCKER_USERNAME: ${{ env.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ env.DOCKER_PASSWORD }}
+          APP_ID: ${{ env.APP_ID }}
+          PRIVATE_KEY: ${{ env.PRIVATE_KEY }}
         run: |
           # Check if secrets were loaded (will be empty for fork PRs)
-          if [[ -z "${{ env.DOCKER_USERNAME }}" ]] || [[ -z "${{ env.DOCKER_PASSWORD }}" ]]; then
+          if [[ -z "$DOCKER_USERNAME" ]] || [[ -z "$DOCKER_PASSWORD" ]]; then
             echo "WARNING: Docker credentials not available from Vault"
             echo "  This is expected for fork PRs (no Vault access)"
             echo "  Docker image checks may be rate-limited"
           else
             echo "Docker credentials loaded successfully"
-            echo "::add-mask::${{ env.DOCKER_USERNAME }}"
-            echo "::add-mask::${{ env.DOCKER_PASSWORD }}"
+            echo "::add-mask::$DOCKER_USERNAME"
+            echo "::add-mask::$DOCKER_PASSWORD"
           fi
 
-          if [[ -z "${{ env.APP_ID }}" ]] || [[ -z "${{ env.PRIVATE_KEY }}" ]]; then
+          if [[ -z "$APP_ID" ]] || [[ -z "$PRIVATE_KEY" ]]; then
             echo "WARNING: GitHub App credentials not available from Vault"
             echo "  This is expected for fork PRs (no Vault access)"
             echo "  Some validation features may be limited"
           else
             echo "GitHub App credentials loaded successfully"
-            echo "::add-mask::${{ env.APP_ID }}"
-            echo "::add-mask::${{ env.PRIVATE_KEY }}"
+            echo "::add-mask::$APP_ID"
+            echo "::add-mask::$PRIVATE_KEY"
           fi
 
           # Export as step outputs (empty values are OK for fork PRs)
-          echo "docker_username=${{ env.DOCKER_USERNAME }}" >> $GITHUB_OUTPUT
-          echo "docker_password=${{ env.DOCKER_PASSWORD }}" >> $GITHUB_OUTPUT
-          echo "app_id=${{ env.APP_ID }}" >> $GITHUB_OUTPUT
-
-          # Use heredoc format for private_key (multi-line PEM certificate)
           {
+            echo "docker_username=$DOCKER_USERNAME"
+            echo "docker_password=$DOCKER_PASSWORD"
+            echo "app_id=$APP_ID"
             echo "private_key<<EOF"
-            echo "${{ env.PRIVATE_KEY }}"
+            echo "$PRIVATE_KEY"
             echo "EOF"
-          } >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create App Token
         continue-on-error: true
@@ -120,6 +130,8 @@ jobs:
         with:
           app-id: ${{ steps.secrets.outputs.app_id }}
           private-key: ${{ steps.secrets.outputs.private_key }}
+          permission-contents: read
+          permission-pull-requests: write
 
       - name: Check App Token Status
         run: |
@@ -152,7 +164,7 @@ jobs:
       # ====================================================================
       - name: Image Verify
         if: startsWith(github.base_ref, 'dev-v')
-        uses: rancher/charts/.github/actions/image-verify@automation-core
+        uses: rancher/charts/.github/actions/image-verify@automation-core # zizmor: ignore[unpinned-uses] -- internal composite action in this repository
         with:
           pr_number: ${{ github.event.pull_request.number }}
           docker_username: ${{ steps.secrets.outputs.docker_username }}
@@ -160,14 +172,14 @@ jobs:
           github_token: ${{ github.token }}
       - name: CVE Check
         if: startsWith(github.base_ref, 'dev-v')
-        uses: rancher/charts/.github/actions/cve-check@automation-core
+        uses: rancher/charts/.github/actions/cve-check@automation-core # zizmor: ignore[unpinned-uses] -- internal composite action in this repository
         with:
           pr_number: ${{ github.event.pull_request.number }}
           docker_username: ${{ steps.secrets.outputs.docker_username }}
           docker_password: ${{ steps.secrets.outputs.docker_password }}
           github_token: ${{ github.token }}
       - name: Build Validation
-        uses: rancher/charts/.github/actions/build@automation-core
+        uses: rancher/charts/.github/actions/build@automation-core # zizmor: ignore[unpinned-uses] -- internal composite action in this repository
         with:
           base_ref: ${{ github.base_ref }}
           pr_number: ${{ github.event.pull_request.number }}
