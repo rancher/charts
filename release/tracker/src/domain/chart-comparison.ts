@@ -1,4 +1,4 @@
-import { ChartVersion } from '../adapters/yaml.js';
+import { ChartVersion, ReleaseYAML } from '../adapters/yaml.js';
 
 /**
  * Build map of chart → set of versions from release
@@ -149,4 +149,35 @@ export function addRCBasedReleases(
   });
 
   return result;
+}
+
+/**
+ * Find chart versions where QA newly became true - either an existing entry
+ * flipping false -> true, or a new version entry with QA already true.
+ */
+export function findQAFlagChanges(oldData: ReleaseYAML, newData: ReleaseYAML): ChartVersion[] {
+  const result: ChartVersion[] = [];
+
+  for (const [chart, versions] of Object.entries(newData)) {
+    for (const [version, flags] of Object.entries(versions)) {
+      if (version === '<version>' || !flags.QA) continue;
+
+      const wasQa = oldData[chart]?.[version]?.QA ?? false;
+      if (!wasQa) {
+        result.push({ chart, version });
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Gets the chart's family
+ */
+export function resolveFamily(families: Record<string, string[]>, chart: string): string {
+  for (const [family, charts] of Object.entries(families)) {
+    if (charts.includes(chart)) return family;
+  }
+  return chart;
 }

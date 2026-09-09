@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { buildReleaseVersionMap, filterChartsNotInRelease, buildChartVersionMap, buildBaseVersionMap } from '../../src/domain/chart-comparison.js';
-import { ChartVersion } from '../../src/adapters/yaml.js';
+import { buildReleaseVersionMap, filterChartsNotInRelease, buildChartVersionMap, buildBaseVersionMap, findQAFlagChanges, resolveFamily } from '../../src/domain/chart-comparison.js';
+import { ChartVersion, ReleaseYAML } from '../../src/adapters/yaml.js';
 
 describe('buildReleaseVersionMap', () => {
   it('builds map with single chart and version', () => {
@@ -254,3 +254,59 @@ describe('buildBaseVersionMap', () => {
     assert.strictEqual(result.size, 0);
   });
 });
+
+describe('findQAFlagChanges', () => {
+  it('detects QA flipping from false to true', () => {
+    const oldData: ReleaseYAML = { fleet: { '109.0.0': flags({ QA: false }) }, 'rancher-backup': {'109.1.0': flags({QA: false})} };
+    const newData: ReleaseYAML = { fleet: { '109.0.0': flags({ QA: true }) }, 'rancher-backup': {'109.1.0': flags({QA: false})} };
+
+    assert.deepStrictEqual(findQAFlagChanges(oldData, newData), [{ chart: 'fleet', version: '109.0.0' }]);
+  });
+
+  it('detects a brand new version entry born with QA true', () => {
+    const oldData: ReleaseYAML = {'rancher-backup': {'109.1.0': flags({QA: false})}};
+    const newData: ReleaseYAML = { 'rancher-backup': {'109.1.0': flags({QA: false})}, fleet: { '109.0.0': flags({ QA: true }) } };
+
+    assert.deepStrictEqual(findQAFlagChanges(oldData, newData), [{ chart: 'fleet', version: '109.0.0' }]);
+  });
+
+  it('ignores versions where QA stays true', () => {
+    const oldData: ReleaseYAML = { fleet: { '109.0.0': flags({ QA: true }) } };
+    const newData: ReleaseYAML = { fleet: { '109.0.0': flags({ QA: true }) } };
+
+    assert.deepStrictEqual(findQAFlagChanges(oldData, newData), []);
+  });
+
+  it('ignores changes to other flags', () => {
+    const oldData: ReleaseYAML = { fleet: { '109.0.0': flags() } };
+    const newData: ReleaseYAML = { fleet: { '109.0.0': flags({UnRC: true, Released: true }) } };
+
+    assert.deepStrictEqual(findQAFlagChanges(oldData, newData), []);
+  });
+
+  it('skips the <version> placeholder', () => {
+    const oldData: ReleaseYAML = {};
+    const newData: ReleaseYAML = { fleet: { '<version>': flags({ QA: true }) } };
+
+    assert.deepStrictEqual(findQAFlagChanges(oldData, newData), []);
+  });
+});
+
+describe('resolveFamily', () => {
+  const families = {
+    fleet: ['fleet', 'fleet-agent', 'fleet-crd'],
+    longhorn: ['longhorn', 'longhorn-crd']
+  };
+
+  it('resolves a chart to its family', () => {
+    assert.strictEqual(resolveFamily(families, 'fleet-crd'), 'fleet');
+  });
+
+  it('falls back to the chart name when not listed in any family', () => {
+    assert.strictEqual(resolveFamily(families, 'random-chart'), 'random-chart');
+  });
+});
+
+function flags(overrides: Partial<ReleaseYAML[string][string]> = {}) {
+  return { ToRelease: false, QA: false, UnRC: false, Released: false, ...overrides };
+}

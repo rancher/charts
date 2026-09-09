@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { populateReleaseCharts } from './commands/populate-release-charts.js';
+import { detectQaDone } from './commands/detect-qa-done.js';
 import { findReleaseYaml } from './adapters/yaml.js';
 
 // CLI entry point
@@ -45,6 +46,27 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       break;
     }
 
+    case 'detect-qa-done': {
+      // Usage: detect-qa-done <base-ref> <file1,file2,...>
+      const baseRef = argv[1];
+      const filesArg = argv[2];
+
+      if (!baseRef || !filesArg) {
+        console.error('Usage: detect-qa-done <base-ref> <file1,file2,...>');
+        process.exit(1);
+      }
+
+      const result = await detectQaDone(baseRef, filesArg.split(','));
+
+      for (const { family, chart } of result.skipped) {
+        console.error(`WARNING: no dispatch target configured for family "${family}" (from chart "${chart}"), skipping`);
+      }
+
+      console.log(JSON.stringify(result.dispatch));
+      process.exit(0);
+      break;
+    }
+
     case 'sync-table': {
       // Usage: sync-table <version> <yaml-path>
       const releaseVersion = argv[1];
@@ -67,6 +89,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       console.error(`Unknown command: ${command}`);
       console.error('Available commands:');
       console.error('  - populate-release-charts');
+      console.error('  - detect-qa-done');
       console.error('  - sync-table');
       process.exit(1);
     }
