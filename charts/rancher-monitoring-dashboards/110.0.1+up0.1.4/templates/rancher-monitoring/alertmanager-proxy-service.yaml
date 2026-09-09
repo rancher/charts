@@ -1,0 +1,20 @@
+{{- if .Values.alertmanagerProxy.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: rancher-monitoring-alertmanager
+  namespace: {{ include "rancher-monitoring.namespace" . }}
+  labels:
+{{ include "rancher-monitoring.labels" . | indent 4 }}
+    app.kubernetes.io/component: alertmanager-proxy
+spec:
+  type: ClusterIP
+  ports:
+    - name: http-web
+      port: 9093
+      protocol: TCP
+      targetPort: 8093
+  selector:
+{{ include "rancher-monitoring.selectorLabels" . | indent 4 }}
+    app.kubernetes.io/component: monitoring-proxy
+{{- end }}
