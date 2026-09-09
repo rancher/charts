@@ -1,0 +1,16 @@
+{{- $selector := (include "rancher.serviceMonitor.selector" .) -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Values.grafana.defaultDashboards.namespace }}
+  name: rancher-default-dashboards-performance-debugging
+  annotations:
+{{ toYaml .Values.grafana.sidecar.dashboards.annotations | indent 4 }}
+  labels:
+    {{- if $.Values.grafana.sidecar.dashboards.label }}
+    {{ $.Values.grafana.sidecar.dashboards.label }}: "1"
+    {{- end }}
+    app: {{ template "rancher-monitoring.name" $ }}-grafana
+{{ include "rancher-monitoring.labels" $ | indent 4 }}
+data:
+{{ (.Files.Glob "files/rancher/performance/*").AsConfig | indent 2 }}
