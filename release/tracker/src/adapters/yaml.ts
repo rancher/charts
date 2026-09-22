@@ -39,13 +39,16 @@ export function parseChartYaml(content: string): ChartVersion {
   return { chart: parsed.name, version: parsed.version };
 }
 
+export function parseReleaseTrackingYaml(content: string): ReleaseYAML {
+  return yaml.load(content) as ReleaseYAML;
+}
+
 /**
  * Read release tracking YAML file
  */
 export function readReleaseTrackingYaml(filepath: string): ReleaseYAML {
   const content = readFileSync(filepath, 'utf-8');
-  const parsed = yaml.load(content);
-  return parsed as ReleaseYAML;
+  return parseReleaseTrackingYaml(content)
 }
 
 /**
