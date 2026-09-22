@@ -1,0 +1,49 @@
+suite: ServiceMonitor
+templates:
+  - service-monitor.yaml
+capabilities:
+  apiVersions:
+    - monitoring.coreos.com/v1
+tests:
+  - it: should not render ServiceMonitor when disabled (default)
+    template: service-monitor.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: should render ServiceMonitor when enabled
+    set:
+      monitoring.serviceMonitor.enabled: true
+    template: service-monitor.yaml
+    asserts:
+      - isKind:
+          of: ServiceMonitor
+  - it: should set additional labels
+    set:
+      monitoring.serviceMonitor.enabled: true
+      monitoring.serviceMonitor.additionalLabels:
+        test: label
+    template: service-monitor.yaml
+    asserts:
+      - equal:
+          path: metadata.labels.test
+          value: label
+  - it: should configure relabelings
+    set:
+      monitoring.serviceMonitor.enabled: true
+      monitoring.serviceMonitor.relabelings:
+        - action: replace
+    template: service-monitor.yaml
+    asserts:
+      - equal:
+          path: spec.endpoints[0].relabelings[0].action
+          value: replace
+  - it: should configure metricRelabelings
+    set:
+      monitoring.serviceMonitor.enabled: true
+      monitoring.serviceMonitor.metricRelabelings:
+        - action: replace
+    template: service-monitor.yaml
+    asserts:
+      - equal:
+          path: spec.endpoints[0].metricRelabelings[0].action
+          value: replace
