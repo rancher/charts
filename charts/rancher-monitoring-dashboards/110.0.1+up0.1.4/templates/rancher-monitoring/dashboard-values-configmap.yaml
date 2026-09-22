@@ -1,0 +1,68 @@
+{{- $rancherDashboards := dict -}}
+{{- if .Values.dashboardArtifacts.groups.rancherCore -}}
+  {{- range $glob := tuple "files/rancher/home/*" "files/rancher/cluster/*" "files/rancher/nodes/*" "files/rancher/k8s/*" "files/rancher/workloads/*" "files/rancher/pods/*" -}}
+    {{- range $dashboard, $_ := ($.Files.Glob $glob) -}}
+      {{- $dashboardMap := ($.Files.Get $dashboard | fromJson) -}}
+      {{- $_ := set $rancherDashboards (get $dashboardMap "uid") (get $dashboardMap "title") -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- if .Values.dashboardArtifacts.groups.fleet -}}
+  {{- range $dashboard, $_ := ($.Files.Glob "files/rancher/fleet/*") -}}
+    {{- $dashboardMap := ($.Files.Get $dashboard | fromJson) -}}
+    {{- $_ := set $rancherDashboards (get $dashboardMap "uid") (get $dashboardMap "title") -}}
+  {{- end -}}
+{{- end -}}
+{{- if .Values.dashboardArtifacts.groups.performance -}}
+  {{- range $dashboard, $_ := ($.Files.Glob "files/rancher/performance/*") -}}
+    {{- $dashboardMap := ($.Files.Get $dashboard | fromJson) -}}
+    {{- $_ := set $rancherDashboards (get $dashboardMap "uid") (get $dashboardMap "title") -}}
+  {{- end -}}
+{{- end -}}
+{{- if .Values.dashboardArtifacts.groups.logging.fluentd -}}
+  {{- range $dashboard, $_ := ($.Files.Glob "files/rancher/logging/fluentd.json") -}}
+    {{- $dashboardMap := ($.Files.Get $dashboard | fromJson) -}}
+    {{- $_ := set $rancherDashboards (get $dashboardMap "uid") (get $dashboardMap "title") -}}
+  {{- end -}}
+{{- end -}}
+{{- if .Values.dashboardArtifacts.groups.logging.fluentbit -}}
+  {{- range $dashboard, $_ := ($.Files.Glob "files/rancher/logging/fluentbit.json") -}}
+    {{- $dashboardMap := ($.Files.Get $dashboard | fromJson) -}}
+    {{- $_ := set $rancherDashboards (get $dashboardMap "uid") (get $dashboardMap "title") -}}
+  {{- end -}}
+{{- end -}}
+{{- if .Values.dashboardArtifacts.groups.backupRestore -}}
+  {{- range $dashboard, $_ := ($.Files.Glob "files/rancher/bro/backup-restore.json") -}}
+    {{- $dashboardMap := ($.Files.Get $dashboard | fromJson) -}}
+    {{- $_ := set $rancherDashboards (get $dashboardMap "uid") (get $dashboardMap "title") -}}
+  {{- end -}}
+{{- end -}}
+{{- if .Values.dashboardArtifacts.groups.ingressNginx -}}
+  {{- range $dashboard, $_ := ($.Files.Glob "files/ingress-nginx/*") -}}
+    {{- $dashboardMap := ($.Files.Get $dashboard | fromJson) -}}
+    {{- $_ := set $rancherDashboards (get $dashboardMap "uid") (get $dashboardMap "title") -}}
+  {{- end -}}
+{{- end -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "rancher-monitoring.name" . }}-dashboard-values
+  namespace: {{ include "rancher-monitoring.namespace" . }}
+  labels:
+    helm.cattle.io/dashboard-values-configmap: {{ .Release.Name | quote }}
+{{ include "rancher-monitoring.labels" . | indent 4 }}
+data:
+  values.json: |-
+    {{- dict
+      "grafanaURL" (tpl .Values.dashboardIntegration.grafanaURL .)
+      "prometheusURL" (tpl .Values.dashboardIntegration.prometheusURL .)
+      "dashboardNamespace" (include "rancher-monitoring.dashboardNamespace" .)
+      "dashboardLabel" (include "rancher-monitoring.dashboardLabel" .)
+      "dashboardLabelValue" (include "rancher-monitoring.dashboardLabelValue" .)
+      "chartName" .Chart.Name
+      "chartVersion" .Chart.Version
+      "chartAppVersion" .Chart.AppVersion
+      "prototype" true
+      "rancherDashboards" $rancherDashboards
+      "groups" .Values.dashboardArtifacts.groups
+      | toPrettyJson | nindent 4 }}
