@@ -1,0 +1,146 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "prometheus-federator.name" . }}
+  namespace: {{ template "prometheus-federator.namespace" . }}
+  labels: {{ include "prometheus-federator.labels" . | indent 4 }}
+    app: {{ template "prometheus-federator.name" . }}
+spec:
+  {{- if .Values.helmProjectOperator.replicas }}
+  replicas: {{ .Values.helmProjectOperator.replicas }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: {{ template "prometheus-federator.name" . }}
+      release: {{ $.Release.Name | quote }}
+  template:
+    metadata:
+      labels: {{ include "prometheus-federator.labels" . | indent 8 }}
+        app: {{ template "prometheus-federator.name" . }}
+    spec:
+      containers:
+        - name: {{ template "prometheus-federator.name" . }}
+          image: "{{- template "prometheus-federator.imageRegistry" . -}}{{- template "prometheus-federator.imageRepository" . -}}:{{- template "prometheus-federator.imageTag" . -}}"
+          imagePullPolicy: "{{ .Values.helmProjectOperator.image.pullPolicy }}"
+          args:
+          - {{ template "prometheus-federator.name" . }}
+          - --namespace={{ template "prometheus-federator.namespace" . }}
+          - --controller-name={{ template "prometheus-federator.name" . }}
+          - --values-override-file=/etc/helmprojectoperator/config/values.yaml
+{{- if .Values.global.cattle.systemDefaultRegistry }}
+          - --system-default-registry={{ .Values.global.cattle.systemDefaultRegistry }}
+{{- end }}
+{{- if .Values.global.cattle.url }}
+          - --cattle-url={{ .Values.global.cattle.url }}
+{{- end }}
+{{- if .Values.global.cattle.projectLabel }}
+          - --project-label={{ .Values.global.cattle.projectLabel }}
+{{- end }}
+{{- if not .Values.helmProjectOperator.projectReleaseNamespaces.enabled }}
+          - --system-project-label-values={{ join "," (append .Values.helmProjectOperator.otherSystemProjectLabelValues .Values.global.cattle.systemProjectId) }}
+{{- else if and (ne (len .Values.global.cattle.systemProjectId) 0) (ne (len .Values.helmProjectOperator.projectReleaseNamespaces.labelValue) 0) (ne .Values.helmProjectOperator.projectReleaseNamespaces.labelValue .Values.global.cattle.systemProjectId) }}
+          - --system-project-label-values={{ join "," (append .Values.helmProjectOperator.otherSystemProjectLabelValues .Values.global.cattle.systemProjectId) }}
+{{- else if len .Values.helmProjectOperator.otherSystemProjectLabelValues }}
+          - --system-project-label-values={{ join "," .Values.helmProjectOperator.otherSystemProjectLabelValues }}
+{{- end }}
+{{- if .Values.helmProjectOperator.projectReleaseNamespaces.enabled }}
+{{- if .Values.helmProjectOperator.projectReleaseNamespaces.labelValue }}
+          - --project-release-label-value={{ .Values.helmProjectOperator.projectReleaseNamespaces.labelValue }}
+{{- else if .Values.global.cattle.systemProjectId }}
+          - --project-release-label-value={{ .Values.global.cattle.systemProjectId }}
+{{- end }}
+{{- end }}
+{{- if .Values.global.cattle.clusterId }}
+          - --cluster-id={{ .Values.global.cattle.clusterId }}
+{{- end }}
+{{- if .Values.helmProjectOperator.releaseRoleBindings.aggregate }}
+{{- if .Values.helmProjectOperator.releaseRoleBindings.clusterRoleRefs }}
+{{- if .Values.helmProjectOperator.releaseRoleBindings.clusterRoleRefs.admin }}
+          - --admin-cluster-role={{ .Values.helmProjectOperator.releaseRoleBindings.clusterRoleRefs.admin }}
+{{- end }}
+{{- if .Values.helmProjectOperator.releaseRoleBindings.clusterRoleRefs.edit }}
+          - --edit-cluster-role={{ .Values.helmProjectOperator.releaseRoleBindings.clusterRoleRefs.edit }}
+{{- end }}
+{{- if .Values.helmProjectOperator.releaseRoleBindings.clusterRoleRefs.view }}
+          - --view-cluster-role={{ .Values.helmProjectOperator.releaseRoleBindings.clusterRoleRefs.view }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if .Values.namespaceRegistration.workers  }}
+          - --namespace-registration-workers={{- .Values.namespaceRegistration.workers }}
+{{- end }}
+{{- if .Values.namespaceRegistration.retryMax  }}
+          - --namespace-registration-retry-max={{- .Values.namespaceRegistration.retryMax }}
+{{- end }}
+{{- if .Values.namespaceRegistration.retryWaitMilliseconds  }}
+          - --namespace-registration-retry-wait-milliseconds={{- .Values.namespaceRegistration.retryWaitMilliseconds }}
+{{- end }}
+{{- if .Values.helmProjectOperator.hardenedNamespaces.enabled }}
+          - --hardening-options-file=/etc/helmprojectoperator/config/hardening.yaml
+{{- else }}
+          - --disable-hardening
+{{- end }}
+{{- if .Values.helmProjectOperator.debug }}
+          - --debug
+          - --debug-level={{ .Values.helmProjectOperator.debugLevel }}
+{{- end }}
+{{- if not .Values.helmProjectOperator.helmController.enabled }}
+          - --disable-embedded-helm-controller
+{{- else }}
+          - --helm-job-image={{ template "system_default_registry" . }}{{ .Values.helmProjectOperator.helmController.job.image.repository }}:{{ .Values.helmProjectOperator.helmController.job.image.tag }}
+{{- end }}
+{{- if not .Values.helmProjectOperator.helmLocker.enabled }}
+          - --disable-embedded-helm-locker
+{{- end }}
+{{- if .Values.helmProjectOperator.additionalArgs }}
+{{- toYaml .Values.helmProjectOperator.additionalArgs | nindent 10 }}
+{{- end }}
+          env:
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          ## Note: The below two values only exist to force Helm to upgrade the deployment on
+          ## a change to the contents of the ConfigMap during an upgrade. Neither serve
+          ## any practical purpose and can be removed and replaced with a configmap reloader
+          ## in a future change if dynamic updates are required.
+          - name: HARDENING_OPTIONS_SHA_256_HASH
+            value: {{ .Values.helmProjectOperator.hardenedNamespaces.configuration | toYaml | sha256sum }}
+          - name: VALUES_OVERRIDE_SHA_256_HASH
+            value: {{ .Values.helmProjectOperator.valuesOverride | toYaml | sha256sum }}
+          {{- if .Values.helmProjectOperator.crdManagement.update }}
+          - name: MANAGE_CRD_UPDATES
+            value: "true"
+          {{- end }}
+          {{- if .Values.helmProjectOperator.crdManagement.detectK3sRke2 }}
+          - name: DETECT_K3S_RKE2
+            value: "true"
+          {{- end }}
+{{- if .Values.helmProjectOperator.resources }}
+          resources: {{ toYaml .Values.helmProjectOperator.resources | nindent 12 }}
+{{- end }}
+{{- if .Values.helmProjectOperator.containerSecurityContext }}
+          securityContext: {{ toYaml .Values.helmProjectOperator.containerSecurityContext | nindent 12 }}
+{{- end }}
+          volumeMounts:
+          - name: config
+            mountPath: "/etc/helmprojectoperator/config"
+      {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName }}
+      {{- end }}
+      serviceAccountName: {{ template "prometheus-federator.name" . }}
+{{- if .Values.helmProjectOperator.securityContext }}
+      securityContext: {{ toYaml .Values.helmProjectOperator.securityContext | nindent 8 }}
+{{- end }}
+      nodeSelector: {{ include "linux-node-selector" . | nindent 8 }} 
+{{- if .Values.helmProjectOperator.nodeSelector }}
+{{- toYaml .Values.helmProjectOperator.nodeSelector | nindent 8 }}
+{{- end }}
+      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }} 
+{{- if .Values.helmProjectOperator.tolerations }}
+{{- toYaml .Values.helmProjectOperator.tolerations | nindent 8 }}
+{{- end }}
+      volumes:
+      - name: config
+        configMap:
+          name: {{ template "prometheus-federator.name" . }}-config
