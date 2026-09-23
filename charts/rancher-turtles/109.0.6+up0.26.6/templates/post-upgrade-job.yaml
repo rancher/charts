@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: post-upgrade-job
+  namespace: '{{ .Values.namespace }}'
+  annotations:
+    "helm.sh/hook": post-upgrade
+    "helm.sh/hook-weight": "1"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: post-upgrade-job-delete-capi-operator-resources
+  annotations:
+    "helm.sh/hook": post-upgrade
+    "helm.sh/hook-weight": "1"
+rules:
+- apiGroups:
+  - operator.cluster.x-k8s.io
+  resources:
+  - addonproviders
+  - bootstrapproviders
+  - controlplaneproviders
+  - coreproviders
+  - infrastructureproviders
+  - ipamproviders
+  - runtimeextensionproviders
+  verbs:
+  - get
+  - watch
+  - list
+  - delete
+  - patch
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: post-upgrade-job-capi-operator-resources-cleanup
+  annotations:
+    "helm.sh/hook": post-upgrade
+    "helm.sh/hook-weight": "1"
+subjects:
+  - kind: ServiceAccount
+    name: post-upgrade-job
+    namespace: '{{ .Values.namespace }}'
+roleRef:
+  kind: ClusterRole
+  name: post-upgrade-job-delete-capi-operator-resources
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cluster-api-operator-resources-cleanup
+  namespace: '{{ .Values.namespace }}'
+  annotations:
+    "helm.sh/hook": post-upgrade
+    "helm.sh/hook-weight": "2"
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      serviceAccountName: post-upgrade-job
+      containers:
+      - name: cluster-api-operator-resources-cleanup
+        {{- if (contains "sha256:" .Values.image.tag) }}
+        image: '{{ template "system_default_registry" . }}{{ .Values.image.repository }}@{{ .Values.image.tag }}'
+        {{- else }}
+        image: '{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}'
+        {{- end}}
+        imagePullPolicy: '{{ .Values.image.imagePullPolicy }}'
+        command: ["/manager"]
+        args:
+        - cleanup
+        - --all-capioperator-providers
+        securityContext:
+          seccompProfile:
+            type: RuntimeDefault
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 65532
+      restartPolicy: Never
+---

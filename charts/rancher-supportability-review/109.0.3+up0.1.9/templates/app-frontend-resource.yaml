@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sr-bundle-app-frontend-deployment
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      sr-app: app-frontend
+  template:
+    metadata:
+      labels:
+        sr-app: app-frontend
+    spec:
+      {{- if .Values.privateRegistry.registrySecret }}
+      imagePullSecrets:
+      - name: {{ .Values.privateRegistry.registrySecret }}
+      {{- end }}
+      containers:
+      - name: app-frontend
+        image: {{ template "registry_url" . }}{{ .Values.image.appFrontend.repository }}:{{ .Values.image.appFrontend.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+        - name: SR_BUNDLE_STORE_DIR
+          value: /data/bundles
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            memory: {{ .Values.resources.appFrontend.requests.memory }}
+            cpu: {{ .Values.resources.appFrontend.requests.cpu }}
+            ephemeral-storage: {{ .Values.resources.appFrontend.requests.ephemeralStorage }}
+          limits:
+            memory: {{ .Values.resources.appFrontend.limits.memory }}
+            cpu: {{ .Values.resources.appFrontend.limits.cpu }}
+            ephemeral-storage: {{ .Values.resources.appFrontend.limits.ephemeralStorage }}
+        volumeMounts:
+        - name: bundle-store
+          mountPath: /data/bundles
+      volumes:
+      - name: bundle-store
+        emptyDir: {}
+      nodeSelector:
+        kubernetes.io/os: linux
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sr-bundle-app-frontend-service
+  namespace: {{ .Release.Namespace }}
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    sr-app: app-frontend
