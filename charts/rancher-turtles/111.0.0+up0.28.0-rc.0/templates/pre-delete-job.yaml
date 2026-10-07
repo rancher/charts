@@ -1,0 +1,129 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pre-delete-job
+  namespace: '{{ .Values.namespace }}'
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-weight": "-2"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pre-delete-job-delete-capiproviders
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-weight": "-2"
+rules:
+- apiGroups:
+  - turtles-capi.cattle.io
+  resources:
+  - capiproviders
+  - clusterctlconfigs
+  verbs:
+  - get
+  - list
+  - patch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pre-delete-job-capiprovider-cleanup
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-weight": "-2"
+subjects:
+  - kind: ServiceAccount
+    name: pre-delete-job
+    namespace: '{{ .Values.namespace }}'
+roleRef:
+  kind: ClusterRole
+  name: pre-delete-job-delete-capiproviders
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rancher-capiprovider-cleanup
+  namespace: '{{ .Values.namespace }}'
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-weight": "-1"
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
+      serviceAccountName: pre-delete-job
+      containers:
+      - name: rancher-capiprovider-cleanup
+        {{- if (contains "sha256:" .Values.image.tag) }}
+        image: '{{ template "system_default_registry" . }}{{ .Values.image.repository }}@{{ .Values.image.tag }}'
+        {{- else }}
+        image: '{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}'
+        {{- end}}
+        imagePullPolicy: '{{ .Values.image.imagePullPolicy }}'
+        command: ["/manager"]
+        args:
+        - cleanup
+        - --capiprovider-name=cluster-api
+        - --capiprovider-namespace={{ index .Values "cluster-api-operator" "cluster-api" "core" "namespace" }}
+        securityContext:
+          seccompProfile:
+            type: RuntimeDefault
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 65532
+      restartPolicy: Never
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rancher-clusterctlconfig-cleanup
+  namespace: '{{ .Values.namespace }}'
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-weight": "-1"
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
+      serviceAccountName: pre-delete-job
+      containers:
+      - name: rancher-clusterctlconfig-cleanup
+        {{- if (contains "sha256:" .Values.image.tag) }}
+        image: '{{ template "system_default_registry" . }}{{ .Values.image.repository }}@{{ .Values.image.tag }}'
+        {{- else }}
+        image: '{{ template "system_default_registry" . }}{{ .Values.image.repository }}:{{ .Values.image.tag }}'
+        {{- end}}
+        imagePullPolicy: '{{ .Values.image.imagePullPolicy }}'
+        command: ["/manager"]
+        args:
+        - cleanup
+        - --all-clusterctlconfigs
+        securityContext:
+          seccompProfile:
+            type: RuntimeDefault
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 65532
+      restartPolicy: Never
