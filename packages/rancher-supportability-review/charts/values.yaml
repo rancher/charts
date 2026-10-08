@@ -11,7 +11,7 @@ image:
   useDefaultImages: true
   operator:
     repository: rancher/supportability-review-operator
-    tag: v0.25.1
+    tag: v0.26.0
   collector:
     repository: rancher/supportability-review
     tag: latest
@@ -23,7 +23,7 @@ image:
     tag: latest
   appFrontend:
     repository: rancher/supportability-review-app-frontend
-    tag: v0.25.1
+    tag: v0.26.0
   pullPolicy: Always
 
 imagePullSecrets: []
@@ -84,6 +84,19 @@ resources:
       cpu: 100m
       memory: 1Gi
       ephemeralStorage: 10Gi
+
+# Support matrix data the UI shows, taken from the analyzer image. The
+# analyzer image is pulled again on every run, so the data follows the newest
+# image under its tag.
+helperData:
+  # -- When to refresh the data from the analyzer image, in cron format.
+  schedule: "0 0 * * *"
+  # -- Files under /helper_data of the analyzer image to serve, without .json.
+  # The bundle store only accepts the names it knows.
+  files:
+  - eom-eol
+  - k3s-rancher-os-matrix
+  - rke2-rancher-os-matrix
 
 support:
   mail: "ranchersupportnow@suse.com"
