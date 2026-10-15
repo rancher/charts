@@ -6,6 +6,11 @@ if [[ $# -ne 1 ]]; then
   exit 1
 fi
 
+if ! command -v gh &>/dev/null; then
+  echo "ERROR: gh command not found. Install the GitHub CLI: https://github.com/cli/cli"
+  exit 1
+fi
+
 FILE="$1"
 
 if [[ ! -f "$FILE" ]]; then
