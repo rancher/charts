@@ -14,7 +14,7 @@ forward-port:
 validate:
 	@./scripts/pull-scripts
 	@./scripts/check-release-yaml
-	@./bin/charts-build-scripts validate $(if $(filter true,$(remote)),--remote) $(if $(filter true,$(local)),--local)
+	@./bin/charts-build-scripts validate --enforce-blocklist $(if $(filter true,$(remote)),--remote) $(if $(filter true,$(local)),--local)
 
 # only to be used at dev-v2.X branches
 chart-bump:
