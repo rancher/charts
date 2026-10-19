@@ -1,0 +1,111 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rancher-webhook
+rules:
+# --- Read-only: informer caches for validators/mutators ---
+# Note: Some validators are stateless (validate fields only), but their resources
+# may still be needed as caches by other validators (e.g., users validator needs
+# userattributes, features, authconfigs caches).
+# Excluded: nodedrivers, proxyendpoints, tokens - no generated controllers/caches.
+- apiGroups: ["management.cattle.io"]
+  resources:
+    - authconfigs
+    - clusters
+    - clusterproxyconfigs
+    - clusterroletemplatebindings
+    - features
+    - globalroles
+    - globalrolebindings
+    - nodes
+    - podsecurityadmissionconfigurationtemplates
+    - projects
+    - projectroletemplatebindings
+    - roletemplates
+    - settings
+    - userattributes
+    - users
+  verbs: [get, list, watch]
+- apiGroups: ["provisioning.cattle.io"]
+  resources: [clusters]
+  verbs: [get, list, watch, patch]
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: [roles, rolebindings, clusterroles, clusterrolebindings]
+  verbs: [get, list, watch]
+- apiGroups: [""]
+  resources: [limitranges, namespaces, resourcequotas, secrets]
+  verbs: [get, list, watch]
+- apiGroups: [""]
+  resources: [configmaps]
+  verbs: [get]
+- apiGroups: ["rke.cattle.io"]
+  resources: [etcdsnapshots, rkecontrolplanes]
+  verbs: [get, list, watch]
+- apiGroups: ["apiregistration.k8s.io"]
+  resources: [apiservices]
+  verbs: [get, list, watch]
+- apiGroups: ["apiextensions.k8s.io"]
+  resources: [customresourcedefinitions]
+  verbs: [get, list, watch]
+- apiGroups: ["cluster.x-k8s.io"]
+  resources: [machinedeployments, clusters]
+  verbs: [get, list, watch]
+- apiGroups: ["infrastructure.cluster.x-k8s.io"]
+  resources: [awsclusters, awsclusterstaticidentities]
+  verbs: [get, list, watch]
+- apiGroups: ["rke-machine-config.cattle.io"]
+  resources: ["*"]
+  verbs: [get, list, watch]
+- apiGroups: ["rke-machine.cattle.io"]
+  resources:
+    - amazonec2machines
+    - azuremachines
+    - digitaloceanmachines
+    - harvestermachines
+    - linodemachines
+    - vmwarevspheremachines
+  verbs: [get, list, watch]
+- apiGroups: ["catalog.cattle.io"]
+  resources: [clusterrepos]
+  verbs: [get, list, watch]
+- apiGroups: ["auditlog.cattle.io"]
+  resources: [auditpolicies]
+  verbs: [get, list, watch]
+- apiGroups: ["cluster.cattle.io"]
+  resources: [clusterauthtokens]
+  verbs: [get, list, watch]
+- apiGroups: ["coordination.k8s.io"]
+  resources: [leases]
+  verbs: [get, list, watch, create, update]
+# --- Write operations ---
+- apiGroups: ["authorization.k8s.io"]
+  resources: [subjectaccessreviews]
+  verbs: [create]
+- apiGroups: [""]
+  resources: [namespaces]
+  verbs: [create]
+- apiGroups: [""]
+  resources: [secrets]
+  verbs: [create, update, delete]
+- apiGroups: ["*"]
+  resources: [secrets]
+  verbs: [delete]
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: [roles]
+  verbs: [update]
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: [rolebindings, clusterrolebindings]
+  verbs: [create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rancher-webhook-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rancher-webhook
+subjects:
+- kind: ServiceAccount
+  name: rancher-webhook
+  namespace: {{.Release.Namespace}}
