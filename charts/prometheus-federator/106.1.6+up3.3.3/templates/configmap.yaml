@@ -1,0 +1,14 @@
+## Note: If you add another entry to this ConfigMap, make sure a corresponding env var is set
+## in the deployment of the operator to ensure that a Helm upgrade will force the operator
+## to reload the values in the ConfigMap and redeploy
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "prometheus-federator.name" . }}-config
+  namespace: {{ template "prometheus-federator.namespace" . }}
+  labels: {{ include "prometheus-federator.labels" . | indent 4 }}
+data:
+  hardened.yaml: |-
+{{ .Values.helmProjectOperator.hardenedNamespaces.configuration | toYaml | indent 4 }}
+  values.yaml: |-
+{{ .Values.helmProjectOperator.valuesOverride | toYaml | indent 4 }}
