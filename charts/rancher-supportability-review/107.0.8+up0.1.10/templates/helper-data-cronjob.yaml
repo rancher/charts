@@ -1,0 +1,52 @@
+# Uploads the helper data from the newest analyzer image to the bundle store.
+# The image is pulled on every run, so a new analyzer image under the same tag
+# reaches the UI without restarting anything.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: sr-helper-data
+  namespace: {{ .Release.Namespace }}
+spec:
+  schedule: {{ .Values.helperData.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            sr-app: helper-data
+        spec:
+          {{- if .Values.privateRegistry.registrySecret }}
+          imagePullSecrets:
+          - name: {{ .Values.privateRegistry.registrySecret }}
+          {{- end }}
+          automountServiceAccountToken: false
+          restartPolicy: Never
+          containers:
+          - name: helper-data
+            image: {{ template "registry_url" . }}{{ .Values.image.analyzer.repository }}:{{ .Values.image.analyzer.tag }}
+            imagePullPolicy: Always
+            command:
+            - sh
+            - -c
+            - |
+              set -e
+              for name in {{ join " " .Values.helperData.files }}; do
+                curl --fail-with-body --silent --show-error --max-time 30 \
+                  -X POST -H 'Content-Type: application/json' \
+                  --data-binary "@/helper_data/${name}.json" \
+                  "http://sr-bundle-app-frontend-service/helper?name=${name}"
+                echo "uploaded ${name}"
+              done
+            resources:
+              requests:
+                memory: {{ .Values.resources.analyzer.requests.memory }}
+                cpu: {{ .Values.resources.analyzer.requests.cpu }}
+              limits:
+                memory: {{ .Values.resources.analyzer.limits.memory }}
+                cpu: {{ .Values.resources.analyzer.limits.cpu }}
+          nodeSelector:
+            kubernetes.io/os: linux
