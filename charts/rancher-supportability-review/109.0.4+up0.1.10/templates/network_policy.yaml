@@ -1,0 +1,103 @@
+# Deny everything that the policies below do not allow.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sr-default-deny
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sr-allow-dns
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+---
+# The bundle store. The operator, the collection job and the helper data
+# CronJob reach it from inside the namespace, and the Rancher UI reaches it
+# through the API server service proxy, whose source address is not a pod, so
+# the source is left open.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sr-app-frontend-ingress
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      sr-app: app-frontend
+  policyTypes:
+  - Ingress
+  ingress:
+  - ports:
+    - port: 80
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sr-egress-to-app-frontend
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          sr-app: app-frontend
+    ports:
+    - port: 80
+      protocol: TCP
+---
+# The operator talks to the API server. Most CNIs match egress after the
+# kubernetes Service is translated to the API server address, which differs per
+# cluster, so only the port is restricted.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sr-operator-egress
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "rancher-supportability-review.selectorLabels" . | nindent 6 }}
+  policyTypes:
+  - Egress
+  egress:
+  - ports:
+    - port: 443
+      protocol: TCP
+    - port: 6443
+      protocol: TCP
+---
+# The collection job connects to the Rancher URL and the proxies given in the
+# ReviewBundle, which can be any host and port.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sr-collector-egress
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchExpressions:
+    - key: sr.cattle.io/reviewbundle
+      operator: Exists
+  policyTypes:
+  - Egress
+  egress:
+  - {}
