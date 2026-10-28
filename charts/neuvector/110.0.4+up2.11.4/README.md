@@ -80,7 +80,7 @@ Parameter | Description | Default | Notes
 `controller.affinity` | controller affinity rules  | ... | spread controllers to different nodes |
 `controller.topologySpreadConstraints` | List of constraints to control Pods spread across the cluster | `nil` |
 `controller.tolerations` | List of node taints to tolerate | `nil` |
-`controller.resources` | Add resources requests and limits to controller deployment | `{}` | see examples in [values.yaml](https://github.com/neuvector/neuvector-helm/tree/2.11.3/charts/core/values.yaml)
+`controller.resources` | Add resources requests and limits to controller deployment | `{}` | see examples in [values.yaml](https://github.com/neuvector/neuvector-helm/tree/2.11.4/charts/core/values.yaml)
 `controller.nodeSelector` | Enable and specify nodeSelector labels | `{}` |
 `controller.disruptionbudget` | controller PodDisruptionBudget. 0 to disable. Recommended value: 2. | `0` |
 `controller.priorityClassName` | controller priorityClassName. Must exist prior to helm deployment. Leave empty to disable. | `nil` |
@@ -187,7 +187,7 @@ Parameter | Description | Default | Notes
 `enforcer.podAnnotations` | Specify the pod annotations. | `{}` |
 `enforcer.env` | User-defined environment variables for enforcers. | `[]` |
 `enforcer.tolerations` | List of node taints to tolerate | `- effect: NoSchedule`<br>`key: node-role.kubernetes.io/master` | other taints can be added after the default
-`enforcer.resources` | Add resources requests and limits to enforcer deployment | `{}` | see examples in [values.yaml](https://github.com/neuvector/neuvector-helm/tree/2.11.3/charts/core/values.yaml)
+`enforcer.resources` | Add resources requests and limits to enforcer deployment | `{}` | see examples in [values.yaml](https://github.com/neuvector/neuvector-helm/tree/2.11.4/charts/core/values.yaml)
 `enforcer.internal.certificate.secret` | Secret name to be used for custom enforcer internal certificate | `nil` |
 `enforcer.internal.certificate.keyFile` | Set PEM format key file for custom enforcer internal certificate | `tls.key` |
 `enforcer.internal.certificate.pemFile` | Set PEM format certificate file for custom enforcer internal certificate | `tls.crt` |
@@ -211,7 +211,7 @@ Parameter | Description | Default | Notes
 `manager.svc.type` | set manager service type for native Kubernetes | `NodePort`;<br>if it is OpenShift platform or ingress is enabled, then default is `ClusterIP` | set to LoadBalancer if using cloud providers, such as Azure, Amazon, Google
 `manager.svc.nodePort` | set manager service NodePort number |  `nil` |
 `manager.svc.loadBalancerIP` | if manager service type is LoadBalancer, this is used to specify the load balancer's IP | `nil` |
-`manager.svc.annotations` | Add annotations to manager service | `{}` | see examples in [values.yaml](https://github.com/neuvector/neuvector-helm/tree/2.11.3/charts/core/values.yaml)
+`manager.svc.annotations` | Add annotations to manager service | `{}` | see examples in [values.yaml](https://github.com/neuvector/neuvector-helm/tree/2.11.4/charts/core/values.yaml)
 `manager.route.enabled` | If true, create a OpenShift route to expose the management console service | `true` |
 `manager.route.host` | Set OpenShift route host for management console service | `nil` |
 `manager.route.termination` | Specify TLS termination for OpenShift route for management console service. Possible passthrough, edge, reencrypt | `passthrough` |
@@ -229,7 +229,7 @@ Parameter | Description | Default | Notes
 `manager.ingress.annotations` | Add annotations to ingress to influence behavior | `{}` | If `ingressClassName` is `nginx`, `nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"` is auto-added unless already set
 `manager.ingress.tls` | If true, TLS is enabled for manager ingress service |`false` | If set, the tls-host used is the one set with `manager.ingress.host`.
 `manager.ingress.secretName` | Name of the secret to be used for TLS-encryption | `nil` | Secret must be created separately (Let's encrypt, manually)
-`manager.resources` | Add resources requests and limits to manager deployment | `{}` | see examples in [values.yaml](https://github.com/neuvector/neuvector-helm/tree/2.11.3/charts/core/values.yaml)
+`manager.resources` | Add resources requests and limits to manager deployment | `{}` | see examples in [values.yaml](https://github.com/neuvector/neuvector-helm/tree/2.11.4/charts/core/values.yaml)
 `manager.affinity` | manager affinity rules  | `{}` |
 `manager.topologySpreadConstraints` | List of constraints to control Pods spread across the cluster | `nil` |
 `manager.tolerations` | List of node taints to tolerate | `nil` |
@@ -250,7 +250,7 @@ Parameter | Description | Default | Notes
 `cve.adapter.env` | User-defined environment variables for adapter. | `[]` |
 `cve.adapter.svc.type` | set registry adapter service type for native Kubernetes | `NodePort`;<br>if it is OpenShift platform or ingress is enabled, then default is `ClusterIP` | set to LoadBalancer if using cloud providers, such as Azure, Amazon, Google
 `cve.adapter.svc.loadBalancerIP` | if registry adapter service type is LoadBalancer, this is used to specify the load balancer's IP | `nil` |
-`cve.adapter.svc.annotations` | Add annotations to registry adapter service | `{}` | see examples in [values.yaml](https://github.com/neuvector/neuvector-helm/tree/2.11.3/charts/core/values.yaml)
+`cve.adapter.svc.annotations` | Add annotations to registry adapter service | `{}` | see examples in [values.yaml](https://github.com/neuvector/neuvector-helm/tree/2.11.4/charts/core/values.yaml)
 `cve.adapter.harbor.protocol` | Harbor registry request protocol [http|https] | `https` |
 `cve.adapter.harbor.secretName` | Harbor registry adapter's basic authentication secret | |
 `cve.adapter.route.enabled` | If true, create a OpenShift route to expose the management console service | `true` |
@@ -270,7 +270,7 @@ Parameter | Description | Default | Notes
 `cve.adapter.ingress.annotations` | Add annotations to ingress to influence behavior | `{}` | If `ingressClassName` is `nginx`, `nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"` is auto-added unless already set
 `cve.adapter.ingress.tls` | If true, TLS is enabled for registry adapter ingress service |`false` | If set, the tls-host used is the one set with `cve.adapter.ingress.host`.
 `cve.adapter.ingress.secretName` | Name of the secret to be used for TLS-encryption | `nil` | Secret must be created separately (Let's encrypt, manually)
-`cve.adapter.resources` | Add resources requests and limits to registry adapter deployment | `{}` | see examples in [values.yaml](https://github.com/neuvector/neuvector-helm/tree/2.11.3/charts/core/values.yaml)
+`cve.adapter.resources` | Add resources requests and limits to registry adapter deployment | `{}` | see examples in [values.yaml](https://github.com/neuvector/neuvector-helm/tree/2.11.4/charts/core/values.yaml)
 `cve.adapter.affinity` | registry adapter affinity rules  | `{}` |
 `cve.adapter.tolerations` | List of node taints to tolerate | `nil` |
 `cve.adapter.nodeSelector` | Enable and specify nodeSelector labels | `{}` |
@@ -288,7 +288,7 @@ Parameter | Description | Default | Notes
 `cve.updater.image.tag` | image tag for cve updater | `latest` |
 `cve.updater.image.hash` | cve updateer image hash in the format of sha256:xxxx. If present it overwrites the image tag value. | |
 `cve.updater.priorityClassName` | cve updater priorityClassName. Must exist prior to helm deployment. Leave empty to disable. | `nil` |
-`cve.updater.resources` | Add resources requests and limits to updater cronjob | `{}` | see examples in [values.yaml](https://github.com/neuvector/neuvector-helm/tree/2.11.3/charts/core/values.yaml)
+`cve.updater.resources` | Add resources requests and limits to updater cronjob | `{}` | see examples in [values.yaml](https://github.com/neuvector/neuvector-helm/tree/2.11.4/charts/core/values.yaml)
 `cve.updater.podLabels` | Specify the pod labels. | `{}` |
 `cve.updater.podAnnotations` | Specify the pod annotations. | `{}` |
 `cve.updater.schedule` | cronjob cve updater schedule | `0 0 * * *` |
@@ -307,7 +307,7 @@ Parameter | Description | Default | Notes
 `cve.scanner.env` | User-defined environment variables for scanner. | `[]` |
 `cve.scanner.replicas` | external scanner replicas | `3` |
 `cve.scanner.dockerPath` | the remote docker socket if CI/CD integration need scan images before they are pushed to the registry | `nil` |
-`cve.scanner.resources` | Add resources requests and limits to scanner deployment | `{}` | see examples in [values.yaml](https://github.com/neuvector/neuvector-helm/tree/2.11.3/charts/core/values.yaml) |
+`cve.scanner.resources` | Add resources requests and limits to scanner deployment | `{}` | see examples in [values.yaml](https://github.com/neuvector/neuvector-helm/tree/2.11.4/charts/core/values.yaml) |
 `cve.scanner.affinity` | scanner affinity rules  | `{}` |
 `cve.scanner.topologySpreadConstraints` | List of constraints to control Pods spread across the cluster | `nil` |
 `cve.scanner.tolerations` | List of node taints to tolerate | `nil` |
