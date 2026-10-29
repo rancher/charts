@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Mark chart versions as released in release/<x.y.z>.yaml tracking files
+#
+# For every entry with ToRelease: true and Released: false, flips Released to
+# true when the chart version is present in index.yaml of release-v<x.y>.
+#
+# Usage: ./release/scripts/release-done
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+RELEASE_DIR="$REPO_ROOT/release"
+REPO="rancher/charts"
+
+verify() {
+    local cmd
+    for cmd in yq gh; do
+        if ! command -v "$cmd" &> /dev/null; then
+            echo "Error: $cmd is required but not installed" >&2
+            exit 1
+        fi
+    done
+}
+
+# fetch_index <branch> <dest>
+fetch_index() {
+    # raw media type: contents API JSON mode is capped at 1MB, index.yaml is bigger
+    gh api -H 'Accept: application/vnd.github.raw' \
+        "repos/${REPO}/contents/index.yaml?ref=$1" > "$2"
+}
+
+# pending_pairs <release_file>
+# prints "<chart> <version>" for every ToRelease: true and Released: false entry
+pending_pairs() {
+    yq -r '
+        to_entries[] | .key as $chart | .value | to_entries[]
+        | select(.value.ToRelease == true and .value.Released == false)
+        | $chart + " " + .key
+    ' "$1"
+}
+
+# released_count <release_file>
+# prints how many ToRelease: true entries are already Released: true
+released_count() {
+    yq '
+        [.[] | .[] | select(.ToRelease == true and .Released == true)] | length
+    ' "$1"
+}
+
+# index_pairs <index_file>
+# prints "<chart> <version>" for every entry in index.yaml
+index_pairs() {
+    yq -r '.entries | to_entries[] | .key as $chart | .value[] | $chart + " " + .version' "$1"
+}
+
+# mark_released <release_file> <chart> <version>
+mark_released() {
+    CHART="$2" VERSION="$3" yq -i '.[strenv(CHART)][strenv(VERSION)].Released = true' "$1"
+}
+
+main() {
+    local file minor branch index shipped chart version skipped flipped pending
+
+    verify
+
+    index="$(mktemp)"
+    shipped="$(mktemp)"
+    # expanded now: EXIT runs after main returns and the locals are gone
+    trap "rm -f '$index' '$shipped'" EXIT
+
+    for file in "$RELEASE_DIR"/*.yaml; do
+        # 2.14.7.yaml -> 2.14
+        minor="$(basename "$file" .yaml | grep -oE '^[0-9]+\.[0-9]+')"
+        branch="release-v${minor}"
+
+        echo "==> $(basename "$file") ($branch)"
+        fetch_index "$branch" "$index"
+        index_pairs "$index" > "$shipped"
+
+        skipped="$(released_count "$file")"
+        flipped=0
+        pending=0
+
+        while read -r chart version; do
+            if grep -qxF "$chart $version" "$shipped"; then
+                mark_released "$file" "$chart" "$version"
+                echo "    released: $chart $version"
+                flipped=$((flipped + 1))
+            else
+                echo "    pending:  $chart $version"
+                pending=$((pending + 1))
+            fi
+        done < <(pending_pairs "$file")
+
+        echo "    -- released: $flipped | pending: $pending | already released: $skipped"
+    done
+}
+
+main "$@"
