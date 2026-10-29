@@ -13,6 +13,18 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 RELEASE_DIR="$REPO_ROOT/release"
 REPO="rancher/charts"
+FETCH_ATTEMPTS=3
+
+# colors only on a terminal, keeps logs and CI output clean
+if [[ -t 1 ]]; then
+    RED=$'\033[1;91m'
+    GREEN=$'\033[92m'
+    RESET=$'\033[0m'
+else
+    RED=""
+    GREEN=""
+    RESET=""
+fi
 
 verify() {
     local cmd
@@ -25,10 +37,22 @@ verify() {
 }
 
 # fetch_index <branch> <dest>
+# retries: large raw downloads fail intermittently with "unexpected EOF"
 fetch_index() {
-    # raw media type: contents API JSON mode is capped at 1MB, index.yaml is bigger
-    gh api -H 'Accept: application/vnd.github.raw' \
-        "repos/${REPO}/contents/index.yaml?ref=$1" > "$2"
+    local attempt
+
+    for ((attempt = 1; attempt <= FETCH_ATTEMPTS; attempt++)); do
+        # raw media type: contents API JSON mode is capped at 1MB, index.yaml is bigger
+        if gh api -H 'Accept: application/vnd.github.raw' \
+            "repos/${REPO}/contents/index.yaml?ref=$1" > "$2"; then
+            return 0
+        fi
+        echo "    fetch index.yaml failed (${attempt}/${FETCH_ATTEMPTS})" >&2
+        sleep $((attempt * 2))
+    done
+
+    echo "${RED}Error: could not fetch index.yaml from $1${RESET}" >&2
+    return 1
 }
 
 # pending_pairs <release_file>
@@ -61,7 +85,8 @@ mark_released() {
 }
 
 main() {
-    local file minor branch index shipped chart version skipped flipped pending
+    local file minor branch index shipped chart version skipped flipped pending color
+    local missed=()
 
     verify
 
@@ -86,16 +111,25 @@ main() {
         while read -r chart version; do
             if grep -qxF "$chart $version" "$shipped"; then
                 mark_released "$file" "$chart" "$version"
-                echo "    released: $chart $version"
+                echo "${GREEN}    released: $chart $version${RESET}"
                 flipped=$((flipped + 1))
             else
-                echo "    pending:  $chart $version"
+                echo "${RED}    pending:  $chart $version${RESET}"
+                missed+=("$(basename "$file") $chart $version")
                 pending=$((pending + 1))
             fi
         done < <(pending_pairs "$file")
 
-        echo "    -- released: $flipped | pending: $pending | already released: $skipped"
+        color=""
+        ((pending > 0)) && color="$RED"
+        echo "${color}    -- released: $flipped | pending: $pending | already released: $skipped${RESET}"
     done
+
+    if ((${#missed[@]} > 0)); then
+        echo
+        echo "${RED}!!! ToRelease: true but NOT in release-v* index.yaml: NOT RELEASED !!!${RESET}"
+        printf "${RED}!!!   %s${RESET}\n" "${missed[@]}"
+    fi
 }
 
 main "$@"
