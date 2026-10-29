@@ -1,0 +1,29 @@
+suite: Extra Annotations
+templates:
+  - deployment.yaml
+  - s3-secret.yaml
+  - pvc.yaml
+  - _helpers.tpl
+tests:
+  - it: should set extraAnnotations in rancher-backup deployment
+    set:
+      image.tag: v0.0.0
+      extraAnnotations:
+        test-annotation-1: testvalue1
+        test-annotation-2: testvalue2
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations.test-annotation-1
+          value: testvalue1
+      - equal:
+          path: spec.template.metadata.annotations.test-annotation-2
+          value: testvalue2
+  - it: should not set extraAnnotations when empty
+    set:
+      image.tag: v0.0.0
+      extraAnnotations: {}
+    template: deployment.yaml
+    asserts:
+      - notExists:
+          path: spec.template.metadata.annotations.test-annotation-1
