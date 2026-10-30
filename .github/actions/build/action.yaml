@@ -303,6 +303,21 @@ runs:
     #   run: ./scripts/package-ci
 
     # ====================================================================
+    # Image Annotation Validation
+    # New chart versions must list their images in helm.sh/images (HIP-0015)
+    # (dev-v branches only; release-v PRs promote already-validated charts)
+    # ====================================================================
+    - name: Validate helm.sh/images annotation on new charts
+      if: steps.check_changes.outputs.needs_validation == 'true' && contains(inputs.base_ref, 'dev-v')
+      shell: bash
+      env:
+        BASE_REF: ${{ inputs.base_ref }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        "${ACTION_PATH}/../../scripts/check-image-annotations.sh" \
+          "${BASE_REF}" "${ACTION_PATH}/../../../config/image-annotations.yaml"
+
+    # ====================================================================
     # Docker Image Tag Validation
     # Lint Docker image tags in chart values files
     # ====================================================================
@@ -430,6 +445,7 @@ runs:
         ### Checks Run
         - Release YAML validation
         - Package CI validation
+        - helm.sh/images annotation (new charts, dev branches)
         - Docker image tag lint
         - Helm index validation
         - Docker image availability"
