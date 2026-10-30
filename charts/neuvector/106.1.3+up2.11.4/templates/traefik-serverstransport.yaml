@@ -1,0 +1,19 @@
+{{- if eq .Values.ingressController "traefik" }}
+apiVersion: traefik.io/v1alpha1
+kind: ServersTransport
+metadata:
+  name: {{ .Values.traefik.serversTransport.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+spec:
+  insecureSkipVerify: {{ .Values.traefik.serversTransport.insecureSkipVerify }}
+  {{- with .Values.traefik.serversTransport.serverName }}
+  serverName: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.traefik.serversTransport.rootCAsSecrets }}
+  rootCAsSecrets:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
