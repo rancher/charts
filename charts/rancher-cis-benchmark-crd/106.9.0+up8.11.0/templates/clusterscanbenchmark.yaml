@@ -1,0 +1,55 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: clusterscanbenchmarks.cis.cattle.io
+spec:
+  group: cis.cattle.io
+  names:
+    kind: ClusterScanBenchmark
+    plural: clusterscanbenchmarks
+    singular: clusterscanbenchmark
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.clusterProvider
+      name: ClusterProvider
+      type: string
+    - jsonPath: .spec.minKubernetesVersion
+      name: MinKubernetesVersion
+      type: string
+    - jsonPath: .spec.maxKubernetesVersion
+      name: MaxKubernetesVersion
+      type: string
+    - jsonPath: .spec.customBenchmarkConfigMapName
+      name: customBenchmarkConfigMapName
+      type: string
+    - jsonPath: .spec.customBenchmarkConfigMapNamespace
+      name: customBenchmarkConfigMapNamespace
+      type: string
+    name: v1
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              clusterProvider:
+                nullable: true
+                type: string
+              customBenchmarkConfigMapName:
+                nullable: true
+                type: string
+              customBenchmarkConfigMapNamespace:
+                nullable: true
+                type: string
+              maxKubernetesVersion:
+                nullable: true
+                type: string
+              minKubernetesVersion:
+                nullable: true
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

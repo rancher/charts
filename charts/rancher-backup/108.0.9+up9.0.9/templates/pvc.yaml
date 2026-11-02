@@ -1,0 +1,27 @@
+{{- if and .Values.persistence.enabled -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "backupRestore.pvcName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "backupRestore.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+     {{- with .Values.persistence }}
+    requests:
+      storage: {{ .size | quote }}
+{{- if .storageClass }}
+{{- if (eq "-" .storageClass) }}
+  storageClassName: ""
+{{- else }}
+  storageClassName: {{ .storageClass | quote }}
+{{- end }}
+{{- end }}
+{{- if .volumeName }}
+  volumeName: {{ .volumeName | quote }}
+{{- end }}
+{{- end }}
+{{- end }}

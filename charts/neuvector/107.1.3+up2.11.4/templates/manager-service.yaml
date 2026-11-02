@@ -1,0 +1,39 @@
+{{- if .Values.manager.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: neuvector-service-webui
+  namespace: {{ .Release.Namespace }}
+  annotations:
+{{- if and (eq .Values.ingressController "traefik") .Values.manager.env.ssl (not (hasKey .Values.manager.svc.annotations "traefik.ingress.kubernetes.io/service.serversscheme")) }}
+    traefik.ingress.kubernetes.io/service.serversscheme: https
+    traefik.ingress.kubernetes.io/service.serverstransport: "{{ .Release.Namespace }}-{{ .Values.traefik.serversTransport.name }}@kubernetescrd"
+{{- end }}
+{{- with .Values.manager.svc.annotations }}
+{{ toYaml . | indent 4 }}
+{{- end }}
+  labels:
+    chart: {{ template "neuvector.chart" . }}
+    release: {{ .Release.Name }}
+spec:
+  type: {{ .Values.manager.svc.type }}
+{{- if and .Values.manager.svc.loadBalancerIP (eq .Values.manager.svc.type "LoadBalancer") }}
+  loadBalancerIP: {{ .Values.manager.svc.loadBalancerIP }}
+{{- end }}
+  ports:
+    - port: {{ .Values.manager.svc.mgrServerPort}}
+      name: manager
+      protocol: TCP
+{{- if .Values.manager.svc.nodePort }}
+      nodePort: {{ .Values.manager.svc.nodePort }}
+{{- end }}        
+{{- if or (.Capabilities.KubeVersion.GitVersion | contains "-eks") (.Capabilities.KubeVersion.GitVersion | contains "-gke") }}
+{{- if .Values.manager.env.ssl }}
+      appProtocol: HTTPS
+{{- else }}
+      appProtocol: HTTP
+{{- end }}
+{{- end }}
+  selector:
+    app: neuvector-manager-pod
+{{- end }}
