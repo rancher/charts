@@ -1,0 +1,44 @@
+suite: PrometheusRules
+templates:
+  - prometheus-rules.yaml
+capabilities:
+  apiVersions:
+    - monitoring.coreos.com/v1
+tests:
+  - it: should not render PrometheusRule by default
+    template: prometheus-rules.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: should render PrometheusRule when default alert enabled
+    set:
+      monitoring.prometheusRules.defaultAlert.enabled: true
+    template: prometheus-rules.yaml
+    asserts:
+      - isKind:
+          of: PrometheusRule
+  - it: should set default alert window in expr
+    set:
+      monitoring.prometheusRules.defaultAlert.enabled: true
+      monitoring.prometheusRules.defaultAlert.window: "5m"
+    template: prometheus-rules.yaml
+    asserts:
+      - matchRegex:
+          path: spec.groups[0].rules[2].expr
+          pattern: "\\[5m\\]"
+  - it: should render PrometheusRule when custom rules enabled
+    set:
+      monitoring.prometheusRules.customRules.enabled: true
+      monitoring.prometheusRules.customRules.rules:
+        - record: test_record
+          expr: rancher_backups_test_record
+    template: prometheus-rules.yaml
+    asserts:
+      - isKind:
+          of: PrometheusRule
+      - equal:
+          path: spec.groups[0].rules[0].record
+          value: test_record
+      - equal:
+          path: spec.groups[0].rules[0].expr
+          value: rancher_backups_test_record

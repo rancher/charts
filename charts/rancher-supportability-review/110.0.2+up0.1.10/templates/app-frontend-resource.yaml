@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sr-bundle-app-frontend-deployment
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      sr-app: app-frontend
+  template:
+    metadata:
+      labels:
+        sr-app: app-frontend
+    spec:
+      {{- if .Values.privateRegistry.registrySecret }}
+      imagePullSecrets:
+      - name: {{ .Values.privateRegistry.registrySecret }}
+      {{- end }}
+      # Seed the helper data from the analyzer image so the UI has it as soon as
+      # the store is up. The helper-data CronJob keeps it current afterwards.
+      initContainers:
+      - name: helper-data
+        image: {{ template "registry_url" . }}{{ .Values.image.analyzer.repository }}:{{ .Values.image.analyzer.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command:
+        - sh
+        - -c
+        - cp {{ range .Values.helperData.files }}/helper_data/{{ . }}.json {{ end }}/data/helper/
+        resources:
+          requests:
+            memory: {{ .Values.resources.analyzer.requests.memory }}
+            cpu: {{ .Values.resources.analyzer.requests.cpu }}
+          limits:
+            memory: {{ .Values.resources.analyzer.limits.memory }}
+            cpu: {{ .Values.resources.analyzer.limits.cpu }}
+        volumeMounts:
+        - name: helper-data
+          mountPath: /data/helper
+      containers:
+      - name: app-frontend
+        image: {{ template "registry_url" . }}{{ .Values.image.appFrontend.repository }}:{{ .Values.image.appFrontend.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+        - name: SR_BUNDLE_STORE_DIR
+          value: /data/bundles
+        - name: SR_HELPER_DATA_DIR
+          value: /data/helper
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            memory: {{ .Values.resources.appFrontend.requests.memory }}
+            cpu: {{ .Values.resources.appFrontend.requests.cpu }}
+            ephemeral-storage: {{ .Values.resources.appFrontend.requests.ephemeralStorage }}
+          limits:
+            memory: {{ .Values.resources.appFrontend.limits.memory }}
+            cpu: {{ .Values.resources.appFrontend.limits.cpu }}
+            ephemeral-storage: {{ .Values.resources.appFrontend.limits.ephemeralStorage }}
+        volumeMounts:
+        - name: bundle-store
+          mountPath: /data/bundles
+        - name: helper-data
+          mountPath: /data/helper
+      volumes:
+      - name: bundle-store
+        emptyDir: {}
+      - name: helper-data
+        emptyDir: {}
+      nodeSelector:
+        kubernetes.io/os: linux
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sr-bundle-app-frontend-service
+  namespace: {{ .Release.Namespace }}
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    sr-app: app-frontend
