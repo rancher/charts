@@ -8,7 +8,7 @@
 - [ ] Maintain supply-chain security through `automation-core branch && CI`
 - [ ] Out-of-Band Releases && Forward-ports
 - [ ] Determine which versions will be released
-- [ ] Create respective Confluence tables
+- [ ] Create respective release/yamls for GitOps tracking: https://github.com/rancher/charts/tree/automation-core/release
 - [ ] Public announcement on company Slack
 - [ ] Coordination charts release between teams.
 - [ ] Execute batch releases
@@ -16,7 +16,7 @@
 - [ ] Release Prime Charts
 - [ ] Forward Port released Prime Charts (don't sync again)
 - [ ] Update branch references on Rancher before release.
-- [ ] Update product confluence table with necessary chart versions.
+- [ ] Update product matrix versions with a PR following the pattern: [automation-core] Update released charts - October/2026 #9313
 - [ ] Clean release.yaml at Prime and Rancher Charts post-release
 - [ ] Update branch references on Rancher after release.
 ---
