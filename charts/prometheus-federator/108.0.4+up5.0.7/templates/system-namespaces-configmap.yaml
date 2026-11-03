@@ -1,0 +1,62 @@
+{{- if .Values.helmProjectOperator.systemNamespacesConfigMap.create }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "prometheus-federator.name" . }}-system-namespaces
+  namespace: {{ template "prometheus-federator.namespace" . }}
+  labels: {{ include "prometheus-federator.labels" . | indent 4 }}
+data:
+  system-namespaces.json: |-
+    {
+{{- if .Values.helmProjectOperator.projectReleaseNamespaces.enabled }}
+{{- if .Values.helmProjectOperator.projectReleaseNamespaces.labelValue }}
+      "projectReleaseLabelValue": {{ .Values.helmProjectOperator.projectReleaseNamespaces.labelValue | quote }},
+{{- else if .Values.global.cattle.systemProjectId }}
+      "projectReleaseLabelValue": {{ .Values.global.cattle.systemProjectId | quote }},
+{{- else }}
+      "projectReleaseLabelValue": "",
+{{- end }}
+{{- else }}
+      "projectReleaseLabelValue": "",
+{{- end }}
+{{- if not .Values.helmProjectOperator.projectReleaseNamespaces.enabled }}
+      "systemProjectLabelValues": {{ append .Values.helmProjectOperator.otherSystemProjectLabelValues .Values.global.cattle.systemProjectId | toJson }}
+{{- else if and (ne (len .Values.global.cattle.systemProjectId) 0) (ne (len .Values.helmProjectOperator.projectReleaseNamespaces.labelValue) 0) (ne .Values.helmProjectOperator.projectReleaseNamespaces.labelValue .Values.global.cattle.systemProjectId) }}
+      "systemProjectLabelValues": {{ append .Values.helmProjectOperator.otherSystemProjectLabelValues .Values.global.cattle.systemProjectId | toJson }}
+{{- else if len .Values.helmProjectOperator.otherSystemProjectLabelValues }}
+      "systemProjectLabelValues": {{ .Values.helmProjectOperator.otherSystemProjectLabelValues | toJson }}
+{{- else }}
+      "systemProjectLabelValues": []
+{{- end }}
+    }
+---
+{{- if (and .Values.helmProjectOperator.systemNamespacesConfigMap.rbac.enabled .Values.helmProjectOperator.systemNamespacesConfigMap.rbac.subjects) }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ template "prometheus-federator.name" . }}-system-namespaces
+  namespace: {{ template "prometheus-federator.namespace" . }}
+  labels: {{ include "prometheus-federator.labels" . | indent 4 }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  resourceNames:
+  - "{{ template "prometheus-federator.name" . }}-system-namespaces"
+  verbs:
+  - 'get'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ template "prometheus-federator.name" . }}-system-namespaces
+  namespace: {{ template "prometheus-federator.namespace" . }}
+  labels: {{ include "prometheus-federator.labels" . | indent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ template "prometheus-federator.name" . }}-system-namespaces
+subjects: {{ .Values.helmProjectOperator.systemNamespacesConfigMap.rbac.subjects | toYaml | nindent 2 }}
+{{- end }}
+{{- end }}
