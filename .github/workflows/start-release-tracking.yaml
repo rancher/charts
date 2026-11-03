@@ -203,26 +203,26 @@ jobs:
           echo "parent_number=$issue_number" >> $GITHUB_OUTPUT
           echo "::notice::Created parent issue: $issue_url"
 
-      - name: Create sub-issues
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          parent_number="${{ steps.parent.outputs.parent_number }}"
-          template=$(cat templates/charts-release-subissue.md)
+      # - name: Create sub-issues
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: |
+      #     parent_number="${{ steps.parent.outputs.parent_number }}"
+      #     template=$(cat templates/charts-release-subissue.md)
 
-          VERSIONS="${{ steps.validate.outputs.versions }}"
-          IFS=',' read -ra VERSION_ARRAY <<< "${VERSIONS}"
+      #     VERSIONS="${{ steps.validate.outputs.versions }}"
+      #     IFS=',' read -ra VERSION_ARRAY <<< "${VERSIONS}"
 
-          for version in "${VERSION_ARRAY[@]}"; do
-            body=$(echo "$template" | sed "s|<--version-->|${version}|g")
-            body="Parent: #${parent_number}\n\n${body}"
+      #     for version in "${VERSION_ARRAY[@]}"; do
+      #       body=$(echo "$template" | sed "s|<--version-->|${version}|g")
+      #       body="Parent: #${parent_number}\n\n${body}"
 
-            issue_url=$(gh issue create \
-              --title "${version}" \
-              --body "$body" \
-              --label "release-tracking" \
-              --repo ${{ github.repository }})
+      #       issue_url=$(gh issue create \
+      #         --title "${version}" \
+      #         --body "$body" \
+      #         --label "release-tracking" \
+      #         --repo ${{ github.repository }})
 
-            issue_number=$(echo "$issue_url" | grep -oE '[0-9]+$')
-            echo "::notice::Created sub-issue #${issue_number} for ${version}"
-          done
+      #       issue_number=$(echo "$issue_url" | grep -oE '[0-9]+$')
+      #       echo "::notice::Created sub-issue #${issue_number} for ${version}"
+      #     done
