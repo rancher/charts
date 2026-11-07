@@ -1,0 +1,35 @@
+suite: PSP
+templates:
+  - psp.yaml
+tests:
+  - it: should not render PSP when disabled (default)
+    template: psp.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: should render PSP when enabled
+    set:
+      global.cattle.psp.enabled: true
+    template: psp.yaml
+    asserts:
+      - isKind:
+          of: PodSecurityPolicy
+  - it: should set PSP name when enabled
+    set:
+      global.cattle.psp.enabled: true
+    template: psp.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: rancher-backup-psp
+  - it: should not allow privilege escalation
+    set:
+      global.cattle.psp.enabled: true
+    template: psp.yaml
+    asserts:
+      - equal:
+          path: spec.allowPrivilegeEscalation
+          value: false
+      - equal:
+          path: spec.privileged
+          value: false

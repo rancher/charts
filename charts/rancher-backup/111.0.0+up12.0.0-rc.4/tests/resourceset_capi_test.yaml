@@ -1,0 +1,224 @@
+suite: ResourceSet CAPI and Turtles selectors
+tests:
+  - it: basic ResourceSet should select each CAPI provider at the version it serves
+    template: rancher-resourceset-basic.yaml
+    asserts:
+      - contains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "infrastructure.cluster.x-k8s.io/v1beta2"
+            kindsRegexp: "^AWS|^ROSA"
+      - contains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "infrastructure.cluster.x-k8s.io/v1beta1"
+            kindsRegexp: "^Azure"
+      - contains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "infrastructure.cluster.x-k8s.io/v1beta2"
+            kindsRegexp: "^Docker|^Dev"
+      - contains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "infrastructure.cluster.x-k8s.io/v1beta1"
+            kindsRegexp: "^GCP"
+      - contains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "infrastructure.cluster.x-k8s.io/v1beta2"
+            kindsRegexp: "^VSphere"
+      - contains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "vmware.infrastructure.cluster.x-k8s.io/v1beta2"
+            kindsRegexp: "."
+      - contains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "controlplane.cluster.x-k8s.io/v1beta2"
+            kindsRegexp: "^AWS|^ROSA"
+      - contains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "controlplane.cluster.x-k8s.io/v1beta2"
+            kindsRegexp: "^Kubeadm"
+      - contains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "controlplane.cluster.x-k8s.io/v1beta2"
+            kindsRegexp: "^RKE2"
+      - contains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "bootstrap.cluster.x-k8s.io/v1beta2"
+            kindsRegexp: "^EKS|^Nodeadm"
+      - contains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "bootstrap.cluster.x-k8s.io/v1beta1"
+            kindsRegexp: "^GKE"
+      - contains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "bootstrap.cluster.x-k8s.io/v1beta2"
+            kindsRegexp: "^Kubeadm"
+      - contains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "bootstrap.cluster.x-k8s.io/v1beta2"
+            kindsRegexp: "^RKE2"
+
+  - it: basic ResourceSet should include the CAPI core sub-groups
+    template: rancher-resourceset-basic.yaml
+    asserts:
+      - contains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "addons.cluster.x-k8s.io/v1beta2"
+            kindsRegexp: "."
+      - contains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "ipam.cluster.x-k8s.io/v1beta2"
+            kindsRegexp: "."
+      - contains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "runtime.cluster.x-k8s.io/v1beta2"
+            kindsRegexp: "."
+
+  # Groups shared by several providers must not have a catch-all selector: providers
+  # serving more than one version would be backed up once per selected version.
+  - it: basic ResourceSet should not select all kinds of a shared CAPI provider group
+    template: rancher-resourceset-basic.yaml
+    asserts:
+      - notContains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "infrastructure.cluster.x-k8s.io/v1beta1"
+            kindsRegexp: "."
+      - notContains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "infrastructure.cluster.x-k8s.io/v1beta2"
+            kindsRegexp: "."
+      - notContains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "controlplane.cluster.x-k8s.io/v1beta1"
+            kindsRegexp: "."
+      - notContains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "controlplane.cluster.x-k8s.io/v1beta2"
+            kindsRegexp: "."
+      - notContains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "bootstrap.cluster.x-k8s.io/v1beta1"
+            kindsRegexp: "."
+      - notContains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "bootstrap.cluster.x-k8s.io/v1beta2"
+            kindsRegexp: "."
+
+  - it: full ResourceSet should include the CAPI provider selectors too
+    template: rancher-resourceset-full.yaml
+    asserts:
+      - contains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "infrastructure.cluster.x-k8s.io/v1beta1"
+            kindsRegexp: "^Azure"
+      - contains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "bootstrap.cluster.x-k8s.io/v1beta2"
+            kindsRegexp: "^RKE2"
+
+  - it: full ResourceSet should include CAPI secret selectors
+    template: rancher-resourceset-full.yaml
+    asserts:
+      - contains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "v1"
+            kindsRegexp: "^secrets$"
+            fieldSelectors:
+              type: "addons.cluster.x-k8s.io/resource-set"
+
+  - it: basic ResourceSet should not include any CAPI secret selectors
+    template: rancher-resourceset-basic.yaml
+    asserts:
+      - notContains:
+          path: resourceSelectors
+          any: true
+          content:
+            kindsRegexp: "^secrets$"
+            labelSelectors:
+              matchExpressions:
+                - key: "cluster.x-k8s.io/cluster-name"
+                  operator: "Exists"
+      - notContains:
+          path: resourceSelectors
+          any: true
+          content:
+            kindsRegexp: "^secrets$"
+            fieldSelectors:
+              type: "addons.cluster.x-k8s.io/resource-set"
+
+  - it: both ResourceSets should honour the resources.cattle.io/backup opt-in on namespaces and configmaps
+    templates:
+      - rancher-resourceset-basic.yaml
+      - rancher-resourceset-full.yaml
+    asserts:
+      - contains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "v1"
+            kindsRegexp: "^namespaces$"
+            labelSelectors:
+              matchExpressions:
+                - key: "resources.cattle.io/backup"
+                  operator: "In"
+                  values: ["true"]
+      - contains:
+          path: resourceSelectors
+          any: true
+          content:
+            apiVersion: "v1"
+            kindsRegexp: "^configmaps$"
+            namespaceRegexp: "^.*$"
+            labelSelectors:
+              matchExpressions:
+                - key: "resources.cattle.io/backup"
+                  operator: "In"
+                  values: ["true"]
