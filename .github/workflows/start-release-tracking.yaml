@@ -25,6 +25,7 @@ jobs:
       contents: write        # Commit and push
       id-token: write        # Required for OIDC authentication with Vault
       pull-requests: write   # Create PR
+      issues: write          # Create tracking issues
 
     steps:
       - name: Display Workflow Context
@@ -38,7 +39,20 @@ jobs:
           echo "Triggered by:    ${{ github.actor }}"
           echo "Repository:      ${{ github.repository }}"
           echo "================================================================="
-
+      - name: Checkout automation-core branch
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
+        continue-on-error: false
+        with:
+          ref: automation-core
+          fetch-depth: 1
+      - name: Fetch required dev and release branches
+        run: |
+          for version in $(echo "${{ github.event.inputs.versions }}" | tr ',' ' '); do
+            minor=$(echo "$version" | grep -oE '^[0-9]+\.[0-9]+')
+            echo "Fetching branches for minor version ${minor}..."
+            git fetch origin "dev-v${minor}" --depth=1
+            git fetch origin "release-v${minor}" --depth=1
+          done
       - name: Validate input format
         id: validate
         continue-on-error: false
@@ -84,13 +98,6 @@ jobs:
           echo "::notice::${OUTPUT}"
           echo "${OUTPUT}" >> $GITHUB_OUTPUT
 
-      - name: Checkout automation-core branch
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
-        continue-on-error: false
-        with:
-          ref: automation-core
-          fetch-depth: 1
-
       - name: Verify structure and check existing files
         id: check
         continue-on-error: false
@@ -135,7 +142,7 @@ jobs:
       - name: Commit and push changes
         continue-on-error: false
         env:
-          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -170,7 +177,7 @@ jobs:
       - name: Create parent issue
         id: parent
         env:
-          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           template=$(cat templates/charts-release-issue.md)
 
@@ -196,26 +203,26 @@ jobs:
           echo "parent_number=$issue_number" >> $GITHUB_OUTPUT
           echo "::notice::Created parent issue: $issue_url"
 
-      - name: Create sub-issues
-        env:
-          GH_TOKEN: ${{ steps.app_token.outputs.token }}
-        run: |
-          parent_number="${{ steps.parent.outputs.parent_number }}"
-          template=$(cat templates/charts-release-subissue.md)
+      # - name: Create sub-issues
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: |
+      #     parent_number="${{ steps.parent.outputs.parent_number }}"
+      #     template=$(cat templates/charts-release-subissue.md)
 
-          VERSIONS="${{ steps.validate.outputs.versions }}"
-          IFS=',' read -ra VERSION_ARRAY <<< "${VERSIONS}"
+      #     VERSIONS="${{ steps.validate.outputs.versions }}"
+      #     IFS=',' read -ra VERSION_ARRAY <<< "${VERSIONS}"
 
-          for version in "${VERSION_ARRAY[@]}"; do
-            body=$(echo "$template" | sed "s|<--version-->|${version}|g")
-            body="Parent: #${parent_number}\n\n${body}"
+      #     for version in "${VERSION_ARRAY[@]}"; do
+      #       body=$(echo "$template" | sed "s|<--version-->|${version}|g")
+      #       body="Parent: #${parent_number}\n\n${body}"
 
-            issue_url=$(gh issue create \
-              --title "${version}" \
-              --body "$body" \
-              --label "release-tracking" \
-              --repo ${{ github.repository }})
+      #       issue_url=$(gh issue create \
+      #         --title "${version}" \
+      #         --body "$body" \
+      #         --label "release-tracking" \
+      #         --repo ${{ github.repository }})
 
-            issue_number=$(echo "$issue_url" | grep -oE '[0-9]+$')
-            echo "::notice::Created sub-issue #${issue_number} for ${version}"
-          done
+      #       issue_number=$(echo "$issue_url" | grep -oE '[0-9]+$')
+      #       echo "::notice::Created sub-issue #${issue_number} for ${version}"
+      #     done

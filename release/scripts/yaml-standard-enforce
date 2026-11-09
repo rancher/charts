@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Normalize release/<x.y.z>.yaml tracking files to yq output format
+#
+# Scripts editing these files with yq -i (e.g. release-done.sh) rewrite the
+# whole file; running this first keeps their diffs limited to the real change.
+#
+# Usage: ./release/scripts/yaml-standard-enforce
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+RELEASE_DIR="$REPO_ROOT/release"
+
+verify() {
+    if ! command -v yq &> /dev/null; then
+        echo "Error: yq is required but not installed" >&2
+        exit 1
+    fi
+}
+
+main() {
+    local file
+
+    verify
+
+    for file in "$RELEASE_DIR"/*.yaml; do
+        echo "==> $(basename "$file")"
+        yq -i '.' "$file"
+    done
+}
+
+main "$@"
