@@ -1,0 +1,94 @@
+name: Chart staged
+
+# Ships a chart that another repository pushed to the staging registry: writes
+# its entry and logo, pulls its archive, rebuilds the index, and commits the
+# result to the staging branch. The sender is a workflow that sends this event
+# right after its push:
+#
+#   gh api "repos/rancher/charts/dispatches" \
+#     -f event_type=chart-staged \
+#     -f "client_payload[chart]=<name>" \
+#     -f "client_payload[version]=<chart version>"
+#
+# It can also be started by hand, with the same two inputs.
+#
+# A repository_dispatch only starts the file that is on the default branch.
+
+on:
+  repository_dispatch:
+    types: [chart-staged]
+  workflow_dispatch:
+    inputs:
+      chart:
+        description: "Chart name"
+        required: true
+      version:
+        description: "Chart version, as in its Chart.yaml (with the +)"
+        required: true
+
+permissions: {}
+
+# Every run publishes to the same branch, so they wait for each other.
+concurrency:
+  group: chart-staged
+  cancel-in-progress: false
+
+env:
+  CARGUEIRO_VERSION: v0.0.5
+  CARGUEIRO_SHA256: 9ac42622ff874ff5a6136d3387deb9ca3405cd2016697da3c77f0a9ff760665d
+  # Where the charts are pushed to. It is fixed here, never taken from the event.
+  REGISTRY: stgregistry.suse.com/rancher/catalog
+
+jobs:
+  ship-and-index:
+    name: Ship and index
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # to push to the staging branch
+    steps:
+      # The staging branch, with the credentials the checkout leaves: cargueiro
+      # uses them to ask the remote for its latest commit, and the last step to push.
+      - name: Check out the staging branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: staging
+          persist-credentials: true # zizmor: ignore[artipacked] -- ship checks the remote, and the last step pushes
+
+      - name: Install cargueiro
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -fsSL -o "$RUNNER_TEMP/bin/cargueiro" \
+            "https://github.com/nicholasSUSE/cargueiro/releases/download/${CARGUEIRO_VERSION}/cargueiro_linux_amd64"
+          echo "${CARGUEIRO_SHA256}  $RUNNER_TEMP/bin/cargueiro" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/bin/cargueiro"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      # TODO: ship and index read the staging registry, which asks for credentials,
+      # and cargueiro reads anonymously until nicholasSUSE/cargueiro#48. Read them
+      # here from Vault into CARGUEIRO_USERNAME and CARGUEIRO_PASSWORD then.
+
+      - name: Ship and index
+        env:
+          # The event is data, not trusted input: it goes through the environment
+          # and the script checks it.
+          CHART: ${{ github.event.client_payload.chart || inputs.chart }}
+          VERSION: ${{ github.event.client_payload.version || inputs.version }}
+          REPORT_FILE: ${{ runner.temp }}/report.txt
+        run: .github/scripts/chart-staged.sh
+
+      - name: Publish to the staging branch
+        env:
+          CHART: ${{ github.event.client_payload.chart || inputs.chart }}
+          VERSION: ${{ github.event.client_payload.version || inputs.version }}
+          REPORT_FILE: ${{ runner.temp }}/report.txt
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add entries assets index.yaml
+          {
+            echo "[staging] ship ${CHART} ${VERSION}"
+            echo
+            cat "$REPORT_FILE"
+          } > "$RUNNER_TEMP/message.txt"
+          git commit --file "$RUNNER_TEMP/message.txt"
+          git push origin HEAD:staging
