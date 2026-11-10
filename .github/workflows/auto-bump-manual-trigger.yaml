@@ -1,5 +1,12 @@
 name: Manual Trigger for Auto Bump
 
+# This file only registers the workflow on the default branch: GitHub starts a
+# workflow_dispatch only if the file exists there. The bump itself runs from the
+# file of the branch chosen in "Use workflow from". The dev-v2.X branches have
+# their own copy of this workflow and of auto-bump.yaml, and this branch has
+# neither the Makefile nor the scripts the bump needs. Started from this branch
+# it only fails, and says why.
+
 on:
   workflow_dispatch:
     inputs:
@@ -36,13 +43,14 @@ on:
         type: boolean
         default: false
 
+permissions: {}
+
 jobs:
-  auto-bump:
-    uses: ./.github/workflows/auto-bump.yaml
-    with:
-      chart: ${{ inputs.chart }}
-      branch: ${{ inputs.branch }}
-      version-override: ${{ inputs.version-override }}
-      multi-rc: ${{ inputs.multi-rc }}
-      new-chart: ${{ inputs.new-chart }}
-      auto-merge: ${{ inputs.auto-merge }}
+  wrong-branch:
+    name: Run this from a dev-v2.X branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Refuse to run on this branch
+        run: |
+          echo "::error title=Wrong branch::Run this workflow from the dev-v2.X branch that is being bumped ('Use workflow from'), not from ${GITHUB_REF_NAME}."
+          exit 1
