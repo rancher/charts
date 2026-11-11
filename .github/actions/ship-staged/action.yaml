@@ -127,6 +127,7 @@ runs:
       run: |
         set -Eeuo pipefail
         trap 'echo "::error::This failed: ${BASH_COMMAND}"' ERR
+
         # The dry run does every check and writes nothing, so a problem stops the
         # step before the folder is changed.
         echo "::group::cargueiro stamp (dry run)"
@@ -135,16 +136,26 @@ runs:
         echo "::group::cargueiro stamp"
         cargueiro stamp "$CHART_DIR" --version "$VERSION" >&2
         echo "::endgroup::"
+
         echo "::group::cargueiro check chart"
         cargueiro check chart "$CHART_DIR" >&2
         echo "::endgroup::"
+
+        echo "::group::cargueiro package"
         archive=$(cargueiro package "$CHART_DIR" --output-dir "$RUNNER_TEMP/ship-staged")
+        echo "::endgroup::"
         echo "packaged: ${archive}"
+
+        echo "::group::cargueiro push"
         reference=$(cargueiro push "$archive" --registry "$STAGING_REGISTRY/rancher/catalog")
+        echo "::endgroup::"
         echo "pushed:   ${reference}"
+
         echo "Pushed $reference" >> "$GITHUB_STEP_SUMMARY"
+
         # oci://<registry>/<chart>:<tag>
         chart=${reference##*/}
+
         echo "chart=${chart%%:*}" >> "$GITHUB_OUTPUT"
         echo "reference=$reference" >> "$GITHUB_OUTPUT"
 
