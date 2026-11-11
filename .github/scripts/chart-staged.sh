@@ -14,7 +14,6 @@
 #               of it is shipped, and indexed in one run
 #   VERSION     its chart version, as in its Chart.yaml (with the +)
 #   REGISTRY    where the chart was pushed, host/path, with no chart name
-#   PLAIN_HTTP  set to "true" to talk HTTP to the registry, for a local one
 #   REPORT_FILE optional: a file to write what was shipped and indexed to
 #
 # CHART, FAMILY and VERSION come from outside the repository, so they are checked
@@ -45,25 +44,20 @@ REGISTRY=${REGISTRY:-}
 [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?(\+[0-9A-Za-z.-]+)?$ ]] ||
   fail "the version '$VERSION' must look like 1XY.Z.W+upA.B.C"
 
-flags=()
-if [ "${PLAIN_HTTP:-}" = "true" ]; then
-  flags+=(--plain-http)
-fi
-
 repo=$PWD
 name=${CHART:-$FAMILY}
 
 if [ -n "$FAMILY" ]; then
   echo "Shipping the family ${FAMILY} ${VERSION} from ${REGISTRY}"
-  shipped=$(cargueiro ship --family "$FAMILY" --version "$VERSION" --registry "$REGISTRY" --repo "$repo" ${flags[@]+"${flags[@]}"})
+  shipped=$(cargueiro ship --family "$FAMILY" --version "$VERSION" --registry "$REGISTRY" --repo "$repo")
 else
   reference="${REGISTRY}/${CHART}:${VERSION}"
   echo "Shipping ${reference}"
-  shipped=$(cargueiro ship "$reference" --repo "$repo" ${flags[@]+"${flags[@]}"})
+  shipped=$(cargueiro ship "$reference" --repo "$repo")
 fi
 
 echo "Indexing"
-indexed=$(cargueiro index --repo "$repo" --registry "$REGISTRY" ${flags[@]+"${flags[@]}"})
+indexed=$(cargueiro index --repo "$repo" --registry "$REGISTRY")
 
 echo "Shipped:"
 echo "$shipped"
