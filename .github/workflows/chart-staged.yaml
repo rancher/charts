@@ -56,12 +56,6 @@ jobs:
           ref: staging
           persist-credentials: true # zizmor: ignore[artipacked] -- ship checks the remote, and the last step pushes
 
-      # The latest release, while cargueiro changes often. install.sh checks the
-      # download against the checksums of that release. Pin a version and its
-      # sha256 again once it is stable.
-      - name: Install cargueiro
-        run: curl -fsSL https://github.com/rancher/cargueiro/releases/latest/download/install.sh | sh -
-
       # The staging catalog does not let anonymous readers see anything, so ship
       # and index read it with the registry credentials. cargueiro takes them
       # from CARGUEIRO_USERNAME and CARGUEIRO_PASSWORD, and they are only sent
@@ -72,6 +66,12 @@ jobs:
           secrets: |
             secret/data/github/repo/${{ github.repository }}/rancher-prime-stg-registry/credentials username | CARGUEIRO_USERNAME ;
             secret/data/github/repo/${{ github.repository }}/rancher-prime-stg-registry/credentials password | CARGUEIRO_PASSWORD
+
+      # The latest release, while cargueiro changes often. install.sh checks the
+      # download against the checksums of that release. Pin a version and its
+      # sha256 again once it is stable.
+      - name: Install cargueiro
+        run: curl -fsSL https://github.com/rancher/cargueiro/releases/latest/download/install.sh | sh -
 
       - name: Ship and index
         env:
