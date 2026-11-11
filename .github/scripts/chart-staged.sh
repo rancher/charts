@@ -1,21 +1,23 @@
 #!/usr/bin/env bash
-# Ships a chart that was pushed to the staging registry to this checkout, and
-# indexes it: runs `cargueiro ship` and then `cargueiro index` on the current
-# directory, which must be an up to date checkout of the staging branch.
+# Ships a chart, or a family of charts, that was pushed to the staging registry to
+# this checkout, and indexes it: runs `cargueiro ship` and then `cargueiro index`
+# on the current directory, which must be an up to date checkout of the staging
+# branch.
 #
 # It writes the entry and the logo of the chart (ship), then the archive and the
 # index (index). It does not commit or push: the workflow does, so the checks
 # here can be run by hand.
 #
-# Environment:
+# Environment (CHART or FAMILY, never both):
 #   CHART       the name of the chart that was pushed
+#   FAMILY      the name of a family of charts that were all pushed: every chart
+#               of it is shipped, and indexed in one run
 #   VERSION     its chart version, as in its Chart.yaml (with the +)
 #   REGISTRY    where the chart was pushed, host/path, with no chart name
-#   PLAIN_HTTP  set to "true" to talk HTTP to the registry, for a local one
 #   REPORT_FILE optional: a file to write what was shipped and indexed to
 #
-# CHART and VERSION come from outside the repository, so they are checked here
-# before anything uses them. Requires cargueiro on PATH.
+# CHART, FAMILY and VERSION come from outside the repository, so they are checked
+# here before anything uses them. Requires cargueiro on PATH.
 set -euo pipefail
 
 fail() {
@@ -24,33 +26,46 @@ fail() {
 }
 
 CHART=${CHART:-}
+FAMILY=${FAMILY:-}
 VERSION=${VERSION:-}
 REGISTRY=${REGISTRY:-}
-[ -n "$CHART" ] || fail "the chart name is missing"
+[ -z "$CHART" ] || [ -z "$FAMILY" ] || fail "send a chart or a family, not both"
+[ -n "$CHART" ] || [ -n "$FAMILY" ] || fail "the chart name or the family is missing"
 [ -n "$VERSION" ] || fail "the version is missing"
 [ -n "$REGISTRY" ] || fail "the registry is missing"
 
 # These only keep a value from being read as anything but a name or a version:
-# cargueiro checks the chart against its rules, and the version against the
-# version rules.
-[[ "$CHART" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]] ||
+# cargueiro checks the chart or the family against its rules, and the version
+# against the version rules.
+[[ -z "$CHART" || "$CHART" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]] ||
   fail "the chart name '$CHART' must be lower case letters, digits and dashes"
+[[ -z "$FAMILY" || "$FAMILY" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]] ||
+  fail "the family name '$FAMILY' must be lower case letters, digits and dashes"
 [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?(\+[0-9A-Za-z.-]+)?$ ]] ||
   fail "the version '$VERSION' must look like 1XY.Z.W+upA.B.C"
 
-flags=()
-if [ "${PLAIN_HTTP:-}" = "true" ]; then
-  flags+=(--plain-http)
+repo=$PWD
+name=${CHART:-$FAMILY}
+
+if [ -n "$FAMILY" ]; then
+  echo "Shipping the family ${FAMILY} ${VERSION} from ${REGISTRY}"
+  ship_args=(--family "$FAMILY" --version "$VERSION" --registry "$REGISTRY" --repo "$repo")
+else
+  reference="${REGISTRY}/${CHART}:${VERSION}"
+  echo "Shipping ${reference}"
+  ship_args=("$reference" --repo "$repo")
 fi
 
-repo=$PWD
-reference="${REGISTRY}/${CHART}:${VERSION}"
+# A command that accepts --dry-run runs that way first: it does every check and
+# writes nothing, so a problem stops the script before the checkout is changed.
+echo "Dry run of ship"
+cargueiro ship "${ship_args[@]}" --dry-run --debug
+shipped=$(cargueiro ship "${ship_args[@]}")
 
-echo "Shipping ${reference}"
-shipped=$(cargueiro ship "$reference" --repo "$repo" ${flags[@]+"${flags[@]}"})
-
+echo "Dry run of index"
+cargueiro index --repo "$repo" --registry "$REGISTRY" --dry-run --debug
 echo "Indexing"
-indexed=$(cargueiro index --repo "$repo" --registry "$REGISTRY" ${flags[@]+"${flags[@]}"})
+indexed=$(cargueiro index --repo "$repo" --registry "$REGISTRY")
 
 echo "Shipped:"
 echo "$shipped"
@@ -68,7 +83,7 @@ fi
 
 if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
   {
-    echo "### ${CHART} ${VERSION}"
+    echo "### ${name} ${VERSION}"
     echo
     echo "Files written by \`cargueiro ship\`:"
     echo

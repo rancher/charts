@@ -10,7 +10,17 @@ name: Chart staged
 #     -f "client_payload[chart]=<name>" \
 #     -f "client_payload[version]=<chart version>"
 #
-# It can also be started by hand, with the same two inputs.
+# A family of charts that are released together is sent with its name instead of
+# a chart, after every chart of the family was pushed, and all of them are
+# shipped in one pull request:
+#
+#   gh api "repos/rancher/charts/dispatches" \
+#     -f event_type=chart-staged \
+#     -f "client_payload[family]=<family>" \
+#     -f "client_payload[version]=<chart version>"
+#
+# Send a chart or a family, never both. It can also be started by hand, with the
+# same inputs.
 #
 # A repository_dispatch only starts the file that is on the default branch.
 
@@ -20,8 +30,11 @@ on:
   workflow_dispatch:
     inputs:
       chart:
-        description: "Chart name"
-        required: true
+        description: "Chart name (or a family, not both)"
+        required: false
+      family:
+        description: "Family name, to ship all its charts (or a chart, not both)"
+        required: false
       version:
         description: "Chart version, as in its Chart.yaml (with the +)"
         required: true
@@ -80,23 +93,27 @@ jobs:
           # The event is data, not trusted input: it goes through the environment
           # and the script checks it.
           CHART: ${{ github.event.client_payload.chart || inputs.chart }}
+          FAMILY: ${{ github.event.client_payload.family || inputs.family }}
           VERSION: ${{ github.event.client_payload.version || inputs.version }}
           REPORT_FILE: ${{ runner.temp }}/report.txt
         run: .github/scripts/chart-staged.sh
 
       # The staging branch only takes pull requests, so the result goes to a
-      # branch of its own, named after the chart and version. The branch is never
+      # branch of its own, named after the chart or family and the version. The branch is never
       # overwritten: a re-run fails on the push while the branch of an earlier
       # run is still there, so close its pull request and delete it first.
       - name: Open a pull request to the staging branch
         env:
           GH_TOKEN: ${{ github.token }}
           CHART: ${{ github.event.client_payload.chart || inputs.chart }}
+          FAMILY: ${{ github.event.client_payload.family || inputs.family }}
           VERSION: ${{ github.event.client_payload.version || inputs.version }}
           REPORT_FILE: ${{ runner.temp }}/report.txt
         run: |
-          branch="chart-staged/${CHART}-${VERSION//+/-}"
-          title="[staging] ship ${CHART} ${VERSION}"
+          # The step before checked that only one of them is set.
+          name="${CHART:-$FAMILY}"
+          branch="chart-staged/${name}-${VERSION//+/-}"
+          title="[staging] ship ${name} ${VERSION}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch --create "$branch"
