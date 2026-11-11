@@ -49,13 +49,21 @@ name=${CHART:-$FAMILY}
 
 if [ -n "$FAMILY" ]; then
   echo "Shipping the family ${FAMILY} ${VERSION} from ${REGISTRY}"
-  shipped=$(cargueiro ship --family "$FAMILY" --version "$VERSION" --registry "$REGISTRY" --repo "$repo")
+  ship_args=(--family "$FAMILY" --version "$VERSION" --registry "$REGISTRY" --repo "$repo")
 else
   reference="${REGISTRY}/${CHART}:${VERSION}"
   echo "Shipping ${reference}"
-  shipped=$(cargueiro ship "$reference" --repo "$repo")
+  ship_args=("$reference" --repo "$repo")
 fi
 
+# A command that accepts --dry-run runs that way first: it does every check and
+# writes nothing, so a problem stops the script before the checkout is changed.
+echo "Dry run of ship"
+cargueiro ship "${ship_args[@]}" --dry-run --debug
+shipped=$(cargueiro ship "${ship_args[@]}")
+
+echo "Dry run of index"
+cargueiro index --repo "$repo" --registry "$REGISTRY" --dry-run --debug
 echo "Indexing"
 indexed=$(cargueiro index --repo "$repo" --registry "$REGISTRY")
 
