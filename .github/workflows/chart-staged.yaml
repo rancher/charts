@@ -46,6 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # to push to the staging branch
+      id-token: write # to log in to Vault with the OIDC token
     steps:
       # The staging branch, with the credentials the checkout leaves: cargueiro
       # uses them to ask the remote for its latest commit, and the last step to push.
@@ -61,9 +62,16 @@ jobs:
       - name: Install cargueiro
         run: curl -fsSL https://github.com/rancher/cargueiro/releases/latest/download/install.sh | sh -
 
-      # TODO: ship and index read the staging registry, which asks for credentials,
-      # and cargueiro reads anonymously until nicholasSUSE/cargueiro#48. Read them
-      # here from Vault into CARGUEIRO_USERNAME and CARGUEIRO_PASSWORD then.
+      # The staging catalog does not let anonymous readers see anything, so ship
+      # and index read it with the registry credentials. cargueiro takes them
+      # from CARGUEIRO_USERNAME and CARGUEIRO_PASSWORD, and they are only sent
+      # to the registry it reads.
+      - name: Load the registry credentials from Vault
+        uses: rancher-eio/read-vault-secrets@7282bf97898cd1c16c89f837e0bb442e6d384c89 # main
+        with:
+          secrets: |
+            secret/data/github/repo/${{ github.repository }}/stgregistry/credentials username | CARGUEIRO_USERNAME ;
+            secret/data/github/repo/${{ github.repository }}/stgregistry/credentials password | CARGUEIRO_PASSWORD
 
       - name: Ship and index
         env:
