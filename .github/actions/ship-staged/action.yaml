@@ -127,6 +127,11 @@ runs:
       run: |
         set -Eeuo pipefail
         trap 'echo "::error::This failed: ${BASH_COMMAND}"' ERR
+        # The dry run does every check and writes nothing, so a problem stops the
+        # step before the folder is changed.
+        echo "::group::cargueiro stamp (dry run)"
+        cargueiro stamp "$CHART_DIR" --version "$VERSION" --dry-run --debug >&2
+        echo "::endgroup::"
         echo "::group::cargueiro stamp"
         cargueiro stamp "$CHART_DIR" --version "$VERSION" >&2
         echo "::endgroup::"
