@@ -34,8 +34,9 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  CARGUEIRO_VERSION: v0.0.5
-  CARGUEIRO_SHA256: 9ac42622ff874ff5a6136d3387deb9ca3405cd2016697da3c77f0a9ff760665d
+  # TODO: add back the pinned CARGUEIRO_VERSION and CARGUEIRO_SHA256 (and install
+  # that version) once the project is in production.
+
   # Where the charts are pushed to. It is fixed here, never taken from the event.
   REGISTRY: stgregistry.suse.com/rancher/catalog
 
@@ -54,14 +55,11 @@ jobs:
           ref: staging
           persist-credentials: true # zizmor: ignore[artipacked] -- ship checks the remote, and the last step pushes
 
+      # The latest release, while cargueiro changes often. install.sh checks the
+      # download against the checksums of that release. Pin a version and its
+      # sha256 again once it is stable.
       - name: Install cargueiro
-        run: |
-          mkdir -p "$RUNNER_TEMP/bin"
-          curl -fsSL -o "$RUNNER_TEMP/bin/cargueiro" \
-            "https://github.com/nicholasSUSE/cargueiro/releases/download/${CARGUEIRO_VERSION}/cargueiro_linux_amd64"
-          echo "${CARGUEIRO_SHA256}  $RUNNER_TEMP/bin/cargueiro" | sha256sum -c -
-          chmod +x "$RUNNER_TEMP/bin/cargueiro"
-          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+        run: curl -fsSL https://github.com/rancher/cargueiro/releases/latest/download/install.sh | sh -
 
       # TODO: ship and index read the staging registry, which asks for credentials,
       # and cargueiro reads anonymously until nicholasSUSE/cargueiro#48. Read them
