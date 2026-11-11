@@ -36,6 +36,30 @@ outputs:
 runs:
   using: composite
   steps:
+    # Everything that depends on the caller is checked and printed first, so a
+    # failure later can be read against it.
+    - name: Check the caller
+      shell: bash
+      env:
+        CHART_DIR: ${{ inputs.chart-dir }}
+        VERSION: ${{ inputs.version }}
+        WORKFLOW_REF: ${{ github.workflow_ref }}
+      run: |
+        echo "repository:   ${GITHUB_REPOSITORY}"
+        echo "workflow:     ${WORKFLOW_REF}"
+        echo "ref:          ${GITHUB_REF} (${GITHUB_EVENT_NAME})"
+        echo "chart folder: ${CHART_DIR}"
+        echo "version:      ${VERSION}"
+        echo "Vault paths:  github/repo/${GITHUB_REPOSITORY}/{rancher-prime-stg-registry/credentials,github/app-credentials}"
+        if [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
+          echo "::error::The job has no OIDC token, so it cannot log in to Vault. Add 'id-token: write' to the permissions of the job that calls this action."
+          exit 1
+        fi
+        if [ ! -f "${CHART_DIR}/Chart.yaml" ]; then
+          echo "::error::There is no Chart.yaml in '${CHART_DIR}'. The chart-dir input is a folder in the workspace of the job, and the checkout must come before this action."
+          exit 1
+        fi
+
     - name: Load the credentials from Vault
       uses: rancher-eio/read-vault-secrets@7282bf97898cd1c16c89f837e0bb442e6d384c89 # main
       with:
@@ -46,10 +70,23 @@ runs:
           secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
           secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY
 
-    # cargueiro only applies its rules to this host, so any other would turn them off.
-    - name: Check the registry is the staging one
+    # Names only, never values. A name that is empty here, with the Vault step
+    # green, means the field is missing from the secret.
+    - name: Check the credentials and the registry
       shell: bash
       run: |
+        missing=0
+        for name in STAGING_REGISTRY CARGUEIRO_USERNAME CARGUEIRO_PASSWORD APP_ID PRIVATE_KEY; do
+          if [ -n "${!name:-}" ]; then
+            echo "${name}: loaded"
+          else
+            echo "::error::${name} is empty after the Vault step. Look for the field in github/repo/${GITHUB_REPOSITORY}/ in Vault."
+            missing=1
+          fi
+        done
+        [ "$missing" = 0 ] || exit 1
+        echo "registry: ${STAGING_REGISTRY}"
+        # cargueiro only applies its rules to this host, so any other would turn them off.
         if [ "$STAGING_REGISTRY" != "stgregistry.suse.com" ]; then
           echo "::error::The registry in Vault is not stgregistry.suse.com, so the push protections would not apply"
           exit 1
@@ -66,11 +103,20 @@ runs:
         repositories: |
           charts
 
+    - name: Log the GitHub App
+      shell: bash
+      env:
+        APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+        INSTALLATION_ID: ${{ steps.app-token.outputs.installation-id }}
+      run: echo "GitHub App ${APP_SLUG}, installation ${INSTALLATION_ID}, token for rancher/charts"
+
     # The latest release, while cargueiro changes often. install.sh checks the
     # download against the checksums of that release.
     - name: Install cargueiro
       shell: bash
-      run: curl -fsSL https://github.com/rancher/cargueiro/releases/latest/download/install.sh | sh -
+      run: |
+        curl -fsSL https://github.com/rancher/cargueiro/releases/latest/download/install.sh | sh -
+        cargueiro version
 
     - name: Stamp, check, package and push the chart
       id: push
@@ -79,11 +125,18 @@ runs:
         CHART_DIR: ${{ inputs.chart-dir }}
         VERSION: ${{ inputs.version }}
       run: |
-        set -euo pipefail
+        set -Eeuo pipefail
+        trap 'echo "::error::This failed: ${BASH_COMMAND}"' ERR
+        echo "::group::cargueiro stamp"
         cargueiro stamp "$CHART_DIR" --version "$VERSION" >&2
+        echo "::endgroup::"
+        echo "::group::cargueiro check chart"
         cargueiro check chart "$CHART_DIR" >&2
+        echo "::endgroup::"
         archive=$(cargueiro package "$CHART_DIR" --output-dir "$RUNNER_TEMP/ship-staged")
+        echo "packaged: ${archive}"
         reference=$(cargueiro push "$archive" --registry "$STAGING_REGISTRY/rancher/catalog")
+        echo "pushed:   ${reference}"
         echo "Pushed $reference" >> "$GITHUB_STEP_SUMMARY"
         # oci://<registry>/<chart>:<tag>
         chart=${reference##*/}
@@ -97,7 +150,13 @@ runs:
         CHART: ${{ steps.push.outputs.chart }}
         VERSION: ${{ inputs.version }}
       run: |
-        gh api "repos/rancher/charts/dispatches" \
+        echo "Sending chart-staged for ${CHART} ${VERSION} to rancher/charts"
+        if ! gh api "repos/rancher/charts/dispatches" \
           -f event_type=chart-staged \
           -f "client_payload[chart]=${CHART}" \
-          -f "client_payload[version]=${VERSION}"
+          -f "client_payload[version]=${VERSION}"; then
+          echo "::error::The dispatch was refused. The App must be installed on rancher/charts with the Contents: write permission. The chart is already in the registry: send the event again with 'gh api repos/rancher/charts/dispatches -f event_type=chart-staged -f client_payload[chart]=${CHART} -f client_payload[version]=${VERSION}', or start the chart-staged workflow of rancher/charts by hand with the same two values."
+          exit 1
+        fi
+        echo "Sent. Follow it in the chart-staged workflow of rancher/charts."
+        echo "Sent chart-staged for ${CHART} ${VERSION} to rancher/charts." >> "$GITHUB_STEP_SUMMARY"
