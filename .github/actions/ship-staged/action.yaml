@@ -1,0 +1,103 @@
+name: Ship staged
+description: >-
+  Stamps, checks, packages and pushes a chart to the staging registry, and tells
+  rancher/charts to ship and index it.
+
+# For the workflow of a chart repository. The steps run in the job of the caller,
+# after its checkout, so the OIDC token is the one of the caller and every Vault
+# path is under the repository that calls this action. The caller prepares the
+# chart folder (the app version and the image tags in it) and gives its version.
+#
+# The caller job needs `id-token: write`, to log in to Vault. The repository
+# needs, under its own path in Vault, the staging registry credentials
+# (rancher-prime-stg-registry/credentials) and the credentials of a GitHub App
+# installed on rancher/charts that can send a repository_dispatch
+# (github/app-credentials).
+#
+# Everything that can fail on credentials is done before the push, because a
+# version that is pushed stays in the registry.
+
+inputs:
+  chart-dir:
+    description: The folder of the chart, with its Chart.yaml. It is stamped in place.
+    required: true
+  version:
+    description: The final version of the chart, as in its Chart.yaml (with the +).
+    required: true
+
+outputs:
+  chart:
+    description: The name of the chart that was pushed.
+    value: ${{ steps.push.outputs.chart }}
+  reference:
+    description: The reference that was pushed.
+    value: ${{ steps.push.outputs.reference }}
+
+runs:
+  using: composite
+  steps:
+    - name: Load the credentials from Vault
+      uses: rancher-eio/read-vault-secrets@7282bf97898cd1c16c89f837e0bb442e6d384c89 # main
+      with:
+        secrets: |
+          secret/data/github/repo/${{ github.repository }}/rancher-prime-stg-registry/credentials registry | STAGING_REGISTRY ;
+          secret/data/github/repo/${{ github.repository }}/rancher-prime-stg-registry/credentials username | CARGUEIRO_USERNAME ;
+          secret/data/github/repo/${{ github.repository }}/rancher-prime-stg-registry/credentials password | CARGUEIRO_PASSWORD ;
+          secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
+          secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY
+
+    # cargueiro only applies its rules to this host, so any other would turn them off.
+    - name: Check the registry is the staging one
+      shell: bash
+      run: |
+        if [ "$STAGING_REGISTRY" != "stgregistry.suse.com" ]; then
+          echo "::error::The registry in Vault is not stgregistry.suse.com, so the push protections would not apply"
+          exit 1
+        fi
+
+    # Token for rancher/charts only, to send the repository_dispatch. It is made
+    # before the push so that a failure here leaves nothing in the registry.
+    - name: Create the token for rancher/charts
+      uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3
+      id: app-token
+      with:
+        app-id: ${{ env.APP_ID }}
+        private-key: ${{ env.PRIVATE_KEY }}
+        repositories: |
+          charts
+
+    # The latest release, while cargueiro changes often. install.sh checks the
+    # download against the checksums of that release.
+    - name: Install cargueiro
+      shell: bash
+      run: curl -fsSL https://github.com/rancher/cargueiro/releases/latest/download/install.sh | sh -
+
+    - name: Stamp, check, package and push the chart
+      id: push
+      shell: bash
+      env:
+        CHART_DIR: ${{ inputs.chart-dir }}
+        VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        cargueiro stamp "$CHART_DIR" --version "$VERSION" >&2
+        cargueiro check chart "$CHART_DIR" >&2
+        archive=$(cargueiro package "$CHART_DIR" --output-dir "$RUNNER_TEMP/ship-staged")
+        reference=$(cargueiro push "$archive" --registry "$STAGING_REGISTRY/rancher/catalog")
+        echo "Pushed $reference" >> "$GITHUB_STEP_SUMMARY"
+        # oci://<registry>/<chart>:<tag>
+        chart=${reference##*/}
+        echo "chart=${chart%%:*}" >> "$GITHUB_OUTPUT"
+        echo "reference=$reference" >> "$GITHUB_OUTPUT"
+
+    - name: Tell rancher/charts the chart is staged
+      shell: bash
+      env:
+        GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        CHART: ${{ steps.push.outputs.chart }}
+        VERSION: ${{ inputs.version }}
+      run: |
+        gh api "repos/rancher/charts/dispatches" \
+          -f event_type=chart-staged \
+          -f "client_payload[chart]=${CHART}" \
+          -f "client_payload[version]=${VERSION}"
