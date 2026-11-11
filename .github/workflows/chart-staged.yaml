@@ -1,9 +1,9 @@
 name: Chart staged
 
 # Ships a chart that another repository pushed to the staging registry: writes
-# its entry and logo, pulls its archive, rebuilds the index, and commits the
-# result to the staging branch. The sender is a workflow that sends this event
-# right after its push:
+# its entry and logo, pulls its archive, rebuilds the index, and opens a pull
+# request with the result against the staging branch, which does not take direct
+# pushes. The sender is a workflow that sends this event right after its push:
 #
 #   gh api "repos/rancher/charts/dispatches" \
 #     -f event_type=chart-staged \
@@ -45,16 +45,18 @@ jobs:
     name: Ship and index
     runs-on: ubuntu-latest
     permissions:
-      contents: write # to push to the staging branch
+      contents: write # to push the branch of the pull request
+      pull-requests: write # to open the pull request
       id-token: write # to log in to Vault with the OIDC token
     steps:
       # The staging branch, with the credentials the checkout leaves: cargueiro
-      # uses them to ask the remote for its latest commit, and the last step to push.
+      # uses them to ask the remote for its latest commit, and the last step to
+      # push its branch.
       - name: Check out the staging branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: staging
-          persist-credentials: true # zizmor: ignore[artipacked] -- ship checks the remote, and the last step pushes
+          persist-credentials: true # zizmor: ignore[artipacked] -- ship checks the remote, and the last step pushes a branch
 
       # The staging catalog does not let anonymous readers see anything, so ship
       # and index read it with the registry credentials. cargueiro takes them
@@ -82,19 +84,28 @@ jobs:
           REPORT_FILE: ${{ runner.temp }}/report.txt
         run: .github/scripts/chart-staged.sh
 
-      - name: Publish to the staging branch
+      # The staging branch only takes pull requests, so the result goes to a
+      # branch of its own, named after the chart and version. The branch is never
+      # overwritten: a re-run fails on the push while the branch of an earlier
+      # run is still there, so close its pull request and delete it first.
+      - name: Open a pull request to the staging branch
         env:
+          GH_TOKEN: ${{ github.token }}
           CHART: ${{ github.event.client_payload.chart || inputs.chart }}
           VERSION: ${{ github.event.client_payload.version || inputs.version }}
           REPORT_FILE: ${{ runner.temp }}/report.txt
         run: |
+          branch="chart-staged/${CHART}-${VERSION//+/-}"
+          title="[staging] ship ${CHART} ${VERSION}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch --create "$branch"
           git add entries assets index.yaml
           {
-            echo "[staging] ship ${CHART} ${VERSION}"
+            echo "$title"
             echo
             cat "$REPORT_FILE"
           } > "$RUNNER_TEMP/message.txt"
           git commit --file "$RUNNER_TEMP/message.txt"
-          git push origin HEAD:staging
+          git push origin "$branch"
+          gh pr create --base staging --head "$branch" --title "$title" --body-file "$REPORT_FILE"
