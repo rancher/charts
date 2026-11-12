@@ -6,7 +6,9 @@ description: >-
 # For the workflow of a chart repository. The steps run in the job of the caller,
 # after its checkout, so the OIDC token is the one of the caller and every Vault
 # path is under the repository that calls this action. The caller prepares the
-# chart folder (the app version and the image tags in it) and gives its version.
+# chart folder (the app version and the image tags in it) and may give its version:
+# without it, cargueiro chart-version works it out from the appVersion of the
+# folder and the versions already released.
 # The template at .github/templates/prepare-charts.sh does that for a release tag:
 # copy it into the repository of the chart and adapt it. For the charts of a
 # family, use the ship-family-staged action.
@@ -25,8 +27,12 @@ inputs:
     description: The folder of the chart, with its Chart.yaml. It is stamped in place.
     required: true
   version:
-    description: The final version of the chart, as in its Chart.yaml (with the +).
-    required: true
+    description: >-
+      The final version of the chart, as in its Chart.yaml (with the +). Leave it
+      out to have it worked out from the appVersion and the versions already
+      released.
+    required: false
+    default: ""
 
 outputs:
   chart:
@@ -35,6 +41,9 @@ outputs:
   reference:
     description: The reference that was pushed.
     value: ${{ steps.push.outputs.reference }}
+  version:
+    description: The version of the chart that was pushed, the one given or the one worked out.
+    value: ${{ steps.push.outputs.version }}
 
 runs:
   using: composite
@@ -52,7 +61,7 @@ runs:
         echo "workflow:     ${WORKFLOW_REF}"
         echo "ref:          ${GITHUB_REF} (${GITHUB_EVENT_NAME})"
         echo "chart folder: ${CHART_DIR}"
-        echo "version:      ${VERSION}"
+        echo "version:      ${VERSION:-worked out by cargueiro chart-version}"
         echo "Vault paths:  github/repo/${GITHUB_REPOSITORY}/{rancher-prime-stg-registry/credentials,github/app-credentials}"
         if [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
           echo "::error::The job has no OIDC token, so it cannot log in to Vault. Add 'id-token: write' to the permissions of the job that calls this action."
@@ -131,6 +140,15 @@ runs:
         set -Eeuo pipefail
         trap 'echo "::error::This failed: ${BASH_COMMAND}"' ERR
 
+        # Without a version it is worked out from the appVersion of the folder and
+        # the versions already released. Nothing is written yet.
+        if [ -z "$VERSION" ]; then
+          echo "::group::cargueiro chart-version"
+          VERSION=$(cargueiro chart-version "$CHART_DIR")
+          echo "::endgroup::"
+          echo "version:  ${VERSION} (worked out)"
+        fi
+
         # The dry run does every check and writes nothing, so a problem stops the
         # step before the folder is changed.
         echo "::group::cargueiro stamp (dry run)"
@@ -159,15 +177,18 @@ runs:
         # oci://<registry>/<chart>:<tag>
         chart=${reference##*/}
 
-        echo "chart=${chart%%:*}" >> "$GITHUB_OUTPUT"
-        echo "reference=$reference" >> "$GITHUB_OUTPUT"
+        {
+          echo "chart=${chart%%:*}"
+          echo "reference=$reference"
+          echo "version=$VERSION"
+        } >> "$GITHUB_OUTPUT"
 
     - name: Tell rancher/charts the chart is staged
       shell: bash
       env:
         GH_TOKEN: ${{ steps.app-token.outputs.token }}
         CHART: ${{ steps.push.outputs.chart }}
-        VERSION: ${{ inputs.version }}
+        VERSION: ${{ steps.push.outputs.version }}
       run: |
         echo "Sending chart-staged for ${CHART} ${VERSION} to rancher/charts"
         if ! gh api "repos/rancher/charts/dispatches" \

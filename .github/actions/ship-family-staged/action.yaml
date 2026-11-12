@@ -8,7 +8,9 @@ description: >-
 # run in the job of the caller, after its checkout, so the OIDC token is the one
 # of the caller and every Vault path is under the repository that calls this
 # action. The caller prepares the chart folders (the app versions and the image
-# tags in them) and gives the one version they all take. The template at
+# tags in them) and may give the one version they all take: without it,
+# cargueiro chart-version works it out from the appVersion of the main chart and
+# the versions already released. The template at
 # .github/templates/prepare-charts-family.sh does that for a release tag: copy it
 # into the repository of the charts and adapt it.
 #
@@ -33,8 +35,12 @@ inputs:
     description: The name of the family in rules.yaml whose charts are in chart-dirs, such as fleet.
     required: true
   version:
-    description: The final version of every chart of the family, as in their Chart.yaml (with the +).
-    required: true
+    description: >-
+      The final version of every chart of the family, as in their Chart.yaml (with
+      the +). Leave it out to have it worked out from the appVersion of the main
+      chart and the versions already released.
+    required: false
+    default: ""
 
 outputs:
   family:
@@ -43,6 +49,9 @@ outputs:
   references:
     description: The references that were pushed, one to a line, in the order of the family.
     value: ${{ steps.push.outputs.references }}
+  version:
+    description: The version of the charts that were pushed, the one given or the one worked out.
+    value: ${{ steps.push.outputs.version }}
 
 runs:
   using: composite
@@ -63,7 +72,7 @@ runs:
         echo "workflow:     ${WORKFLOW_REF}"
         echo "ref:          ${GITHUB_REF} (${GITHUB_EVENT_NAME})"
         echo "family:       ${FAMILY}"
-        echo "version:      ${VERSION}"
+        echo "version:      ${VERSION:-worked out by cargueiro chart-version}"
         printf 'chart folder: %s\n' "${dirs[@]}"
         echo "Vault paths:  github/repo/${GITHUB_REPOSITORY}/{rancher-prime-stg-registry/credentials,github/app-credentials}"
         if [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
@@ -153,6 +162,16 @@ runs:
         # The step before checked that the family and the folders are there.
         mapfile -t dirs < <(printf '%s\n' "$CHART_DIRS" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d')
 
+        # Without a version it is worked out from the appVersion of the main chart
+        # and the versions already released, and the charts of the family must be
+        # released at the same version. Nothing is written yet.
+        if [ -z "$VERSION" ]; then
+          echo "::group::cargueiro chart-version"
+          VERSION=$(cargueiro chart-version --family "$FAMILY" "${dirs[@]}")
+          echo "::endgroup::"
+          echo "version:  ${VERSION} (worked out)"
+        fi
+
         # The dry run does every check and writes nothing, so a problem in any
         # chart stops the step before a folder is changed.
         echo "::group::cargueiro stamp (dry run)"
@@ -183,6 +202,8 @@ runs:
           printf -- '- %s\n' "${references[@]}"
         } >> "$GITHUB_STEP_SUMMARY"
 
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
         {
           echo "references<<EOF"
           echo "$pushed"
@@ -194,7 +215,7 @@ runs:
       env:
         GH_TOKEN: ${{ steps.app-token.outputs.token }}
         FAMILY: ${{ inputs.family }}
-        VERSION: ${{ inputs.version }}
+        VERSION: ${{ steps.push.outputs.version }}
       run: |
         echo "Sending chart-staged for the family ${FAMILY} ${VERSION} to rancher/charts"
         if ! gh api "repos/rancher/charts/dispatches" \
