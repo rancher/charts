@@ -3,26 +3,26 @@ name: Chart staged
 # Ships a chart that another repository pushed to the staging registry: writes
 # its entry and logo, pulls its archive, rebuilds the index, and opens a pull
 # request with the result against the staging branch, which does not take direct
-# pushes. The sender is a workflow that sends this event right after its push:
+# pushes. The sender is a workflow that starts this one right after its push,
+# with a workflow dispatch:
 #
-#   gh api "repos/rancher/charts/dispatches" \
-#     -f event_type=chart-staged \
-#     -f "client_payload[chart]=<name>" \
-#     -f "client_payload[version]=<chart version>"
+#   gh workflow run chart-staged.yaml --repo rancher/charts --ref staging \
+#     -f chart=<name> \
+#     -f version=<chart version>
 #
 # A family of charts that are released together is sent with its name instead of
 # a chart, after every chart of the family was pushed, and all of them are
 # shipped in one pull request:
 #
-#   gh api "repos/rancher/charts/dispatches" \
-#     -f event_type=chart-staged \
-#     -f "client_payload[family]=<family>" \
-#     -f "client_payload[version]=<chart version>"
+#   gh workflow run chart-staged.yaml --repo rancher/charts --ref staging \
+#     -f family=<family> \
+#     -f version=<chart version>
 #
-# Send a chart or a family, never both. It can also be started by hand, with the
-# same inputs.
+# Send a chart or a family, never both.
 #
-# A repository_dispatch only starts the file that is on the default branch.
+# The repository_dispatch of type chart-staged below is how the senders used to
+# start it. It stays until all of them have moved to the workflow dispatch, and it
+# only starts the file that is on the default branch.
 
 on:
   repository_dispatch:
