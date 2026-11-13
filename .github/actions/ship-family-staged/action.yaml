@@ -16,9 +16,11 @@ description: >-
 #
 # The caller job needs `id-token: write`, to log in to Vault. The repository
 # needs, under its own path in Vault, the staging registry credentials
-# (rancher-prime-stg-registry/credentials) and the chart-staged token, a
-# short-lived token for rancher/charts with only actions: write, which starts the
-# chart-staged workflow (chart-staged/credentials).
+# (rancher-prime-stg-registry/credentials) and the credentials of the
+# rancher-gh-workflow-dispatcher GitHub App
+# (github/rancher-gh-workflow-dispatcher/app-credentials). The action makes from
+# them a short-lived token for rancher/charts with only actions: write, which
+# starts the chart-staged workflow.
 #
 # Everything that can fail on credentials is done before the push, because a
 # version that is pushed stays in the registry. If the push stops halfway, run
@@ -74,7 +76,7 @@ runs:
         echo "family:       ${FAMILY}"
         echo "version:      ${VERSION:-worked out by cargueiro chart-version}"
         printf 'chart folder: %s\n' "${dirs[@]}"
-        echo "Vault paths:  github/repo/${GITHUB_REPOSITORY}/{rancher-prime-stg-registry/credentials,chart-staged/credentials}"
+        echo "Vault paths:  github/repo/${GITHUB_REPOSITORY}/{rancher-prime-stg-registry/credentials,github/rancher-gh-workflow-dispatcher/app-credentials}"
         if [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
           echo "::error::The job has no OIDC token, so it cannot log in to Vault. Add 'id-token: write' to the permissions of the job that calls this action."
           exit 1
@@ -97,7 +99,8 @@ runs:
           secret/data/github/repo/${{ github.repository }}/rancher-prime-stg-registry/credentials registry | STAGING_REGISTRY ;
           secret/data/github/repo/${{ github.repository }}/rancher-prime-stg-registry/credentials username | CARGUEIRO_USERNAME ;
           secret/data/github/repo/${{ github.repository }}/rancher-prime-stg-registry/credentials password | CARGUEIRO_PASSWORD ;
-          secret/data/github/repo/${{ github.repository }}/chart-staged/credentials token | CHART_STAGED_TOKEN
+          secret/data/github/repo/${{ github.repository }}/github/rancher-gh-workflow-dispatcher/app-credentials appId | DISPATCHER_APP_ID ;
+          secret/data/github/repo/${{ github.repository }}/github/rancher-gh-workflow-dispatcher/app-credentials privateKey | DISPATCHER_PRIVATE_KEY
 
     # Names only, never values. A name that is empty here, with the Vault step
     # green, means the field is missing from the secret.
@@ -105,7 +108,7 @@ runs:
       shell: bash
       run: |
         missing=0
-        for name in STAGING_REGISTRY CARGUEIRO_USERNAME CARGUEIRO_PASSWORD CHART_STAGED_TOKEN; do
+        for name in STAGING_REGISTRY CARGUEIRO_USERNAME CARGUEIRO_PASSWORD DISPATCHER_APP_ID DISPATCHER_PRIVATE_KEY; do
           if [ -n "${!name:-}" ]; then
             echo "${name}: loaded"
           else
@@ -120,6 +123,21 @@ runs:
           echo "::error::The registry in Vault is not stgregistry.suse.com, so the push protections would not apply"
           exit 1
         fi
+
+    # The token that starts chart-staged, made from the credentials of the
+    # rancher-gh-workflow-dispatcher App. The App can start workflows in the
+    # repositories of the organization, so the token is limited here to
+    # rancher/charts and to actions: write. It is made before the push, because a
+    # version that is pushed stays in the registry.
+    - name: Make the token for rancher/charts
+      id: charts-token
+      uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+      with:
+        app-id: ${{ env.DISPATCHER_APP_ID }}
+        private-key: ${{ env.DISPATCHER_PRIVATE_KEY }}
+        owner: rancher
+        repositories: charts
+        permission-actions: write
 
     # The latest release, while cargueiro changes often. install.sh checks the
     # download against the checksums of that release.
@@ -194,7 +212,7 @@ runs:
     - name: Tell rancher/charts the family is staged
       shell: bash
       env:
-        GH_TOKEN: ${{ env.CHART_STAGED_TOKEN }}
+        GH_TOKEN: ${{ steps.charts-token.outputs.token }}
         FAMILY: ${{ inputs.family }}
         VERSION: ${{ steps.push.outputs.version }}
       run: |
@@ -202,7 +220,7 @@ runs:
         if ! gh workflow run chart-staged.yaml --repo rancher/charts --ref staging \
           -f "family=${FAMILY}" \
           -f "version=${VERSION}"; then
-          echo "::error::The dispatch was refused. The token must have actions: write on rancher/charts. The charts are already in the registry: start the chart-staged workflow of rancher/charts by hand with 'gh workflow run chart-staged.yaml --repo rancher/charts --ref staging -f family=${FAMILY} -f version=${VERSION}', or with Run workflow in its Actions tab."
+          echo "::error::The dispatch was refused. The token is made from the rancher-gh-workflow-dispatcher App, which must be installed on rancher/charts with actions: write. The charts are already in the registry: start the chart-staged workflow of rancher/charts by hand with 'gh workflow run chart-staged.yaml --repo rancher/charts --ref staging -f family=${FAMILY} -f version=${VERSION}', or with Run workflow in its Actions tab."
           exit 1
         fi
         echo "Sent. Follow it in the chart-staged workflow of rancher/charts."
