@@ -1,0 +1,13 @@
+{{- if and (include "rancher-monitoring.dashboardArtifacts.enabled" .) (not .Values.dashboardArtifacts.useExistingNamespace) }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ include "rancher-monitoring.dashboardNamespace" . }}
+  labels:
+    name: {{ include "rancher-monitoring.dashboardNamespace" . }}
+{{ include "rancher-monitoring.labels" . | indent 4 }}
+  annotations:
+{{- if not .Values.dashboardArtifacts.cleanupOnUninstall }}
+    helm.sh/resource-policy: keep
+{{- end }}
+{{- end }}
