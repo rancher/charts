@@ -220,8 +220,8 @@ runs:
           echo "version=$VERSION"
         } >> "$GITHUB_OUTPUT"
 
-    # The dispatch API rather than gh workflow run: with return_run_details it
-    # answers with the run that it started, which the wait step follows.
+    # gh workflow run prints the URL of the run it started (gh 2.87.0 and later,
+    # when its output is not a terminal), which the wait step follows.
     - name: Tell rancher/charts the chart is staged
       id: dispatch
       shell: bash
@@ -229,18 +229,24 @@ runs:
         GH_TOKEN: ${{ steps.charts-token.outputs.token }}
         CHART: ${{ steps.push.outputs.chart }}
         VERSION: ${{ steps.push.outputs.version }}
+        WAIT: ${{ inputs.wait }}
       run: |
         echo "Sending chart-staged for ${CHART} ${VERSION} to rancher/charts"
-        if ! run=$(gh api repos/rancher/charts/actions/workflows/chart-staged.yaml/dispatches \
-          -f ref=staging \
-          -f "inputs[chart]=${CHART}" \
-          -f "inputs[version]=${VERSION}" \
-          -F return_run_details=true \
-          --jq '"\(.workflow_run_id) \(.html_url)"'); then
+        if ! run_url=$(gh workflow run chart-staged.yaml --repo rancher/charts --ref staging \
+          -f "chart=${CHART}" \
+          -f "version=${VERSION}"); then
           echo "::error::The dispatch was refused. The token is made from the rancher-gh-workflow-dispatcher App, which must be installed on rancher/charts with actions: write. The chart is already in the registry: start the chart-staged workflow of rancher/charts by hand with 'gh workflow run chart-staged.yaml --repo rancher/charts --ref staging -f chart=${CHART} -f version=${VERSION}', or with Run workflow in its Actions tab."
           exit 1
         fi
-        read -r run_id run_url <<<"$run"
+        run_id=${run_url##*/}
+        if [[ ! "$run_url" =~ ^https://github\.com/rancher/charts/actions/runs/[0-9]+$ ]]; then
+          echo "Sent, but gh workflow run did not print the URL of the run (got '${run_url}'). Follow it in the chart-staged workflow of rancher/charts."
+          if [ "$WAIT" = true ]; then
+            echo "::error::Cannot wait for a run whose URL is unknown. It needs gh 2.87.0 or later, and this is '$(gh --version | head -n1)'."
+            exit 1
+          fi
+          exit 0
+        fi
         echo "Sent. Follow it at ${run_url}"
         echo "Sent chart-staged for ${CHART} ${VERSION} to rancher/charts: ${run_url}" >> "$GITHUB_STEP_SUMMARY"
         {
