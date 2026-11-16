@@ -38,7 +38,7 @@ inputs written at the top of its file.
 | `legacy-release` | Releases to `production` the legacy versions that `staging` has: copies each chart from the staging registry to the production one, and opens a pull request to `production`. | By hand. |
 | `chart-released` | Will release the charts of the new system to `production`. It does nothing yet. | By hand. |
 | `pages` | Will publish the index of `production` over HTTP with GitHub Pages. It is switched off. | By hand. |
-| `auto-bump-manual-trigger`, `retry-failed-jobs` | Belong to the development branches. | See the files. |
+| `auto-bump-manual-trigger`, `retry-failed-jobs` | Were here before these ones, and are not described here. | See the files. |
 
 Start the ones that run by hand with `gh workflow run <file> --repo rancher/charts --ref staging`.
 
