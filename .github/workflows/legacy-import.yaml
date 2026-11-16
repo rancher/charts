@@ -1,0 +1,117 @@
+name: Legacy import
+
+# Brings the versions of the old system into the staging branch as legacy
+# versions: the charts of Rancher 2.10 to 2.15 that release-v2.15 has. Each chart is
+# pushed to the staging registry when it is not there, and its entry goes to legacy/,
+# so that the index of the new system lists it too. It does it with the
+# legacy-import.sh script and the rules.yaml of the latest cargueiro release, one
+# commit for each family, and opens a pull request with the result against the
+# staging branch, which does not take direct pushes. Nothing is released to
+# production by it.
+#
+#   gh workflow run legacy-import.yaml --repo rancher/charts --ref staging
+#
+# It reads release-v2.15 at its latest commit, and it can run again at any time: a
+# family that is done gets no commit, and when nothing is new no pull request is
+# opened. Merge the pull request with a merge commit or a rebase, never a squash,
+# which would put every family in one commit.
+
+on:
+  workflow_dispatch:
+    inputs:
+      family:
+        description: "Import only this family (default: all of them)"
+        required: false
+      dry_run:
+        description: "Only report what would be imported"
+        type: boolean
+        default: false
+
+permissions: {}
+
+# A second run waits for the first one: both would push the same charts.
+concurrency:
+  group: legacy-import
+  cancel-in-progress: false
+
+jobs:
+  import:
+    name: Import
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write # to push the branch of the pull request
+      id-token: write # to log in to Vault with the OIDC token
+    steps:
+      # The staging branch, with the credentials the checkout leaves: the last step
+      # pushes a branch with them.
+      - name: Check out the staging branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: staging
+          persist-credentials: true # zizmor: ignore[artipacked] -- the last step pushes a branch
+
+      # cargueiro takes the registry credentials from CARGUEIRO_USERNAME and
+      # CARGUEIRO_PASSWORD, and only sends them to the registry it pushes to. The App
+      # credentials are the ones auto-bump uses to open its pull requests.
+      - name: Load the registry and App credentials from Vault
+        uses: rancher-eio/read-vault-secrets@7282bf97898cd1c16c89f837e0bb442e6d384c89 # main
+        with:
+          secrets: |
+            secret/data/github/repo/${{ github.repository }}/rancher-prime-stg-registry/credentials username | CARGUEIRO_USERNAME ;
+            secret/data/github/repo/${{ github.repository }}/rancher-prime-stg-registry/credentials password | CARGUEIRO_PASSWORD ;
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY
+
+      # The latest release, as in chart-staged.yaml. The script and the rules of
+      # the same release are downloaded by the next step.
+      - name: Install cargueiro
+        run: curl -fsSL https://github.com/rancher/cargueiro/releases/latest/download/install.sh | sh -
+
+      - name: Import the legacy versions
+        id: import
+        env:
+          # The inputs are data, not trusted input: they go through the environment
+          # and the script checks them.
+          FAMILY: ${{ inputs.family }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          COMMITS_FILE: ${{ runner.temp }}/commits
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          .github/scripts/legacy-import.sh
+          echo "commits=$(cat "$COMMITS_FILE")" >> "$GITHUB_OUTPUT"
+
+      # A pull request that GITHUB_TOKEN opens does not start the Audit workflow, so
+      # it is opened with the token of the App that auto-bump uses.
+      - name: Create the token that opens the pull request
+        if: steps.import.outputs.commits != '0' && !inputs.dry_run
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: pr-token
+        with:
+          app-id: ${{ env.APP_ID }}
+          private-key: ${{ env.PRIVATE_KEY }}
+
+      # The staging branch only takes pull requests, so the result goes to a branch
+      # of its own. It is never overwritten: a re-run fails on the push while the
+      # branch of an earlier run is still there. The pull request is left open for
+      # someone to look at, and is not merged by this workflow.
+      - name: Open a pull request to the staging branch
+        if: steps.import.outputs.commits != '0' && !inputs.dry_run
+        env:
+          GH_TOKEN: ${{ steps.pr-token.outputs.token }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          branch="legacy-import/${RUN_ID}"
+          git push origin "HEAD:refs/heads/${branch}"
+          {
+            echo "Imports the versions of the old system, release-v2.15, as legacy versions."
+            echo
+            echo "Each chart was pushed to the staging registry if it was not there, and its entry is in \`legacy/\`. One commit for each family:"
+            echo
+            git log --reverse --format='- %s' origin/staging..HEAD
+            echo
+            echo "**Merge it with a merge commit or a rebase, never a squash**: a squash puts every family in one commit."
+          } > "$RUNNER_TEMP/body.md"
+          gh pr create --base staging --head "$branch" \
+            --title "[staging] import the legacy versions" --body-file "$RUNNER_TEMP/body.md"
