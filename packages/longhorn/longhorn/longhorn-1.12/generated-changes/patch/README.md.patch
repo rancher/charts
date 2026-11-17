@@ -1,6 +1,6 @@
 --- charts-original/README.md
 +++ charts/README.md
-@@ -38,400 +38,13 @@
+@@ -38,404 +38,13 @@
  
  As a replacement for PSPs, [Pod Security Admission](https://kubernetes.io/docs/concepts/security/pod-security-admission/) should be used. Please consult the Longhorn docs for more details on how to configure your chart release namespaces to work with the new Pod Security Admission and apply Pod Security Standards.
  
@@ -57,8 +57,11 @@
 -|-----|------|---------|-------------|
 -| networkPolicies.enabled | bool | `false` | Setting that allows you to enable network policies that control access to Longhorn pods. |
 -| networkPolicies.kubeAPIServerSourceCIDRs | list | `[]` | Kubernetes API server source CIDRs allowed to access the Longhorn admission webhook. When empty, source filtering is disabled. |
+-| networkPolicies.metricsScrapeSources | list | `[]` | Sources permitted to scrape Longhorn Manager metrics on TCP/9500 when `restrictInternalTraffic` is enabled. Each entry is a NetworkPolicy peer. TCP/9500 also serves the Longhorn Manager REST API, so scope every entry as narrowly as the scraper allows, for example a `namespaceSelector` and a `podSelector` in one entry rather than a namespace on its own. When empty, only the Longhorn components already listed in the policy can reach Longhorn Manager. |
+-| networkPolicies.recoveryBackendAdditionalIngressPorts | list | `[]` | Additional TCP ports used by recovery backend mesh transport. |
 -| networkPolicies.restrictInternalTraffic | bool | `true` | Setting that allows you to enable network policies for internal Longhorn components. When enabled, only authorized Longhorn components are allowed to communicate with each other. |
 -| networkPolicies.type | string | `"k3s"` | Distribution that determines the policy for allowing access for an ingress. (Options: "k3s", "rke2", "rke1") |
+-| networkPolicies.v1DataEngineInitiatorSourceCIDRs | list | `[]` | Source CIDRs observed by the CNI for V1 iSCSI initiator traffic. When empty, any source that can reach instance-manager can connect to TCP/3260. |
 -
 -### Image Settings
 -
@@ -66,43 +69,43 @@
 -|-----|------|---------|-------------|
 -| image.csi.attacher.registry | string | `""` | Registry for the CSI attacher image. When unspecified, Longhorn uses the default value. |
 -| image.csi.attacher.repository | string | `"longhornio/csi-attacher"` | Repository for the CSI attacher image. When unspecified, Longhorn uses the default value. |
--| image.csi.attacher.tag | string | `"v4.12.0"` | Tag for the CSI attacher image. When unspecified, Longhorn uses the default value. |
+-| image.csi.attacher.tag | string | `"v4.13.0-20261028"` | Tag for the CSI attacher image. When unspecified, Longhorn uses the default value. |
 -| image.csi.livenessProbe.registry | string | `""` | Registry for the CSI liveness probe image. When unspecified, Longhorn uses the default value. |
 -| image.csi.livenessProbe.repository | string | `"longhornio/livenessprobe"` | Repository for the CSI liveness probe image. When unspecified, Longhorn uses the default value. |
--| image.csi.livenessProbe.tag | string | `"v2.19.0"` | Tag for the CSI liveness probe image. When unspecified, Longhorn uses the default value. |
+-| image.csi.livenessProbe.tag | string | `"v2.20.0-20261028"` | Tag for the CSI liveness probe image. When unspecified, Longhorn uses the default value. |
 -| image.csi.nodeDriverRegistrar.registry | string | `""` | Registry for the CSI Node Driver Registrar image. When unspecified, Longhorn uses the default value. |
 -| image.csi.nodeDriverRegistrar.repository | string | `"longhornio/csi-node-driver-registrar"` | Repository for the CSI Node Driver Registrar image. When unspecified, Longhorn uses the default value. |
--| image.csi.nodeDriverRegistrar.tag | string | `"v2.17.0"` | Tag for the CSI Node Driver Registrar image. When unspecified, Longhorn uses the default value. |
+-| image.csi.nodeDriverRegistrar.tag | string | `"v2.18.0-20261028"` | Tag for the CSI Node Driver Registrar image. When unspecified, Longhorn uses the default value. |
 -| image.csi.provisioner.registry | string | `""` | Registry for the CSI Provisioner image. When unspecified, Longhorn uses the default value. |
 -| image.csi.provisioner.repository | string | `"longhornio/csi-provisioner"` | Repository for the CSI Provisioner image. When unspecified, Longhorn uses the default value. |
--| image.csi.provisioner.tag | string | `"v5.3.0"` | Tag for the CSI Provisioner image. When unspecified, Longhorn uses the default value. |
+-| image.csi.provisioner.tag | string | `"v5.3.0-20261028"` | Tag for the CSI Provisioner image. When unspecified, Longhorn uses the default value. |
 -| image.csi.resizer.registry | string | `""` | Registry for the CSI Resizer image. When unspecified, Longhorn uses the default value. |
 -| image.csi.resizer.repository | string | `"longhornio/csi-resizer"` | Repository for the CSI Resizer image. When unspecified, Longhorn uses the default value. |
--| image.csi.resizer.tag | string | `"v2.2.1"` | Tag for the CSI Resizer image. When unspecified, Longhorn uses the default value. |
+-| image.csi.resizer.tag | string | `"v2.3.0-20261028"` | Tag for the CSI Resizer image. When unspecified, Longhorn uses the default value. |
 -| image.csi.snapshotter.registry | string | `""` | Registry for the CSI Snapshotter image. When unspecified, Longhorn uses the default value. |
 -| image.csi.snapshotter.repository | string | `"longhornio/csi-snapshotter"` | Repository for the CSI Snapshotter image. When unspecified, Longhorn uses the default value. |
--| image.csi.snapshotter.tag | string | `"v8.6.0"` | Tag for the CSI Snapshotter image. When unspecified, Longhorn uses the default value. |
+-| image.csi.snapshotter.tag | string | `"v8.7.0-20261028"` | Tag for the CSI Snapshotter image. When unspecified, Longhorn uses the default value. |
 -| image.longhorn.backingImageManager.registry | string | `""` | Registry for the Backing Image Manager image. When unspecified, Longhorn uses the default value. |
 -| image.longhorn.backingImageManager.repository | string | `"longhornio/backing-image-manager"` | Repository for the Backing Image Manager image. When unspecified, Longhorn uses the default value. |
--| image.longhorn.backingImageManager.tag | string | `"v1.12.1"` | Tag for the Backing Image Manager image. When unspecified, Longhorn uses the default value. |
+-| image.longhorn.backingImageManager.tag | string | `"v1.12.2-rc4"` | Tag for the Backing Image Manager image. When unspecified, Longhorn uses the default value. |
 -| image.longhorn.engine.registry | string | `""` | Registry for the Longhorn Engine image. |
 -| image.longhorn.engine.repository | string | `"longhornio/longhorn-engine"` | Repository for the Longhorn Engine image. |
--| image.longhorn.engine.tag | string | `"v1.12.1"` | Tag for the Longhorn Engine image. |
+-| image.longhorn.engine.tag | string | `"v1.12.2-rc4"` | Tag for the Longhorn Engine image. |
 -| image.longhorn.instanceManager.registry | string | `""` | Registry for the Longhorn Instance Manager image. |
 -| image.longhorn.instanceManager.repository | string | `"longhornio/longhorn-instance-manager"` | Repository for the Longhorn Instance Manager image. |
--| image.longhorn.instanceManager.tag | string | `"v1.12.1"` | Tag for the Longhorn Instance Manager image. |
+-| image.longhorn.instanceManager.tag | string | `"v1.12.2-rc4"` | Tag for the Longhorn Instance Manager image. |
 -| image.longhorn.manager.registry | string | `""` | Registry for the Longhorn Manager image. |
 -| image.longhorn.manager.repository | string | `"longhornio/longhorn-manager"` | Repository for the Longhorn Manager image. |
--| image.longhorn.manager.tag | string | `"v1.12.1"` | Tag for the Longhorn Manager image. |
+-| image.longhorn.manager.tag | string | `"v1.12.2-rc4"` | Tag for the Longhorn Manager image. |
 -| image.longhorn.shareManager.registry | string | `""` | Registry for the Longhorn Share Manager image. |
 -| image.longhorn.shareManager.repository | string | `"longhornio/longhorn-share-manager"` | Repository for the Longhorn Share Manager image. |
--| image.longhorn.shareManager.tag | string | `"v1.12.1"` | Tag for the Longhorn Share Manager image. |
+-| image.longhorn.shareManager.tag | string | `"v1.12.2-rc4"` | Tag for the Longhorn Share Manager image. |
 -| image.longhorn.supportBundleKit.registry | string | `""` | Registry for the Longhorn Support Bundle Manager image. |
 -| image.longhorn.supportBundleKit.repository | string | `"longhornio/support-bundle-kit"` | Repository for the Longhorn Support Bundle Manager image. |
--| image.longhorn.supportBundleKit.tag | string | `"v0.0.92"` | Tag for the Longhorn Support Bundle Manager image. |
+-| image.longhorn.supportBundleKit.tag | string | `"v1.0.5"` | Tag for the Longhorn Support Bundle Manager image. |
 -| image.longhorn.ui.registry | string | `""` | Registry for the Longhorn UI image. |
 -| image.longhorn.ui.repository | string | `"longhornio/longhorn-ui"` | Repository for the Longhorn UI image. |
--| image.longhorn.ui.tag | string | `"v1.12.1"` | Tag for the Longhorn UI image. |
+-| image.longhorn.ui.tag | string | `"v1.12.2-rc4"` | Tag for the Longhorn UI image. |
 -| image.openshift.oauthProxy.registry | string | `""` | Registry for the OAuth Proxy image. Specify the upstream image (for example, "quay.io/openshift/origin-oauth-proxy"). This setting applies only to OpenShift users. |
 -| image.openshift.oauthProxy.repository | string | `""` | Repository for the OAuth Proxy image. Specify the upstream image (for example, "quay.io/openshift/origin-oauth-proxy"). This setting applies only to OpenShift users. |
 -| image.openshift.oauthProxy.tag | string | `""` | Tag for the OAuth Proxy image. Specify OCP/OKD version 4.1 or later (including version 4.18, which is available at quay.io/openshift/origin-oauth-proxy:4.18). This setting applies only to OpenShift users. |
@@ -335,6 +338,7 @@
 -| defaultSettings.defaultDataLocality | Default data locality. A Longhorn volume has data locality if a local replica of the volume exists on the same node as the pod that is using the volume. |
 -| defaultSettings.defaultDataPath | Default path to use for storing data on a host. An absolute directory path indicates a filesystem-type disk used by the V1 Data Engine, while a path to a block device indicates a block-type disk used by the V2 Data Engine. The default value is "/var/lib/longhorn/". |
 -| defaultSettings.defaultLonghornStaticStorageClass | Default name of Longhorn static StorageClass. "storageClassName" is assigned to PVs and PVCs that are created for an existing Longhorn volume. "storageClassName" can also be used as a label, so it is possible to use a Longhorn StorageClass to bind a workload to an existing PV without creating a Kubernetes StorageClass object. "storageClassName" needs to be an existing StorageClass. The default value is "longhorn-static". |
+-| defaultSettings.defaultNvmeTcpNrIoQueues | The default number of I/O queues the kernel initiator creates when connecting a volume frontend over NVMe-TCP. This setting applies to volumes using the V2 Data Engine with the block device front end, takes effect on (re)attach, and can be overridden per volume. 0 means unspecified (kernel default, one queue per online core). |
 -| defaultSettings.defaultReplicaCount | Default number of replicas for volumes created using the Longhorn UI. For Kubernetes configuration, modify the `numberOfReplicas` field in the StorageClass. The default value is "{"v1":"3","v2":"3"}". |
 -| defaultSettings.defaultUblkNumberOfQueue | This setting specifies the default the number of queues for ublk frontend. This setting applies to volumes using the V2 Data Engine with Ublk front end. Individual volumes can override this setting by specifying their own number of queues for ublk. |
 -| defaultSettings.defaultUblkQueueDepth | This setting specifies the default depth of each queue for Ublk frontend. This setting applies to volumes using the V2 Data Engine with Ublk front end. Individual volumes can override this setting by specifying their own Ublk queue depth. |
