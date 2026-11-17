@@ -57,16 +57,23 @@ status=0
 cargueiro release "${args[@]}" >"$REPORT_FILE" 2>&1 || status=$?
 cat "$REPORT_FILE"
 
+# What release writes: legacy/, and assets/logos/ only when a version has a logo of its
+# own. git refuses a path that does not exist, so only the ones that do are given to it.
+written=()
+for path in legacy assets/logos; do
+  [ ! -e "$path" ] || written+=("$path")
+done
+
 commits=0
-if [ "$DRY_RUN" = false ] && [ -n "$(git status --porcelain --untracked-files=all -- legacy assets/logos)" ]; then
-  git add -- legacy assets/logos
+if [ "$DRY_RUN" = false ] && [ ${#written[@]} -gt 0 ] && [ -n "$(git status --porcelain --untracked-files=all -- "${written[@]}")" ]; then
+  git add -- "${written[@]}"
   # The summary of release starts at the line that counts the versions.
   {
     echo "legacy: release ${FAMILY:-the legacy versions} from staging"
     echo
     sed -n '/^released [0-9]* versions/,$p' "$REPORT_FILE"
   } >"${REPORT_FILE}.message"
-  git commit -q --file "${REPORT_FILE}.message" -- legacy assets/logos
+  git commit -q --file "${REPORT_FILE}.message" -- "${written[@]}"
   commits=$((commits + 1))
   echo "committed the legacy versions"
 
