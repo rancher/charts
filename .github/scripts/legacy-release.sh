@@ -15,12 +15,14 @@
 #
 # Environment:
 #   STAGING_DIR  a checkout of the staging branch (required)
+#   FAMILY       optional: release only the charts of this family, by its name in
+#                rules.yaml. A release of everything is more than one run can copy
 #   DRY_RUN      "true" to report what would be released and change nothing (default "false")
 #   REPORT_FILE  optional: a file to write what cargueiro release printed to
 #   RESULT_FILE  optional: a file to write status=<exit code of release> and
 #                commits=<number of commits that were made> to, one a line
 #
-# DRY_RUN comes from outside the repository, so it is checked here. Requires
+# FAMILY and DRY_RUN come from outside the repository, so they are checked here. Requires
 # cargueiro on PATH, and git user.name and user.email set when it is not a dry run.
 # The registry credentials are the ones cargueiro reads: CARGUEIRO_USERNAME and
 # CARGUEIRO_PASSWORD for staging, CARGUEIRO_PRODUCTION_USERNAME and
@@ -33,17 +35,21 @@ fail() {
 }
 
 STAGING_DIR=${STAGING_DIR:-}
+FAMILY=${FAMILY:-}
 DRY_RUN=${DRY_RUN:-false}
 REPORT_FILE=${REPORT_FILE:-$(mktemp)}
 RESULT_FILE=${RESULT_FILE:-/dev/null}
 
 [ -d "$STAGING_DIR" ] || fail "STAGING_DIR must be the checkout of the staging branch, not '$STAGING_DIR'"
+[[ -z "$FAMILY" || "$FAMILY" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]] ||
+  fail "the family name '$FAMILY' must be lower case letters, digits and dashes"
 [[ "$DRY_RUN" == true || "$DRY_RUN" == false ]] || fail "DRY_RUN must be true or false, not '$DRY_RUN'"
 
 cargueiro release --help >/dev/null 2>&1 ||
   fail "this cargueiro ($(cargueiro version)) has no release command: install a release that has it"
 
 args=(--legacy --from "$STAGING_DIR" --repo "$PWD")
+[ -z "$FAMILY" ] || args+=(--family "$FAMILY")
 [ "$DRY_RUN" = false ] || args+=(--dry-run)
 
 # A version that did not go through is the status of release, kept for the end.
@@ -56,7 +62,7 @@ if [ "$DRY_RUN" = false ] && [ -n "$(git status --porcelain --untracked-files=al
   git add -- legacy assets/logos
   # The summary of release starts at the line that counts the versions.
   {
-    echo "legacy: release the legacy versions from staging"
+    echo "legacy: release ${FAMILY:-the legacy versions} from staging"
     echo
     sed -n '/^released [0-9]* versions/,$p' "$REPORT_FILE"
   } >"${REPORT_FILE}.message"

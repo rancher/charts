@@ -19,12 +19,16 @@ name: Legacy release
 #
 #   gh workflow run legacy-release.yaml --repo rancher/charts --ref staging
 #
-# cargueiro release is not in the latest release of cargueiro yet, so name a release
-# that has it in cargueiro_version.
+# Releasing every family copies more than one run can finish, so release one family at a
+# time with family. cargueiro release is not in the latest release of cargueiro yet, so
+# name a release that has it, and --family, in cargueiro_version.
 
 on:
   workflow_dispatch:
     inputs:
+      family:
+        description: "Release only this family (default: all of them, which is more than one run can copy)"
+        required: false
       dry_run:
         description: "Only report what would be released"
         type: boolean
@@ -93,6 +97,7 @@ jobs:
         env:
           # The inputs are data, not trusted input: they go through the environment
           # and the script checks them.
+          FAMILY: ${{ inputs.family }}
           DRY_RUN: ${{ inputs.dry_run }}
           STAGING_DIR: ${{ github.workspace }}/.staging
           REPORT_FILE: ${{ runner.temp }}/report.txt
@@ -123,9 +128,11 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.pr-token.outputs.token }}
           RUN_ID: ${{ github.run_id }}
+          FAMILY: ${{ inputs.family }}
           REPORT_FILE: ${{ runner.temp }}/report.txt
         run: |
           branch="legacy-release/${RUN_ID}"
+          title="[production] release the legacy versions${FAMILY:+ - $FAMILY}"
           git push origin "HEAD:refs/heads/${branch}"
           {
             echo "Releases the legacy versions that staging has."
@@ -137,7 +144,7 @@ jobs:
             echo '```'
           } > "$RUNNER_TEMP/body.md"
           gh pr create --base production --head "$branch" \
-            --title "[production] release the legacy versions" --body-file "$RUNNER_TEMP/body.md"
+            --title "$title" --body-file "$RUNNER_TEMP/body.md"
 
       # What did not go through is a failure of the run, after the pull request with
       # what did.

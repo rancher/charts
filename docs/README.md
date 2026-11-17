@@ -35,7 +35,7 @@ inputs written at the top of its file.
 | `chart-staged` | Ships a chart that another repository pushed to the staging registry: writes its entry, rebuilds the index and opens a pull request to `staging`. | Dispatched by the repository that pushed the chart. |
 | `audit` | Checks every pull request to `staging` against the staging registry. | A pull request to `staging`. |
 | `legacy-import` | Brings the versions of the old system (`release-v2.15`, Rancher 2.10 to 2.15) into `staging` as legacy versions: pushes each chart to the staging registry and opens a pull request with one commit for each family. | By hand. |
-| `legacy-release` | Releases to `production` the legacy versions that `staging` has: copies each chart from the staging registry to the production one, and opens a pull request to `production`. | By hand. |
+| `legacy-release` | Releases to `production` the legacy versions that `staging` has: copies each chart from the staging registry to the production one, and opens a pull request to `production`. It takes a `family` input, and a release of everything is more than one run can copy, so it is run a family at a time. | By hand. |
 | `chart-released` | Will release the charts of the new system to `production`. It does nothing yet. | By hand. |
 | `pages` | Will publish the index of `production` over HTTP with GitHub Pages. It is switched off. | By hand. |
 | `auto-bump-manual-trigger`, `retry-failed-jobs` | Were here before these ones, and are not described here. | See the files. |
