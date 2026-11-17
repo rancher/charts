@@ -58,8 +58,8 @@ registry. `legacy-import` writes them to `staging`, and `legacy-release` to `pro
   request, and the run fails at the end.
 - **Merge their pull requests with a merge commit or a rebase, never a squash.** A squash
   would put every family in one commit.
-- `legacy-release` needs a release of `cargueiro` that has the `release` command, which
-  is named in its `cargueiro_version` input until it is the latest.
+- `legacy-release` installs the latest release of `cargueiro`, and its `cargueiro_version`
+  input names another one.
 
 ## Credentials
 
