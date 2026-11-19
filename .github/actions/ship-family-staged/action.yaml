@@ -1,7 +1,8 @@
 name: Ship family staged
 description: >-
-  Stamps, checks, packages and pushes the charts of a family to the staging
-  registry, and tells rancher/charts to ship and index them in one pull request.
+  Stamps and checks the charts of a family, checks that their images are pushed,
+  packages and pushes them to the staging registry, and tells rancher/charts to
+  ship and index them in one pull request.
 
 # For the workflow of a chart repository whose charts are released together, such
 # as fleet, fleet-agent and fleet-crd. For one chart, use ship-staged. The steps
@@ -183,6 +184,21 @@ runs:
         echo "::group::cargueiro check chart"
         cargueiro check chart --family "$FAMILY" "${dirs[@]}" >&2
         echo "::endgroup::"
+
+        # The images of a release are pushed before its charts: a chart whose images
+        # are missing would reach the catalog and break the image lists built from
+        # it. The command takes one chart, so it runs for each one, all of them
+        # before the step fails, so that the images missing from every chart are
+        # reported together. Nothing is built or pushed until every image of every
+        # chart is in the registry.
+        echo "::group::cargueiro check-pushed-dependencies"
+        images_missing=0
+        for dir in "${dirs[@]}"; do
+          echo "${dir}:"
+          cargueiro check-pushed-dependencies "$dir" || images_missing=1
+        done
+        echo "::endgroup::"
+        [ "$images_missing" = 0 ]
 
         echo "::group::cargueiro package"
         packaged=$(cargueiro package --family "$FAMILY" "${dirs[@]}" --output-dir "$RUNNER_TEMP/ship-family-staged")
