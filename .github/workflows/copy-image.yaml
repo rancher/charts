@@ -24,12 +24,11 @@ jobs:
     permissions:
       id-token: write # to log in to Vault
     steps:
-      - name: Load the registry credentials from Vault
+      # Only the staging registry needs credentials, to write. The source is read anonymously.
+      - name: Load the staging registry credentials from Vault
         uses: rancher-eio/read-vault-secrets@7282bf97898cd1c16c89f837e0bb442e6d384c89 # main
         with:
           secrets: |
-            secret/data/github/repo/${{ github.repository }}/rancher-prime-registry/credentials username | SOURCE_USERNAME ;
-            secret/data/github/repo/${{ github.repository }}/rancher-prime-registry/credentials password | SOURCE_PASSWORD ;
             secret/data/github/repo/${{ github.repository }}/rancher-prime-stg-registry/credentials username | TARGET_USERNAME ;
             secret/data/github/repo/${{ github.repository }}/rancher-prime-stg-registry/credentials password | TARGET_PASSWORD
 
@@ -40,8 +39,7 @@ jobs:
         run: |
           command -v skopeo || { sudo apt-get update -q && sudo apt-get install -y -q skopeo; }
           skopeo copy --all --preserve-digests \
-            --src-creds "${SOURCE_USERNAME}:${SOURCE_PASSWORD}" \
             --dest-creds "${TARGET_USERNAME}:${TARGET_PASSWORD}" \
             "docker://${SOURCE}" "docker://${TARGET}"
           skopeo inspect --raw --creds "${TARGET_USERNAME}:${TARGET_PASSWORD}" "docker://${TARGET}" | sha256sum
-          skopeo inspect --raw --creds "${SOURCE_USERNAME}:${SOURCE_PASSWORD}" "docker://${SOURCE}" | sha256sum
+          skopeo inspect --raw "docker://${SOURCE}" | sha256sum
