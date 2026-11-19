@@ -1,0 +1,35 @@
+#{{- if gt (len (lookup "rbac.authorization.k8s.io/v1" "ClusterRole" "" "")) 0 -}}
+# {{- $found := dict -}}
+# {{- set $found "longhorn.io/v1beta2/BackingImageDataSource" false -}}
+# {{- set $found "longhorn.io/v1beta2/BackingImageManager" false -}}
+# {{- set $found "longhorn.io/v1beta2/BackingImage" false -}}
+# {{- set $found "longhorn.io/v1beta2/BackupBackingImage" false -}}
+# {{- set $found "longhorn.io/v1beta2/Backup" false -}}
+# {{- set $found "longhorn.io/v1beta2/BackupTarget" false -}}
+# {{- set $found "longhorn.io/v1beta2/BackupVolume" false -}}
+# {{- set $found "longhorn.io/v1beta2/EngineImage" false -}}
+# {{- set $found "longhorn.io/v1beta2/Engine" false -}}
+# {{- set $found "longhorn.io/v1beta2/InstanceManager" false -}}
+# {{- set $found "longhorn.io/v1beta2/Node" false -}}
+# {{- set $found "longhorn.io/v1beta2/Orphan" false -}}
+# {{- set $found "longhorn.io/v1beta2/RecurringJob" false -}}
+# {{- set $found "longhorn.io/v1beta2/Replica" false -}}
+# {{- set $found "longhorn.io/v1beta2/Setting" false -}}
+# {{- set $found "longhorn.io/v1beta2/ShareManager" false -}}
+# {{- set $found "longhorn.io/v1beta2/Snapshot" false -}}
+# {{- set $found "longhorn.io/v1beta2/SupportBundle" false -}}
+# {{- set $found "longhorn.io/v1beta2/SystemBackup" false -}}
+# {{- set $found "longhorn.io/v1beta2/SystemRestore" false -}}
+# {{- set $found "longhorn.io/v1beta2/VolumeAttachment" false -}}
+# {{- set $found "longhorn.io/v1beta2/Volume" false -}}
+# {{- range .Capabilities.APIVersions -}}
+# {{- if hasKey $found (toString .) -}}
+# 	{{- set $found (toString .) true -}}
+# {{- end -}}
+# {{- end -}}
+# {{- range $_, $exists := $found -}}
+# {{- if (eq $exists false) -}}
+# 	{{- required "Required CRDs are missing. Please install the corresponding CRD chart before installing this chart." "" -}}
+# {{- end -}}
+# {{- end -}}
+#{{- end -}}
