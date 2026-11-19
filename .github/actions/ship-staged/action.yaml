@@ -1,7 +1,7 @@
 name: Ship staged
 description: >-
-  Stamps, checks, packages and pushes a chart to the staging registry, and tells
-  rancher/charts to ship and index it.
+  Stamps and checks a chart, checks that its images are pushed, packages and pushes it
+  to the staging registry, and tells rancher/charts to ship and index it.
 
 # For the workflow of a chart repository. The steps run in the job of the caller,
 # after its checkout, so the OIDC token is the one of the caller and every Vault
@@ -159,6 +159,13 @@ runs:
 
         echo "::group::cargueiro check chart"
         cargueiro check chart "$CHART_DIR" >&2
+        echo "::endgroup::"
+
+        # The images of a release are pushed before its chart: a chart whose images
+        # are missing would reach the catalog and break the image lists built from
+        # it. Nothing is built or pushed until every image is in the registry.
+        echo "::group::cargueiro check-pushed-dependencies"
+        cargueiro check-pushed-dependencies "$CHART_DIR"
         echo "::endgroup::"
 
         echo "::group::cargueiro package"
