@@ -1,0 +1,27 @@
+suite: Kubectl Image
+templates:
+  - hardened.yaml
+tests:
+  - it: should compose kubectl image from repository and tag in patch-sa Job
+    documentIndex: 0
+    set:
+      global.kubectl.repository: "test/kubectl"
+      global.kubectl.tag: "v1.2.3"
+    template: hardened.yaml
+    asserts:
+      - isKind:
+          of: Job
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "test/kubectl:v1.2.3"
+  - it: should use systemDefaultRegistry prefix with kubectl image
+    documentIndex: 0
+    set:
+      global.kubectl.repository: "test/kubectl"
+      global.kubectl.tag: "v1.2.3"
+      global.cattle.systemDefaultRegistry: "registry.test.com:8000"
+    template: hardened.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "registry.test.com:8000/test/kubectl:v1.2.3"
