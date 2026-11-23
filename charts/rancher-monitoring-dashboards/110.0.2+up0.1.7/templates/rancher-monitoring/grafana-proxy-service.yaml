@@ -1,0 +1,20 @@
+{{- if .Values.grafanaProxy.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: rancher-monitoring-grafana
+  namespace: {{ include "rancher-monitoring.namespace" . }}
+  labels:
+{{ include "rancher-monitoring.labels" . | indent 4 }}
+    app.kubernetes.io/component: grafana-proxy
+spec:
+  type: ClusterIP
+  selector:
+{{ include "rancher-monitoring.selectorLabels" . | indent 4 }}
+    app.kubernetes.io/component: monitoring-proxy
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+{{- end }}
