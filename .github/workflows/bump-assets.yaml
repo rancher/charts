@@ -1,0 +1,160 @@
+name: Bump assets
+
+# Starts the bump of rancher/rancher-assets when a chart that Rancher pins gets a new version on the staging branch, so
+# that the new version does not wait for the schedule there. It sends a repository_dispatch of type charts-staged-pinned,
+# which PR Builder Cron of rancher-assets runs on. That workflow opens the PR that refreshes its lock.yaml, and from
+# there on the image and the PRs of rancher/rancher follow.
+#
+# A merge to staging that adds a version of a chart that is not pinned, or that only hides or withdraws one, sends
+# nothing. Which charts count is decided by .github/scripts/pinned-charts-added.sh.
+#
+# The dispatch is sent 20 minutes after the last such merge. The PR Builder Cron does not look for a bump PR that is still
+# open and a bump PR takes some minutes to be merged, so two dispatches that are close would open two PRs for the same
+# change. Each merge waits, then looks at whether a later merge of a pinned chart came in the meantime: if so, that one
+# sends it and this one sends nothing. The dispatches are so at least 20 minutes apart. A run that does not send
+# (it failed or was cancelled) is caught by the schedule of rancher-assets.
+#
+# To try it without a real chart, run it by hand with the two commits of a merge. By default it only says what it would
+# send:
+#
+#   gh workflow run bump-assets.yaml --repo rancher/charts --ref staging \
+#     -f before=<commit before the merge> \
+#     -f after=<commit of the merge>
+#
+# Add -f dry_run=false to send it for real, and -f quiet_minutes=0 to not wait.
+
+on:
+  push:
+    branches: [staging]
+    paths:
+      - entries/**
+  workflow_dispatch:
+    inputs:
+      before:
+        description: "The commit before the merge (empty: the parent of the commit below)"
+        required: false
+      after:
+        description: "The commit of the merge (empty: the head of the branch the workflow is run on)"
+        required: false
+      dry_run:
+        description: "Only say what would be sent"
+        type: boolean
+        default: true
+      quiet_minutes:
+        description: "Minutes to wait before sending (empty: 20)"
+        required: false
+
+permissions: {}
+
+env:
+  # Where it is sent to. It is fixed here, never taken from the event.
+  TARGET_OWNER: rancher
+  TARGET_REPO: rancher-assets
+  EVENT_TYPE: charts-staged-pinned
+
+jobs:
+  detect:
+    name: Detect a pinned chart
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      charts: ${{ steps.detect.outputs.charts }}
+    steps:
+      # The whole history without the files, which are the entries and the archives of every chart: only the names of
+      # the files that changed are needed.
+      - name: Check out the history of the branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+
+      - name: Look for a pinned chart that was added
+        id: detect
+        env:
+          # The event is data, not trusted input: it goes through the environment, and the script only gives it to git.
+          BEFORE: ${{ inputs.before || github.event.before }}
+          AFTER: ${{ inputs.after || github.sha }}
+        run: |
+          charts=$(.github/scripts/pinned-charts-added.sh | tr '\n' ' ' | sed 's/ $//')
+          echo "charts=$charts" >>"$GITHUB_OUTPUT"
+          if [ -n "$charts" ]; then
+            echo "Added a version of a pinned chart: $charts" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No version of a pinned chart was added in ${BEFORE:-the parent of $AFTER}..$AFTER, nothing is sent." | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
+  send:
+    name: Send to rancher-assets
+    needs: detect
+    if: needs.detect.outputs.charts != ''
+    runs-on: ubuntu-latest
+    # The wait, and the time to send
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    env:
+      CHARTS: ${{ needs.detect.outputs.charts }}
+      AFTER: ${{ inputs.after || github.sha }}
+      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+      QUIET_MINUTES: ${{ inputs.quiet_minutes }}
+    steps:
+      - name: Check out the history of the branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+
+      - name: Wait for a later merge
+        if: env.DRY_RUN != 'true'
+        run: |
+          QUIET_MINUTES=${QUIET_MINUTES:-20}
+          case "$QUIET_MINUTES" in
+            ''|*[!0-9]*) echo "::error::quiet_minutes must be a number of minutes" >&2; exit 1 ;;
+          esac
+          echo "Waiting $QUIET_MINUTES minutes for another merge of a pinned chart"
+          sleep "$((QUIET_MINUTES * 60))"
+
+      # A merge that came in during the wait runs this same workflow, and it sends. So this one stops.
+      - name: Look for a later merge of a pinned chart
+        id: later
+        run: |
+          git fetch --quiet origin staging
+          later=$(env BEFORE="$AFTER" AFTER=FETCH_HEAD .github/scripts/pinned-charts-added.sh | tr '\n' ' ' | sed 's/ $//')
+          if [ -n "$later" ] && [ "$DRY_RUN" != "true" ]; then
+            echo "send=false" >>"$GITHUB_OUTPUT"
+            echo "A later merge added $later, and its run sends it. Nothing is sent from this one." | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "send=true" >>"$GITHUB_OUTPUT"
+          fi
+
+      - name: Dry run
+        if: env.DRY_RUN == 'true'
+        run: |
+          echo "Dry run. It would send $EVENT_TYPE to $TARGET_OWNER/$TARGET_REPO, for: $CHARTS (commit $AFTER)." | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # A token of the App that merges the pull requests of both repositories, for rancher-assets only, and only the
+      # permission that a repository_dispatch needs.
+      - name: Create the token for rancher-assets
+        if: env.DRY_RUN != 'true' && steps.later.outputs.send == 'true'
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: token
+        with:
+          app-id: ${{ secrets.AUTO_APPROVE_APP_ID }}
+          private-key: ${{ secrets.AUTO_APPROVE_PRIVATE_KEY }}
+          owner: ${{ env.TARGET_OWNER }}
+          repositories: ${{ env.TARGET_REPO }}
+          permission-contents: write
+
+      - name: Send the dispatch
+        if: env.DRY_RUN != 'true' && steps.later.outputs.send == 'true'
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+        run: |
+          jq -n --arg type "$EVENT_TYPE" --arg charts "$CHARTS" --arg sha "$AFTER" \
+            '{event_type: $type, client_payload: {charts: $charts, sha: $sha}}' |
+            gh api --method POST "repos/$TARGET_OWNER/$TARGET_REPO/dispatches" --input -
+          echo "Sent $EVENT_TYPE to $TARGET_OWNER/$TARGET_REPO for: $CHARTS (commit $AFTER)" | tee -a "$GITHUB_STEP_SUMMARY"
