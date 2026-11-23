@@ -1,0 +1,24 @@
+{{- $files := (.Files.Glob "files/rancher/k8s/*").AsConfig }}
+{{- $filesDict := (fromYaml $files) }}
+{{- if not (include "exporter.kubeEtcd.enabled" .) }}
+{{- $filesDict = (unset $filesDict "rancher-etcd-nodes.json") -}}
+{{- $filesDict = (unset $filesDict "rancher-etcd.json") -}}
+{{- end }}
+{{- $_ := (set $filesDict "rancher-k8s-components-nodes.json" (get $filesDict "rancher-k8s-components-nodes.json" | replace "kube-controller-manager" (include "exporter.kubeControllerManager.jobName" .))) -}}
+{{- $_ := (set $filesDict "rancher-k8s-components.json" (get $filesDict "rancher-k8s-components.json" | replace "kube-controller-manager" (include "exporter.kubeControllerManager.jobName" .))) -}}
+{{ $files = (toYaml $filesDict) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Values.grafana.defaultDashboards.namespace }}
+  name: rancher-default-dashboards-k8s
+  annotations:
+{{ toYaml .Values.grafana.sidecar.dashboards.annotations | indent 4 }}
+  labels:
+    {{- if $.Values.grafana.sidecar.dashboards.label }}
+    {{ $.Values.grafana.sidecar.dashboards.label }}: "1"
+    {{- end }}
+    app: {{ template "rancher-monitoring.name" $ }}-grafana
+{{ include "rancher-monitoring.labels" $ | indent 4 }}
+data:
+{{ $files | indent 2 }}
