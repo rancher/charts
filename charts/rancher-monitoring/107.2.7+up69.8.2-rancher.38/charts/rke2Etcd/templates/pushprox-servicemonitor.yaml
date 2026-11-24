@@ -1,0 +1,45 @@
+{{- template "applyKubeVersionOverrides" . -}}
+{{- if .Values.serviceMonitor }}{{- if .Values.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ template "pushprox.serviceMonitor.name" . }}
+  namespace: {{ template "pushprox.namespace" . }}
+  labels: {{ include "pushProxy.serviceMonitor.labels" . | nindent 4 }}
+spec:
+  endpoints: {{include "pushProxy.serviceMonitor.endpoints" . | nindent 4 }}
+  jobLabel: component
+  podTargetLabels:
+  - component
+  - pushprox-exporter
+  namespaceSelector:
+    matchNames:
+    - {{ template "pushprox.namespace" . }}
+  selector:
+    matchLabels: {{ include "pushProxy.client.labels" . | nindent 6 }}
+---
+{{- $selector := "" }}
+{{- if not (kindIs "invalid" .Values.service)  }}
+{{- if not (kindIs "invalid" .Values.service.selector) }}
+{{ if .Values.service.selector }}
+{{- if .Values.clients.enabled }}
+{{- required (printf "Cannot override .Values.service.selector=%s when .Values.clients.enabled=true" (toJson .Values.service.selector)) "" }}
+{{- end }}
+{{- $selector = (toYaml .Values.service.selector) }}
+{{- end }}
+{{- end }}
+{{- end }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "pushProxy.client.name" . }}
+  namespace: {{ template "pushprox.namespace" . }}
+  labels: {{ include "pushProxy.client.labels" . | nindent 4 }}
+spec:
+  ports:
+  - name: metrics
+    port: {{ required "Need .Values.metricsPort to configure client to listen to metrics at port" .Values.metricsPort}}
+    protocol: TCP
+    targetPort: {{ .Values.metricsPort }}
+  selector: {{ default (include "pushProxy.client.labels" .) $selector | nindent 4 }}
+{{- end }}{{- end }}
