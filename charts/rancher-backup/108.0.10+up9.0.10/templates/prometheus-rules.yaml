@@ -1,0 +1,36 @@
+{{ if .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" }}
+{{ if or .Values.monitoring.prometheusRules.customRules.enabled .Values.monitoring.prometheusRules.defaultAlert.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "backupRestore.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  groups:
+    {{- if .Values.monitoring.prometheusRules.defaultAlert.enabled }}
+    - name: backup-restore
+      rules:
+      - record: status:rancher_backups_attempted_total
+        expr: rancher_backups_attempted_total * on(name) group_left(status) rancher_backup_info
+      - record: status:rancher_backups_failed_total
+        expr: rancher_backups_failed_total * on(name) group_left(status) rancher_backup_info
+      - alert: BackupFailed
+        expr: (sum(rate(status:rancher_backups_attempted_total[{{ .Values.monitoring.prometheusRules.defaultAlert.window }}])) by (status) / (sum(rate(status:rancher_backups_attempted_total[{{ .Values.monitoring.prometheusRules.defaultAlert.window }}])) by (status) - sum(rate(status:rancher_backups_failed_total[{{ .Values.monitoring.prometheusRules.defaultAlert.window }}])) by (status))) > 1
+        for: 1m
+        {{- with .Values.monitoring.prometheusRules.defaultAlert.labels }}
+        labels:
+            {{- toYaml . | nindent 10 }}
+        {{- end }}
+        annotations:
+          summary: "Backup failed due to error: {{ "{{" }} $labels.status {{ "}}" }}"
+          description: "The rancher-backup operator has failed to process a backup. Error: {{ "{{" }} $labels.status {{ "}}" }}"
+    {{- end }}
+    {{- if .Values.monitoring.prometheusRules.customRules.enabled }}
+    - name: backup-restore-custom
+      {{- with .Values.monitoring.prometheusRules.customRules.rules }}
+      rules:
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}
