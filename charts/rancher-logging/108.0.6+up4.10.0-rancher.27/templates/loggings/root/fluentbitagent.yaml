@@ -1,0 +1,29 @@
+{{- define "logging-operator.fluentbitagent.root" -}}
+{{- $containerLogPath := printf "%s/containers/" (default "/var/lib/docker" .Values.global.dockerRootDirectory) }}
+metadata:
+  name: "{{ .Release.Name }}-root"
+spec:
+  {{- if .Values.global.dockerRootDirectory }}
+  mountPath: {{ $containerLogPath }}
+  extraVolumeMounts:
+    - source: {{ $containerLogPath }}
+      destination: {{ $containerLogPath }}
+      readOnly: true
+  {{- end }}
+  {{- if (include "requireFilterKubernetes" .) }}
+  filterKubernetes:
+    {{- if .Values.fluentbit.filterKubernetes.Merge_Log }}
+    Merge_Log: "{{ .Values.fluentbit.filterKubernetes.Merge_Log }}"
+    {{- end }}
+    {{- if .Values.fluentbit.filterKubernetes.Merge_Log_Key }}
+    Merge_Log_Key: "{{ .Values.fluentbit.filterKubernetes.Merge_Log_Key }}"
+    {{- end }}
+    {{- if .Values.fluentbit.filterKubernetes.Merge_Log_Trim }}
+    Merge_Log_Trim: "{{ .Values.fluentbit.filterKubernetes.Merge_Log_Trim }}"
+    {{- end }}
+    {{- if .Values.fluentbit.filterKubernetes.Merge_Parser }}
+    Merge_Parser: "{{ .Values.fluentbit.filterKubernetes.Merge_Parser }}"
+    {{- end }}
+  {{- end }}
+{{- end -}}
+{{- include "logging-operator.fluentbitagent" (list . "logging-operator.fluentbitagent.root") -}}
