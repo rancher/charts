@@ -1,0 +1,21 @@
+{{- define "logging-operator.fluentbitagent.eks" -}}
+{{- $logPath := "/var/log/messages" -}}
+{{- $individualValues := .Values.additionalLoggingSources.eks.fluentbit -}}
+metadata:
+  name: {{ .Release.Name }}-eks
+spec:
+  {{- include "logging-operator.individualFluentbitLoggingRef" $individualValues | nindent 2 }}
+  disableKubernetesFilter: true
+  extraVolumeMounts:
+    - source: {{ $logPath }}
+      destination: {{ $logPath }}
+      readOnly: true
+  inputTail:
+    Tag: "eks"
+    Path: {{ $logPath }}
+    Parser: "syslog"
+  {{- include "logging-operator.individualFluentbit" $individualValues | nindent 2 }}
+{{- end -}}
+{{- if .Values.additionalLoggingSources.eks.enabled }}
+{{- include "logging-operator.fluentbitagent" (list . "logging-operator.fluentbitagent.eks") -}}
+{{- end }}
