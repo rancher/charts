@@ -1,0 +1,13 @@
+{{- if and .Values.grafana.enabled .Values.grafana.defaultDashboardsEnabled (not .Values.grafana.defaultDashboards.useExistingNamespace) }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.grafana.defaultDashboards.namespace }}
+  labels:
+    name: {{ .Values.grafana.defaultDashboards.namespace }}
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+  annotations:
+{{- if not .Values.grafana.defaultDashboards.cleanupOnUninstall }}
+    helm.sh/resource-policy: "keep"
+{{- end }}
+{{- end }}
