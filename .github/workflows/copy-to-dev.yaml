@@ -1,0 +1,99 @@
+name: Copy staging to dev-v2.16
+
+# The git mirror serves dev-v2.16 and not staging, so after every merge to staging this workflow copies it to
+# dev-v2.16, in one commit without the .github folder, with .github/scripts/copy-to-dev.sh. The commit is pushed
+# on top of dev-v2.16, never forced, so a branch that someone else moved is refused and the next run copies again.
+#
+# It copies the head of staging at the time it runs, not the commit that started it, and a run waits for the one
+# before it, so a burst of merges is one copy or two and never a race. A merge that only changes .github has
+# nothing to copy and pushes nothing.
+#
+# The push is made with the token of the GitHub App that chart-released.yaml uses to open its pull requests, which
+# is what the rules of dev-v2.16 must allow: GITHUB_TOKEN cannot bypass them. What this workflow starts later is not
+# decided by a push to dev-v2.16 but by bump-assets.yaml, from staging.
+#
+# By hand, it only says what it would push unless dry_run is false:
+#
+#   gh workflow run copy-to-dev.yaml --repo rancher/charts --ref staging
+#   gh workflow run copy-to-dev.yaml --repo rancher/charts --ref staging -f dry_run=false
+
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Only make the copy and say what would be pushed"
+        type: boolean
+        default: true
+
+permissions: {}
+
+# Every copy writes the same branch, so they wait for each other. A run that is waiting is replaced by a newer one,
+# which is fine: each copies the head of staging when it starts.
+concurrency:
+  group: copy-to-dev
+  cancel-in-progress: false
+
+env:
+  SOURCE_BRANCH: staging
+  TARGET_BRANCH: dev-v2.16
+
+jobs:
+  copy:
+    name: Copy
+    if: github.repository == 'rancher/charts'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      id-token: write # to log in to Vault with the OIDC token
+    steps:
+      - name: Load the App credentials from Vault
+        uses: rancher-eio/read-vault-secrets@7282bf97898cd1c16c89f837e0bb442e6d384c89 # main
+        with:
+          secrets: |
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY
+
+      # The token pushes to dev-v2.16, so it is the only one that can write to the repository.
+      - name: Create the token that pushes the copy
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: token
+        with:
+          app-id: ${{ env.APP_ID }}
+          private-key: ${{ env.PRIVATE_KEY }}
+          permission-contents: write
+
+      # The head of staging as it is now. The script needs the two commits and their trees, not their history.
+      - name: Check out the staging branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: staging
+          fetch-depth: 1
+          token: ${{ steps.token.outputs.token }}
+          persist-credentials: true # zizmor: ignore[artipacked] -- a later step pushes with it
+
+      - name: Fetch the target branch
+        run: |
+          git fetch --no-tags --depth=1 origin \
+            "+refs/heads/${SOURCE_BRANCH}:refs/remotes/origin/${SOURCE_BRANCH}" \
+            "+refs/heads/${TARGET_BRANCH}:refs/remotes/origin/${TARGET_BRANCH}"
+
+      - name: Copy staging to dev-v2.16
+        env:
+          # A push has no inputs and is always for real; by hand it is a dry run unless asked otherwise.
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+          RESULT_FILE: ${{ runner.temp }}/result.txt
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: |
+          ./.github/scripts/copy-to-dev.sh
+          {
+            echo "### Copy ${SOURCE_BRANCH} to ${TARGET_BRANCH}"
+            echo
+            echo '```'
+            cat "$RESULT_FILE"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
