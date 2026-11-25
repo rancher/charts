@@ -190,12 +190,15 @@ runs:
         # it. The command takes one chart, so it runs for each one, all of them
         # before the step fails, so that the images missing from every chart are
         # reported together. Nothing is built or pushed until every image of every
-        # chart is in the registry.
+        # chart is in the registry. They are also looked for on Docker Hub, where the
+        # community pulls them from and the air-gap image list names them: a chart whose
+        # images are only in the SUSE registries cannot be installed or mirrored from it.
         echo "::group::cargueiro check-pushed-dependencies"
         images_missing=0
         for dir in "${dirs[@]}"; do
           echo "${dir}:"
           cargueiro check-pushed-dependencies "$dir" || images_missing=1
+          cargueiro check-pushed-dependencies "$dir" --registry docker.io || images_missing=1
         done
         echo "::endgroup::"
         [ "$images_missing" = 0 ]

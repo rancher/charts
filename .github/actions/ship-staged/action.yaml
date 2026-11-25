@@ -168,6 +168,13 @@ runs:
         cargueiro check-pushed-dependencies "$CHART_DIR"
         echo "::endgroup::"
 
+        # The community pulls the images from Docker Hub, and the air-gap image list
+        # names them there, so they have to be on it too: a chart whose images are
+        # only in the SUSE registries cannot be installed or mirrored from Docker Hub.
+        echo "::group::cargueiro check-pushed-dependencies (Docker Hub)"
+        cargueiro check-pushed-dependencies "$CHART_DIR" --registry docker.io
+        echo "::endgroup::"
+
         echo "::group::cargueiro package"
         archive=$(cargueiro package "$CHART_DIR" --output-dir "$RUNNER_TEMP/ship-staged")
         echo "::endgroup::"

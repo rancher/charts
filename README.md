@@ -1,7 +1,7 @@
 # chart-owners
 
 The composite actions that a chart repository calls to release a chart: they
-stamp and check it, check that its images are pushed, package it and push it to
+stamp and check it, check that its images are pushed (to the staging registry and to Docker Hub), package it and push it to
 the staging registry, and start the
 `chart-staged` workflow of this repository, which ships and indexes it in a pull
 request against `staging`.
