@@ -23,6 +23,12 @@ description: >-
 # them a short-lived token for rancher/charts with only actions: write, which
 # starts the chart-staged workflow.
 #
+# With wait: true, the action then waits for that chart-staged run, which passes
+# only once its pull request against staging passed Audit and was merged, and
+# fails when it fails or does not finish in wait-timeout minutes. The caller can
+# then go on knowing the release is in the staging index. The run is read with
+# the token of the job: rancher/charts is public.
+#
 # Everything that can fail on credentials is done before the push, because a
 # version that is pushed stays in the registry. If the push stops halfway, run
 # the job again: the charts that are in the registry with the same content are
@@ -44,6 +50,22 @@ inputs:
       chart and the versions already released.
     required: false
     default: ""
+  wait:
+    description: >-
+      "true" to wait for the chart-staged run of rancher/charts that this action
+      starts, and fail when it fails. That run passes only once its pull request
+      against staging passed Audit and was merged, so when the action ends the
+      charts are in the staging index. "false" to end right after starting it.
+    required: false
+    default: "false"
+  wait-timeout:
+    description: >-
+      With wait, how many minutes to wait for the chart-staged run. A run
+      usually ends 1 to 4 minutes after it is started, and can queue behind
+      the runs of other repositories. When the time is up the action fails, but
+      the run goes on.
+    required: false
+    default: "15"
 
 outputs:
   family:
@@ -55,6 +77,9 @@ outputs:
   version:
     description: The version of the charts that were pushed, the one given or the one worked out.
     value: ${{ steps.push.outputs.version }}
+  run-url:
+    description: The URL of the chart-staged run of rancher/charts that was started.
+    value: ${{ steps.dispatch.outputs.run-url }}
 
 runs:
   using: composite
@@ -68,6 +93,8 @@ runs:
         FAMILY: ${{ inputs.family }}
         VERSION: ${{ inputs.version }}
         WORKFLOW_REF: ${{ github.workflow_ref }}
+        WAIT: ${{ inputs.wait }}
+        WAIT_TIMEOUT: ${{ inputs.wait-timeout }}
       run: |
         mapfile -t dirs < <(printf '%s\n' "$CHART_DIRS" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d')
 
@@ -76,6 +103,7 @@ runs:
         echo "ref:          ${GITHUB_REF} (${GITHUB_EVENT_NAME})"
         echo "family:       ${FAMILY}"
         echo "version:      ${VERSION:-worked out by cargueiro chart-version}"
+        echo "wait:         ${WAIT} (at most ${WAIT_TIMEOUT} minutes)"
         printf 'chart folder: %s\n' "${dirs[@]}"
         echo "Vault paths:  github/repo/${GITHUB_REPOSITORY}/{rancher-prime-stg-registry/credentials,github/rancher-gh-workflow-dispatcher/app-credentials}"
         if [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
@@ -92,6 +120,17 @@ runs:
             exit 1
           fi
         done
+        case "$WAIT" in
+          true | false) ;;
+          *)
+            echo "::error::The wait input is '${WAIT}', it must be true or false."
+            exit 1
+            ;;
+        esac
+        if [ "$WAIT" = true ] && ! [[ "$WAIT_TIMEOUT" =~ ^[1-9][0-9]*$ ]]; then
+          echo "::error::The wait-timeout input is '${WAIT_TIMEOUT}', it must be a number of minutes."
+          exit 1
+        fi
 
     - name: Load the credentials from Vault
       uses: rancher-eio/read-vault-secrets@7282bf97898cd1c16c89f837e0bb442e6d384c89 # main
@@ -228,19 +267,83 @@ runs:
           echo "EOF"
         } >> "$GITHUB_OUTPUT"
 
+    # gh workflow run prints the URL of the run it started (gh 2.87.0 and later,
+    # when its output is not a terminal), which the wait step follows.
     - name: Tell rancher/charts the family is staged
+      id: dispatch
       shell: bash
       env:
         GH_TOKEN: ${{ steps.charts-token.outputs.token }}
         FAMILY: ${{ inputs.family }}
         VERSION: ${{ steps.push.outputs.version }}
+        WAIT: ${{ inputs.wait }}
       run: |
         echo "Sending chart-staged for the family ${FAMILY} ${VERSION} to rancher/charts"
-        if ! gh workflow run chart-staged.yaml --repo rancher/charts --ref staging \
+        if ! run_url=$(gh workflow run chart-staged.yaml --repo rancher/charts --ref staging \
           -f "family=${FAMILY}" \
-          -f "version=${VERSION}"; then
+          -f "version=${VERSION}"); then
           echo "::error::The dispatch was refused. The token is made from the rancher-gh-workflow-dispatcher App, which must be installed on rancher/charts with actions: write. The charts are already in the registry: start the chart-staged workflow of rancher/charts by hand with 'gh workflow run chart-staged.yaml --repo rancher/charts --ref staging -f family=${FAMILY} -f version=${VERSION}', or with Run workflow in its Actions tab."
           exit 1
         fi
-        echo "Sent. Follow it in the chart-staged workflow of rancher/charts."
-        echo "Sent chart-staged for the family ${FAMILY} ${VERSION} to rancher/charts." >> "$GITHUB_STEP_SUMMARY"
+        run_id=${run_url##*/}
+        if [[ ! "$run_url" =~ ^https://github\.com/rancher/charts/actions/runs/[0-9]+$ ]]; then
+          echo "Sent, but gh workflow run did not print the URL of the run (got '${run_url}'). Follow it in the chart-staged workflow of rancher/charts."
+          if [ "$WAIT" = true ]; then
+            echo "::error::Cannot wait for a run whose URL is unknown. It needs gh 2.87.0 or later, and this is '$(gh --version | head -n1)'."
+            exit 1
+          fi
+          exit 0
+        fi
+        echo "Sent. Follow it at ${run_url}"
+        echo "Sent chart-staged for the family ${FAMILY} ${VERSION} to rancher/charts: ${run_url}" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "run-id=${run_id}"
+          echo "run-url=${run_url}"
+        } >> "$GITHUB_OUTPUT"
+
+    # chart-staged passes only once its pull request passed Audit and was
+    # squash-merged into staging; otherwise it fails and leaves the pull request
+    # open. A step of a composite action takes no timeout-minutes, so the
+    # deadline is kept here.
+    - name: Wait for rancher/charts to ship the family
+      if: inputs.wait == 'true'
+      shell: bash
+      env:
+        # rancher/charts is public, so the token of the job can read its runs,
+        # whatever the permissions of the job.
+        GH_TOKEN: ${{ github.token }}
+        RUN_ID: ${{ steps.dispatch.outputs.run-id }}
+        RUN_URL: ${{ steps.dispatch.outputs.run-url }}
+        WAIT_TIMEOUT: ${{ inputs.wait-timeout }}
+        INTERVAL: 20
+      run: |
+        echo "Waiting at most ${WAIT_TIMEOUT} minutes for ${RUN_URL}"
+        deadline=$((SECONDS + WAIT_TIMEOUT * 60))
+        failures=0
+        while :; do
+          # The API can answer 500 for a run that was just made, so a few failed
+          # reads in a row are let through.
+          if state=$(gh api "repos/rancher/charts/actions/runs/${RUN_ID}" --jq '"\(.status) \(.conclusion // "none")"'); then
+            failures=0
+            case "$state" in
+              "completed success")
+                echo "chart-staged passed: its pull request was merged into staging."
+                echo "rancher/charts merged it into staging: ${RUN_URL}" >> "$GITHUB_STEP_SUMMARY"
+                exit 0
+                ;;
+              completed\ *)
+                echo "::error::chart-staged finished with '${state#completed }', so its pull request was not merged. Look at ${RUN_URL}"
+                exit 1
+                ;;
+              *) echo "chart-staged is ${state%% *}" ;;
+            esac
+          elif ((++failures >= 10)); then
+            echo "::error::Could not read ${RUN_URL} ${failures} times in a row."
+            exit 1
+          fi
+          if ((SECONDS >= deadline)); then
+            echo "::error::chart-staged did not finish in ${WAIT_TIMEOUT} minutes. It goes on without this job: follow it at ${RUN_URL}"
+            exit 1
+          fi
+          sleep "$INTERVAL"
+        done
