@@ -7,6 +7,9 @@
 # commits what was written: one commit for the versions and one for the archives and
 # the index.
 #
+# Before it, the images of the versions to release are looked for on Docker Hub, and a missing
+# one stops the script with nothing copied.
+#
 # The registries are written by cargueiro release itself, while it runs, not by the
 # pull request that comes after: by the time there is something to commit, the images
 # and the charts of those versions are in the production registry. A dry run reads
@@ -64,6 +67,41 @@ cargueiro release --help >/dev/null 2>&1 ||
 args=(--from "$STAGING_DIR" --repo "$PWD")
 [ -z "$FAMILY" ] || args+=(--family "$FAMILY")
 [ "$DRY_RUN" = false ] || args+=(--dry-run)
+
+# The community pulls the images from Docker Hub, and the air-gap image list names them
+# there, but release only copies them between the SUSE registries. So before anything is
+# copied, which cannot be undone, the images of every version that would be released are
+# looked for on Docker Hub. The dry run says which versions those are, family included, and
+# reads no registry. The archive of each is the one staging has in assets/. Every version is
+# checked before the script fails, so all the missing images are reported together. A dry run
+# of the workflow does the same check, so it shows what a real run would stop on.
+check_docker_hub() {
+  local plan="$1" workdir failed=0 chart version archive
+  workdir=$(mktemp -d)
+  while read -r _ chart version; do
+    archive="$STAGING_DIR/assets/$chart/$chart-$version.tgz"
+    if [ ! -f "$archive" ]; then
+      echo "::error::staging has no archive for $chart $version at assets/$chart/$chart-$version.tgz"
+      failed=1
+      continue
+    fi
+    mkdir -p "$workdir/$chart-$version"
+    tar -xzf "$archive" -C "$workdir/$chart-$version"
+    echo "Docker Hub: $chart $version"
+    # The images are printed on success: only the failures are of interest here.
+    cargueiro check-pushed-dependencies "$workdir/$chart-$version/$chart" --registry docker.io >/dev/null || failed=1
+  done < <(grep -E '^release ' "$plan" || true)
+  rm -rf "$workdir"
+  return "$failed"
+}
+
+plan="${REPORT_FILE}.plan"
+cargueiro release "${args[@]}" --dry-run >"$plan" 2>&1 || {
+  cat "$plan"
+  fail "cargueiro release --dry-run failed: nothing was released"
+}
+check_docker_hub "$plan" ||
+  fail "some images of the versions to release are not on Docker Hub: nothing was released. Push them there and run this again"
 
 # A version that did not go through is the status of release, kept for the end.
 status=0
