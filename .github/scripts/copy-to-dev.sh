@@ -49,14 +49,18 @@ source_sha=$(git rev-parse "$source_ref")
 target_sha=$(git rev-parse "$target_ref")
 
 # The tree of the source without what is left out, made in an index of its own, so that no file is checked out
-# and the index and the working tree of the caller stay as they are.
+# and the index and the working tree of the caller stay as they are. The index is not the one of a checkout, so
+# git rm is forced: without -f it refuses an entry that is not the one of HEAD and the working tree, which is the
+# case whenever the source has moved since the checkout. A command substitution does not inherit set -e, hence the
+# one inside it: a failure here must stop the script and not give a tree that still has what had to be left out.
 index=$(mktemp -u)
 trap 'rm -f "$index"' EXIT
 tree=$(
+  set -e
   export GIT_INDEX_FILE="$index"
   git read-tree "$source_sha"
   for path in $EXCLUDE; do
-    git rm -r -q --cached --ignore-unmatch -- "$path"
+    git rm -r -q -f --cached --ignore-unmatch -- "$path"
   done
   git write-tree
 )
