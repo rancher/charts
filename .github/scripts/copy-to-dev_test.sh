@@ -62,12 +62,13 @@ stage() { # stage <message> <command run in the seed on the staging branch>; fet
   git_in "$DIR/seed" push -q origin staging
   git_in "$DIR/work" fetch -q origin
 }
-run() { # run <env...>; prints the exit status
+run() { # run <env...>; prints the exit status. It is a dry run unless the caller says DRY_RUN=false
   rm -f "$DIR/result"
-  (cd "$DIR/work" && env REMOTE=origin RESULT_FILE="$DIR/result" "$@" "$SCRIPT" >"$DIR/out" 2>"$DIR/err") && echo 0 || echo 1
+  (cd "$DIR/work" && env REMOTE=origin DRY_RUN=true RESULT_FILE="$DIR/result" "$@" "$SCRIPT" >"$DIR/out" 2>"$DIR/err") && echo 0 || echo 1
 }
 res() { sed -n "s/^$1=//p" "$DIR/result"; } # a value of the result file
 copy() { res copy; }
+remote_head() { git_in "$DIR/remote.git" rev-parse "refs/heads/$1"; } # a branch of the remote, as GitHub has it
 files() { git_in "$DIR/work" ls-tree -r --name-only "$1" | tr '\n' ' ' | sed 's/ $//'; }
 adopt() { # the push of the copy, which is a fast-forward, and a fetch, as the clone sees it
   git_in "$DIR/work" push -q origin "$(copy):refs/heads/dev-v2.16"
@@ -124,9 +125,42 @@ check "  and committer" "app-bot" "$(git_in "$DIR/work" log -1 --format=%cn "$(c
 
 check "the branches can be other than the defaults" "0" "$(run SOURCE_BRANCH=dev-v2.16 TARGET_BRANCH=staging)"
 check "  and are the ones that were copied" "Copy dev-v2.16 at $(git_in "$DIR/work" rev-parse refs/remotes/origin/dev-v2.16)" "$(git_in "$DIR/work" log -1 --format=%s "$(copy)")"
-check "no RESULT_FILE is fine" "0" "$( (cd "$DIR/work" && env REMOTE=origin "$SCRIPT" >/dev/null 2>&1) && echo 0 || echo 1)"
+check "no RESULT_FILE is fine" "0" "$( (cd "$DIR/work" && env REMOTE=origin DRY_RUN=true "$SCRIPT" >/dev/null 2>&1) && echo 0 || echo 1)"
 
-for bad in "TARGET_BRANCH=staging" "TARGET_BRANCH=a;b" "TARGET_BRANCH=-x" "TARGET_BRANCH=a b" "REMOTE=a;b" "EXCLUDE=../x" "EXCLUDE=a/../b" "EXCLUDE=/abs" "EXCLUDE=-rf" 'EXCLUDE=$(ls)'; do
+fresh
+old=$(git_in "$DIR/work" rev-parse refs/remotes/origin/dev-v2.16)
+check "a dry run makes the copy and pushes nothing" "0" "$(run)"
+check "  the result says it was needed and not pushed" "true:false" "$(res needed):$(res pushed)"
+check "  the output says it is a dry run" "1" "$(grep -c '^dry run: ' "$DIR/out")"
+check "  and dev-v2.16 of the remote is as it was" "$old" "$(remote_head dev-v2.16)"
+
+fresh
+old=$(remote_head dev-v2.16)
+staging=$(remote_head staging)
+check "a real run pushes the copy" "0" "$(run DRY_RUN=false)"
+check "  the result says it was needed and pushed" "true:true" "$(res needed):$(res pushed)"
+check "  dev-v2.16 of the remote is the copy" "$(copy)" "$(remote_head dev-v2.16)"
+check "  and the old head is its parent, so it was a fast-forward" "$old" "$(git_in "$DIR/remote.git" rev-parse "$(copy)^")"
+check "  staging of the remote is untouched" "$staging" "$(remote_head staging)"
+check "  the remote has the tree of staging without .github" "$(files refs/remotes/origin/staging | tr ' ' '\n' | grep -v '^\.github/' | tr '\n' ' ' | sed 's/ $//')" "$(git_in "$DIR/remote.git" ls-tree -r --name-only dev-v2.16 | tr '\n' ' ' | sed 's/ $//')"
+pushed_head=$(remote_head dev-v2.16)
+check "a second real run has nothing to push" "0" "$(run DRY_RUN=false)"
+check "  the result says so" "false:false" "$(res needed):$(res pushed)"
+check "  and dev-v2.16 of the remote is the same" "$pushed_head" "$(remote_head dev-v2.16)"
+
+fresh
+git_in "$DIR/seed" checkout -q dev-v2.16
+echo other >"$DIR/seed/other.txt"
+git_in "$DIR/seed" add -A
+git_in "$DIR/seed" commit -q -m "pushed by someone else after the clone fetched"
+git_in "$DIR/seed" push -q origin dev-v2.16
+other=$(remote_head dev-v2.16)
+check "a target that moved after the fetch is not forced" "1" "$(run DRY_RUN=false)"
+check "  what the other push did is still there" "$other" "$(remote_head dev-v2.16)"
+check "  the error says the copy was not pushed" "1" "$(grep -c '^::error::the copy was not pushed' "$DIR/err")"
+check "  and there is no result" "0" "$([ -e "$DIR/result" ] && echo 1 || echo 0)"
+
+for bad in "TARGET_BRANCH=staging" "TARGET_BRANCH=a;b" "TARGET_BRANCH=-x" "TARGET_BRANCH=a b" "REMOTE=a;b" "EXCLUDE=../x" "EXCLUDE=a/../b" "EXCLUDE=/abs" "EXCLUDE=-rf" "DRY_RUN=yes" "DRY_RUN=TRUE" 'EXCLUDE=$(ls)'; do
   check "'$bad' is refused" "1" "$(run "$bad")"
   check "  with an error and no result" "1:0" "$(grep -c '^::error::' "$DIR/err" | tr -d '\n'):$([ -e "$DIR/result" ] && echo 1 || echo 0)"
 done

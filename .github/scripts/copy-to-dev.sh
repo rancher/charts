@@ -7,15 +7,20 @@
 # TARGET_BRANCH as its only parent, so that pushing it to the target is a fast-forward and nothing is ever
 # forced. When the target has that tree already there is nothing to copy and no commit is made.
 #
-# This script only makes the commit, in the local repository: it pushes nothing. The branches are read from
-# REMOTE as the caller fetched them (refs/remotes/$REMOTE/<branch>).
+# The branches are read from REMOTE as the caller fetched them (refs/remotes/$REMOTE/<branch>). The commit is
+# pushed to TARGET_BRANCH of REMOTE with a plain git push, never forced: git refuses it when the target is not
+# at the commit the copy was made on, which is what happens when someone else pushed in between, and then the
+# script fails and changes nothing. The next run copies again on the new head. With DRY_RUN the commit is made and
+# nothing is pushed.
 #
 # Environment:
 #   SOURCE_BRANCH  the branch that is copied (default staging)
 #   TARGET_BRANCH  the branch that gets the copy (default dev-v2.16)
 #   REMOTE         the remote they were fetched from (default origin)
 #   EXCLUDE        paths that are left out of the copy, separated by spaces (default .github)
-#   RESULT_FILE    optional: gets needed=true|false, source=<commit of the source> and copy=<the new commit, or empty>
+#   DRY_RUN        true to make the commit and push nothing, false to push it (default false)
+#   RESULT_FILE    optional: gets needed=true|false, source=<commit of the source>, copy=<the new commit, or empty>
+#                  and pushed=true|false
 #
 # The author and the committer of the commit are the ones git is given: GIT_AUTHOR_NAME and the like, or its config.
 set -euo pipefail
@@ -29,6 +34,7 @@ SOURCE_BRANCH=${SOURCE_BRANCH:-staging}
 TARGET_BRANCH=${TARGET_BRANCH:-dev-v2.16}
 REMOTE=${REMOTE:-origin}
 EXCLUDE=${EXCLUDE:-.github}
+DRY_RUN=${DRY_RUN:-false}
 RESULT_FILE=${RESULT_FILE:-/dev/null}
 
 # These come from outside the repository, so they are checked before they are used.
@@ -38,6 +44,7 @@ done
 for path in $EXCLUDE; do
   [[ "$path" =~ ^[A-Za-z0-9._][A-Za-z0-9._/-]*$ && "$path" != *..* ]] || fail "EXCLUDE has '$path', which is not a path inside the repository"
 done
+[[ "$DRY_RUN" == true || "$DRY_RUN" == false ]] || fail "DRY_RUN must be true or false, not '$DRY_RUN'"
 [ "$SOURCE_BRANCH" != "$TARGET_BRANCH" ] || fail "SOURCE_BRANCH and TARGET_BRANCH are both $SOURCE_BRANCH"
 
 source_ref="refs/remotes/$REMOTE/$SOURCE_BRANCH"
@@ -67,6 +74,7 @@ tree=$(
 
 copy=""
 needed=false
+pushed=false
 if [ "$tree" = "$(git rev-parse "$target_sha^{tree}")" ]; then
   echo "nothing to copy: $TARGET_BRANCH already has the tree of $SOURCE_BRANCH at ${source_sha:0:9}"
 else
@@ -74,10 +82,21 @@ else
   copy=$(git commit-tree "$tree" -p "$target_sha" -m "Copy $SOURCE_BRANCH at $source_sha")
   echo "copy of $SOURCE_BRANCH at ${source_sha:0:9} on top of $TARGET_BRANCH at ${target_sha:0:9}: ${copy:0:9}"
   git -c diff.renames=false diff --shortstat "$target_sha" "$copy" | sed 's/^ /  /'
+
+  if [ "$DRY_RUN" = true ]; then
+    echo "dry run: ${copy:0:9} is not pushed to $REMOTE/$TARGET_BRANCH"
+  else
+    # No + and no --force: git itself refuses anything that is not a fast-forward of the target.
+    git push -q "$REMOTE" "$copy:refs/heads/$TARGET_BRANCH" ||
+      fail "the copy was not pushed to $REMOTE/$TARGET_BRANCH, which is not at ${target_sha:0:9} any more: nothing was changed, and the next run copies again"
+    pushed=true
+    echo "pushed ${copy:0:9} to $REMOTE/$TARGET_BRANCH"
+  fi
 fi
 
 {
   echo "needed=$needed"
   echo "source=$source_sha"
   echo "copy=$copy"
+  echo "pushed=$pushed"
 } >"$RESULT_FILE"
