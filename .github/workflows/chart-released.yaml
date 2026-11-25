@@ -1,0 +1,175 @@
+name: Chart released
+
+# Releases to production the new versions that staging has: the charts in entries/. It runs
+# `cargueiro release`, which checks each chart, copies its images and the chart from the
+# staging registry to the production one, and writes its entry, and then `cargueiro index`,
+# and it opens a pull request with the result against the production branch, which does
+# not take direct pushes, and does not merge it. The legacy versions are released by
+# legacy-release.yaml.
+#
+# THIS WRITES THE PRODUCTION REGISTRY, registry.suse.com, WHILE IT RUNS, not when the pull
+# request is merged: a copied image or chart cannot be taken back. So it only runs for
+# nicholasSUSE (the first step), and it is dry by default: a dry run reads both checkouts
+# and nothing else, and prints what would be released.
+#
+#   gh workflow run chart-released.yaml --repo rancher/charts --ref staging
+#   gh workflow run chart-released.yaml --repo rancher/charts --ref staging -f dry_run=false
+#
+# A release of everything copies more than one run may finish: release a family at a time
+# with family when it does. It can run again at any time: a version that is in production is
+# not copied again, and when nothing is new no pull request is opened. A version that fails
+# does not stop the others: what went through is in the pull request, and the run fails at
+# the end, with what did not go through in its log. A tag that holds other content in
+# production is never replaced, and is reported as a conflict.
+#
+# The workflow and its scripts are on the staging branch, the default one, and it checks out
+# both branches: the production branch has no workflows, because it is what customers see.
+
+on:
+  workflow_dispatch:
+    inputs:
+      family:
+        description: "Release only this family (default: all of them)"
+        required: false
+      dry_run:
+        description: "Only report what would be released"
+        type: boolean
+        default: true
+      cargueiro_version:
+        description: "The release of cargueiro to install, such as v0.2.9 (default: the latest)"
+        required: false
+
+permissions: {}
+
+env:
+  # Where the new versions are released to, and read back from. It is fixed here, never taken
+  # from the event.
+  PRODUCTION_REGISTRY: registry.suse.com/rancher/catalog
+
+# Every release writes the same branch and the same registry, so they wait for each other.
+concurrency:
+  group: chart-released
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write # to push the branch of the pull request
+      id-token: write # to log in to Vault with the OIDC token
+    steps:
+      # Only the person who started the run can use it: anyone with write access can dispatch
+      # the workflow. This is the first step, so for anybody else the run stops here, red, before
+      # a branch is checked out or a secret is read. A re-run counts as the person who re-runs it.
+      - name: Only nicholasSUSE can release
+        env:
+          ACTOR: ${{ github.triggering_actor }}
+        run: |
+          if [ "$ACTOR" != "nicholasSUSE" ]; then
+            echo "::error::this workflow writes the production registry and only runs for nicholasSUSE, not for $ACTOR"
+            exit 1
+          fi
+
+      # The production branch, with the credentials the checkout leaves: the last
+      # steps push a branch with them.
+      - name: Check out the production branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: production
+          persist-credentials: true # zizmor: ignore[artipacked] -- a later step pushes a branch
+
+      - name: Check out the staging branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: staging
+          path: .staging
+          persist-credentials: false
+
+      # The staging catalog does not let anonymous readers see anything, so the charts are read
+      # with its credentials, which cargueiro takes from CARGUEIRO_USERNAME and
+      # CARGUEIRO_PASSWORD. They are written to production with CARGUEIRO_PRODUCTION_USERNAME and
+      # CARGUEIRO_PRODUCTION_PASSWORD. Each pair is only sent to its own registry. A dry run reads
+      # no registry, so it needs none of them.
+      - name: Load the registry and App credentials from Vault
+        if: ${{ !inputs.dry_run }}
+        uses: rancher-eio/read-vault-secrets@7282bf97898cd1c16c89f837e0bb442e6d384c89 # main
+        with:
+          secrets: |
+            secret/data/github/repo/${{ github.repository }}/rancher-prime-stg-registry/credentials username | CARGUEIRO_USERNAME ;
+            secret/data/github/repo/${{ github.repository }}/rancher-prime-stg-registry/credentials password | CARGUEIRO_PASSWORD ;
+            secret/data/github/repo/${{ github.repository }}/rancher-prime-registry/credentials username | CARGUEIRO_PRODUCTION_USERNAME ;
+            secret/data/github/repo/${{ github.repository }}/rancher-prime-registry/credentials password | CARGUEIRO_PRODUCTION_PASSWORD ;
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials appId | APP_ID ;
+            secret/data/github/repo/${{ github.repository }}/github/app-credentials privateKey | PRIVATE_KEY
+
+      # install.sh checks the download against the checksums of the release.
+      - name: Install cargueiro
+        env:
+          CARGUEIRO_VERSION: ${{ inputs.cargueiro_version }}
+        run: curl -fsSL https://github.com/rancher/cargueiro/releases/latest/download/install.sh | sh -
+
+      - name: Release the new versions
+        id: release
+        env:
+          # The inputs are data, not trusted input: they go through the environment
+          # and the script checks them.
+          FAMILY: ${{ inputs.family }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          STAGING_DIR: ${{ github.workspace }}/.staging
+          REPORT_FILE: ${{ runner.temp }}/report.txt
+          RESULT_FILE: ${{ runner.temp }}/result.txt
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # The script is the one of the staging checkout: production has none.
+          "$STAGING_DIR/.github/scripts/chart-released.sh"
+          cat "$RESULT_FILE" >> "$GITHUB_OUTPUT"
+
+      # A pull request that GITHUB_TOKEN opens does not start the checks, so it is
+      # opened with the token of the App that auto-bump uses.
+      - name: Create the token that opens the pull request
+        if: steps.release.outputs.commits != '0'
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: pr-token
+        with:
+          app-id: ${{ env.APP_ID }}
+          private-key: ${{ env.PRIVATE_KEY }}
+
+      # The production branch only takes pull requests, so the result goes to a branch of its
+      # own. It is never overwritten: a re-run fails on the push while the branch of an earlier
+      # run is still there. The pull request is left open for someone to look at, and is not
+      # merged by this workflow.
+      - name: Open a pull request to the production branch
+        if: steps.release.outputs.commits != '0'
+        env:
+          GH_TOKEN: ${{ steps.pr-token.outputs.token }}
+          RUN_ID: ${{ github.run_id }}
+          FAMILY: ${{ inputs.family }}
+          REPORT_FILE: ${{ runner.temp }}/report.txt
+        run: |
+          branch="chart-released/${RUN_ID}"
+          title="[production] release the new versions${FAMILY:+ - $FAMILY}"
+          git push origin "HEAD:refs/heads/${branch}"
+          {
+            echo "Releases the new versions that staging has."
+            echo
+            echo "The images and the charts of these versions were copied from the staging registry to the production one by the run that made this pull request, with the manifests as they are, and not by merging it. This only adds their entries, their archives and the index."
+            echo
+            echo '```'
+            sed -n '/^released [0-9]* versions/,$p' "$REPORT_FILE"
+            echo '```'
+          } > "$RUNNER_TEMP/body.md"
+          gh pr create --base production --head "$branch" \
+            --title "$title" --body-file "$RUNNER_TEMP/body.md"
+
+      # What did not go through is a failure of the run, after the pull request with
+      # what did.
+      - name: Fail when a version did not go through
+        if: steps.release.outputs.status != '0'
+        env:
+          STATUS: ${{ steps.release.outputs.status }}
+        run: |
+          echo "::error::cargueiro release finished with status ${STATUS}: see the report above for the versions that failed or are in conflict"
+          exit 1

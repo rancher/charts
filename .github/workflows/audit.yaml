@@ -1,0 +1,48 @@
+name: Audit
+
+# Checks that the charts repository agrees with itself and with the staging
+# registry its versions are pulled from, on every pull request to the staging
+# branch: the url of each version, the manifest its tag names in the registry,
+# and the digest of its archive. It reads and writes nothing. A pull request
+# fails when any check does not pass, and the report says which and why.
+
+on:
+  pull_request:
+    branches: [staging]
+
+permissions: {}
+
+concurrency:
+  group: audit-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # to check out the pull request
+      id-token: write # to log in to Vault with the OIDC token
+    steps:
+      - name: Check out the pull request
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The staging catalog does not let anonymous readers see anything, so audit
+      # reads it with the registry credentials. cargueiro takes them from
+      # CARGUEIRO_USERNAME and CARGUEIRO_PASSWORD, and they are only sent to the
+      # registry it reads.
+      - name: Load the registry credentials from Vault
+        uses: rancher-eio/read-vault-secrets@7282bf97898cd1c16c89f837e0bb442e6d384c89 # main
+        with:
+          secrets: |
+            secret/data/github/repo/${{ github.repository }}/rancher-prime-stg-registry/credentials username | CARGUEIRO_USERNAME ;
+            secret/data/github/repo/${{ github.repository }}/rancher-prime-stg-registry/credentials password | CARGUEIRO_PASSWORD
+
+      # The latest release, as in chart-staged.yaml.
+      - name: Install cargueiro
+        run: curl -fsSL https://github.com/rancher/cargueiro/releases/latest/download/install.sh | sh -
+
+      - name: Audit the repository
+        run: cargueiro audit --repo .
