@@ -1,0 +1,110 @@
+name: Copy image signatures
+
+# Copies the signatures of images from the staging images registry to the production one,
+# with `cargueiro copy-image-signatures`. `cargueiro release` copies an image by the digest of
+# its manifest, and a signature is not part of that manifest, so an image that was released
+# before cargueiro copied signatures has none in registry.suse.com. This is the same copy that
+# charts-build-scripts did, with slsactl.
+#
+# THIS WRITES THE PRODUCTION REGISTRY, registry.suse.com, while it runs. It only adds the
+# signatures of an image that is already there, by their own digest: it copies no image and
+# replaces no tag, and it can run again. It only runs for nicholasSUSE (the first step), and
+# it is dry by default: a dry run reads both registries, says what would be copied for each
+# image, and writes nothing.
+#
+#   gh workflow run copy-image-signatures.yaml --repo rancher/charts --ref staging \
+#     -f images="rancher/fleet:v0.17.0 rancher/rancher-webhook:v0.12.1"
+#   ... -f images="..." -f dry_run=false
+#
+# Every image has to be in both registries with the same digest, or the run fails after the
+# others are done, naming it. It always installs the latest release of cargueiro, and stops
+# if that release does not have the command yet.
+
+on:
+  workflow_dispatch:
+    inputs:
+      images:
+        description: "The images, as repository:tag and separated by spaces, such as rancher/fleet:v0.17.0 rancher/rancher-webhook:v0.12.1"
+        required: true
+      dry_run:
+        description: "Only report what would be copied"
+        type: boolean
+        default: true
+
+permissions: {}
+
+# Every copy writes the same registry, so they wait for each other.
+concurrency:
+  group: copy-image-signatures
+  cancel-in-progress: false
+
+jobs:
+  copy:
+    name: Copy
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      id-token: write # to log in to Vault with the OIDC token
+    steps:
+      # Only the person who started the run can use it: anyone with write access can dispatch
+      # the workflow. This is the first step, so for anybody else the run stops here, red, before
+      # a secret is read. A re-run counts as the person who re-runs it.
+      - name: Only nicholasSUSE can copy
+        env:
+          ACTOR: ${{ github.triggering_actor }}
+        run: |
+          if [ "$ACTOR" != "nicholasSUSE" ]; then
+            echo "::error::this workflow writes the production registry and only runs for nicholasSUSE, not for $ACTOR"
+            exit 1
+          fi
+
+      # The images are data, not trusted input: they go through the environment and are checked
+      # here, before any secret is read.
+      - name: Check the images
+        id: images
+        env:
+          IMAGES: ${{ inputs.images }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          [[ "$DRY_RUN" == true || "$DRY_RUN" == false ]] || { echo "::error::dry_run must be true or false, not '$DRY_RUN'"; exit 1; }
+          read -r -a images <<< "$IMAGES"
+          [ "${#images[@]}" -gt 0 ] || { echo "::error::give at least one image"; exit 1; }
+          for image in "${images[@]}"; do
+            [[ "$image" =~ ^rancher/[a-z0-9][a-z0-9._/-]*:[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$ ]] ||
+              { echo "::error::'$image' is not an image of the form rancher/<name>:<tag>"; exit 1; }
+          done
+          echo "images=${images[*]}" >> "$GITHUB_OUTPUT"
+          echo "${#images[@]} images, dry run: $DRY_RUN"
+
+      # The staging credentials read the source and the production ones write the destination.
+      # Each pair is only sent to its own registry. A dry run loads them too, so that it shows
+      # they work before the real run.
+      - name: Load the registry credentials from Vault
+        uses: rancher-eio/read-vault-secrets@7282bf97898cd1c16c89f837e0bb442e6d384c89 # main
+        with:
+          secrets: |
+            secret/data/github/repo/${{ github.repository }}/rancher-prime-stg-registry/credentials username | CARGUEIRO_USERNAME ;
+            secret/data/github/repo/${{ github.repository }}/rancher-prime-stg-registry/credentials password | CARGUEIRO_PASSWORD ;
+            secret/data/github/repo/${{ github.repository }}/rancher-prime-registry/credentials username | CARGUEIRO_PRODUCTION_USERNAME ;
+            secret/data/github/repo/${{ github.repository }}/rancher-prime-registry/credentials password | CARGUEIRO_PRODUCTION_PASSWORD
+
+      # install.sh checks the download against the checksums of the release. There is no input
+      # to choose another release: it is always the latest.
+      - name: Install cargueiro
+        run: curl -fsSL https://github.com/rancher/cargueiro/releases/latest/download/install.sh | sh -
+
+      - name: Check that cargueiro has the command
+        run: |
+          cargueiro version
+          cargueiro copy-image-signatures --help > /dev/null 2>&1 ||
+            { echo "::error::this cargueiro ($(cargueiro version)) has no copy-image-signatures command: release a cargueiro that has it first"; exit 1; }
+
+      - name: Copy the signatures
+        env:
+          IMAGES: ${{ steps.images.outputs.images }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          read -r -a images <<< "$IMAGES"
+          args=()
+          [ "$DRY_RUN" = false ] || args+=(--dry-run)
+          cargueiro copy-image-signatures "${args[@]}" "${images[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
