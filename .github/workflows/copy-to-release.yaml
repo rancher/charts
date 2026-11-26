@@ -1,24 +1,24 @@
 name: Copy production to release-v2.16
 
-# The git mirror serves release-v2.16 and not production, so this workflow moves release-v2.16 to the head of production,
-# with the GitHub API and forced. release-v2.16 is a copy and nothing else: it
+# The git mirror serves release-v2.16 and not production, so after every merge to production this workflow moves
+# release-v2.16 to the head of production, with the GitHub API and forced. release-v2.16 is a copy and nothing else: it
 # has the files and the history of production, and nobody commits to it (the ruleset v2.16-aliases only lets the App and
 # the admins update it). It is what Rancher 2.16 reads its catalog from, so it is the twin of copy-to-dev.yaml.
 #
-# It starts as copy-to-dev.yaml does, on a push to staging. The production branch has no workflows, because customers see
-# it, so a push to production starts nothing: a merge to production is picked up by the next push to staging, or by an
-# admin by hand, and not at the moment it is merged. The head of production is read with the API when the workflow runs,
-# not taken from the event, and a run waits for the one before it. So a burst of pushes is one move or two, and an old
-# run never puts the branch back.
+# The production branch has no workflows, because customers see it, so a push to it starts nothing. This one is here, on
+# the staging branch, and starts on pull_request_target when a pull request to production is closed and was merged, as
+# audit-production.yaml does for the pull requests to it. It reads nothing of the pull request: the head of production is
+# read with the API when the workflow runs, not taken from the event, and a run waits for the one before it. So a burst of
+# merges is one move or two, and an old run never puts the branch back.
 #
 # The token is the one of the App rancher-charts-auto-approve (the secrets are the ones that bump-assets.yaml uses),
 # which is a bypass actor of the ruleset of the branch: GITHUB_TOKEN cannot bypass it.
 #
 # Run by hand, or run again, it only runs for an admin of the repository: the first step checks the role of the person
-# who started it and stops the run otherwise, before the token of the App is made. A push is not run by a person, it is
-# the result of a merge, so it is not checked: the merges of the bots would not copy.
+# who started it and stops the run otherwise, before the token of the App is made. A merge is not run by a person, so it
+# is not checked: the merges of the bots would not copy.
 #
-# A push only moves the branch once the repository variable COPY_TO_RELEASE is true. The first move replaces the history
+# A merge only moves the branch once the repository variable COPY_TO_RELEASE is true. The first move replaces the history
 # of release-v2.16 with the one of production, so it is done on purpose. By hand it runs for an admin, and it only says
 # what it would do unless dry_run is false:
 #
@@ -26,8 +26,9 @@ name: Copy production to release-v2.16
 #   gh workflow run copy-to-release.yaml --repo rancher/charts --ref staging -f dry_run=false
 
 on:
-  push:
-    branches: [staging]
+  pull_request_target: # zizmor: ignore[dangerous-triggers] -- nothing of the pull request is read or run, see above
+    types: [closed]
+    branches: [production]
   workflow_dispatch:
     inputs:
       dry_run:
@@ -50,7 +51,12 @@ env:
 jobs:
   copy:
     name: Copy
-    if: github.repository == 'rancher/charts' && (github.event_name == 'workflow_dispatch' || vars.COPY_TO_RELEASE == 'true')
+    # A pull request that was closed and not merged moves nothing.
+    if: >-
+      github.repository == 'rancher/charts' && (
+        github.event_name == 'workflow_dispatch' ||
+        (github.event.pull_request.merged == true && vars.COPY_TO_RELEASE == 'true')
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -82,7 +88,7 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.token.outputs.token }}
           REPO: ${{ github.repository }}
-          # A push has no inputs and is always for real; by hand it is a dry run unless asked otherwise.
+          # A merge has no inputs and is always for real; by hand it is a dry run unless asked otherwise.
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
         run: |
           source_sha=$(gh api "repos/${REPO}/git/ref/heads/${SOURCE_BRANCH}" --jq .object.sha)
