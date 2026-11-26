@@ -1,0 +1,93 @@
+name: Copy staging to dev-v2.16
+
+# The git mirror serves dev-v2.16 and not staging, so after every merge to staging this workflow moves dev-v2.16 to the
+# head of staging, with the GitHub API and forced. dev-v2.16 is a copy and nothing else: it has the files and the history
+# of staging, and nobody commits to it (the ruleset v2.16-aliases only lets the App and the admins update it).
+#
+# The branch is moved to the head of staging at the time the workflow runs, not to the commit that started it, and a run
+# waits for the one before it. So a burst of merges is one move or two, and an old run never puts the branch back.
+#
+# The token is the one of the App rancher-charts-auto-approve (the secrets are the ones that bump-assets.yaml uses),
+# which is a bypass actor of the ruleset of the branch: GITHUB_TOKEN cannot bypass it.
+#
+# A push only moves the branch once the repository variable COPY_TO_DEV is true. The first move replaces the history of
+# dev-v2.16 with the one of staging, so it is done on purpose, after the ruleset lets the App force-update the branch and
+# the git mirror takes a branch that was not fast-forwarded. By hand it always runs, and it only says what it would do
+# unless dry_run is false:
+#
+#   gh workflow run copy-to-dev.yaml --repo rancher/charts --ref staging
+#   gh workflow run copy-to-dev.yaml --repo rancher/charts --ref staging -f dry_run=false
+
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Only say what would be moved"
+        type: boolean
+        default: true
+
+permissions: {}
+
+# Every move writes the same branch, so they wait for each other. A run that is waiting is replaced by a newer one,
+# which is fine: each moves the branch to the head of staging when it starts.
+concurrency:
+  group: copy-to-dev
+  cancel-in-progress: false
+
+env:
+  SOURCE_BRANCH: staging
+  TARGET_BRANCH: dev-v2.16
+
+jobs:
+  copy:
+    name: Copy
+    if: github.repository == 'rancher/charts' && (github.event_name == 'workflow_dispatch' || vars.COPY_TO_DEV == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Create the token that moves the branch
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: token
+        with:
+          app-id: ${{ secrets.AUTO_APPROVE_APP_ID }}
+          private-key: ${{ secrets.AUTO_APPROVE_PRIVATE_KEY }}
+          permission-contents: write
+
+      - name: Move dev-v2.16 to the head of staging
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          REPO: ${{ github.repository }}
+          # A push has no inputs and is always for real; by hand it is a dry run unless asked otherwise.
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+        run: |
+          source_sha=$(gh api "repos/${REPO}/git/ref/heads/${SOURCE_BRANCH}" --jq .object.sha)
+          target_sha=$(gh api "repos/${REPO}/git/ref/heads/${TARGET_BRANCH}" --jq .object.sha)
+
+          {
+            echo "### Copy ${SOURCE_BRANCH} to ${TARGET_BRANCH}"
+            echo
+            echo "- ${SOURCE_BRANCH}: \`${source_sha}\`"
+            echo "- ${TARGET_BRANCH}: \`${target_sha}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$source_sha" = "$target_sha" ]; then
+            echo "Nothing to move: ${TARGET_BRANCH} is at the head of ${SOURCE_BRANCH}, ${source_sha}" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          if [ "$DRY_RUN" = true ]; then
+            echo "Dry run: ${TARGET_BRANCH} would move from ${target_sha} to ${source_sha}" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          gh api --method PATCH "repos/${REPO}/git/refs/heads/${TARGET_BRANCH}" -f sha="$source_sha" -F force=true --silent
+
+          # The API answers for the update it did, so the branch is read again before saying that it moved.
+          now=$(gh api "repos/${REPO}/git/ref/heads/${TARGET_BRANCH}" --jq .object.sha)
+          if [ "$now" != "$source_sha" ]; then
+            echo "::error::${TARGET_BRANCH} is at ${now} after the update, not at ${source_sha}"
+            exit 1
+          fi
+          echo "Moved ${TARGET_BRANCH} from ${target_sha} to ${source_sha}" | tee -a "$GITHUB_STEP_SUMMARY"
