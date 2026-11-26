@@ -37,13 +37,14 @@ fresh() { # the remote with the two branches, a seed to change them, and a clone
   echo "its own workflow" >"$DIR/seed/.github/old.yaml"
   echo "charts.example.invalid" >"$DIR/seed/CNAME"
   echo "exclude: [entries, legacy]" >"$DIR/seed/_config.yml"
-  echo "readme of the target" >"$DIR/seed/README"
+  echo "readme of the target" >"$DIR/seed/README.md"
+  echo "ignore of the target" >"$DIR/seed/.gitignore"
   git_in "$DIR/seed" add -A
   git_in "$DIR/seed" commit -q -m "old dev-v2.16"
   # staging: no history in common, as the real ones have little
   git_in "$DIR/seed" checkout -q --orphan staging
   git_in "$DIR/seed" rm -rq --cached .
-  rm -rf "$DIR/seed/assets" "$DIR/seed/.github" "$DIR/seed/CNAME" "$DIR/seed/_config.yml" "$DIR/seed/README"
+  rm -rf "$DIR/seed/assets" "$DIR/seed/.github" "$DIR/seed/CNAME" "$DIR/seed/_config.yml" "$DIR/seed/README.md" "$DIR/seed/.gitignore"
   mkdir -p "$DIR/seed/entries/fleet" "$DIR/seed/legacy/fleet" "$DIR/seed/assets/fleet" "$DIR/seed/assets/logos" \
     "$DIR/seed/docs" "$DIR/seed/.github/workflows" "$DIR/seed/.github/scripts"
   echo "version: 1" >"$DIR/seed/entries/fleet/1.yaml"
@@ -51,7 +52,8 @@ fresh() { # the remote with the two branches, a seed to change them, and a clone
   echo "entries: fleet" >"$DIR/seed/index.yaml"
   echo archive >"$DIR/seed/assets/fleet/fleet-1.tgz"
   echo logo >"$DIR/seed/assets/logos/fleet.png"
-  echo "readme of staging" >"$DIR/seed/README"
+  echo "readme of staging" >"$DIR/seed/README.md"
+  echo "ignore of staging" >"$DIR/seed/.gitignore"
   echo doc >"$DIR/seed/docs/d.md"
   echo "on: push" >"$DIR/seed/.github/workflows/x.yaml"
   echo "echo y" >"$DIR/seed/.github/scripts/y.sh"
@@ -79,12 +81,13 @@ res() { sed -n "s/^$1=//p" "$DIR/result"; } # a value of the result file
 copy() { res copy; }
 remote_head() { git_in "$DIR/remote.git" rev-parse "refs/heads/$1"; } # a branch of the remote, as GitHub has it
 list() { tr '\n' ' ' | sed 's/ $//'; } # the lines of the input, on one line
+sorted() { tr ' ' '\n' | sort | list; } # the words of the input, sorted, on one line
 files() { git_in "$DIR/work" ls-tree -r --name-only "$1" | sort | list; }
 remote_files() { git_in "$DIR/remote.git" ls-tree -r --name-only "$1" | sort | list; }
 expected() { # expected <target> <source>: the files that the default paths give, the ones of the target that are not in them, and the ones of the source that are
   {
-    git_in "$DIR/work" ls-tree -r --name-only "$1" | grep -v -E '^(index\.yaml$|assets/|entries/|legacy/)' || true
-    git_in "$DIR/work" ls-tree -r --name-only "$2" | grep -E '^(index\.yaml$|assets/|entries/|legacy/)' || true
+    git_in "$DIR/work" ls-tree -r --name-only "$1" | grep -v -E '^(index\.yaml$|assets/|entries/|legacy/|README\.md$|\.gitignore$)' || true
+    git_in "$DIR/work" ls-tree -r --name-only "$2" | grep -E '^(index\.yaml$|assets/|entries/|legacy/|README\.md$|\.gitignore$)' || true
   } | sort | list
 }
 adopt() { # the push of the copy, which is a fast-forward, and a fetch, as the clone sees it
@@ -101,13 +104,14 @@ check "a copy is made" "0" "$(run)"
 check "  the result says it was needed" "true" "$(res needed)"
 check "  and names the commit of the source" "$staging" "$(res source)"
 check "  the copy has the old dev-v2.16 as its only parent" "$old" "$(git_in "$DIR/work" rev-list --parents -n 1 "$(copy)" | cut -d' ' -f2-)"
-check "  it has the target's own files and the paths of the source" ".github/old.yaml CNAME README _config.yml assets/fleet/fleet-1.tgz assets/logos/fleet.png entries/fleet/1.yaml index.yaml legacy/fleet/0.yaml" "$(files "$(copy)")"
+check "  it has the target's own files and the paths of the source" "$(echo ".github/old.yaml CNAME _config.yml .gitignore README.md assets/fleet/fleet-1.tgz assets/logos/fleet.png entries/fleet/1.yaml index.yaml legacy/fleet/0.yaml" | sorted)" "$(files "$(copy)")"
 check "  which is what the paths give" "$(expected refs/remotes/origin/dev-v2.16 refs/remotes/origin/staging)" "$(files "$(copy)")"
 mine=""
-for f in README CNAME _config.yml .github/old.yaml; do
+for f in CNAME _config.yml .github/old.yaml; do
   if [ "$(git_in "$DIR/work" rev-parse "$(copy):$f")" = "$(git_in "$DIR/work" rev-parse "$old:$f")" ]; then mine="$mine $f"; fi
 done
-check "  the files of the target that are not in the paths are the same blobs" " README CNAME _config.yml .github/old.yaml" "$mine"
+check "  the files of the target that are not in the paths are the same blobs" " CNAME _config.yml .github/old.yaml" "$mine"
+check "  and the README and .gitignore are the ones of staging" "readme of staging:ignore of staging" "$(git_in "$DIR/work" show "$(copy):README.md"):$(git_in "$DIR/work" show "$(copy):.gitignore")"
 check "  nothing of staging outside the paths is copied" "0" "$(git_in "$DIR/work" ls-tree -r --name-only "$(copy)" | grep -c -E '^(docs/|\.github/(workflows|scripts)/)' || true)"
 check "  the old catalog of the target is replaced" "0" "$(git_in "$DIR/work" ls-tree -r --name-only "$(copy)" | grep -c '^assets/old.tgz' || true)"
 check "  the message says what was copied" "Copy staging at $staging" "$(git_in "$DIR/work" log -1 --format=%s "$(copy)")"
@@ -121,9 +125,14 @@ check "  the result says so" "false" "$(res needed)"
 check "  and has no commit" "" "$(copy)"
 check "  and the output says why" "1" "$(grep -c '^nothing to copy' "$DIR/out")"
 
-stage "changes outside the paths" 'echo changed >README; echo changed >docs/d.md; echo "on: pull_request" >.github/workflows/x.yaml; echo new >.github/scripts/z.sh'
+stage "changes outside the paths" 'echo changed >docs/d.md; echo "on: pull_request" >.github/workflows/x.yaml; echo new >.github/scripts/z.sh'
 check "a change that is outside the paths needs no copy" "0" "$(run)"
 check "  the result says so" "false" "$(res needed)"
+
+stage "a changed README" 'echo "a new line" >>README.md'
+check "a change of the README is copied" "0" "$(run)"
+check "  and is the only change" "M	README.md" "$(git_in "$DIR/work" diff --name-status refs/remotes/origin/dev-v2.16 "$(copy)")"
+adopt
 
 stage "a new entry" 'echo "version: 2" >entries/fleet/2.yaml'
 check "a change in the entries is copied" "0" "$(run)"
@@ -139,14 +148,15 @@ stage "no legacy any more" 'git rm -rq legacy'
 check "a folder in the paths that staging does not have any more is removed" "D	legacy/fleet/0.yaml" "$(run >/dev/null; git_in "$DIR/work" diff --name-status refs/remotes/origin/dev-v2.16 "$(copy)")"
 adopt
 
-stage "a deleted file outside the paths" 'git rm -q README'
+stage "a deleted file outside the paths" 'git rm -q docs/d.md'
 check "a file outside the paths that staging deletes is not deleted by the copy" "false" "$(run >/dev/null; res needed)"
 
 fresh
 check "other paths can be given" "0" "$(run 'INCLUDE=index.yaml entries')"
-check "  only those are copied, and the rest of the target stays" ".github/old.yaml CNAME README _config.yml assets/old.tgz entries/fleet/1.yaml index.yaml" "$(files "$(copy)")"
+check "  only those are copied, and the rest of the target stays" "$(echo ".github/old.yaml CNAME _config.yml .gitignore README.md assets/old.tgz entries/fleet/1.yaml index.yaml" | sorted)" "$(files "$(copy)")"
+check "  so the README of the target is its own" "readme of the target" "$(git_in "$DIR/work" show "$(copy):README.md")"
 check "a path inside a folder can be given alone" "0" "$(run INCLUDE=assets/logos)"
-check "  and the rest of the folder stays as the target has it" ".github/old.yaml CNAME README _config.yml assets/logos/fleet.png assets/old.tgz" "$(files "$(copy)")"
+check "  and the rest of the folder stays as the target has it" "$(echo ".github/old.yaml CNAME _config.yml .gitignore README.md assets/logos/fleet.png assets/old.tgz" | sorted)" "$(files "$(copy)")"
 check "a file can be given alone" "0" "$(run INCLUDE=index.yaml)"
 check "  and is the only change" "A	index.yaml" "$(git_in "$DIR/work" diff --name-status refs/remotes/origin/dev-v2.16 "$(copy)")"
 check "a path that neither branch has is not an error" "0" "$(run INCLUDE=nothing)"

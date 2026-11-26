@@ -22,7 +22,8 @@
 #   SOURCE_BRANCH  the branch that is copied (default staging)
 #   TARGET_BRANCH  the branch that gets the copy (default dev-v2.16)
 #   REMOTE         the remote they were fetched from (default origin)
-#   INCLUDE        the paths that are copied, separated by spaces: files or folders (default index.yaml assets entries legacy)
+#   INCLUDE        the paths that are copied, separated by spaces: files or folders
+#                  (default index.yaml assets entries legacy README.md .gitignore)
 #   DRY_RUN        true to make the commit and push nothing, false to push it (default false)
 #   RESULT_FILE    optional: gets needed=true|false, source=<commit of the source>, copy=<the new commit, or empty>
 #                  and pushed=true|false
@@ -38,7 +39,7 @@ fail() {
 SOURCE_BRANCH=${SOURCE_BRANCH:-staging}
 TARGET_BRANCH=${TARGET_BRANCH:-dev-v2.16}
 REMOTE=${REMOTE:-origin}
-INCLUDE=${INCLUDE:-index.yaml assets entries legacy}
+INCLUDE=${INCLUDE:-index.yaml assets entries legacy README.md .gitignore}
 DRY_RUN=${DRY_RUN:-false}
 RESULT_FILE=${RESULT_FILE:-/dev/null}
 
