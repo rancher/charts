@@ -1,0 +1,116 @@
+name: Copy production to release-v2.16
+
+# The git mirror serves release-v2.16 and not production, so this workflow moves release-v2.16 to the head of production,
+# with the GitHub API and forced. release-v2.16 is a copy and nothing else: it
+# has the files and the history of production, and nobody commits to it (the ruleset v2.16-aliases only lets the App and
+# the admins update it). It is what Rancher 2.16 reads its catalog from, so it is the twin of copy-to-dev.yaml.
+#
+# It starts as copy-to-dev.yaml does, on a push to staging. The production branch has no workflows, because customers see
+# it, so a push to production starts nothing: a merge to production is picked up by the next push to staging, or by an
+# admin by hand, and not at the moment it is merged. The head of production is read with the API when the workflow runs,
+# not taken from the event, and a run waits for the one before it. So a burst of pushes is one move or two, and an old
+# run never puts the branch back.
+#
+# The token is the one of the App rancher-charts-auto-approve (the secrets are the ones that bump-assets.yaml uses),
+# which is a bypass actor of the ruleset of the branch: GITHUB_TOKEN cannot bypass it.
+#
+# Run by hand, or run again, it only runs for an admin of the repository: the first step checks the role of the person
+# who started it and stops the run otherwise, before the token of the App is made. A push is not run by a person, it is
+# the result of a merge, so it is not checked: the merges of the bots would not copy.
+#
+# A push only moves the branch once the repository variable COPY_TO_RELEASE is true. The first move replaces the history
+# of release-v2.16 with the one of production, so it is done on purpose. By hand it runs for an admin, and it only says
+# what it would do unless dry_run is false:
+#
+#   gh workflow run copy-to-release.yaml --repo rancher/charts --ref staging
+#   gh workflow run copy-to-release.yaml --repo rancher/charts --ref staging -f dry_run=false
+
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Only say what would be moved"
+        type: boolean
+        default: true
+
+permissions: {}
+
+# Every move writes the same branch, so they wait for each other. A run that is waiting is replaced by a newer one,
+# which is fine: each moves the branch to the head of production when it starts.
+concurrency:
+  group: copy-to-release
+  cancel-in-progress: false
+
+env:
+  SOURCE_BRANCH: production
+  TARGET_BRANCH: release-v2.16
+
+jobs:
+  copy:
+    name: Copy
+    if: github.repository == 'rancher/charts' && (github.event_name == 'workflow_dispatch' || vars.COPY_TO_RELEASE == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # triggering_actor is who started this run, which is who ran it again when it is a re-run. A failure to read the role
+      # stops the run too: nothing goes on unless the role is admin.
+      - name: Only an admin can run it by hand
+        if: github.event_name == 'workflow_dispatch' || github.run_attempt > 1
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ACTOR: ${{ github.triggering_actor }}
+        run: |
+          role=$(gh api "repos/${REPO}/collaborators/${ACTOR}/permission" --jq .role_name)
+          if [ "$role" != admin ]; then
+            echo "::error::this workflow moves release-v2.16 and only runs by hand for an admin of the repository, and ${ACTOR} is '${role}'"
+            exit 1
+          fi
+          echo "${ACTOR} is an admin of ${REPO}"
+
+      - name: Create the token that moves the branch
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: token
+        with:
+          app-id: ${{ secrets.AUTO_APPROVE_APP_ID }}
+          private-key: ${{ secrets.AUTO_APPROVE_PRIVATE_KEY }}
+          permission-contents: write
+
+      - name: Move release-v2.16 to the head of production
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          REPO: ${{ github.repository }}
+          # A push has no inputs and is always for real; by hand it is a dry run unless asked otherwise.
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+        run: |
+          source_sha=$(gh api "repos/${REPO}/git/ref/heads/${SOURCE_BRANCH}" --jq .object.sha)
+          target_sha=$(gh api "repos/${REPO}/git/ref/heads/${TARGET_BRANCH}" --jq .object.sha)
+
+          {
+            echo "### Copy ${SOURCE_BRANCH} to ${TARGET_BRANCH}"
+            echo
+            echo "- ${SOURCE_BRANCH}: \`${source_sha}\`"
+            echo "- ${TARGET_BRANCH}: \`${target_sha}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$source_sha" = "$target_sha" ]; then
+            echo "Nothing to move: ${TARGET_BRANCH} is at the head of ${SOURCE_BRANCH}, ${source_sha}" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          if [ "$DRY_RUN" = true ]; then
+            echo "Dry run: ${TARGET_BRANCH} would move from ${target_sha} to ${source_sha}" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          gh api --method PATCH "repos/${REPO}/git/refs/heads/${TARGET_BRANCH}" -f sha="$source_sha" -F force=true --silent
+
+          # The API answers for the update it did, so the branch is read again before saying that it moved.
+          now=$(gh api "repos/${REPO}/git/ref/heads/${TARGET_BRANCH}" --jq .object.sha)
+          if [ "$now" != "$source_sha" ]; then
+            echo "::error::${TARGET_BRANCH} is at ${now} after the update, not at ${source_sha}"
+            exit 1
+          fi
+          echo "Moved ${TARGET_BRANCH} from ${target_sha} to ${source_sha}" | tee -a "$GITHUB_STEP_SUMMARY"
