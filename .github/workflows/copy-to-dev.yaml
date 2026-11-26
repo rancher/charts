@@ -1,12 +1,14 @@
 name: Copy staging to dev-v2.16
 
-# The git mirror serves dev-v2.16 and not staging, so after every merge to staging this workflow copies it to
-# dev-v2.16, in one commit without the .github folder, with .github/scripts/copy-to-dev.sh. The commit is pushed
-# on top of dev-v2.16, never forced, so a branch that someone else moved is refused and the next run copies again.
+# The git mirror serves dev-v2.16 and not staging, so after every merge to staging this workflow copies the catalog
+# to dev-v2.16, in one commit, with .github/scripts/copy-to-dev.sh. Only the paths of the catalog are copied (INCLUDE
+# below): the rest of dev-v2.16, which is whatever the copy made by hand left there and what is added later, stays as
+# it is. The commit is pushed on top of dev-v2.16, never forced, so a branch that someone else moved is refused and
+# the next run copies again.
 #
 # It copies the head of staging at the time it runs, not the commit that started it, and a run waits for the one
-# before it, so a burst of merges is one copy or two and never a race. A merge that only changes .github has
-# nothing to copy and pushes nothing.
+# before it, so a burst of merges is one copy or two and never a race. A merge that changes nothing of the catalog
+# has nothing to copy and pushes nothing.
 #
 # The push is made with the token of the GitHub App that chart-released.yaml uses to open its pull requests, which
 # is what the rules of dev-v2.16 must allow: GITHUB_TOKEN cannot bypass them. What this workflow starts later is not
@@ -38,6 +40,8 @@ concurrency:
 env:
   SOURCE_BRANCH: staging
   TARGET_BRANCH: dev-v2.16
+  # What is copied: the index, the archives and logos, the new versions and the legacy ones (if the branch has them).
+  INCLUDE: index.yaml assets entries legacy
 
 jobs:
   copy:
