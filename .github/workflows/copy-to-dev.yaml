@@ -102,12 +102,24 @@ jobs:
             exit 0
           fi
 
-          gh api --method PATCH "repos/${REPO}/git/refs/heads/${TARGET_BRANCH}" -f sha="$source_sha" -F force=true --silent
+          # The answer of the update is the ref as it is after it.
+          updated=$(gh api --method PATCH "repos/${REPO}/git/refs/heads/${TARGET_BRANCH}" -f sha="$source_sha" -F force=true --jq .object.sha)
+          if [ "$updated" != "$source_sha" ]; then
+            echo "::error::the update of ${TARGET_BRANCH} answered ${updated}, not ${source_sha}"
+            exit 1
+          fi
 
-          # The API answers for the update it did, so the branch is read again before saying that it moved.
-          now=$(gh api "repos/${REPO}/git/ref/heads/${TARGET_BRANCH}" --jq .object.sha)
+          # The branch is read again before saying that it moved. A read right after an update can still answer the old
+          # commit, so it is tried a few times before it counts as a failure.
+          now=""
+          for attempt in 1 2 3 4 5; do
+            now=$(gh api "repos/${REPO}/git/ref/heads/${TARGET_BRANCH}" --jq .object.sha)
+            [ "$now" = "$source_sha" ] && break
+            echo "Read ${attempt}: ${TARGET_BRANCH} is at ${now}, not at ${source_sha} yet"
+            sleep 3
+          done
           if [ "$now" != "$source_sha" ]; then
-            echo "::error::${TARGET_BRANCH} is at ${now} after the update, not at ${source_sha}"
+            echo "::error::${TARGET_BRANCH} is at ${now} after the update and 5 reads, not at ${source_sha}"
             exit 1
           fi
           echo "Moved ${TARGET_BRANCH} from ${target_sha} to ${source_sha}" | tee -a "$GITHUB_STEP_SUMMARY"
