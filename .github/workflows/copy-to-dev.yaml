@@ -10,6 +10,10 @@ name: Copy staging to dev-v2.16
 # The token is the one of the App rancher-charts-auto-approve (the secrets are the ones that bump-assets.yaml uses),
 # which is a bypass actor of the ruleset of the branch: GITHUB_TOKEN cannot bypass it.
 #
+# Run by hand, or run again, it only runs for an admin of the repository: the first step checks the role of the person
+# who started it and stops the run otherwise, before the token of the App is made. A push is not run by a person, it is
+# the result of a merge, so it is not checked: the merges of the bots would not copy.
+#
 # A push only moves the branch once the repository variable COPY_TO_DEV is true. The first move replaces the history of
 # dev-v2.16 with the one of staging, so it is done on purpose, after the ruleset lets the App force-update the branch and
 # the git mirror takes a branch that was not fast-forwarded. By hand it always runs, and it only says what it would do
@@ -47,6 +51,22 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      # triggering_actor is who started this run, which is who ran it again when it is a re-run. A failure to read the role
+      # stops the run too: nothing goes on unless the role is admin.
+      - name: Only an admin can run it by hand
+        if: github.event_name == 'workflow_dispatch' || github.run_attempt > 1
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ACTOR: ${{ github.triggering_actor }}
+        run: |
+          role=$(gh api "repos/${REPO}/collaborators/${ACTOR}/permission" --jq .role_name)
+          if [ "$role" != admin ]; then
+            echo "::error::this workflow moves dev-v2.16 and only runs by hand for an admin of the repository, and ${ACTOR} is '${role}'"
+            exit 1
+          fi
+          echo "${ACTOR} is an admin of ${REPO}"
+
       - name: Create the token that moves the branch
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         id: token
