@@ -14,6 +14,10 @@ name: Copy staging to dev-v2.16
 # is what the rules of dev-v2.16 must allow: GITHUB_TOKEN cannot bypass them. What this workflow starts later is not
 # decided by a push to dev-v2.16 but by bump-assets.yaml, from staging.
 #
+# A push only copies once the repository variable COPY_TO_DEV is true. It is set after the copy by hand of staging
+# to dev-v2.16 has been merged and the App can push there: the script never removes a file that is outside its paths,
+# so a first run on the old catalog of dev-v2.16 would only add to it. By hand it always runs.
+#
 # By hand, it only says what it would push unless dry_run is false:
 #
 #   gh workflow run copy-to-dev.yaml --repo rancher/charts --ref staging
@@ -47,7 +51,7 @@ env:
 jobs:
   copy:
     name: Copy
-    if: github.repository == 'rancher/charts'
+    if: github.repository == 'rancher/charts' && (github.event_name == 'workflow_dispatch' || vars.COPY_TO_DEV == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
