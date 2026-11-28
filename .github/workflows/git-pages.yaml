@@ -1,0 +1,53 @@
+name: Git-Pages
+
+# GitHub Pages publishes this branch by itself, with its own build, every time it changes:
+# the domain is in CNAME, and _config.yml keeps entries/ and legacy/ out of the site. This
+# workflow only checks the result. After a pull request is merged it waits for the build,
+# and then compares the index.yaml that charts.rancher.io serves with the one of the
+# branch. When they differ, it tells Slack.
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - production
+
+permissions:
+  contents: read
+
+jobs:
+  git-pages:
+    name: Check charts.rancher.io index.yaml
+    # A pull request that was closed without a merge changes nothing to compare.
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout base branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          persist-credentials: false
+
+      - name: Wait for GitHub Pages update
+        run: sleep 600 # GitHub Pages takes some minutes to build and publish
+
+      - name: Check charts.rancher.io index.yaml
+        run: |
+          curl -fsS --retry 5 --retry-delay 10 https://charts.rancher.io/index.yaml -o "$RUNNER_TEMP/live-index.yaml"
+          if ! cmp -s index.yaml "$RUNNER_TEMP/live-index.yaml"; then
+            echo "::error::charts.rancher.io/index.yaml is not the index.yaml of the production branch"
+            diff <(head -c 4000 index.yaml) <(head -c 4000 "$RUNNER_TEMP/live-index.yaml") | head -20 || true
+            exit 1
+          fi
+          echo "charts.rancher.io/index.yaml is the index.yaml of the production branch"
+
+      - name: Notify Slack on Failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data "{
+            \"data\": \"charts.rancher.io/index.yaml is not up-to-date with github.com/rancher/charts/index.yaml\nPull Request: ${PR_URL}\nBranch: ${BASE_REF}\"
+          }" "$SLACK_WEBHOOK_URL"
